@@ -6,6 +6,7 @@ Plugin Manager
 Created by Holger Kreuzhofen
 """
 
+import importlib
 import json
 from pathlib import Path
 
@@ -40,3 +41,14 @@ class PluginManager:
                 print(e)
 
         return plugins
+
+    def load_plugin(self, plugin_name: str):
+        """
+        Lädt eine Plugin-Instanz.
+        """
+
+        module = importlib.import_module(
+            f"plugins.{plugin_name}.plugin"
+        )
+
+        return module.Plugin()
