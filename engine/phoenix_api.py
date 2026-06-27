@@ -7,7 +7,7 @@ Created by Holger Kreuzhofen
 Phoenix Engine
 """
 
-from plugins.realesrgan.plugin import RealESRGANPlugin
+from engine.plugin_manager import PluginManager
 
 
 class PhoenixAPI:
@@ -19,7 +19,7 @@ class PhoenixAPI:
     """
 
     def __init__(self):
-        self.realesrgan = RealESRGANPlugin()
+        self.plugin_manager = PluginManager()
 
     def run(self, skill: str, **kwargs):
         """
@@ -27,6 +27,7 @@ class PhoenixAPI:
         """
 
         if skill == "image.upscale":
-            return self.realesrgan.execute(skill, **kwargs)
+            plugin = self.plugin_manager.load_plugin("realesrgan")
+            return plugin.execute(skill, **kwargs)
 
         raise ValueError(f"Unknown skill: {skill}")
