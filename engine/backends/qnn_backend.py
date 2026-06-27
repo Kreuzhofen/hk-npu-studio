@@ -37,6 +37,7 @@ class QNNBackend:
         self.model_path = self.base_path / "models" / "real_esrgan_x4plus.bin"
 
         self.result_raw = self.output_dir / "Result_0" / "upscaled_image.raw"
+        self.result_png = self.output_dir / "upscaled_image.png"
 
     def prepare_input(self, image_path):
         """
@@ -121,6 +122,18 @@ class QNNBackend:
         output = output.reshape(1, 512, 512, 3)
 
         return output
+
+    def save_output(self, output):
+        """
+        Speichert den QNN-Ausgabetensor als PNG-Datei.
+        """
+
+        image = output[0]
+        image = np.clip(image * 255, 0, 255).astype(np.uint8)
+
+        Image.fromarray(image).save(self.result_png)
+
+        return self.result_png
 
     def upscale(self, image_path):
         """
