@@ -1,21 +1,41 @@
+"""
+SnapdragonAI Studio
+
+Plugin Manager
+
+Created by Holger Kreuzhofen
+"""
+
 import json
 from pathlib import Path
 
+from engine.plugin_info import PluginInfo
+
 
 class PluginManager:
+
     def __init__(self):
         self.plugin_folder = Path("plugins")
 
     def scan(self):
-        plugins = []
+
+        plugins: list[PluginInfo] = []
 
         if not self.plugin_folder.exists():
             return plugins
 
         for plugin_json in self.plugin_folder.glob("*/plugin.json"):
+
             try:
+
                 with open(plugin_json, "r", encoding="utf-8") as f:
-                    plugins.append(json.load(f))
+
+                    data = json.load(f)
+
+                plugins.append(
+                    PluginInfo.from_json(data)
+                )
+
             except Exception as e:
                 print(e)
 
