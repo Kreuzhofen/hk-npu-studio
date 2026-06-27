@@ -1,113 +1,37 @@
+"""
+SnapdragonAI Studio
+
+RealESRGAN Plugin
+
+Created by Holger Kreuzhofen
+Phoenix Plugin
+"""
+
 from pathlib import Path
-import math
-import time
-from PIL import Image
-from config import OUTPUT_DIR, TEMP_DIR, REALESRGAN_MODEL, TILE_SIZE, SCALE
-from modules.preprocess import tile_to_raw
-from modules.qnn import run_qnn_context
-from modules.postprocess import raw_tile_to_image
 
-class Plugin:
-    id = "realesrgan_qnn"
-    name = "RealESRGAN x4 Plus"
-    category = "Upscaler"
-    engine = "QNN / Snapdragon NPU"
-    icon = "🖼"
-    description = "4x Tile-Upscaling über Qualcomm QNN Context Binary."
-    kind = "image_to_image"
+from engine.plugin_base import PluginBase
 
-    @property
-    def available(self):
-        return REALESRGAN_MODEL.exists()
 
-    def status(self):
-        return "Installiert" if self.available else "Modell fehlt"
+class RealESRGANPlugin(PluginBase):
+    id = "realesrgan"
+    name = "RealESRGAN"
+    skills = ["image.upscale"]
 
-    def details(self):
-        return (
-            f"{self.name}\n\nKategorie: {self.category}\nEngine: {self.engine}\n"
-            f"Status: {self.status()}\nModell: {REALESRGAN_MODEL}\n\n{self.description}"
-        )
+    def execute(self, skill_name: str, **kwargs):
+        if not self.can_handle(skill_name):
+            raise ValueError(f"Skill not supported: {skill_name}")
 
-    def run(self, image_path: Path, log=None, progress=None, status=None, percent=None) -> Path:
-        return upscale_tiled(image_path, log=log, progress=progress, status=status, percent=percent)
+        input_path = Path(kwargs.get("input_path", ""))
 
-def pad_tile(tile: Image.Image):
-    original_w, original_h = tile.size
-    if original_w == TILE_SIZE and original_h == TILE_SIZE:
-        return tile, original_w, original_h
-    padded = Image.new("RGB", (TILE_SIZE, TILE_SIZE))
-    padded.paste(tile, (0, 0))
-    if original_w < TILE_SIZE:
-        right_strip = tile.crop((original_w - 1, 0, original_w, original_h))
-        for x in range(original_w, TILE_SIZE):
-            padded.paste(right_strip, (x, 0))
-    if original_h < TILE_SIZE:
-        bottom_strip = padded.crop((0, original_h - 1, TILE_SIZE, original_h))
-        for y in range(original_h, TILE_SIZE):
-            padded.paste(bottom_strip, (0, y))
-    return padded, original_w, original_h
+        if not input_path.exists():
+            raise FileNotFoundError(input_path)
 
-def run_tile(tile: Image.Image, work_dir: Path, tile_index: int) -> Image.Image:
-    tile_dir = work_dir / f"tile_{tile_index:05d}"
-    input_dir = tile_dir / "input"
-    output_dir = tile_dir / "output"
-    raw_input = input_dir / "image.raw"
-    input_list = input_dir / "input_list.txt"
-    tile_to_raw(tile, raw_input)
-    input_list.write_text(str(raw_input), encoding="utf-8")
-    run_qnn_context(REALESRGAN_MODEL, input_list, output_dir, log_level="error")
-    return raw_tile_to_image(output_dir / "Result_0" / "upscaled_image.raw")
-
-def upscale_tiled(image_path: Path, log=None, progress=None, status=None, percent=None) -> Path:
-    image_path = Path(image_path)
-    def _log(msg): log(msg) if log else print(msg)
-    def _progress(msg): progress(msg) if progress else None
-    def _status(msg): status(msg) if status else None
-    def _percent(value): percent(value) if percent else None
-
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    TEMP_DIR.mkdir(parents=True, exist_ok=True)
-    if not REALESRGAN_MODEL.exists():
-        raise FileNotFoundError(f"Modell fehlt: {REALESRGAN_MODEL}")
-
-    _status("Bild wird geladen...")
-    _log("Bild wird geladen...")
-    image = Image.open(image_path).convert("RGB")
-    width, height = image.size
-    tiles_x = math.ceil(width / TILE_SIZE)
-    tiles_y = math.ceil(height / TILE_SIZE)
-    total_tiles = tiles_x * tiles_y
-    _log(f"Original: {width} x {height}")
-    _log(f"Ausgabe:  {width*SCALE} x {height*SCALE}")
-    _log(f"Kacheln:  {tiles_x} x {tiles_y} = {total_tiles}")
-    work_dir = TEMP_DIR / f"realesrgan_tiles_{time.strftime('%Y%m%d_%H%M%S')}"
-    work_dir.mkdir(parents=True, exist_ok=True)
-    result = Image.new("RGB", (width*SCALE, height*SCALE))
-    tile_index = 0
-    for ty in range(tiles_y):
-        for tx in range(tiles_x):
-            tile_index += 1
-            current_percent = (tile_index - 1) / total_tiles * 100
-            _percent(current_percent)
-            _status("NPU-Upscaling läuft...")
-            _progress(f"{current_percent:.0f} %  ·  Kachel {tile_index}/{total_tiles}")
-            left = tx * TILE_SIZE
-            top = ty * TILE_SIZE
-            right = min(left + TILE_SIZE, width)
-            bottom = min(top + TILE_SIZE, height)
-            tile = image.crop((left, top, right, bottom))
-            padded_tile, tile_w, tile_h = pad_tile(tile)
-            _log(f"[{tile_index}/{total_tiles}] Kachel x={tx+1}/{tiles_x}, y={ty+1}/{tiles_y}")
-            upscaled_tile = run_tile(padded_tile, work_dir, tile_index)
-            upscaled_tile = upscaled_tile.crop((0, 0, tile_w*SCALE, tile_h*SCALE))
-            result.paste(upscaled_tile, (left*SCALE, top*SCALE))
-    _percent(98)
-    _status("PNG wird gespeichert...")
-    output_path = OUTPUT_DIR / f"{image_path.stem}_tile_upscaled_x4.png"
-    result.save(output_path)
-    _status("Fertig")
-    _percent(100)
-    _progress("100 %")
-    _log(f"Fertig: {output_path}")
-    return output_path
+        return {
+            "status": "prepared",
+            "plugin": self.name,
+            "skill": skill_name,
+            "input_path": str(input_path),
+            "message": "RealESRGAN Phoenix Plugin Runtime ist erreichbar."
+        }
+# Compatibility alias for the plugin loader
+Plugin = RealESRGANPlugin
