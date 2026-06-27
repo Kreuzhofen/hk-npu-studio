@@ -20,7 +20,12 @@ class JobManager:
 
     def __init__(self):
         self.adapter = PhoenixAdapter()
+
+        # Warteschlange
         self.jobs = deque()
+
+        # Abgeschlossene Jobs
+        self.history = []
 
     def add_job(self, skill: str, **kwargs) -> Job:
         """
@@ -29,6 +34,7 @@ class JobManager:
 
         job = Job(skill=skill, kwargs=kwargs)
         self.jobs.append(job)
+
         return job
 
     def has_jobs(self) -> bool:
@@ -53,7 +59,7 @@ class JobManager:
 
             result = self.adapter.run(
                 job.skill,
-                **job.kwargs
+                **job.kwargs,
             )
 
             job.finish(result)
@@ -62,4 +68,22 @@ class JobManager:
             job.fail(str(e))
             raise
 
+        finally:
+            # Jeder beendete Job wird gespeichert
+            self.history.append(job)
+
         return job
+
+    def get_history(self):
+        """
+        Liefert die Liste aller abgeschlossenen Jobs.
+        """
+
+        return list(self.history)
+
+    def clear_history(self):
+        """
+        Löscht die Job-Historie.
+        """
+
+        self.history.clear()
