@@ -137,9 +137,7 @@ class QNNBackend:
 
     def upscale(self, image_path):
         """
-        Führt später ein RealESRGAN-Upscaling aus.
-
-        Aktuell nur Platzhalter.
+        Führt ein RealESRGAN-Upscaling über die QNN-Pipeline aus.
         """
 
         image_path = Path(image_path)
@@ -147,8 +145,17 @@ class QNNBackend:
         if not image_path.exists():
             raise FileNotFoundError(image_path)
 
+        tensor = self.prepare_input(image_path)
+        files = self.write_raw_input(tensor)
+
+        self.execute_qnn(files["input_list"])
+
+        output = self.read_output()
+        result_png = self.save_output(output)
+
         return {
-            "status": "backend_ready",
+            "status": "success",
             "image": str(image_path),
+            "output": str(result_png),
             "backend": "QNN"
         }
