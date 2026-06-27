@@ -12,6 +12,7 @@ from engine.plugin_manager import PluginManager
 from engine.skill_registry import SkillRegistry
 from engine.skill_manager import SkillManager
 from engine.system_manager import SystemManager
+from engine.phoenix_api import PhoenixAPI
 
 
 class PhoenixCore:
@@ -24,8 +25,17 @@ class PhoenixCore:
         self.plugins = PluginManager()
         self.registry = SkillRegistry()
         self.skills = SkillManager()
+        self.api = PhoenixAPI()
+
         self.system = SystemManager(
             hardware=self.hardware,
             plugins=self.plugins,
             skills=self.skills,
         )
+
+    def run(self, skill: str, **kwargs):
+        """
+        Führt einen Skill über die PhoenixAPI aus.
+        """
+
+        return self.api.run(skill, **kwargs)
