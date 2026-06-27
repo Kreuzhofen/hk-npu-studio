@@ -36,6 +36,8 @@ class QNNBackend:
         )
         self.model_path = self.base_path / "models" / "real_esrgan_x4plus.bin"
 
+        self.result_raw = self.output_dir / "Result_0" / "upscaled_image.raw"
+
     def prepare_input(self, image_path):
         """
         Bereitet ein Bild für das QNN-RealESRGAN-Modell vor.
@@ -106,6 +108,19 @@ class QNNBackend:
             "status": "qnn_executed",
             "output_dir": self.output_dir,
         }
+
+    def read_output(self):
+        """
+        Liest die von qnn-net-run erzeugte RAW-Ausgabedatei ein.
+        """
+
+        if not self.result_raw.exists():
+            raise FileNotFoundError(self.result_raw)
+
+        output = np.fromfile(self.result_raw, dtype=np.float32)
+        output = output.reshape(1, 512, 512, 3)
+
+        return output
 
     def upscale(self, image_path):
         """
