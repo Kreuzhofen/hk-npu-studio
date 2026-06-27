@@ -1,7 +1,7 @@
 """
 SnapdragonAI Studio
 
-Dashboard Page
+Live Dashboard Page
 
 Created by Holger Kreuzhofen
 Phoenix Architecture
@@ -9,7 +9,7 @@ Phoenix Architecture
 
 import tkinter as tk
 
-from engine.hardware_manager import HardwareManager
+from engine.phoenix_core import PhoenixCore
 
 
 BG = "#101418"
@@ -23,14 +23,12 @@ WARNING = "#f59e0b"
 class DashboardPage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG)
-
-        self.hardware = HardwareManager()
-        self.info = self.hardware.get_system_info()
-
+        self.core = PhoenixCore()
+        self.status = self.core.system.get_status()
         self.build()
 
-    def card(self, parent, title, lines, status=None, color=GREEN):
-        box = tk.Frame(parent, bg=PANEL)
+    def card(self, title, lines, status=None, color=GREEN):
+        box = tk.Frame(self, bg=PANEL)
         box.pack(fill="x", padx=24, pady=10)
 
         tk.Label(
@@ -60,9 +58,14 @@ class DashboardPage(tk.Frame):
             ).pack(anchor="w", padx=18, pady=(8, 16))
 
     def build(self):
+        hardware = self.status["hardware"]
+
+        qnn_status = "🟢 QNN bereit" if self.status["qnn_available"] else "🟡 QNN nicht gefunden"
+        arm_status = "🟢 ARM64 erkannt" if self.status["is_arm64"] else "🟡 Nicht ARM64"
+
         tk.Label(
             self,
-            text="Willkommen zurück, Holger 👋",
+            text="Phoenix Mission Control",
             bg=BG,
             fg=TEXT,
             font=("Segoe UI", 24, "bold"),
@@ -70,31 +73,38 @@ class DashboardPage(tk.Frame):
 
         tk.Label(
             self,
-            text="SnapdragonAI Studio Phoenix Preview",
+            text=f'{self.status["app_name"]} v{self.status["version"]} "{self.status["codename"]}" · Created by {self.status["author"]}',
             bg=BG,
             fg=MUTED,
             font=("Segoe UI", 11),
         ).pack(anchor="w", padx=24, pady=(0, 18))
 
-        arm_status = "🟢 ARM64 erkannt" if self.info["is_arm64"] else "🟡 Nicht ARM64"
-        qnn_status = "🟢 QNN bereit" if self.info["qnn_available"] else "🟡 QNN nicht gefunden"
-
         self.card(
-            self,
-            "💻 System",
+            "🧠 Phoenix Engine",
             [
-                f"Windows: {self.info['windows']}",
-                f"Architektur: {self.info['machine']}",
-                f"Prozessor: {self.info['processor']}",
-                f"Python: {self.info['python']}",
-                f"RAM: {self.info['ram_gb']} GB",
+                "Status: Online",
+                f"Plugins geladen: {self.status['plugin_count']}",
+                f"Skills verfügbar: {self.status['skill_count']}",
+                f"Skills: {', '.join(self.status['skills']) if self.status['skills'] else 'Keine'}",
             ],
-            arm_status,
-            GREEN if self.info["is_arm64"] else WARNING,
+            "🟢 Engine bereit",
+            GREEN,
         )
 
         self.card(
-            self,
+            "💻 System",
+            [
+                f"Windows: {hardware['windows']}",
+                f"Architektur: {hardware['machine']}",
+                f"Prozessor: {hardware['processor']}",
+                f"Python: {hardware['python']}",
+                f"RAM: {hardware['ram_gb']} GB",
+            ],
+            arm_status,
+            GREEN if self.status["is_arm64"] else WARNING,
+        )
+
+        self.card(
             "⚡ Snapdragon / QNN",
             [
                 "Qualcomm AI Stack wird geprüft",
@@ -102,23 +112,10 @@ class DashboardPage(tk.Frame):
                 "NPU-Ziel: Snapdragon X",
             ],
             qnn_status,
-            GREEN if self.info["qnn_available"] else WARNING,
+            GREEN if self.status["qnn_available"] else WARNING,
         )
 
         self.card(
-            self,
-            "📦 AI Library",
-            [
-                "Modelle, Plugins, Workflows und spätere Downloads",
-                "RealESRGAN als erstes NPU-Modul vorhanden",
-                "AI Generate vorbereitet",
-            ],
-            "🟡 Im Aufbau",
-            WARNING,
-        )
-
-        self.card(
-            self,
             "🚀 Quick Actions",
             [
                 "Generate",
@@ -127,6 +124,6 @@ class DashboardPage(tk.Frame):
                 "Whisper",
                 "Chat",
             ],
-            "🟡 Phoenix Preview",
+            "🟡 In Vorbereitung",
             WARNING,
         )

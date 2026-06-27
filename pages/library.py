@@ -18,7 +18,6 @@ TEXT = "#e8edf2"
 MUTED = "#9aa7b2"
 GREEN = "#22c55e"
 WARNING = "#f59e0b"
-ACCENT = "#3b82f6"
 
 
 class LibraryPage(tk.Frame):
@@ -31,18 +30,12 @@ class LibraryPage(tk.Frame):
         self.build()
 
     def card(self, parent, plugin):
-        name = plugin.get("name", "Unbekanntes Plugin")
-        version = plugin.get("version", "Unbekannt")
-        author = plugin.get("author", "Unbekannt")
-        backend = plugin.get("backend", "Unbekannt")
-        skills = plugin.get("skills", [])
-
         box = tk.Frame(parent, bg=PANEL)
         box.pack(fill="x", padx=24, pady=10)
 
         tk.Label(
             box,
-            text=f"🧩 {name}",
+            text=f"🧩 {plugin.name}",
             bg=PANEL,
             fg=TEXT,
             font=("Segoe UI", 15, "bold"),
@@ -51,10 +44,10 @@ class LibraryPage(tk.Frame):
         tk.Label(
             box,
             text=(
-                f"Version: {version}\n"
-                f"Backend: {backend}\n"
-                f"Autor: {author}\n"
-                f"Skills: {', '.join(skills) if skills else 'Keine'}"
+                f"Version: {plugin.version}\n"
+                f"Backend: {plugin.backend}\n"
+                f"Autor: {plugin.author}\n"
+                f"Skills: {', '.join(plugin.skills) if plugin.skills else 'Keine'}"
             ),
             bg=PANEL,
             fg=MUTED,
