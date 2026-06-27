@@ -38,6 +38,27 @@ class QNNBackend:
 
         return arr
 
+    def write_raw_input(self, tensor):
+        """
+        Schreibt den vorbereiteten Tensor als RAW-Datei und erzeugt
+        die input_list.txt für qnn-net-run.
+        """
+
+        raw_input = self.input_dir / "image.raw"
+        input_list = self.input_dir / "input_list.txt"
+
+        self.input_dir.mkdir(parents=True, exist_ok=True)
+
+        tensor.tofile(raw_input)
+
+        with input_list.open("w", encoding="utf-8") as f:
+            f.write(str(raw_input))
+
+        return {
+            "raw_input": raw_input,
+            "input_list": input_list,
+        }
+
     def upscale(self, image_path):
         """
         Führt später ein RealESRGAN-Upscaling aus.
