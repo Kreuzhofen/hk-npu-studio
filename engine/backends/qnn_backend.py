@@ -27,21 +27,16 @@ class QNNBackend:
 
     def prepare_input(self, image_path):
         """
-        Bereitet ein Bild für das QNN-Modell vor.
+        Bereitet ein Bild für das QNN-RealESRGAN-Modell vor.
         """
 
         image = Image.open(image_path).convert("RGB")
+        image = image.resize((128, 128))
 
-        image = np.asarray(image).astype(np.float32)
-        image /= 255.0
+        arr = np.asarray(image).astype(np.float32) / 255.0
+        arr = arr.reshape(1, 128, 128, 3)
 
-        # HWC -> CHW
-        image = np.transpose(image, (2, 0, 1))
-
-        # CHW -> NCHW
-        image = np.expand_dims(image, axis=0)
-
-        return image
+        return arr
 
     def upscale(self, image_path):
         """
