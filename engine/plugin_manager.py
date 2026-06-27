@@ -52,3 +52,15 @@ class PluginManager:
         )
 
         return module.Plugin()
+
+    def get_plugin_for_skill(self, skill: str):
+        """
+        Lädt das passende Plugin für einen Skill.
+        """
+
+        for plugin_info in self.scan():
+
+            if skill in plugin_info.skills:
+                return self.load_plugin(plugin_info.id)
+
+        raise ValueError(f"No plugin found for skill: {skill}")

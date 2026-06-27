@@ -26,8 +26,6 @@ class PhoenixAPI:
         Führt einen Skill über das passende Plugin aus.
         """
 
-        if skill == "image.upscale":
-            plugin = self.plugin_manager.load_plugin("realesrgan")
-            return plugin.execute(skill, **kwargs)
+        plugin = self.plugin_manager.get_plugin_for_skill(skill)
 
-        raise ValueError(f"Unknown skill: {skill}")
+        return plugin.execute(skill, **kwargs)
