@@ -1,0 +1,10 @@
+{
+    "id": "realesrgan",
+    "name": "RealESRGAN",
+    "version": "1.0.0",
+    "author": "Holger Kreuzhofen",
+    "backend": "QNN",
+    "skills": [
+        "image.upscale"
+    ]
+}

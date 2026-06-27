@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtuelle Umgebungen
+venv/
+.venv/
+
+# Temporäre Daten
+temp/
+output/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Log-Dateien
+*.log
+
+# Python Cache
+.pytest_cache/
+
+# Build
+dist/
+build/

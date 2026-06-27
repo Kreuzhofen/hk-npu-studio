@@ -1,0 +1,47 @@
+[
+  {
+    "id": "real_esrgan_x4plus_qnn",
+    "name": "Real-ESRGAN x4 Plus",
+    "category": "Upscaler",
+    "engine": "QNN / Snapdragon NPU",
+    "file": "models/real_esrgan_x4plus.bin",
+    "status": "installed_if_file_exists",
+    "description": "4x Bild-Upscaling über Qualcomm QNN Context Binary."
+  },
+  {
+    "id": "stable_diffusion_future",
+    "name": "Stable Diffusion / SDXL",
+    "category": "AI Generate / AI Edit",
+    "engine": "Noch nicht eingerichtet",
+    "file": "",
+    "status": "planned",
+    "description": "Für Bild erzeugen, Bild-zu-Bild und Inpainting. Wird später über InvokeAI/ComfyUI oder QNN integriert."
+  },
+  {
+    "id": "inpainting_future",
+    "name": "Inpainting / Objekt entfernen",
+    "category": "AI Edit",
+    "engine": "Noch nicht eingerichtet",
+    "file": "",
+    "status": "planned",
+    "description": "Für Person/Objekt entfernen, Hintergrund rekonstruieren und gezielte Bildbearbeitung."
+  },
+  {
+    "id": "whisper_future",
+    "name": "Whisper",
+    "category": "Audio",
+    "engine": "Noch nicht eingerichtet",
+    "file": "",
+    "status": "planned",
+    "description": "Sprache zu Text."
+  },
+  {
+    "id": "yolo_future",
+    "name": "YOLO",
+    "category": "Vision",
+    "engine": "QNN möglich",
+    "file": "",
+    "status": "planned",
+    "description": "Objekterkennung auf Bildern."
+  }
+]
