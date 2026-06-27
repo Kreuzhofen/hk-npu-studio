@@ -8,6 +8,9 @@ Phoenix Engine
 """
 
 from pathlib import Path
+import os
+import subprocess
+
 import numpy as np
 from PIL import Image
 
@@ -16,7 +19,7 @@ class QNNBackend:
     """
     Backend für Qualcomm AI Engine (QNN).
 
-    Diese Klasse kapselt später sämtliche Kommunikation
+    Diese Klasse kapselt sämtliche Kommunikation
     mit qnn-net-run und den QNN-Modellen.
     """
 
@@ -24,6 +27,14 @@ class QNNBackend:
         self.base_path = Path(r"C:\SnapdragonAI")
         self.input_dir = self.base_path / "input"
         self.output_dir = self.base_path / "output"
+
+        self.qnn_bin = Path(
+            r"C:\Qualcomm\AIStack\2.47.0.260601\bin\aarch64-windows-msvc\qnn-net-run.exe"
+        )
+        self.qnn_backend = Path(
+            r"C:\Qualcomm\AIStack\2.47.0.260601\lib\aarch64-windows-msvc\QnnHtp.dll"
+        )
+        self.model_path = self.base_path / "models" / "real_esrgan_x4plus.bin"
 
     def prepare_input(self, image_path):
         """
@@ -57,6 +68,43 @@ class QNNBackend:
         return {
             "raw_input": raw_input,
             "input_list": input_list,
+        }
+
+    def execute_qnn(self, input_list):
+        """
+        Startet qnn-net-run mit dem vorbereiteten input_list.txt.
+        """
+
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        env = os.environ.copy()
+        env["PATH"] = (
+            str(self.qnn_backend.parent)
+            + ";"
+            + str(self.qnn_bin.parent)
+            + ";"
+            + env["PATH"]
+        )
+
+        cmd = [
+            str(self.qnn_bin),
+            "--retrieve_context",
+            str(self.model_path),
+            "--backend",
+            str(self.qnn_backend),
+            "--input_list",
+            str(input_list),
+            "--output_dir",
+            str(self.output_dir),
+            "--log_level",
+            "info",
+        ]
+
+        subprocess.run(cmd, env=env, check=True)
+
+        return {
+            "status": "qnn_executed",
+            "output_dir": self.output_dir,
         }
 
     def upscale(self, image_path):
