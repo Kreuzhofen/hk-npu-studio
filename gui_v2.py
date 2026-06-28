@@ -66,6 +66,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.toolbar = Toolbar(
             main,
             on_select_images=self.select_images,
+            on_select_folder=self.select_folder,
             on_start=self.start_plugin,
             on_open_output=self.open_output,
             on_open_plugin_manager=self.open_plugin_manager,
@@ -94,14 +95,6 @@ class SnapdragonAIStudioV2(BaseWindow):
             "RealESRGAN",
             "QNN / Snapdragon NPU",
             "Bereit",
-        )
-
-        self.file_card.select_button.configure(
-            command=self.select_images
-        )
-
-        self.file_card.start_button.configure(
-            command=self.start_plugin
         )
 
         self.job_card = JobCard(main)
@@ -178,7 +171,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def _setup_drag_and_drop(self):
         """
-        Aktiviert Drag & Drop für Bilddateien, falls tkinterdnd2 vorhanden ist.
+        Aktiviert Drag & Drop für Bilddateien und Ordner.
         """
 
         if not DND_AVAILABLE:
@@ -198,16 +191,31 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def _on_drop_file(self, event):
         """
-        Verarbeitet eine oder mehrere per Drag & Drop abgelegte Dateien.
+        Verarbeitet per Drag & Drop abgelegte Dateien oder Ordner.
         """
 
-        dropped_files = self.tk.splitlist(event.data)
+        dropped_paths = self.tk.splitlist(event.data)
 
-        if not dropped_files:
+        if not dropped_paths:
             self.log_card.log("Drag & Drop: keine Datei erkannt.")
             return
 
-        self.load_image_files(dropped_files)
+        files = []
+        folders = []
+
+        for dropped_path in dropped_paths:
+            path = Path(dropped_path)
+
+            if path.is_dir():
+                folders.append(path)
+            else:
+                files.append(path)
+
+        if files:
+            self.load_image_files(files)
+
+        for folder in folders:
+            self.load_image_folder(folder)
 
     def select_images(self):
         """
@@ -233,12 +241,69 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         self.load_image_files(filenames)
 
+    def select_folder(self):
+        """
+        Öffnet einen Ordnerdialog und lädt alle unterstützten Bilder.
+        """
+
+        folder = filedialog.askdirectory(
+            title="Ordner mit Bildern auswählen"
+        )
+
+        if not folder:
+            return
+
+        self.load_image_folder(folder)
+
+    def load_image_folder(self, folder_path):
+        """
+        Lädt alle unterstützten Bilder aus einem Ordner.
+        """
+
+        result = self.controller.load_image_folder(folder_path)
+        self._handle_import_result(result)
+
+        valid_files = result["valid_files"]
+
+        if valid_files:
+            self.log_card.log(
+                f"Ordner geladen: {Path(folder_path).name} "
+                f"({len(valid_files)} Bilder)"
+            )
+        else:
+            self.log_card.log(
+                f"Keine unterstützten Bilder im Ordner gefunden: "
+                f"{folder_path}"
+            )
+
     def load_image_files(self, filenames):
         """
         Lädt mehrere Bilddateien über den Controller in die GUI.
         """
 
         result = self.controller.load_image_files(filenames)
+        self._handle_import_result(result)
+
+        valid_files = result["valid_files"]
+
+        if not valid_files:
+            self.log_card.log("Keine gültigen Bilddateien geladen.")
+            return
+
+        if len(valid_files) == 1:
+            self.log_card.log(
+                f"1 Bild geladen und zur Queue hinzugefügt: "
+                f"{Path(valid_files[0]).name}"
+            )
+        else:
+            self.log_card.log(
+                f"{len(valid_files)} Bilder geladen und zur Queue hinzugefügt."
+            )
+
+    def _handle_import_result(self, result):
+        """
+        Übernimmt importierte Bilder in Galerie, Vorschau und Queue.
+        """
 
         valid_files = result["valid_files"]
         rejected_files = result["rejected_files"]
@@ -251,21 +316,8 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         self.refresh_queue()
 
-        if not valid_files:
-            self.log_card.log("Keine gültigen Bilddateien geladen.")
-            return
-
-        self.select_loaded_image(valid_files[0])
-
-        if len(valid_files) == 1:
-            self.log_card.log(
-                f"1 Bild geladen und zur Queue hinzugefügt: "
-                f"{Path(valid_files[0]).name}"
-            )
-        else:
-            self.log_card.log(
-                f"{len(valid_files)} Bilder geladen und zur Queue hinzugefügt."
-            )
+        if valid_files:
+            self.select_loaded_image(valid_files[0])
 
     def select_loaded_image(self, filename):
         """

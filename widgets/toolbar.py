@@ -16,6 +16,7 @@ class Toolbar(tk.Frame):
         self,
         master,
         on_select_images=None,
+        on_select_folder=None,
         on_start=None,
         on_open_output=None,
         on_open_plugin_manager=None,
@@ -23,6 +24,7 @@ class Toolbar(tk.Frame):
         super().__init__(master, bd=1, relief="groove", padx=8, pady=6)
 
         self.on_select_images = on_select_images
+        self.on_select_folder = on_select_folder
         self.on_start = on_start
         self.on_open_output = on_open_output
         self.on_open_plugin_manager = on_open_plugin_manager
@@ -38,6 +40,14 @@ class Toolbar(tk.Frame):
             width=18,
         )
         self.select_button.pack(side="left", padx=4)
+
+        self.folder_button = tk.Button(
+            self,
+            text="Ordner öffnen",
+            command=self.on_select_folder,
+            width=16,
+        )
+        self.folder_button.pack(side="left", padx=4)
 
         self.start_button = tk.Button(
             self,
@@ -78,6 +88,8 @@ class Toolbar(tk.Frame):
 
     def enable_select_button(self):
         self.select_button.configure(state="normal")
+        self.folder_button.configure(state="normal")
 
     def disable_select_button(self):
         self.select_button.configure(state="disabled")
+        self.folder_button.configure(state="disabled")

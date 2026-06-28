@@ -9,6 +9,7 @@ Phoenix Controller Layer
 
 from pathlib import Path
 
+from engine.import_service import ImportService
 from engine.phoenix_adapter import PhoenixAdapter
 
 
@@ -16,54 +17,37 @@ class GuiController:
 
     def __init__(self):
         self.adapter = PhoenixAdapter()
+        self.import_service = ImportService()
+
         self.loaded_images = []
         self.current_image = None
         self.last_output = None
         self.queue = []
 
-        self.supported_extensions = {
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".bmp",
-            ".webp",
-        }
-
     def is_supported_image(self, path):
-        return Path(path).suffix.lower() in self.supported_extensions
+        return self.import_service.is_supported_image(path)
 
     def load_image_files(self, filenames):
-        valid_files = []
-        rejected_files = []
+        result = self.import_service.import_files(filenames)
+        return self._register_import_result(result)
 
-        for filename in filenames:
-            path = Path(filename)
+    def load_image_folder(self, folder_path):
+        result = self.import_service.import_folder(folder_path, recursive=True)
+        return self._register_import_result(result)
 
-            if not path.exists():
-                rejected_files.append((str(filename), "Datei nicht gefunden"))
-                continue
+    def _register_import_result(self, result):
+        valid_files = result["valid_files"]
 
-            if not self.is_supported_image(path):
-                rejected_files.append(
-                    (str(filename), "Nicht unterstütztes Bildformat")
-                )
-                continue
-
-            full_path = str(path.resolve())
-
+        for full_path in valid_files:
             if full_path not in self.loaded_images:
                 self.loaded_images.append(full_path)
 
             self.add_to_queue(full_path)
-            valid_files.append(full_path)
 
         if valid_files:
             self.current_image = valid_files[0]
 
-        return {
-            "valid_files": valid_files,
-            "rejected_files": rejected_files,
-        }
+        return result
 
     def select_image(self, filename):
         path = Path(filename)
