@@ -10,6 +10,8 @@ Phoenix UI
 import tkinter as tk
 from pathlib import Path
 
+from PIL import Image, ImageTk
+
 
 class ThumbnailGallery(tk.Frame):
 
@@ -20,6 +22,9 @@ class ThumbnailGallery(tk.Frame):
         self.max_items = max_items
         self.items = []
         self.buttons = []
+        self.thumbnail_images = []
+
+        self.thumbnail_size = (96, 72)
 
         self._build_ui()
 
@@ -65,6 +70,7 @@ class ThumbnailGallery(tk.Frame):
             button.destroy()
 
         self.buttons = []
+        self.thumbnail_images = []
 
         if not self.items:
             self.info_label.configure(text="Noch keine Bilder geladen.")
@@ -76,17 +82,33 @@ class ThumbnailGallery(tk.Frame):
 
         for index, filename in enumerate(self.items, start=1):
             path = Path(filename)
+            thumbnail = self._create_thumbnail(path)
+            self.thumbnail_images.append(thumbnail)
 
             button = tk.Button(
                 self.button_frame,
                 text=f"{index}. {path.name}",
+                image=thumbnail,
+                compound="top",
                 command=lambda value=filename: self._select(value),
-                width=22,
-                anchor="w",
+                width=120,
+                height=115,
+                wraplength=110,
             )
-            button.pack(side="left", padx=3, pady=3)
+            button.pack(side="left", padx=4, pady=4)
 
             self.buttons.append(button)
+
+    def _create_thumbnail(self, path):
+        try:
+            image = Image.open(path).convert("RGB")
+            image.thumbnail(self.thumbnail_size)
+
+            return ImageTk.PhotoImage(image)
+
+        except Exception:
+            placeholder = Image.new("RGB", self.thumbnail_size, "gray")
+            return ImageTk.PhotoImage(placeholder)
 
     def _select(self, filename):
         if self.on_select:
