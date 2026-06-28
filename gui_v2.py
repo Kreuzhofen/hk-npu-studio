@@ -211,14 +211,8 @@ class SnapdragonAIStudioV2(BaseWindow):
         filenames = filedialog.askopenfilenames(
             title="Bilder auswählen",
             filetypes=[
-                (
-                    "Bilddateien",
-                    "*.png *.jpg *.jpeg *.bmp *.webp",
-                ),
-                (
-                    "Alle Dateien",
-                    "*.*",
-                ),
+                ("Bilddateien", "*.png *.jpg *.jpeg *.bmp *.webp"),
+                ("Alle Dateien", "*.*"),
             ],
         )
 
@@ -339,6 +333,8 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.toolbar.enable_cancel_button()
         self.file_card.disable()
 
+        self.job_card.set_batch_progress(0, waiting_jobs, 0)
+
         self.plugin_card.set_plugin(
             "RealESRGAN",
             "QNN / Snapdragon NPU",
@@ -385,24 +381,12 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def _on_worker_job_done(self, job, output_path):
         self.log_queue.put(
-            (
-                "job_done",
-                (
-                    job["input_path"],
-                    output_path,
-                ),
-            )
+            ("job_done", (job["input_path"], output_path))
         )
 
     def _on_worker_job_error(self, job, error):
         self.log_queue.put(
-            (
-                "job_error",
-                (
-                    job["input_path"],
-                    error,
-                ),
-            )
+            ("job_error", (job["input_path"], error))
         )
 
     def open_output(self):
@@ -432,6 +416,15 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         self.after(500, self._update_runtime)
 
+    def _apply_progress(self):
+        progress = self.controller.get_progress()
+
+        self.job_card.set_batch_progress(
+            progress["current"],
+            progress["total"],
+            progress["percent"],
+        )
+
     def _poll_log_queue(self):
         try:
             while True:
@@ -447,6 +440,7 @@ class SnapdragonAIStudioV2(BaseWindow):
                         backend="QNN / Snapdragon NPU",
                         input_path=input_path,
                     )
+                    self._apply_progress()
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
@@ -466,6 +460,7 @@ class SnapdragonAIStudioV2(BaseWindow):
                     self.refresh_queue()
                     self.file_card.set_filename(output_path)
                     self.show_preview(output_path)
+                    self._apply_progress()
                     self.log_card.log(
                         f"Fertig: {Path(input_path).name} -> "
                         f"{Path(output_path).name}"
@@ -476,6 +471,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
                     self.job_card.fail_job()
                     self.refresh_queue()
+                    self._apply_progress()
                     self.log_card.log(
                         f"Fehler bei: {Path(input_path).name}"
                     )
@@ -493,6 +489,8 @@ class SnapdragonAIStudioV2(BaseWindow):
                         self.toolbar.enable_output_button()
                     else:
                         self.toolbar.disable_output_button()
+
+                    self._apply_progress()
 
                     if self.cancel_requested:
                         status_text = "Batch abgebrochen"
@@ -526,6 +524,7 @@ class SnapdragonAIStudioV2(BaseWindow):
                     )
                     self.job_card.fail_job()
                     self.refresh_queue()
+                    self._apply_progress()
                     self.log_card.log("BATCH-FEHLER:")
                     self.log_card.log(value)
 

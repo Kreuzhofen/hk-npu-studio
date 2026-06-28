@@ -127,56 +127,12 @@ class GuiController:
 
         return None
 
-    def run_upscale(self, input_path):
-        """
-        Führt einen einzelnen Upscale-Job aus.
-        """
-
-        job = self.get_queue_job(input_path)
-
-        if job is None:
-            self.add_to_queue(input_path)
-            job = self.get_queue_job(input_path)
-
-        self.scheduler.start()
-        self.scheduler.set_current_job(job)
-
-        job["status"] = "läuft"
-
-        result = self.worker.run(
-            job,
-            self._run_upscale_job,
-        )
-
-        if result["status"] == self.worker.STATUS_DONE:
-            output_path = result["result"]
-
-            job["status"] = "fertig"
-            job["output_path"] = output_path
-
-            self.last_output = output_path
-            self.scheduler.mark_job_done()
-            self.scheduler.stop()
-
-            return output_path
-
-        job["status"] = "Fehler"
-
-        self.scheduler.mark_job_failed()
-        self.scheduler.stop()
-
-        raise RuntimeError(result["error"])
-
     def run_batch(
         self,
         on_job_start=None,
         on_job_done=None,
         on_job_error=None,
     ):
-        """
-        Verarbeitet alle wartenden Jobs in der PhoenixQueue.
-        """
-
         results = self.scheduler.process_all_jobs(
             phoenix_queue=self.phoenix_queue,
             worker=self.worker,
@@ -189,10 +145,6 @@ class GuiController:
         return results
 
     def _wrap_job_done(self, callback):
-        """
-        Aktualisiert last_output und reicht das Ergebnis optional weiter.
-        """
-
         def wrapped(job, output_path):
             self.last_output = output_path
 
@@ -202,10 +154,6 @@ class GuiController:
         return wrapped
 
     def _run_upscale_job(self, job):
-        """
-        Interne Worker-Aufgabe für einen Upscale-Job.
-        """
-
         result = self.adapter.run(
             "image.upscale",
             input_path=job["input_path"],
@@ -213,15 +161,15 @@ class GuiController:
 
         return result["output_path"]
 
-    def get_engine_status(self):
-        """
-        Liefert den aktuellen Phoenix Engine Status.
-        """
+    def get_progress(self):
+        return self.scheduler.get_progress()
 
+    def get_engine_status(self):
         return {
             "scheduler": self.scheduler.get_status(),
             "worker": self.worker.get_status(),
             "queue_size": self.phoenix_queue.size(),
             "waiting_jobs": self.get_waiting_job_count(),
             "queue": self.phoenix_queue.get_jobs(),
+            "progress": self.get_progress(),
         }

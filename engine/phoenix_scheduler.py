@@ -12,10 +12,8 @@ class PhoenixScheduler:
     """
     Phoenix Scheduler.
 
-    Der Scheduler steuert Jobs aus einer PhoenixQueue und führt sie
-    über einen PhoenixWorker aus.
-
-    Diese Klasse enthält bewusst keine tkinter-Abhängigkeiten.
+    Steuert Jobs aus einer PhoenixQueue und liefert
+    Fortschrittsinformationen für GUI, CLI oder spätere Services.
     """
 
     STATUS_IDLE = "idle"
@@ -29,6 +27,8 @@ class PhoenixScheduler:
         self.current_job = None
         self.processed_jobs = 0
         self.failed_jobs = 0
+        self.total_jobs = 0
+        self.current_index = 0
         self.cancel_requested = False
 
     def start(self):
@@ -68,6 +68,8 @@ class PhoenixScheduler:
         self.current_job = None
         self.processed_jobs = 0
         self.failed_jobs = 0
+        self.total_jobs = 0
+        self.current_index = 0
         self.cancel_requested = False
         return True
 
@@ -110,6 +112,15 @@ class PhoenixScheduler:
 
         return None
 
+    def count_waiting_jobs(self, phoenix_queue):
+        count = 0
+
+        for job in phoenix_queue.get_jobs():
+            if job.get("status") == "wartet":
+                count += 1
+
+        return count
+
     def process_next_job(
         self,
         phoenix_queue,
@@ -130,6 +141,7 @@ class PhoenixScheduler:
         if job is None:
             return None
 
+        self.current_index += 1
         self.set_current_job(job)
         job["status"] = "läuft"
 
@@ -170,6 +182,11 @@ class PhoenixScheduler:
     ):
         self.start()
 
+        self.total_jobs = self.count_waiting_jobs(phoenix_queue)
+        self.current_index = 0
+        self.processed_jobs = 0
+        self.failed_jobs = 0
+
         results = []
 
         while self.is_running():
@@ -196,10 +213,28 @@ class PhoenixScheduler:
         if self.cancel_requested:
             self.status = self.STATUS_STOPPED
         else:
-            self.stop()
+            self.status = self.STATUS_STOPPED
             self.cancel_requested = False
 
         return results
+
+    def get_progress(self):
+        if self.total_jobs <= 0:
+            percent = 0
+        else:
+            completed = self.processed_jobs + self.failed_jobs
+            percent = int((completed / self.total_jobs) * 100)
+
+        return {
+            "status": self.status,
+            "current": self.current_index,
+            "total": self.total_jobs,
+            "processed": self.processed_jobs,
+            "failed": self.failed_jobs,
+            "percent": percent,
+            "running": self.is_running(),
+            "cancel_requested": self.cancel_requested,
+        }
 
     def get_status(self):
         return {
@@ -207,5 +242,8 @@ class PhoenixScheduler:
             "current_job": self.current_job,
             "processed_jobs": self.processed_jobs,
             "failed_jobs": self.failed_jobs,
+            "total_jobs": self.total_jobs,
+            "current_index": self.current_index,
             "cancel_requested": self.cancel_requested,
+            "progress": self.get_progress(),
         }

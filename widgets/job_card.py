@@ -57,6 +57,9 @@ class JobCard(tk.Frame):
         )
         self.progress_bar.pack(fill="x", pady=5)
 
+        self.batch_label = tk.Label(self, anchor="w")
+        self.batch_label.pack(fill="x")
+
         self.runtime_label = tk.Label(self, anchor="w")
         self.runtime_label.pack(fill="x")
 
@@ -70,6 +73,7 @@ class JobCard(tk.Frame):
         self.input_label.configure(text="Eingabe: -")
         self.output_label.configure(text="Ausgabe: -")
         self.status_label.configure(text="Status: Bereit")
+        self.batch_label.configure(text="Batch: 0 / 0 (0%)")
         self.runtime_label.configure(text="Laufzeit: 00:00")
 
         self.progress_bar.stop()
@@ -92,9 +96,6 @@ class JobCard(tk.Frame):
         self.status_label.configure(text="Status: Bild wird verarbeitet...")
         self.runtime_label.configure(text="Laufzeit: 00:00")
 
-        self.progress_bar.configure(mode="indeterminate")
-        self.progress_bar.start(10)
-
     def finish_job(self, output_path):
         self.running = False
 
@@ -102,12 +103,6 @@ class JobCard(tk.Frame):
 
         self.output_label.configure(text=f"Ausgabe: {output_name}")
         self.status_label.configure(text="Status: Fertig")
-
-        self.progress_bar.stop()
-        self.progress_bar.configure(
-            mode="determinate",
-            value=100,
-        )
 
         self.update_runtime()
 
@@ -117,13 +112,16 @@ class JobCard(tk.Frame):
         self.output_label.configure(text="Ausgabe: -")
         self.status_label.configure(text="Status: Fehler")
 
-        self.progress_bar.stop()
+        self.update_runtime()
+
+    def set_batch_progress(self, current, total, percent):
         self.progress_bar.configure(
             mode="determinate",
-            value=0,
+            value=percent,
         )
-
-        self.update_runtime()
+        self.batch_label.configure(
+            text=f"Batch: {current} / {total} ({percent}%)"
+        )
 
     def update_runtime(self):
         if not self.start_time:
