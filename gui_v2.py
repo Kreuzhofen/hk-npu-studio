@@ -10,11 +10,9 @@ Phoenix UI
 import os
 import queue
 import threading
-import time
 import traceback
 import tkinter as tk
 from tkinter import filedialog
-from tkinter import ttk
 from pathlib import Path
 
 from PIL import Image, ImageTk
@@ -24,6 +22,7 @@ from widgets.file_card import FileCard
 from widgets.preview_card import PreviewCard
 from widgets.log_card import LogCard
 from widgets.plugin_card import PluginCard
+from widgets.job_card import JobCard
 
 
 class SnapdragonAIStudioV2(tk.Tk):
@@ -38,8 +37,6 @@ class SnapdragonAIStudioV2(tk.Tk):
         self.preview_image = None
         self.log_queue = queue.Queue()
         self.last_output = None
-        self.job_start_time = None
-        self.job_running = False
 
         self._build_ui()
         self.after(100, self._poll_log_queue)
@@ -94,30 +91,11 @@ class SnapdragonAIStudioV2(tk.Tk):
             padx=5,
         )
 
-        self.progress_frame = tk.Frame(main)
-        self.progress_frame.pack(fill="x", pady=(10, 0))
-
-        self.progress_label = tk.Label(
-            self.progress_frame,
-            text="Status: Bereit",
-            anchor="w",
+        self.job_card = JobCard(main)
+        self.job_card.pack(
+            fill="x",
+            pady=(10, 0),
         )
-        self.progress_label.pack(fill="x")
-
-        self.progress_bar = ttk.Progressbar(
-            self.progress_frame,
-            mode="determinate",
-            maximum=100,
-            value=0,
-        )
-        self.progress_bar.pack(fill="x", pady=5)
-
-        self.runtime_label = tk.Label(
-            self.progress_frame,
-            text="Laufzeit: 00:00",
-            anchor="w",
-        )
-        self.runtime_label.pack(fill="x")
 
         middle = tk.Frame(main)
         middle.pack(
@@ -201,14 +179,11 @@ class SnapdragonAIStudioV2(tk.Tk):
         self.last_output = None
         self.output_button.configure(state="disabled")
 
-        self.job_start_time = time.time()
-        self.job_running = True
-        self.progress_bar.configure(mode="indeterminate")
-        self.progress_bar.start(10)
-        self.progress_label.configure(
-            text="Status: Bild wird verarbeitet..."
+        self.job_card.start_job(
+            plugin="RealESRGAN",
+            backend="QNN / Snapdragon NPU",
+            input_path=filename,
         )
-        self.runtime_label.configure(text="Laufzeit: 00:00")
 
         self.file_card.disable()
         self.plugin_card.set_plugin(
@@ -266,32 +241,13 @@ class SnapdragonAIStudioV2(tk.Tk):
         except Exception as error:
             self.log_card.log(f"Output konnte nicht geöffnet werden: {error}")
 
-    def _finish_progress(self, status_text, progress_value):
-        """
-        Beendet die Fortschrittsanzeige.
-        """
-
-        self.job_running = False
-        self.progress_bar.stop()
-        self.progress_bar.configure(
-            mode="determinate",
-            value=progress_value,
-        )
-        self.progress_label.configure(text=status_text)
-
     def _update_runtime(self):
         """
-        Aktualisiert die Laufzeit während ein Job läuft.
+        Aktualisiert die Laufzeit der JobCard.
         """
 
-        if self.job_running and self.job_start_time:
-            elapsed = int(time.time() - self.job_start_time)
-            minutes = elapsed // 60
-            seconds = elapsed % 60
-
-            self.runtime_label.configure(
-                text=f"Laufzeit: {minutes:02d}:{seconds:02d}"
-            )
+        if self.job_card.running:
+            self.job_card.update_runtime()
 
         self.after(500, self._update_runtime)
 
@@ -314,10 +270,7 @@ class SnapdragonAIStudioV2(tk.Tk):
                         "QNN / Snapdragon NPU",
                         "Fertig",
                     )
-                    self._finish_progress(
-                        "Status: Fertig",
-                        100,
-                    )
+                    self.job_card.finish_job(value)
                     self.log_card.log(f"Fertig: {value}")
                     self.show_preview(value)
 
@@ -329,10 +282,7 @@ class SnapdragonAIStudioV2(tk.Tk):
                         "QNN / Snapdragon NPU",
                         "Fehler",
                     )
-                    self._finish_progress(
-                        "Status: Fehler",
-                        0,
-                    )
+                    self.job_card.fail_job()
                     self.log_card.log("FEHLER:")
                     self.log_card.log(value)
 

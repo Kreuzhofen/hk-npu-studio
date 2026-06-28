@@ -7,50 +7,132 @@ Created by Holger Kreuzhofen
 Phoenix UI
 """
 
+import time
+import tkinter as tk
 from tkinter import ttk
+from pathlib import Path
 
 
-class JobCard(ttk.LabelFrame):
-    """
-    Zeigt die zuletzt ausgeführten Jobs an.
-    """
+class JobCard(tk.Frame):
 
     def __init__(self, master):
-        super().__init__(master, text="Jobs")
+        super().__init__(master, bd=1, relief="groove", padx=10, pady=10)
 
-        self.tree = ttk.Treeview(
+        self.start_time = None
+        self.running = False
+
+        self._build_ui()
+        self.reset()
+
+    def _build_ui(self):
+
+        self.title_label = tk.Label(
             self,
-            columns=("status", "skill"),
-            show="headings",
-            height=6,
+            text="Job",
+            font=("Segoe UI", 11, "bold"),
+            anchor="w",
+        )
+        self.title_label.pack(fill="x")
+
+        self.plugin_label = tk.Label(self, anchor="w")
+        self.plugin_label.pack(fill="x", pady=(5, 0))
+
+        self.backend_label = tk.Label(self, anchor="w")
+        self.backend_label.pack(fill="x")
+
+        self.input_label = tk.Label(self, anchor="w")
+        self.input_label.pack(fill="x", pady=(8, 0))
+
+        self.output_label = tk.Label(self, anchor="w")
+        self.output_label.pack(fill="x")
+
+        self.status_label = tk.Label(self, anchor="w")
+        self.status_label.pack(fill="x", pady=(8, 0))
+
+        self.progress_bar = ttk.Progressbar(
+            self,
+            mode="determinate",
+            maximum=100,
+            value=0,
+        )
+        self.progress_bar.pack(fill="x", pady=5)
+
+        self.runtime_label = tk.Label(self, anchor="w")
+        self.runtime_label.pack(fill="x")
+
+    def reset(self):
+        self.start_time = None
+        self.running = False
+
+        self.title_label.configure(text="Job")
+        self.plugin_label.configure(text="Plugin: -")
+        self.backend_label.configure(text="Backend: -")
+        self.input_label.configure(text="Eingabe: -")
+        self.output_label.configure(text="Ausgabe: -")
+        self.status_label.configure(text="Status: Bereit")
+        self.runtime_label.configure(text="Laufzeit: 00:00")
+
+        self.progress_bar.stop()
+        self.progress_bar.configure(
+            mode="determinate",
+            value=0,
         )
 
-        self.tree.heading("status", text="Status")
-        self.tree.heading("skill", text="Aufgabe")
+    def start_job(self, plugin, backend, input_path):
+        self.start_time = time.time()
+        self.running = True
 
-        self.tree.column("status", width=110, anchor="center")
-        self.tree.column("skill", width=260)
+        input_name = Path(input_path).name
 
-        self.tree.pack(fill="both", expand=True, padx=8, pady=8)
+        self.title_label.configure(text="Aktueller Job")
+        self.plugin_label.configure(text=f"Plugin: {plugin}")
+        self.backend_label.configure(text=f"Backend: {backend}")
+        self.input_label.configure(text=f"Eingabe: {input_name}")
+        self.output_label.configure(text="Ausgabe: wird erstellt...")
+        self.status_label.configure(text="Status: Bild wird verarbeitet...")
+        self.runtime_label.configure(text="Laufzeit: 00:00")
 
-    def add_job(self, job):
-        """
-        Fügt einen Job der Anzeige hinzu.
-        """
+        self.progress_bar.configure(mode="indeterminate")
+        self.progress_bar.start(10)
 
-        self.tree.insert(
-            "",
-            "end",
-            values=(
-                job.status,
-                job.skill,
-            ),
+    def finish_job(self, output_path):
+        self.running = False
+
+        output_name = Path(output_path).name
+
+        self.output_label.configure(text=f"Ausgabe: {output_name}")
+        self.status_label.configure(text="Status: Fertig")
+
+        self.progress_bar.stop()
+        self.progress_bar.configure(
+            mode="determinate",
+            value=100,
         )
 
-    def clear(self):
-        """
-        Löscht die Anzeige.
-        """
+        self.update_runtime()
 
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+    def fail_job(self):
+        self.running = False
+
+        self.output_label.configure(text="Ausgabe: -")
+        self.status_label.configure(text="Status: Fehler")
+
+        self.progress_bar.stop()
+        self.progress_bar.configure(
+            mode="determinate",
+            value=0,
+        )
+
+        self.update_runtime()
+
+    def update_runtime(self):
+        if not self.start_time:
+            return
+
+        elapsed = int(time.time() - self.start_time)
+        minutes = elapsed // 60
+        seconds = elapsed % 60
+
+        self.runtime_label.configure(
+            text=f"Laufzeit: {minutes:02d}:{seconds:02d}"
+        )
