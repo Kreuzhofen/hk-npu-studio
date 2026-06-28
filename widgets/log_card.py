@@ -7,17 +7,19 @@ Created by Holger Kreuzhofen
 Phoenix UI
 """
 
-from tkinter import ttk
 import tkinter as tk
+from tkinter import ttk
+
+from widgets.base_card import BaseCard
 
 
-class LogCard(ttk.LabelFrame):
+class LogCard(BaseCard):
     """
     Widget zur Anzeige des Protokolls.
     """
 
     def __init__(self, master):
-        super().__init__(master, text="Protokoll")
+        super().__init__(master, "Protokoll")
 
         self.log_text = tk.Text(
             self,
@@ -64,3 +66,18 @@ class LogCard(ttk.LabelFrame):
         """
 
         self.log_text.delete("1.0", "end")
+
+    def get_text(self):
+        """
+        Liefert den kompletten Log-Inhalt zurück.
+        """
+
+        return self.log_text.get("1.0", "end")
+
+    def set_enabled(self, enabled: bool):
+        """
+        Aktiviert oder deaktiviert die Log-Ausgabe.
+        """
+
+        state = "normal" if enabled else "disabled"
+        self.log_text.configure(state=state)
