@@ -25,13 +25,16 @@ except ImportError:
     TkinterDnD = None
     DND_AVAILABLE = False
 
+from dialogs.plugin_manager import PluginManagerDialog
 from engine.gui_controller import GuiController
+from widgets.toolbar import Toolbar
 from widgets.file_card import FileCard
 from widgets.preview_card import PreviewCard
 from widgets.log_card import LogCard
 from widgets.plugin_card import PluginCard
 from widgets.job_card import JobCard
 from widgets.thumbnail_gallery import ThumbnailGallery
+from widgets.queue_card import QueueCard
 
 
 BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
@@ -43,7 +46,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         super().__init__()
 
         self.title("SnapdragonAI Studio V2")
-        self.geometry("1300x850")
+        self.geometry("1400x900")
 
         self.controller = GuiController()
         self.preview_image = None
@@ -60,8 +63,17 @@ class SnapdragonAIStudioV2(BaseWindow):
         main = tk.Frame(self)
         main.pack(fill="both", expand=True, padx=10, pady=10)
 
+        self.toolbar = Toolbar(
+            main,
+            on_select_images=self.select_images,
+            on_start=self.start_plugin,
+            on_open_output=self.open_output,
+            on_open_plugin_manager=self.open_plugin_manager,
+        )
+        self.toolbar.pack(fill="x")
+
         top = tk.Frame(main)
-        top.pack(fill="x")
+        top.pack(fill="x", pady=(10, 0))
 
         self.file_card = FileCard(top)
         self.file_card.pack(
@@ -84,28 +96,12 @@ class SnapdragonAIStudioV2(BaseWindow):
             "Bereit",
         )
 
-        self.plugin_card.manager_button.configure(
-            command=self.open_plugin_manager
-        )
-
         self.file_card.select_button.configure(
             command=self.select_images
         )
 
         self.file_card.start_button.configure(
             command=self.start_plugin
-        )
-
-        self.output_button = tk.Button(
-            top,
-            text="Output öffnen",
-            command=self.open_output,
-            state="disabled",
-        )
-        self.output_button.pack(
-            side="left",
-            fill="y",
-            padx=5,
         )
 
         self.job_card = JobCard(main)
@@ -135,19 +131,29 @@ class SnapdragonAIStudioV2(BaseWindow):
             expand=True,
         )
 
-        gallery_area = tk.Frame(content, width=280)
-        gallery_area.pack(
+        side_area = tk.Frame(content, width=330)
+        side_area.pack(
             side="right",
             fill="y",
         )
-        gallery_area.pack_propagate(False)
+        side_area.pack_propagate(False)
 
         self.thumbnail_gallery = ThumbnailGallery(
-            gallery_area,
+            side_area,
             on_select=self.select_loaded_image,
             max_items=50,
         )
         self.thumbnail_gallery.pack(
+            fill="both",
+            expand=True,
+            pady=(0, 8),
+        )
+
+        self.queue_card = QueueCard(
+            side_area,
+            on_select=self.select_loaded_image,
+        )
+        self.queue_card.pack(
             fill="both",
             expand=True,
         )
@@ -165,44 +171,10 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def open_plugin_manager(self):
         """
-        Öffnet den Plugin Manager.
+        Öffnet den Plugin Manager Dialog.
         """
 
-        window = tk.Toplevel(self)
-        window.title("Plugin Manager")
-        window.geometry("520x360")
-        window.transient(self)
-        window.grab_set()
-
-        title = tk.Label(
-            window,
-            text="SnapdragonAI Plugin Manager",
-            font=("Segoe UI", 13, "bold"),
-            anchor="w",
-        )
-        title.pack(fill="x", padx=15, pady=(15, 8))
-
-        info = tk.Label(
-            window,
-            text=(
-                "Aktuell installiert:\n\n"
-                "• RealESRGAN\n"
-                "  Typ: Image Upscale\n"
-                "  Backend: QNN / Snapdragon NPU\n"
-                "  Status: Bereit\n\n"
-                "Weitere Plugins folgen in späteren Sprints."
-            ),
-            justify="left",
-            anchor="nw",
-        )
-        info.pack(fill="both", expand=True, padx=15, pady=8)
-
-        close_button = tk.Button(
-            window,
-            text="Schließen",
-            command=window.destroy,
-        )
-        close_button.pack(pady=(0, 15))
+        PluginManagerDialog(self)
 
     def _setup_drag_and_drop(self):
         """
@@ -217,6 +189,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.file_card,
             self.preview_card,
             self.thumbnail_gallery,
+            self.queue_card,
         ]
 
         for target in drop_targets:
@@ -276,6 +249,8 @@ class SnapdragonAIStudioV2(BaseWindow):
         for filename in valid_files:
             self.thumbnail_gallery.add_image(filename)
 
+        self.refresh_queue()
+
         if not valid_files:
             self.log_card.log("Keine gültigen Bilddateien geladen.")
             return
@@ -284,11 +259,12 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         if len(valid_files) == 1:
             self.log_card.log(
-                f"1 Bild geladen: {Path(valid_files[0]).name}"
+                f"1 Bild geladen und zur Queue hinzugefügt: "
+                f"{Path(valid_files[0]).name}"
             )
         else:
             self.log_card.log(
-                f"{len(valid_files)} Bilder geladen."
+                f"{len(valid_files)} Bilder geladen und zur Queue hinzugefügt."
             )
 
     def select_loaded_image(self, filename):
@@ -304,7 +280,17 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         self.file_card.set_filename(value)
         self.thumbnail_gallery.select_image(value)
+        self.queue_card.select_job(value)
         self.show_preview(value)
+
+    def refresh_queue(self):
+        """
+        Aktualisiert die sichtbare Batch Queue.
+        """
+
+        self.queue_card.set_jobs(
+            self.controller.get_queue()
+        )
 
     def show_preview(self, filename):
         """
@@ -347,7 +333,10 @@ class SnapdragonAIStudioV2(BaseWindow):
             return
 
         self.controller.clear_last_output()
-        self.output_button.configure(state="disabled")
+        self.toolbar.disable_output_button()
+        self.toolbar.disable_start_button()
+        self.controller.set_queue_status(filename, "läuft")
+        self.refresh_queue()
 
         self.job_card.start_job(
             plugin="RealESRGAN",
@@ -379,9 +368,10 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         try:
             output_path = self.controller.run_upscale(filename)
-            self.log_queue.put(("done", output_path))
+            self.log_queue.put(("done", (filename, output_path)))
 
         except Exception:
+            self.controller.set_queue_status(filename, "Fehler")
             self.log_queue.put(("error", traceback.format_exc()))
 
     def open_output(self):
@@ -399,7 +389,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         if not output_path.exists():
             self.log_card.log(f"Output nicht gefunden: {output_path}")
-            self.output_button.configure(state="disabled")
+            self.toolbar.disable_output_button()
             return
 
         try:
@@ -429,29 +419,39 @@ class SnapdragonAIStudioV2(BaseWindow):
                 kind, value = self.log_queue.get_nowait()
 
                 if kind == "done":
-                    self.controller.set_last_output(value)
+                    input_path, output_path = value
+                    self.controller.set_last_output(output_path)
+                    self.controller.set_queue_status(
+                        input_path,
+                        "fertig",
+                        output_path=output_path,
+                    )
 
                     self.file_card.enable()
-                    self.output_button.configure(state="normal")
+                    self.toolbar.enable_start_button()
+                    self.toolbar.enable_output_button()
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
                         "Fertig",
                     )
-                    self.job_card.finish_job(value)
-                    self.thumbnail_gallery.add_image(value)
-                    self.log_card.log(f"Fertig: {value}")
-                    self.select_loaded_image(value)
+                    self.job_card.finish_job(output_path)
+                    self.thumbnail_gallery.add_image(output_path)
+                    self.refresh_queue()
+                    self.log_card.log(f"Fertig: {output_path}")
+                    self.select_loaded_image(output_path)
 
                 elif kind == "error":
                     self.file_card.enable()
-                    self.output_button.configure(state="disabled")
+                    self.toolbar.enable_start_button()
+                    self.toolbar.disable_output_button()
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
                         "Fehler",
                     )
                     self.job_card.fail_job()
+                    self.refresh_queue()
                     self.log_card.log("FEHLER:")
                     self.log_card.log(value)
 
