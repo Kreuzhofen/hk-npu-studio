@@ -43,7 +43,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         super().__init__()
 
         self.title("SnapdragonAI Studio V2")
-        self.geometry("1200x850")
+        self.geometry("1300x850")
 
         self.adapter = PhoenixAdapter()
         self.preview_image = None
@@ -113,27 +113,42 @@ class SnapdragonAIStudioV2(BaseWindow):
             pady=(10, 0),
         )
 
-        middle = tk.Frame(main)
-        middle.pack(
+        content = tk.Frame(main)
+        content.pack(
             fill="both",
             expand=True,
             pady=10,
         )
 
-        self.preview_card = PreviewCard(middle)
+        preview_area = tk.Frame(content)
+        preview_area.pack(
+            side="left",
+            fill="both",
+            expand=True,
+            padx=(0, 8),
+        )
+
+        self.preview_card = PreviewCard(preview_area)
         self.preview_card.pack(
             fill="both",
             expand=True,
         )
 
+        gallery_area = tk.Frame(content, width=280)
+        gallery_area.pack(
+            side="right",
+            fill="y",
+        )
+        gallery_area.pack_propagate(False)
+
         self.thumbnail_gallery = ThumbnailGallery(
-            main,
+            gallery_area,
             on_select=self.select_loaded_image,
-            max_items=10,
+            max_items=50,
         )
         self.thumbnail_gallery.pack(
-            fill="x",
-            pady=(0, 10),
+            fill="both",
+            expand=True,
         )
 
         self.log_card = LogCard(main)
@@ -263,6 +278,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         self.current_image = str(path.resolve())
         self.file_card.set_filename(self.current_image)
+        self.thumbnail_gallery.select_image(self.current_image)
         self.show_preview(self.current_image)
 
     def _is_supported_image(self, path):
@@ -287,7 +303,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         try:
             image = Image.open(filename).convert("RGB")
-            image.thumbnail((850, 420))
+            image.thumbnail((850, 520))
 
             self.preview_image = ImageTk.PhotoImage(image)
             self.preview_card.set_image(self.preview_image)
