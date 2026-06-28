@@ -31,6 +31,7 @@ from widgets.preview_card import PreviewCard
 from widgets.log_card import LogCard
 from widgets.plugin_card import PluginCard
 from widgets.job_card import JobCard
+from widgets.thumbnail_gallery import ThumbnailGallery
 
 
 BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
@@ -42,7 +43,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         super().__init__()
 
         self.title("SnapdragonAI Studio V2")
-        self.geometry("1200x800")
+        self.geometry("1200x850")
 
         self.adapter = PhoenixAdapter()
         self.preview_image = None
@@ -123,6 +124,16 @@ class SnapdragonAIStudioV2(BaseWindow):
             expand=True,
         )
 
+        self.thumbnail_gallery = ThumbnailGallery(
+            main,
+            on_select=self.load_image_file,
+            max_items=10,
+        )
+        self.thumbnail_gallery.pack(
+            fill="x",
+            pady=(0, 10),
+        )
+
         self.log_card = LogCard(main)
         self.log_card.pack(fill="x")
 
@@ -146,6 +157,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             self,
             self.file_card,
             self.preview_card,
+            self.thumbnail_gallery,
         ]
 
         for target in drop_targets:
@@ -206,6 +218,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             return
 
         self.file_card.set_filename(str(path))
+        self.thumbnail_gallery.add_image(str(path))
         self.log_card.log(f"Bild geladen: {path.name}")
         self.show_preview(str(path))
 
@@ -356,6 +369,7 @@ class SnapdragonAIStudioV2(BaseWindow):
                         "Fertig",
                     )
                     self.job_card.finish_job(value)
+                    self.thumbnail_gallery.add_image(value)
                     self.log_card.log(f"Fertig: {value}")
                     self.show_preview(value)
 
