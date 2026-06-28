@@ -10,21 +10,15 @@ Phoenix UI
 import tkinter as tk
 from pathlib import Path
 
-from PIL import Image, ImageTk
-
 
 class ThumbnailGallery(tk.Frame):
 
-    def __init__(self, master, on_select=None, max_items=10):
-        super().__init__(master, bd=1, relief="groove", padx=10, pady=8)
+    def __init__(self, master, on_select=None, max_items=50):
+        super().__init__(master, bd=1, relief="groove", padx=8, pady=8)
 
         self.on_select = on_select
         self.max_items = max_items
         self.items = []
-        self.buttons = []
-        self.thumbnail_images = []
-
-        self.thumbnail_size = (96, 72)
 
         self._build_ui()
 
@@ -45,8 +39,38 @@ class ThumbnailGallery(tk.Frame):
         )
         self.info_label.pack(fill="x", pady=(4, 6))
 
-        self.button_frame = tk.Frame(self)
-        self.button_frame.pack(fill="x")
+        list_frame = tk.Frame(self)
+        list_frame.pack(fill="both", expand=True)
+
+        self.listbox = tk.Listbox(
+            list_frame,
+            height=18,
+            exportselection=False,
+        )
+        self.listbox.pack(
+            side="left",
+            fill="both",
+            expand=True,
+        )
+
+        self.scrollbar = tk.Scrollbar(
+            list_frame,
+            orient="vertical",
+            command=self.listbox.yview,
+        )
+        self.scrollbar.pack(
+            side="right",
+            fill="y",
+        )
+
+        self.listbox.configure(
+            yscrollcommand=self.scrollbar.set
+        )
+
+        self.listbox.bind(
+            "<<ListboxSelect>>",
+            self._on_select,
+        )
 
     def add_image(self, filename):
         path = Path(filename)
@@ -63,53 +87,48 @@ class ThumbnailGallery(tk.Frame):
         self.items = self.items[:self.max_items]
 
         self._refresh()
+        self.select_image(full_path)
 
     def _refresh(self):
 
-        for button in self.buttons:
-            button.destroy()
-
-        self.buttons = []
-        self.thumbnail_images = []
+        self.listbox.delete(0, tk.END)
 
         if not self.items:
             self.info_label.configure(text="Noch keine Bilder geladen.")
             return
 
         self.info_label.configure(
-            text=f"Zuletzt geladene Bilder: {len(self.items)}"
+            text=f"Bilder geladen: {len(self.items)}"
         )
 
         for index, filename in enumerate(self.items, start=1):
             path = Path(filename)
-            thumbnail = self._create_thumbnail(path)
-            self.thumbnail_images.append(thumbnail)
-
-            button = tk.Button(
-                self.button_frame,
-                text=f"{index}. {path.name}",
-                image=thumbnail,
-                compound="top",
-                command=lambda value=filename: self._select(value),
-                width=120,
-                height=115,
-                wraplength=110,
+            self.listbox.insert(
+                tk.END,
+                f"{index}. {path.name}",
             )
-            button.pack(side="left", padx=4, pady=4)
 
-            self.buttons.append(button)
+    def select_image(self, filename):
+        full_path = str(Path(filename).resolve())
 
-    def _create_thumbnail(self, path):
-        try:
-            image = Image.open(path).convert("RGB")
-            image.thumbnail(self.thumbnail_size)
+        if full_path not in self.items:
+            return
 
-            return ImageTk.PhotoImage(image)
+        index = self.items.index(full_path)
 
-        except Exception:
-            placeholder = Image.new("RGB", self.thumbnail_size, "gray")
-            return ImageTk.PhotoImage(placeholder)
+        self.listbox.selection_clear(0, tk.END)
+        self.listbox.selection_set(index)
+        self.listbox.activate(index)
+        self.listbox.see(index)
 
-    def _select(self, filename):
+    def _on_select(self, event):
+        selection = self.listbox.curselection()
+
+        if not selection:
+            return
+
+        index = selection[0]
+        filename = self.items[index]
+
         if self.on_select:
             self.on_select(filename)
