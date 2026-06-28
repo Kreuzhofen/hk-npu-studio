@@ -9,14 +9,16 @@ Phoenix UI
 
 from tkinter import ttk
 
+from widgets.base_card import BaseCard
 
-class PreviewCard(ttk.LabelFrame):
+
+class PreviewCard(BaseCard):
     """
     Widget zur Anzeige einer Bildvorschau.
     """
 
     def __init__(self, master):
-        super().__init__(master, text="Vorschau")
+        super().__init__(master, "Vorschau")
 
         self.preview_label = ttk.Label(
             self,
@@ -51,3 +53,17 @@ class PreviewCard(ttk.LabelFrame):
             text=text,
             image="",
         )
+
+    def set_image(self, image):
+        """
+        Zeigt ein Bild in der Vorschau an.
+        """
+
+        self.preview_label.configure(
+            image=image,
+            text="",
+        )
+
+        # Referenz behalten, damit Tkinter das Bild
+        # nicht vom Garbage Collector entfernen lässt.
+        self.preview_label.image = image
