@@ -51,6 +51,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.controller = GuiController()
         self.preview_image = None
         self.log_queue = queue.Queue()
+        self.cancel_requested = False
 
         self._build_ui()
         self._setup_drag_and_drop()
@@ -68,6 +69,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             on_select_images=self.select_images,
             on_select_folder=self.select_folder,
             on_start=self.start_plugin,
+            on_cancel=self.cancel_processing,
             on_open_output=self.open_output,
             on_open_plugin_manager=self.open_plugin_manager,
         )
@@ -163,17 +165,9 @@ class SnapdragonAIStudioV2(BaseWindow):
             )
 
     def open_plugin_manager(self):
-        """
-        Öffnet den Plugin Manager Dialog.
-        """
-
         PluginManagerDialog(self)
 
     def _setup_drag_and_drop(self):
-        """
-        Aktiviert Drag & Drop für Bilddateien und Ordner.
-        """
-
         if not DND_AVAILABLE:
             return
 
@@ -190,10 +184,6 @@ class SnapdragonAIStudioV2(BaseWindow):
             target.dnd_bind("<<Drop>>", self._on_drop_file)
 
     def _on_drop_file(self, event):
-        """
-        Verarbeitet per Drag & Drop abgelegte Dateien oder Ordner.
-        """
-
         dropped_paths = self.tk.splitlist(event.data)
 
         if not dropped_paths:
@@ -218,10 +208,6 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.load_image_folder(folder)
 
     def select_images(self):
-        """
-        Öffnet einen Dateidialog und lädt ein oder mehrere Bilder.
-        """
-
         filenames = filedialog.askopenfilenames(
             title="Bilder auswählen",
             filetypes=[
@@ -242,10 +228,6 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.load_image_files(filenames)
 
     def select_folder(self):
-        """
-        Öffnet einen Ordnerdialog und lädt alle unterstützten Bilder.
-        """
-
         folder = filedialog.askdirectory(
             title="Ordner mit Bildern auswählen"
         )
@@ -256,10 +238,6 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.load_image_folder(folder)
 
     def load_image_folder(self, folder_path):
-        """
-        Lädt alle unterstützten Bilder aus einem Ordner.
-        """
-
         result = self.controller.load_image_folder(folder_path)
         self._handle_import_result(result)
 
@@ -277,10 +255,6 @@ class SnapdragonAIStudioV2(BaseWindow):
             )
 
     def load_image_files(self, filenames):
-        """
-        Lädt mehrere Bilddateien über den Controller in die GUI.
-        """
-
         result = self.controller.load_image_files(filenames)
         self._handle_import_result(result)
 
@@ -301,10 +275,6 @@ class SnapdragonAIStudioV2(BaseWindow):
             )
 
     def _handle_import_result(self, result):
-        """
-        Übernimmt importierte Bilder in Galerie, Vorschau und Queue.
-        """
-
         valid_files = result["valid_files"]
         rejected_files = result["rejected_files"]
 
@@ -320,10 +290,6 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.select_loaded_image(valid_files[0])
 
     def select_loaded_image(self, filename):
-        """
-        Wählt ein geladenes Bild als aktuelles Bild aus.
-        """
-
         success, value = self.controller.select_image(filename)
 
         if not success:
@@ -336,19 +302,11 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.show_preview(value)
 
     def refresh_queue(self):
-        """
-        Aktualisiert die sichtbare Batch Queue.
-        """
-
         self.queue_card.set_jobs(
             self.controller.get_queue()
         )
 
     def show_preview(self, filename):
-        """
-        Lädt ein Bild und zeigt es in der PreviewCard an.
-        """
-
         try:
             image = Image.open(filename).convert("RGB")
             image.thumbnail((850, 520))
@@ -367,20 +325,18 @@ class SnapdragonAIStudioV2(BaseWindow):
             )
 
     def start_plugin(self):
-        """
-        Startet die automatische Batch-Verarbeitung.
-        """
-
         waiting_jobs = self.controller.get_waiting_job_count()
 
         if waiting_jobs <= 0:
             self.log_card.log("Keine wartenden Jobs in der Queue.")
             return
 
+        self.cancel_requested = False
         self.controller.clear_last_output()
         self.toolbar.disable_output_button()
         self.toolbar.disable_start_button()
         self.toolbar.disable_select_button()
+        self.toolbar.enable_cancel_button()
         self.file_card.disable()
 
         self.plugin_card.set_plugin(
@@ -398,11 +354,20 @@ class SnapdragonAIStudioV2(BaseWindow):
         )
         thread.start()
 
-    def _worker_batch(self):
-        """
-        Führt alle wartenden Jobs im Hintergrund aus.
-        """
+    def cancel_processing(self):
+        self.cancel_requested = True
+        self.controller.scheduler.request_cancel()
+        self.toolbar.disable_cancel_button()
+        self.plugin_card.set_plugin(
+            "RealESRGAN",
+            "QNN / Snapdragon NPU",
+            "Abbruch angefordert",
+        )
+        self.log_card.log(
+            "Abbruch angefordert. Der aktuelle Job wird noch beendet."
+        )
 
+    def _worker_batch(self):
         try:
             results = self.controller.run_batch(
                 on_job_start=self._on_worker_job_start,
@@ -441,10 +406,6 @@ class SnapdragonAIStudioV2(BaseWindow):
         )
 
     def open_output(self):
-        """
-        Öffnet die zuletzt erzeugte Output-Datei.
-        """
-
         last_output = self.controller.get_last_output()
 
         if not last_output:
@@ -466,20 +427,12 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.log_card.log(f"Output konnte nicht geöffnet werden: {error}")
 
     def _update_runtime(self):
-        """
-        Aktualisiert die Laufzeit der JobCard.
-        """
-
         if self.job_card.running:
             self.job_card.update_runtime()
 
         self.after(500, self._update_runtime)
 
     def _poll_log_queue(self):
-        """
-        Verarbeitet Rückmeldungen aus dem Hintergrundthread.
-        """
-
         try:
             while True:
                 kind, value = self.log_queue.get_nowait()
@@ -534,26 +487,37 @@ class SnapdragonAIStudioV2(BaseWindow):
                     self.file_card.enable()
                     self.toolbar.enable_start_button()
                     self.toolbar.enable_select_button()
+                    self.toolbar.disable_cancel_button()
 
                     if self.controller.get_last_output():
                         self.toolbar.enable_output_button()
                     else:
                         self.toolbar.disable_output_button()
 
+                    if self.cancel_requested:
+                        status_text = "Batch abgebrochen"
+                        log_text = (
+                            f"Batch abgebrochen nach {len(results)} Job(s)."
+                        )
+                    else:
+                        status_text = "Batch fertig"
+                        log_text = (
+                            f"Batch abgeschlossen: {len(results)} Job(s)"
+                        )
+
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
-                        "Batch fertig",
+                        status_text,
                     )
                     self.refresh_queue()
-                    self.log_card.log(
-                        f"Batch abgeschlossen: {len(results)} Job(s)"
-                    )
+                    self.log_card.log(log_text)
 
                 elif kind == "batch_error":
                     self.file_card.enable()
                     self.toolbar.enable_start_button()
                     self.toolbar.enable_select_button()
+                    self.toolbar.disable_cancel_button()
                     self.toolbar.disable_output_button()
                     self.plugin_card.set_plugin(
                         "RealESRGAN",

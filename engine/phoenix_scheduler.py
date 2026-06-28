@@ -22,23 +22,31 @@ class PhoenixScheduler:
     STATUS_RUNNING = "running"
     STATUS_PAUSED = "paused"
     STATUS_STOPPED = "stopped"
+    STATUS_CANCEL_REQUESTED = "cancel_requested"
 
     def __init__(self):
         self.status = self.STATUS_IDLE
         self.current_job = None
         self.processed_jobs = 0
         self.failed_jobs = 0
+        self.cancel_requested = False
 
     def start(self):
         if self.status == self.STATUS_RUNNING:
             return False
 
+        self.cancel_requested = False
         self.status = self.STATUS_RUNNING
         return True
 
     def stop(self):
+        self.cancel_requested = True
         self.status = self.STATUS_STOPPED
-        self.current_job = None
+        return True
+
+    def request_cancel(self):
+        self.cancel_requested = True
+        self.status = self.STATUS_CANCEL_REQUESTED
         return True
 
     def pause(self):
@@ -60,6 +68,7 @@ class PhoenixScheduler:
         self.current_job = None
         self.processed_jobs = 0
         self.failed_jobs = 0
+        self.cancel_requested = False
         return True
 
     def is_running(self):
@@ -73,6 +82,9 @@ class PhoenixScheduler:
 
     def is_idle(self):
         return self.status == self.STATUS_IDLE
+
+    def is_cancel_requested(self):
+        return self.cancel_requested
 
     def set_current_job(self, job):
         self.current_job = job
@@ -92,10 +104,6 @@ class PhoenixScheduler:
         self.clear_current_job()
 
     def get_next_waiting_job(self, phoenix_queue):
-        """
-        Sucht den nächsten wartenden Job.
-        """
-
         for job in phoenix_queue.get_jobs():
             if job.get("status") == "wartet":
                 return job
@@ -111,11 +119,10 @@ class PhoenixScheduler:
         on_job_done=None,
         on_job_error=None,
     ):
-        """
-        Verarbeitet genau einen wartenden Job.
-        """
-
         if not self.is_running():
+            return None
+
+        if self.cancel_requested:
             return None
 
         job = self.get_next_waiting_job(phoenix_queue)
@@ -161,15 +168,14 @@ class PhoenixScheduler:
         on_job_done=None,
         on_job_error=None,
     ):
-        """
-        Verarbeitet alle wartenden Jobs in der Queue.
-        """
-
         self.start()
 
         results = []
 
         while self.is_running():
+            if self.cancel_requested:
+                break
+
             job = self.get_next_waiting_job(phoenix_queue)
 
             if job is None:
@@ -187,7 +193,11 @@ class PhoenixScheduler:
             if result is not None:
                 results.append(result)
 
-        self.stop()
+        if self.cancel_requested:
+            self.status = self.STATUS_STOPPED
+        else:
+            self.stop()
+            self.cancel_requested = False
 
         return results
 
@@ -197,4 +207,5 @@ class PhoenixScheduler:
             "current_job": self.current_job,
             "processed_jobs": self.processed_jobs,
             "failed_jobs": self.failed_jobs,
+            "cancel_requested": self.cancel_requested,
         }

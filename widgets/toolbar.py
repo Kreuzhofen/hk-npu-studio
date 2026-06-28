@@ -18,6 +18,7 @@ class Toolbar(tk.Frame):
         on_select_images=None,
         on_select_folder=None,
         on_start=None,
+        on_cancel=None,
         on_open_output=None,
         on_open_plugin_manager=None,
     ):
@@ -26,6 +27,7 @@ class Toolbar(tk.Frame):
         self.on_select_images = on_select_images
         self.on_select_folder = on_select_folder
         self.on_start = on_start
+        self.on_cancel = on_cancel
         self.on_open_output = on_open_output
         self.on_open_plugin_manager = on_open_plugin_manager
 
@@ -57,6 +59,15 @@ class Toolbar(tk.Frame):
         )
         self.start_button.pack(side="left", padx=4)
 
+        self.cancel_button = tk.Button(
+            self,
+            text="Abbrechen",
+            command=self.on_cancel,
+            state="disabled",
+            width=12,
+        )
+        self.cancel_button.pack(side="left", padx=4)
+
         self.output_button = tk.Button(
             self,
             text="Output öffnen",
@@ -85,6 +96,12 @@ class Toolbar(tk.Frame):
 
     def disable_start_button(self):
         self.start_button.configure(state="disabled")
+
+    def enable_cancel_button(self):
+        self.cancel_button.configure(state="normal")
+
+    def disable_cancel_button(self):
+        self.cancel_button.configure(state="disabled")
 
     def enable_select_button(self):
         self.select_button.configure(state="normal")
