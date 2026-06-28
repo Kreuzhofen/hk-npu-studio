@@ -7,17 +7,19 @@ Created by Holger Kreuzhofen
 Phoenix UI
 """
 
-from tkinter import ttk
 import tkinter as tk
+from tkinter import ttk
+
+from widgets.base_card import BaseCard
 
 
-class FileCard(ttk.LabelFrame):
+class FileCard(BaseCard):
     """
     Widget zur Auswahl eines Eingabebildes.
     """
 
     def __init__(self, master):
-        super().__init__(master, text="Bild auswählen")
+        super().__init__(master, "Bild auswählen")
 
         self.selected_file = tk.StringVar()
 
@@ -67,19 +69,32 @@ class FileCard(ttk.LabelFrame):
         """
         Setzt den Dateinamen.
         """
-
         self.selected_file.set(filename)
 
     def get_filename(self):
         """
         Liefert den Dateinamen.
         """
-
         return self.selected_file.get()
+
+    def enable(self):
+        """
+        Aktiviert alle Buttons.
+        """
+        self.select_button.configure(state="normal")
+        self.start_button.configure(state="normal")
+        self.manager_button.configure(state="normal")
+
+    def disable(self):
+        """
+        Deaktiviert alle Buttons.
+        """
+        self.select_button.configure(state="disabled")
+        self.start_button.configure(state="disabled")
+        self.manager_button.configure(state="disabled")
 
     def clear(self):
         """
         Löscht den Dateinamen.
         """
-
         self.selected_file.set("")
