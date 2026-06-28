@@ -25,7 +25,7 @@ except ImportError:
     TkinterDnD = None
     DND_AVAILABLE = False
 
-from engine.phoenix_adapter import PhoenixAdapter
+from engine.gui_controller import GuiController
 from widgets.file_card import FileCard
 from widgets.preview_card import PreviewCard
 from widgets.log_card import LogCard
@@ -45,12 +45,9 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.title("SnapdragonAI Studio V2")
         self.geometry("1300x850")
 
-        self.adapter = PhoenixAdapter()
+        self.controller = GuiController()
         self.preview_image = None
         self.log_queue = queue.Queue()
-        self.last_output = None
-        self.current_image = None
-        self.loaded_images = []
 
         self._build_ui()
         self._setup_drag_and_drop()
@@ -265,31 +262,19 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def load_image_files(self, filenames):
         """
-        Lädt mehrere Bilddateien in die GUI.
+        Lädt mehrere Bilddateien über den Controller in die GUI.
         """
 
-        valid_files = []
+        result = self.controller.load_image_files(filenames)
 
-        for filename in filenames:
-            path = Path(filename)
+        valid_files = result["valid_files"]
+        rejected_files = result["rejected_files"]
 
-            if not path.exists():
-                self.log_card.log(f"Datei nicht gefunden: {filename}")
-                continue
+        for filename, reason in rejected_files:
+            self.log_card.log(f"{reason}: {filename}")
 
-            if not self._is_supported_image(path):
-                self.log_card.log(
-                    f"Nicht unterstützte Bilddatei: {path.name}"
-                )
-                continue
-
-            full_path = str(path.resolve())
-
-            if full_path not in self.loaded_images:
-                self.loaded_images.append(full_path)
-
-            self.thumbnail_gallery.add_image(full_path)
-            valid_files.append(full_path)
+        for filename in valid_files:
+            self.thumbnail_gallery.add_image(filename)
 
         if not valid_files:
             self.log_card.log("Keine gültigen Bilddateien geladen.")
@@ -311,35 +296,15 @@ class SnapdragonAIStudioV2(BaseWindow):
         Wählt ein geladenes Bild als aktuelles Bild aus.
         """
 
-        path = Path(filename)
+        success, value = self.controller.select_image(filename)
 
-        if not path.exists():
-            self.log_card.log(f"Datei nicht gefunden: {filename}")
+        if not success:
+            self.log_card.log(f"{value}: {filename}")
             return
 
-        if not self._is_supported_image(path):
-            self.log_card.log(f"Nicht unterstützte Bilddatei: {path.name}")
-            return
-
-        self.current_image = str(path.resolve())
-        self.file_card.set_filename(self.current_image)
-        self.thumbnail_gallery.select_image(self.current_image)
-        self.show_preview(self.current_image)
-
-    def _is_supported_image(self, path):
-        """
-        Prüft, ob die Datei ein unterstütztes Bildformat hat.
-        """
-
-        supported_extensions = {
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".bmp",
-            ".webp",
-        }
-
-        return path.suffix.lower() in supported_extensions
+        self.file_card.set_filename(value)
+        self.thumbnail_gallery.select_image(value)
+        self.show_preview(value)
 
     def show_preview(self, filename):
         """
@@ -368,7 +333,10 @@ class SnapdragonAIStudioV2(BaseWindow):
         Startet das Upscaling für das aktuell ausgewählte Bild.
         """
 
-        filename = self.current_image or self.file_card.get_filename()
+        filename = self.controller.get_current_image()
+
+        if not filename:
+            filename = self.file_card.get_filename()
 
         if not filename:
             self.log_card.log("Kein Bild ausgewählt.")
@@ -378,7 +346,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.log_card.log(f"Datei nicht gefunden: {filename}")
             return
 
-        self.last_output = None
+        self.controller.clear_last_output()
         self.output_button.configure(state="disabled")
 
         self.job_card.start_job(
@@ -410,13 +378,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         """
 
         try:
-            result = self.adapter.run(
-                "image.upscale",
-                input_path=filename,
-            )
-
-            output_path = result["output_path"]
-
+            output_path = self.controller.run_upscale(filename)
             self.log_queue.put(("done", output_path))
 
         except Exception:
@@ -427,11 +389,13 @@ class SnapdragonAIStudioV2(BaseWindow):
         Öffnet die zuletzt erzeugte Output-Datei.
         """
 
-        if not self.last_output:
+        last_output = self.controller.get_last_output()
+
+        if not last_output:
             self.log_card.log("Noch kein Output vorhanden.")
             return
 
-        output_path = Path(self.last_output)
+        output_path = Path(last_output)
 
         if not output_path.exists():
             self.log_card.log(f"Output nicht gefunden: {output_path}")
@@ -465,7 +429,7 @@ class SnapdragonAIStudioV2(BaseWindow):
                 kind, value = self.log_queue.get_nowait()
 
                 if kind == "done":
-                    self.last_output = value
+                    self.controller.set_last_output(value)
 
                     self.file_card.enable()
                     self.output_button.configure(state="normal")
