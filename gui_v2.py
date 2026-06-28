@@ -7,6 +7,7 @@ Created by Holger Kreuzhofen
 Phoenix UI
 """
 
+import os
 import queue
 import threading
 import traceback
@@ -34,6 +35,7 @@ class SnapdragonAIStudioV2(tk.Tk):
         self.adapter = PhoenixAdapter()
         self.preview_image = None
         self.log_queue = queue.Queue()
+        self.last_output = None
 
         self._build_ui()
         self.after(100, self._poll_log_queue)
@@ -73,6 +75,17 @@ class SnapdragonAIStudioV2(tk.Tk):
 
         self.file_card.start_button.configure(
             command=self.start_plugin
+        )
+
+        self.output_button = tk.Button(
+            top,
+            text="Output öffnen",
+            command=self.open_output,
+        )
+        self.output_button.pack(
+            side="left",
+            fill="y",
+            padx=5,
         )
 
         middle = tk.Frame(main)
@@ -187,6 +200,23 @@ class SnapdragonAIStudioV2(tk.Tk):
         except Exception:
             self.log_queue.put(("error", traceback.format_exc()))
 
+    def open_output(self):
+        """
+        Öffnet die zuletzt erzeugte Output-Datei.
+        """
+
+        if not self.last_output:
+            self.log_card.log("Noch kein Output vorhanden.")
+            return
+
+        output_path = Path(self.last_output)
+
+        if not output_path.exists():
+            self.log_card.log(f"Output nicht gefunden: {output_path}")
+            return
+
+        os.startfile(output_path)
+
     def _poll_log_queue(self):
         """
         Verarbeitet Rückmeldungen aus dem Hintergrundthread.
@@ -197,6 +227,8 @@ class SnapdragonAIStudioV2(tk.Tk):
                 kind, value = self.log_queue.get_nowait()
 
                 if kind == "done":
+                    self.last_output = value
+
                     self.file_card.enable()
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
