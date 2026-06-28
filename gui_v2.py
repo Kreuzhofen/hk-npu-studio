@@ -81,6 +81,7 @@ class SnapdragonAIStudioV2(tk.Tk):
             top,
             text="Output öffnen",
             command=self.open_output,
+            state="disabled",
         )
         self.output_button.pack(
             side="left",
@@ -167,6 +168,9 @@ class SnapdragonAIStudioV2(tk.Tk):
             self.log_card.log(f"Datei nicht gefunden: {filename}")
             return
 
+        self.last_output = None
+        self.output_button.configure(state="disabled")
+
         self.file_card.disable()
         self.plugin_card.set_plugin(
             "RealESRGAN",
@@ -213,9 +217,15 @@ class SnapdragonAIStudioV2(tk.Tk):
 
         if not output_path.exists():
             self.log_card.log(f"Output nicht gefunden: {output_path}")
+            self.output_button.configure(state="disabled")
             return
 
-        os.startfile(output_path)
+        try:
+            os.startfile(output_path)
+            self.log_card.log(f"Output geöffnet: {output_path.name}")
+
+        except Exception as error:
+            self.log_card.log(f"Output konnte nicht geöffnet werden: {error}")
 
     def _poll_log_queue(self):
         """
@@ -230,6 +240,7 @@ class SnapdragonAIStudioV2(tk.Tk):
                     self.last_output = value
 
                     self.file_card.enable()
+                    self.output_button.configure(state="normal")
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
@@ -240,6 +251,7 @@ class SnapdragonAIStudioV2(tk.Tk):
 
                 elif kind == "error":
                     self.file_card.enable()
+                    self.output_button.configure(state="disabled")
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
