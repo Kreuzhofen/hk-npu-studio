@@ -11,6 +11,8 @@ import tkinter as tk
 from tkinter import filedialog
 from pathlib import Path
 
+from PIL import Image, ImageTk
+
 from widgets.file_card import FileCard
 from widgets.preview_card import PreviewCard
 from widgets.log_card import LogCard
@@ -25,16 +27,14 @@ class SnapdragonAIStudioV2(tk.Tk):
         self.title("SnapdragonAI Studio V2")
         self.geometry("1200x800")
 
+        self.preview_image = None
+
         self._build_ui()
 
     def _build_ui(self):
 
         main = tk.Frame(self)
         main.pack(fill="both", expand=True, padx=10, pady=10)
-
-        #
-        # obere Reihe
-        #
 
         top = tk.Frame(main)
         top.pack(fill="x")
@@ -54,17 +54,9 @@ class SnapdragonAIStudioV2(tk.Tk):
             padx=5,
         )
 
-        #
-        # Buttons verbinden
-        #
-
         self.file_card.select_button.configure(
             command=self.select_image
         )
-
-        #
-        # mittlere Reihe
-        #
 
         middle = tk.Frame(main)
         middle.pack(
@@ -79,16 +71,12 @@ class SnapdragonAIStudioV2(tk.Tk):
             expand=True,
         )
 
-        #
-        # untere Reihe
-        #
-
         self.log_card = LogCard(main)
         self.log_card.pack(fill="x")
 
     def select_image(self):
         """
-        Öffnet einen Dateidialog.
+        Öffnet einen Dateidialog und zeigt das Bild in der Vorschau.
         """
 
         filename = filedialog.askopenfilename(
@@ -113,6 +101,30 @@ class SnapdragonAIStudioV2(tk.Tk):
         self.log_card.log(
             f"Bild ausgewählt: {Path(filename).name}"
         )
+
+        self.show_preview(filename)
+
+    def show_preview(self, filename):
+        """
+        Lädt ein Bild und zeigt es in der PreviewCard an.
+        """
+
+        try:
+            image = Image.open(filename).convert("RGB")
+            image.thumbnail((850, 420))
+
+            self.preview_image = ImageTk.PhotoImage(image)
+            self.preview_card.set_image(self.preview_image)
+
+            self.log_card.log("Vorschau aktualisiert.")
+
+        except Exception as error:
+            self.preview_card.set_text(
+                f"Vorschaufehler:\n{error}"
+            )
+            self.log_card.log(
+                f"Vorschaufehler: {error}"
+            )
 
 
 if __name__ == "__main__":
