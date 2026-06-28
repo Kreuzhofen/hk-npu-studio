@@ -97,6 +97,15 @@ class GuiController:
     def get_queue(self):
         return self.phoenix_queue.get_jobs()
 
+    def get_waiting_job_count(self):
+        count = 0
+
+        for job in self.phoenix_queue.get_jobs():
+            if job.get("status") == "wartet":
+                count += 1
+
+        return count
+
     def set_queue_status(self, input_path, status, output_path=None):
         full_path = str(Path(input_path).resolve())
 
@@ -120,8 +129,7 @@ class GuiController:
 
     def run_upscale(self, input_path):
         """
-        Führt einen Upscale-Job über PhoenixScheduler,
-        PhoenixQueue und PhoenixWorker aus.
+        Führt einen einzelnen Upscale-Job aus.
         """
 
         job = self.get_queue_job(input_path)
@@ -159,6 +167,40 @@ class GuiController:
 
         raise RuntimeError(result["error"])
 
+    def run_batch(
+        self,
+        on_job_start=None,
+        on_job_done=None,
+        on_job_error=None,
+    ):
+        """
+        Verarbeitet alle wartenden Jobs in der PhoenixQueue.
+        """
+
+        results = self.scheduler.process_all_jobs(
+            phoenix_queue=self.phoenix_queue,
+            worker=self.worker,
+            task=self._run_upscale_job,
+            on_job_start=on_job_start,
+            on_job_done=self._wrap_job_done(on_job_done),
+            on_job_error=on_job_error,
+        )
+
+        return results
+
+    def _wrap_job_done(self, callback):
+        """
+        Aktualisiert last_output und reicht das Ergebnis optional weiter.
+        """
+
+        def wrapped(job, output_path):
+            self.last_output = output_path
+
+            if callback:
+                callback(job, output_path)
+
+        return wrapped
+
     def _run_upscale_job(self, job):
         """
         Interne Worker-Aufgabe für einen Upscale-Job.
@@ -180,5 +222,6 @@ class GuiController:
             "scheduler": self.scheduler.get_status(),
             "worker": self.worker.get_status(),
             "queue_size": self.phoenix_queue.size(),
+            "waiting_jobs": self.get_waiting_job_count(),
             "queue": self.phoenix_queue.get_jobs(),
         }

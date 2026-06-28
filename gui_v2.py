@@ -368,63 +368,77 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def start_plugin(self):
         """
-        Startet das Upscaling für das aktuell ausgewählte Bild.
+        Startet die automatische Batch-Verarbeitung.
         """
 
-        filename = self.controller.get_current_image()
+        waiting_jobs = self.controller.get_waiting_job_count()
 
-        if not filename:
-            filename = self.file_card.get_filename()
-
-        if not filename:
-            self.log_card.log("Kein Bild ausgewählt.")
-            return
-
-        if not Path(filename).exists():
-            self.log_card.log(f"Datei nicht gefunden: {filename}")
+        if waiting_jobs <= 0:
+            self.log_card.log("Keine wartenden Jobs in der Queue.")
             return
 
         self.controller.clear_last_output()
         self.toolbar.disable_output_button()
         self.toolbar.disable_start_button()
-        self.controller.set_queue_status(filename, "läuft")
-        self.refresh_queue()
-
-        self.job_card.start_job(
-            plugin="RealESRGAN",
-            backend="QNN / Snapdragon NPU",
-            input_path=filename,
-        )
-
+        self.toolbar.disable_select_button()
         self.file_card.disable()
+
         self.plugin_card.set_plugin(
             "RealESRGAN",
             "QNN / Snapdragon NPU",
-            "Läuft...",
+            "Batch läuft...",
         )
         self.log_card.log(
-            f"Starte Phoenix Engine für: {Path(filename).name}"
+            f"Starte Batch-Verarbeitung: {waiting_jobs} Job(s)"
         )
 
         thread = threading.Thread(
-            target=self._worker,
-            args=(filename,),
+            target=self._worker_batch,
             daemon=True,
         )
         thread.start()
 
-    def _worker(self, filename):
+    def _worker_batch(self):
         """
-        Führt das Plugin im Hintergrund aus.
+        Führt alle wartenden Jobs im Hintergrund aus.
         """
 
         try:
-            output_path = self.controller.run_upscale(filename)
-            self.log_queue.put(("done", (filename, output_path)))
+            results = self.controller.run_batch(
+                on_job_start=self._on_worker_job_start,
+                on_job_done=self._on_worker_job_done,
+                on_job_error=self._on_worker_job_error,
+            )
+
+            self.log_queue.put(("batch_done", results))
 
         except Exception:
-            self.controller.set_queue_status(filename, "Fehler")
-            self.log_queue.put(("error", traceback.format_exc()))
+            self.log_queue.put(("batch_error", traceback.format_exc()))
+
+    def _on_worker_job_start(self, job):
+        self.log_queue.put(("job_start", job["input_path"]))
+
+    def _on_worker_job_done(self, job, output_path):
+        self.log_queue.put(
+            (
+                "job_done",
+                (
+                    job["input_path"],
+                    output_path,
+                ),
+            )
+        )
+
+    def _on_worker_job_error(self, job, error):
+        self.log_queue.put(
+            (
+                "job_error",
+                (
+                    job["input_path"],
+                    error,
+                ),
+            )
+        )
 
     def open_output(self):
         """
@@ -470,41 +484,85 @@ class SnapdragonAIStudioV2(BaseWindow):
             while True:
                 kind, value = self.log_queue.get_nowait()
 
-                if kind == "done":
-                    input_path, output_path = value
-                    self.controller.set_last_output(output_path)
-                    self.controller.set_queue_status(
-                        input_path,
-                        "fertig",
-                        output_path=output_path,
-                    )
+                if kind == "job_start":
+                    input_path = value
 
-                    self.file_card.enable()
-                    self.toolbar.enable_start_button()
-                    self.toolbar.enable_output_button()
+                    self.refresh_queue()
+                    self.select_loaded_image(input_path)
+                    self.job_card.start_job(
+                        plugin="RealESRGAN",
+                        backend="QNN / Snapdragon NPU",
+                        input_path=input_path,
+                    )
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
-                        "Fertig",
+                        "Läuft...",
                     )
+                    self.log_card.log(
+                        f"Verarbeite: {Path(input_path).name}"
+                    )
+
+                elif kind == "job_done":
+                    input_path, output_path = value
+
+                    self.controller.set_last_output(output_path)
+                    self.toolbar.enable_output_button()
                     self.job_card.finish_job(output_path)
                     self.thumbnail_gallery.add_image(output_path)
                     self.refresh_queue()
-                    self.log_card.log(f"Fertig: {output_path}")
-                    self.select_loaded_image(output_path)
+                    self.file_card.set_filename(output_path)
+                    self.show_preview(output_path)
+                    self.log_card.log(
+                        f"Fertig: {Path(input_path).name} -> "
+                        f"{Path(output_path).name}"
+                    )
 
-                elif kind == "error":
+                elif kind == "job_error":
+                    input_path, error = value
+
+                    self.job_card.fail_job()
+                    self.refresh_queue()
+                    self.log_card.log(
+                        f"Fehler bei: {Path(input_path).name}"
+                    )
+                    self.log_card.log(error)
+
+                elif kind == "batch_done":
+                    results = value
+
                     self.file_card.enable()
                     self.toolbar.enable_start_button()
+                    self.toolbar.enable_select_button()
+
+                    if self.controller.get_last_output():
+                        self.toolbar.enable_output_button()
+                    else:
+                        self.toolbar.disable_output_button()
+
+                    self.plugin_card.set_plugin(
+                        "RealESRGAN",
+                        "QNN / Snapdragon NPU",
+                        "Batch fertig",
+                    )
+                    self.refresh_queue()
+                    self.log_card.log(
+                        f"Batch abgeschlossen: {len(results)} Job(s)"
+                    )
+
+                elif kind == "batch_error":
+                    self.file_card.enable()
+                    self.toolbar.enable_start_button()
+                    self.toolbar.enable_select_button()
                     self.toolbar.disable_output_button()
                     self.plugin_card.set_plugin(
                         "RealESRGAN",
                         "QNN / Snapdragon NPU",
-                        "Fehler",
+                        "Batch Fehler",
                     )
                     self.job_card.fail_job()
                     self.refresh_queue()
-                    self.log_card.log("FEHLER:")
+                    self.log_card.log("BATCH-FEHLER:")
                     self.log_card.log(value)
 
         except queue.Empty:

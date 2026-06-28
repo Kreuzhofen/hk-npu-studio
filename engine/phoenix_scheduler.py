@@ -10,13 +10,12 @@ Phoenix Engine 1.0
 
 class PhoenixScheduler:
     """
-    Grundgerüst des Phoenix Schedulers.
+    Phoenix Scheduler.
 
-    Der Scheduler steuert später die automatische Verarbeitung
-    von Jobs, Queues und Workern.
+    Der Scheduler steuert Jobs aus einer PhoenixQueue und führt sie
+    über einen PhoenixWorker aus.
 
-    In Sprint 018.3A enthält diese Klasse bewusst noch keine
-    Thread-Logik und keine direkte Plugin-Ausführung.
+    Diese Klasse enthält bewusst keine tkinter-Abhängigkeiten.
     """
 
     STATUS_IDLE = "idle"
@@ -31,10 +30,6 @@ class PhoenixScheduler:
         self.failed_jobs = 0
 
     def start(self):
-        """
-        Startet den Scheduler.
-        """
-
         if self.status == self.STATUS_RUNNING:
             return False
 
@@ -42,19 +37,11 @@ class PhoenixScheduler:
         return True
 
     def stop(self):
-        """
-        Stoppt den Scheduler.
-        """
-
         self.status = self.STATUS_STOPPED
         self.current_job = None
         return True
 
     def pause(self):
-        """
-        Pausiert den Scheduler.
-        """
-
         if self.status != self.STATUS_RUNNING:
             return False
 
@@ -62,10 +49,6 @@ class PhoenixScheduler:
         return True
 
     def resume(self):
-        """
-        Setzt einen pausierten Scheduler fort.
-        """
-
         if self.status != self.STATUS_PAUSED:
             return False
 
@@ -73,10 +56,6 @@ class PhoenixScheduler:
         return True
 
     def reset(self):
-        """
-        Setzt den Scheduler zurück.
-        """
-
         self.status = self.STATUS_IDLE
         self.current_job = None
         self.processed_jobs = 0
@@ -84,87 +63,135 @@ class PhoenixScheduler:
         return True
 
     def is_running(self):
-        """
-        Gibt zurück, ob der Scheduler läuft.
-        """
-
         return self.status == self.STATUS_RUNNING
 
     def is_paused(self):
-        """
-        Gibt zurück, ob der Scheduler pausiert ist.
-        """
-
         return self.status == self.STATUS_PAUSED
 
     def is_stopped(self):
-        """
-        Gibt zurück, ob der Scheduler gestoppt ist.
-        """
-
         return self.status == self.STATUS_STOPPED
 
     def is_idle(self):
-        """
-        Gibt zurück, ob der Scheduler im Leerlauf ist.
-        """
-
         return self.status == self.STATUS_IDLE
 
     def set_current_job(self, job):
-        """
-        Setzt den aktuellen Job.
-        """
-
         self.current_job = job
 
     def clear_current_job(self):
-        """
-        Entfernt den aktuellen Job.
-        """
-
         self.current_job = None
 
     def get_current_job(self):
-        """
-        Gibt den aktuellen Job zurück.
-        """
-
         return self.current_job
 
     def mark_job_done(self):
-        """
-        Markiert einen Job als erfolgreich verarbeitet.
-        """
-
         self.processed_jobs += 1
         self.clear_current_job()
 
     def mark_job_failed(self):
-        """
-        Markiert einen Job als fehlgeschlagen.
-        """
-
         self.failed_jobs += 1
         self.clear_current_job()
 
-    def process_next_job(self):
+    def get_next_waiting_job(self, phoenix_queue):
         """
-        Platzhalter für die spätere Job-Verarbeitung.
+        Sucht den nächsten wartenden Job.
+        """
 
-        Die echte Queue- und Worker-Logik folgt in den nächsten Sprints.
+        for job in phoenix_queue.get_jobs():
+            if job.get("status") == "wartet":
+                return job
+
+        return None
+
+    def process_next_job(
+        self,
+        phoenix_queue,
+        worker,
+        task,
+        on_job_start=None,
+        on_job_done=None,
+        on_job_error=None,
+    ):
+        """
+        Verarbeitet genau einen wartenden Job.
         """
 
         if not self.is_running():
             return None
 
-        return self.current_job
+        job = self.get_next_waiting_job(phoenix_queue)
+
+        if job is None:
+            return None
+
+        self.set_current_job(job)
+        job["status"] = "läuft"
+
+        if on_job_start:
+            on_job_start(job)
+
+        result = worker.run(job, task)
+
+        if result["status"] == worker.STATUS_DONE:
+            output_path = result["result"]
+
+            job["status"] = "fertig"
+            job["output_path"] = output_path
+
+            self.mark_job_done()
+
+            if on_job_done:
+                on_job_done(job, output_path)
+
+            return result
+
+        job["status"] = "Fehler"
+        self.mark_job_failed()
+
+        if on_job_error:
+            on_job_error(job, result["error"])
+
+        return result
+
+    def process_all_jobs(
+        self,
+        phoenix_queue,
+        worker,
+        task,
+        on_job_start=None,
+        on_job_done=None,
+        on_job_error=None,
+    ):
+        """
+        Verarbeitet alle wartenden Jobs in der Queue.
+        """
+
+        self.start()
+
+        results = []
+
+        while self.is_running():
+            job = self.get_next_waiting_job(phoenix_queue)
+
+            if job is None:
+                break
+
+            result = self.process_next_job(
+                phoenix_queue=phoenix_queue,
+                worker=worker,
+                task=task,
+                on_job_start=on_job_start,
+                on_job_done=on_job_done,
+                on_job_error=on_job_error,
+            )
+
+            if result is not None:
+                results.append(result)
+
+        self.stop()
+
+        return results
 
     def get_status(self):
-        """
-        Gibt den aktuellen Scheduler-Status zurück.
-        """
-
         return {
             "status": self.status,
             "current_job": self.current_job,
