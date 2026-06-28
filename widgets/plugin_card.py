@@ -9,14 +9,16 @@ Phoenix UI
 
 from tkinter import ttk
 
+from widgets.base_card import BaseCard
 
-class PluginCard(ttk.LabelFrame):
+
+class PluginCard(BaseCard):
     """
     Zeigt Informationen über das aktuell aktive Plugin.
     """
 
     def __init__(self, master):
-        super().__init__(master, text="Aktives Plugin")
+        super().__init__(master, "Aktives Plugin")
 
         self.name_var = ttk.Label(self, text="Plugin: -")
         self.backend_var = ttk.Label(self, text="Backend: -")
@@ -34,6 +36,13 @@ class PluginCard(ttk.LabelFrame):
         self.name_var.configure(text=f"Plugin: {name}")
         self.backend_var.configure(text=f"Backend: {backend}")
         self.status_var.configure(text=f"Status: {status}")
+
+    def get_plugin(self):
+        """
+        Liefert den aktuell angezeigten Plugin-Namen zurück.
+        """
+
+        return self.name_var.cget("text").replace("Plugin: ", "")
 
     def clear(self):
         """
