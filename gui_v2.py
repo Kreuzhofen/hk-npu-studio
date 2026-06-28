@@ -17,6 +17,14 @@ from pathlib import Path
 
 from PIL import Image, ImageTk
 
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+    DND_AVAILABLE = True
+except ImportError:
+    DND_FILES = None
+    TkinterDnD = None
+    DND_AVAILABLE = False
+
 from engine.phoenix_adapter import PhoenixAdapter
 from widgets.file_card import FileCard
 from widgets.preview_card import PreviewCard
@@ -25,7 +33,10 @@ from widgets.plugin_card import PluginCard
 from widgets.job_card import JobCard
 
 
-class SnapdragonAIStudioV2(tk.Tk):
+BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
+
+
+class SnapdragonAIStudioV2(BaseWindow):
 
     def __init__(self):
         super().__init__()
@@ -39,6 +50,8 @@ class SnapdragonAIStudioV2(tk.Tk):
         self.last_output = None
 
         self._build_ui()
+        self._setup_drag_and_drop()
+
         self.after(100, self._poll_log_queue)
         self.after(500, self._update_runtime)
 
@@ -113,6 +126,46 @@ class SnapdragonAIStudioV2(tk.Tk):
         self.log_card = LogCard(main)
         self.log_card.pack(fill="x")
 
+        if DND_AVAILABLE:
+            self.log_card.log("Drag & Drop ist verfügbar.")
+        else:
+            self.log_card.log(
+                "Drag & Drop nicht verfügbar. "
+                "Installiere optional: pip install tkinterdnd2"
+            )
+
+    def _setup_drag_and_drop(self):
+        """
+        Aktiviert Drag & Drop für Bilddateien, falls tkinterdnd2 vorhanden ist.
+        """
+
+        if not DND_AVAILABLE:
+            return
+
+        drop_targets = [
+            self,
+            self.file_card,
+            self.preview_card,
+        ]
+
+        for target in drop_targets:
+            target.drop_target_register(DND_FILES)
+            target.dnd_bind("<<Drop>>", self._on_drop_file)
+
+    def _on_drop_file(self, event):
+        """
+        Verarbeitet eine per Drag & Drop abgelegte Datei.
+        """
+
+        dropped_files = self.tk.splitlist(event.data)
+
+        if not dropped_files:
+            self.log_card.log("Drag & Drop: keine Datei erkannt.")
+            return
+
+        filename = dropped_files[0]
+        self.load_image_file(filename)
+
     def select_image(self):
         """
         Öffnet einen Dateidialog und zeigt das Bild in der Vorschau.
@@ -135,9 +188,41 @@ class SnapdragonAIStudioV2(tk.Tk):
         if not filename:
             return
 
-        self.file_card.set_filename(filename)
-        self.log_card.log(f"Bild ausgewählt: {Path(filename).name}")
-        self.show_preview(filename)
+        self.load_image_file(filename)
+
+    def load_image_file(self, filename):
+        """
+        Lädt eine Bilddatei in die GUI.
+        """
+
+        path = Path(filename)
+
+        if not path.exists():
+            self.log_card.log(f"Datei nicht gefunden: {filename}")
+            return
+
+        if not self._is_supported_image(path):
+            self.log_card.log(f"Nicht unterstützte Bilddatei: {path.name}")
+            return
+
+        self.file_card.set_filename(str(path))
+        self.log_card.log(f"Bild geladen: {path.name}")
+        self.show_preview(str(path))
+
+    def _is_supported_image(self, path):
+        """
+        Prüft, ob die Datei ein unterstütztes Bildformat hat.
+        """
+
+        supported_extensions = {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".bmp",
+            ".webp",
+        }
+
+        return path.suffix.lower() in supported_extensions
 
     def show_preview(self, filename):
         """
