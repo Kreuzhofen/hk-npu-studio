@@ -7,46 +7,54 @@ Created by Holger Kreuzhofen
 Phoenix UI
 """
 
-from tkinter import ttk
-
-from widgets.base_card import BaseCard
+import tkinter as tk
 
 
-class PluginCard(BaseCard):
-    """
-    Zeigt Informationen über das aktuell aktive Plugin.
-    """
+class PluginCard(tk.Frame):
 
     def __init__(self, master):
-        super().__init__(master, "Aktives Plugin")
+        super().__init__(master, bd=1, relief="groove", padx=10, pady=10)
 
-        self.name_var = ttk.Label(self, text="Plugin: -")
-        self.backend_var = ttk.Label(self, text="Backend: -")
-        self.status_var = ttk.Label(self, text="Status: -")
+        self._build_ui()
 
-        self.name_var.pack(anchor="w", padx=10, pady=(10, 4))
-        self.backend_var.pack(anchor="w", padx=10, pady=4)
-        self.status_var.pack(anchor="w", padx=10, pady=(4, 10))
+    def _build_ui(self):
 
-    def set_plugin(self, name: str, backend: str, status: str):
-        """
-        Aktualisiert die Plugin-Anzeige.
-        """
+        self.title_label = tk.Label(
+            self,
+            text="Plugin",
+            font=("Segoe UI", 11, "bold"),
+            anchor="w",
+        )
+        self.title_label.pack(fill="x")
 
-        self.name_var.configure(text=f"Plugin: {name}")
-        self.backend_var.configure(text=f"Backend: {backend}")
-        self.status_var.configure(text=f"Status: {status}")
+        self.name_label = tk.Label(
+            self,
+            text="Name: -",
+            anchor="w",
+        )
+        self.name_label.pack(fill="x", pady=(5, 0))
 
-    def get_plugin(self):
-        """
-        Liefert den aktuell angezeigten Plugin-Namen zurück.
-        """
+        self.backend_label = tk.Label(
+            self,
+            text="Backend: -",
+            anchor="w",
+        )
+        self.backend_label.pack(fill="x")
 
-        return self.name_var.cget("text").replace("Plugin: ", "")
+        self.status_label = tk.Label(
+            self,
+            text="Status: -",
+            anchor="w",
+        )
+        self.status_label.pack(fill="x", pady=(0, 8))
 
-    def clear(self):
-        """
-        Setzt die Anzeige zurück.
-        """
+        self.manager_button = tk.Button(
+            self,
+            text="Plugin Manager",
+        )
+        self.manager_button.pack(fill="x")
 
-        self.set_plugin("-", "-", "-")
+    def set_plugin(self, name, backend, status):
+        self.name_label.configure(text=f"Name: {name}")
+        self.backend_label.configure(text=f"Backend: {backend}")
+        self.status_label.configure(text=f"Status: {status}")

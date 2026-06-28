@@ -87,6 +87,10 @@ class SnapdragonAIStudioV2(BaseWindow):
             "Bereit",
         )
 
+        self.plugin_card.manager_button.configure(
+            command=self.open_plugin_manager
+        )
+
         self.file_card.select_button.configure(
             command=self.select_images
         )
@@ -161,6 +165,47 @@ class SnapdragonAIStudioV2(BaseWindow):
                 "Drag & Drop nicht verfügbar. "
                 "Installiere optional: pip install tkinterdnd2"
             )
+
+    def open_plugin_manager(self):
+        """
+        Öffnet den Plugin Manager.
+        """
+
+        window = tk.Toplevel(self)
+        window.title("Plugin Manager")
+        window.geometry("520x360")
+        window.transient(self)
+        window.grab_set()
+
+        title = tk.Label(
+            window,
+            text="SnapdragonAI Plugin Manager",
+            font=("Segoe UI", 13, "bold"),
+            anchor="w",
+        )
+        title.pack(fill="x", padx=15, pady=(15, 8))
+
+        info = tk.Label(
+            window,
+            text=(
+                "Aktuell installiert:\n\n"
+                "• RealESRGAN\n"
+                "  Typ: Image Upscale\n"
+                "  Backend: QNN / Snapdragon NPU\n"
+                "  Status: Bereit\n\n"
+                "Weitere Plugins folgen in späteren Sprints."
+            ),
+            justify="left",
+            anchor="nw",
+        )
+        info.pack(fill="both", expand=True, padx=15, pady=8)
+
+        close_button = tk.Button(
+            window,
+            text="Schließen",
+            command=window.destroy,
+        )
+        close_button.pack(pady=(0, 15))
 
     def _setup_drag_and_drop(self):
         """
