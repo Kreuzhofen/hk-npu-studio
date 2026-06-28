@@ -46,13 +46,7 @@ class PluginCard(tk.Frame):
             text="Status: -",
             anchor="w",
         )
-        self.status_label.pack(fill="x", pady=(0, 8))
-
-        self.manager_button = tk.Button(
-            self,
-            text="Plugin Manager",
-        )
-        self.manager_button.pack(fill="x")
+        self.status_label.pack(fill="x")
 
     def set_plugin(self, name, backend, status):
         self.name_label.configure(text=f"Name: {name}")
