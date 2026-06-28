@@ -12,11 +12,21 @@ import tkinter as tk
 from tkinter import ttk
 from pathlib import Path
 
+from resources.theme import Theme
+
 
 class JobCard(tk.Frame):
 
     def __init__(self, master):
-        super().__init__(master, bd=1, relief="groove", padx=10, pady=10)
+        super().__init__(
+            master,
+            bd=1,
+            relief="solid",
+            padx=Theme.spacing("card_pad"),
+            pady=Theme.spacing("card_pad"),
+            bg=Theme.color("card"),
+            highlightbackground=Theme.color("border"),
+        )
 
         self.start_time = None
         self.running = False
@@ -29,24 +39,26 @@ class JobCard(tk.Frame):
         self.title_label = tk.Label(
             self,
             text="Job",
-            font=("Segoe UI", 11, "bold"),
+            font=Theme.font("card_title"),
             anchor="w",
+            bg=Theme.color("card"),
+            fg=Theme.color("text"),
         )
         self.title_label.pack(fill="x")
 
-        self.plugin_label = tk.Label(self, anchor="w")
+        self.plugin_label = self._make_label()
         self.plugin_label.pack(fill="x", pady=(5, 0))
 
-        self.backend_label = tk.Label(self, anchor="w")
+        self.backend_label = self._make_label()
         self.backend_label.pack(fill="x")
 
-        self.input_label = tk.Label(self, anchor="w")
+        self.input_label = self._make_label()
         self.input_label.pack(fill="x", pady=(8, 0))
 
-        self.output_label = tk.Label(self, anchor="w")
+        self.output_label = self._make_label()
         self.output_label.pack(fill="x")
 
-        self.status_label = tk.Label(self, anchor="w")
+        self.status_label = self._make_label(fg=Theme.color("muted_text"))
         self.status_label.pack(fill="x", pady=(8, 0))
 
         self.progress_bar = ttk.Progressbar(
@@ -57,11 +69,20 @@ class JobCard(tk.Frame):
         )
         self.progress_bar.pack(fill="x", pady=5)
 
-        self.batch_label = tk.Label(self, anchor="w")
+        self.batch_label = self._make_label()
         self.batch_label.pack(fill="x")
 
-        self.runtime_label = tk.Label(self, anchor="w")
+        self.runtime_label = self._make_label()
         self.runtime_label.pack(fill="x")
+
+    def _make_label(self, fg=None):
+        return tk.Label(
+            self,
+            anchor="w",
+            font=Theme.font("body"),
+            bg=Theme.color("card"),
+            fg=fg or Theme.color("text"),
+        )
 
     def reset(self):
         self.start_time = None
@@ -72,7 +93,10 @@ class JobCard(tk.Frame):
         self.backend_label.configure(text="Backend: -")
         self.input_label.configure(text="Eingabe: -")
         self.output_label.configure(text="Ausgabe: -")
-        self.status_label.configure(text="Status: Bereit")
+        self.status_label.configure(
+            text="Status: Bereit",
+            fg=Theme.color("muted_text"),
+        )
         self.batch_label.configure(text="Batch: 0 / 0 (0%)")
         self.runtime_label.configure(text="Laufzeit: 00:00")
 
@@ -93,7 +117,10 @@ class JobCard(tk.Frame):
         self.backend_label.configure(text=f"Backend: {backend}")
         self.input_label.configure(text=f"Eingabe: {input_name}")
         self.output_label.configure(text="Ausgabe: wird erstellt...")
-        self.status_label.configure(text="Status: Bild wird verarbeitet...")
+        self.status_label.configure(
+            text="Status: Bild wird verarbeitet...",
+            fg=Theme.color("info"),
+        )
         self.runtime_label.configure(text="Laufzeit: 00:00")
 
     def finish_job(self, output_path):
@@ -102,7 +129,10 @@ class JobCard(tk.Frame):
         output_name = Path(output_path).name
 
         self.output_label.configure(text=f"Ausgabe: {output_name}")
-        self.status_label.configure(text="Status: Fertig")
+        self.status_label.configure(
+            text="Status: Fertig",
+            fg=Theme.color("success"),
+        )
 
         self.update_runtime()
 
@@ -110,7 +140,10 @@ class JobCard(tk.Frame):
         self.running = False
 
         self.output_label.configure(text="Ausgabe: -")
-        self.status_label.configure(text="Status: Fehler")
+        self.status_label.configure(
+            text="Status: Fehler",
+            fg=Theme.color("error"),
+        )
 
         self.update_runtime()
 

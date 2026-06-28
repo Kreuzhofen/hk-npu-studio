@@ -10,11 +10,28 @@ Phoenix UI
 import tkinter as tk
 from pathlib import Path
 
+from resources.theme import Theme
+
 
 class QueueCard(tk.Frame):
 
+    STATUS_ICONS = {
+        "wartet": "○",
+        "läuft": "▶",
+        "fertig": "✓",
+        "Fehler": "✖",
+    }
+
     def __init__(self, master, on_select=None):
-        super().__init__(master, bd=1, relief="groove", padx=8, pady=8)
+        super().__init__(
+            master,
+            bd=1,
+            relief="solid",
+            padx=Theme.spacing("card_pad"),
+            pady=Theme.spacing("card_pad"),
+            bg=Theme.color("card"),
+            highlightbackground=Theme.color("border"),
+        )
 
         self.on_select = on_select
         self.items = []
@@ -26,8 +43,10 @@ class QueueCard(tk.Frame):
         self.title_label = tk.Label(
             self,
             text="Batch Queue",
-            font=("Segoe UI", 10, "bold"),
+            font=Theme.font("card_title"),
             anchor="w",
+            bg=Theme.color("card"),
+            fg=Theme.color("text"),
         )
         self.title_label.pack(fill="x")
 
@@ -35,16 +54,27 @@ class QueueCard(tk.Frame):
             self,
             text="Keine Jobs in der Warteschlange.",
             anchor="w",
+            font=Theme.font("body"),
+            bg=Theme.color("card"),
+            fg=Theme.color("muted_text"),
         )
         self.info_label.pack(fill="x", pady=(4, 6))
 
-        list_frame = tk.Frame(self)
+        list_frame = tk.Frame(
+            self,
+            bg=Theme.color("card"),
+        )
         list_frame.pack(fill="both", expand=True)
 
         self.listbox = tk.Listbox(
             list_frame,
             height=10,
             exportselection=False,
+            font=Theme.font("small"),
+            bg="#FFFFFF",
+            fg=Theme.color("text"),
+            relief="solid",
+            bd=1,
         )
         self.listbox.pack(
             side="left",
@@ -92,10 +122,11 @@ class QueueCard(tk.Frame):
         for index, job in enumerate(self.items, start=1):
             filename = Path(job["input_path"]).name
             status = job["status"]
+            icon = self.STATUS_ICONS.get(status, "•")
 
             self.listbox.insert(
                 tk.END,
-                f"{index}. [{status}] {filename}",
+                f"{index}. {icon} [{status}] {filename}",
             )
 
     def select_job(self, input_path):

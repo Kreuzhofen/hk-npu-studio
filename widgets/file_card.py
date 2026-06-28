@@ -9,11 +9,21 @@ Phoenix UI
 
 import tkinter as tk
 
+from resources.theme import Theme
+
 
 class FileCard(tk.Frame):
 
     def __init__(self, master):
-        super().__init__(master, bd=1, relief="groove", padx=10, pady=10)
+        super().__init__(
+            master,
+            bd=1,
+            relief="solid",
+            padx=Theme.spacing("card_pad"),
+            pady=Theme.spacing("card_pad"),
+            bg=Theme.color("card"),
+            highlightbackground=Theme.color("border"),
+        )
 
         self._build_ui()
 
@@ -22,12 +32,21 @@ class FileCard(tk.Frame):
         self.title_label = tk.Label(
             self,
             text="Aktuelles Bild",
-            font=("Segoe UI", 10, "bold"),
+            font=Theme.font("card_title"),
             anchor="w",
+            bg=Theme.color("card"),
+            fg=Theme.color("text"),
         )
         self.title_label.pack(fill="x")
 
-        self.filename_entry = tk.Entry(self)
+        self.filename_entry = tk.Entry(
+            self,
+            font=Theme.font("body"),
+            bg="#FFFFFF",
+            fg=Theme.color("text"),
+            relief="solid",
+            bd=1,
+        )
         self.filename_entry.pack(fill="x", pady=(8, 0))
 
     def set_filename(self, filename):
