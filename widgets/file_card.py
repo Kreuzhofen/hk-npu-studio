@@ -8,93 +8,56 @@ Phoenix UI
 """
 
 import tkinter as tk
-from tkinter import ttk
-
-from widgets.base_card import BaseCard
 
 
-class FileCard(BaseCard):
-    """
-    Widget zur Auswahl eines Eingabebildes.
-    """
+class FileCard(tk.Frame):
 
     def __init__(self, master):
-        super().__init__(master, "Bild auswählen")
+        super().__init__(master, bd=1, relief="groove", padx=10, pady=10)
 
-        self.selected_file = tk.StringVar()
+        self._build_ui()
 
-        self.entry = ttk.Entry(
+    def _build_ui(self):
+
+        self.title_label = tk.Label(
             self,
-            textvariable=self.selected_file,
+            text="Bild auswählen",
+            font=("Segoe UI", 10, "bold"),
+            anchor="w",
         )
+        self.title_label.pack(fill="x")
 
-        self.entry.pack(
-            fill="x",
-            padx=10,
-            pady=(10, 6),
-        )
+        self.filename_entry = tk.Entry(self)
+        self.filename_entry.pack(fill="x", pady=(8, 8))
 
-        self.button_frame = ttk.Frame(self)
-        self.button_frame.pack(
-            fill="x",
-            padx=10,
-            pady=(0, 10),
-        )
+        button_frame = tk.Frame(self)
+        button_frame.pack(fill="x")
 
-        self.select_button = ttk.Button(
-            self.button_frame,
+        self.select_button = tk.Button(
+            button_frame,
             text="Auswählen",
         )
+        self.select_button.pack(side="left", padx=(0, 6))
 
-        self.start_button = ttk.Button(
-            self.button_frame,
+        self.start_button = tk.Button(
+            button_frame,
             text="Plugin starten",
         )
+        self.start_button.pack(side="left")
 
-        self.manager_button = ttk.Button(
-            self.button_frame,
-            text="Plugin Manager",
-        )
-
-        self.select_button.pack(side="left")
-
-        self.start_button.pack(
-            side="left",
-            padx=6,
-        )
-
-        self.manager_button.pack(side="left")
-
-    def set_filename(self, filename: str):
-        """
-        Setzt den Dateinamen.
-        """
-        self.selected_file.set(filename)
+    def set_filename(self, filename):
+        self.filename_entry.delete(0, tk.END)
+        self.filename_entry.insert(0, filename)
 
     def get_filename(self):
-        """
-        Liefert den Dateinamen.
-        """
-        return self.selected_file.get()
-
-    def enable(self):
-        """
-        Aktiviert alle Buttons.
-        """
-        self.select_button.configure(state="normal")
-        self.start_button.configure(state="normal")
-        self.manager_button.configure(state="normal")
+        return self.filename_entry.get().strip()
 
     def disable(self):
-        """
-        Deaktiviert alle Buttons.
-        """
         self.select_button.configure(state="disabled")
         self.start_button.configure(state="disabled")
-        self.manager_button.configure(state="disabled")
+        self.filename_entry.configure(state="disabled")
 
-    def clear(self):
-        """
-        Löscht den Dateinamen.
-        """
-        self.selected_file.set("")
+    def enable(self):
+        self.select_button.configure(state="normal")
+        self.start_button.configure(state="normal")
+        self.filename_entry.configure(state="normal")
