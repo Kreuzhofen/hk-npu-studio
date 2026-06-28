@@ -27,6 +27,8 @@ except ImportError:
 
 from dialogs.plugin_manager import PluginManagerDialog
 from engine.gui_controller import GuiController
+from resources.branding import Branding
+from resources.theme import Theme
 from widgets.toolbar import Toolbar
 from widgets.file_card import FileCard
 from widgets.preview_card import PreviewCard
@@ -35,6 +37,7 @@ from widgets.plugin_card import PluginCard
 from widgets.job_card import JobCard
 from widgets.thumbnail_gallery import ThumbnailGallery
 from widgets.queue_card import QueueCard
+from widgets.status_bar import StatusBar
 
 
 BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
@@ -45,8 +48,9 @@ class SnapdragonAIStudioV2(BaseWindow):
     def __init__(self):
         super().__init__()
 
-        self.title("SnapdragonAI Studio V2")
+        self.title(Branding.WINDOW_TITLE_WITH_VERSION)
         self.geometry("1400x900")
+        self.configure(bg=Theme.color("background"))
 
         self.controller = GuiController()
         self.preview_image = None
@@ -58,10 +62,14 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         self.after(100, self._poll_log_queue)
         self.after(500, self._update_runtime)
+        self.after(500, self._update_status_bar)
 
     def _build_ui(self):
 
-        main = tk.Frame(self)
+        main = tk.Frame(
+            self,
+            bg=Theme.color("background"),
+        )
         main.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.toolbar = Toolbar(
@@ -75,7 +83,10 @@ class SnapdragonAIStudioV2(BaseWindow):
         )
         self.toolbar.pack(fill="x")
 
-        top = tk.Frame(main)
+        top = tk.Frame(
+            main,
+            bg=Theme.color("background"),
+        )
         top.pack(fill="x", pady=(10, 0))
 
         self.file_card = FileCard(top)
@@ -105,14 +116,20 @@ class SnapdragonAIStudioV2(BaseWindow):
             pady=(10, 0),
         )
 
-        content = tk.Frame(main)
+        content = tk.Frame(
+            main,
+            bg=Theme.color("background"),
+        )
         content.pack(
             fill="both",
             expand=True,
             pady=10,
         )
 
-        preview_area = tk.Frame(content)
+        preview_area = tk.Frame(
+            content,
+            bg=Theme.color("background"),
+        )
         preview_area.pack(
             side="left",
             fill="both",
@@ -126,7 +143,11 @@ class SnapdragonAIStudioV2(BaseWindow):
             expand=True,
         )
 
-        side_area = tk.Frame(content, width=330)
+        side_area = tk.Frame(
+            content,
+            width=330,
+            bg=Theme.color("background"),
+        )
         side_area.pack(
             side="right",
             fill="y",
@@ -154,7 +175,10 @@ class SnapdragonAIStudioV2(BaseWindow):
         )
 
         self.log_card = LogCard(main)
-        self.log_card.pack(fill="x")
+        self.log_card.pack(fill="x", pady=(0, 8))
+
+        self.status_bar = StatusBar(main)
+        self.status_bar.pack(fill="x")
 
         if DND_AVAILABLE:
             self.log_card.log("Drag & Drop ist verfügbar.")
@@ -424,6 +448,42 @@ class SnapdragonAIStudioV2(BaseWindow):
             progress["total"],
             progress["percent"],
         )
+
+    def _update_status_bar(self):
+        status = self.controller.get_engine_status()
+        progress = status.get("progress", {})
+        scheduler = status.get("scheduler", {})
+        worker = status.get("worker", {})
+
+        engine_status = scheduler.get("status", "idle")
+        worker_status = worker.get("status", "idle")
+        queue_count = status.get("waiting_jobs", 0)
+        percent = progress.get("percent", 0)
+
+        engine_status_label = {
+            "idle": "Ready",
+            "running": "Running",
+            "paused": "Paused",
+            "stopped": "Stopped",
+            "cancel_requested": "Stopping",
+        }.get(engine_status, engine_status)
+
+        worker_status_label = {
+            "idle": "Idle",
+            "running": "Busy",
+            "done": "Done",
+            "error": "Error",
+        }.get(worker_status, worker_status)
+
+        self.status_bar.set_status(
+            engine_status=engine_status_label,
+            queue_count=queue_count,
+            worker_status=worker_status_label,
+            backend="QNN",
+            percent=percent,
+        )
+
+        self.after(500, self._update_status_bar)
 
     def _poll_log_queue(self):
         try:
