@@ -26,6 +26,7 @@ except ImportError:
     DND_AVAILABLE = False
 
 from dialogs.plugin_manager import PluginManagerDialog
+from engine.brand_manager import BrandManager
 from engine.gui_controller import GuiController
 from resources.branding import Branding
 from resources.theme import Theme
@@ -38,6 +39,7 @@ from widgets.job_card import JobCard
 from widgets.thumbnail_gallery import ThumbnailGallery
 from widgets.queue_card import QueueCard
 from widgets.status_bar import StatusBar
+from widgets.startup_overlay import StartupOverlay
 
 
 BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
@@ -48,6 +50,9 @@ class SnapdragonAIStudioV2(BaseWindow):
     def __init__(self):
         super().__init__()
 
+        self.brand = BrandManager()
+        self.brand.initialize()
+
         self.title(Branding.WINDOW_TITLE_WITH_VERSION)
         self.geometry("1400x900")
         self.configure(bg=Theme.color("background"))
@@ -56,13 +61,20 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.preview_image = None
         self.log_queue = queue.Queue()
         self.cancel_requested = False
+        self.startup_overlay = None
 
         self._build_ui()
         self._setup_drag_and_drop()
+        self._show_startup_overlay()
 
         self.after(100, self._poll_log_queue)
         self.after(500, self._update_runtime)
         self.after(500, self._update_status_bar)
+
+    def _show_startup_overlay(self):
+        self.startup_overlay = StartupOverlay(self, self.brand)
+        self.startup_overlay.show()
+        self.after(1600, self.startup_overlay.fade_out)
 
     def _build_ui(self):
 
