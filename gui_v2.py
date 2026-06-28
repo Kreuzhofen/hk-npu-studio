@@ -49,6 +49,8 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.preview_image = None
         self.log_queue = queue.Queue()
         self.last_output = None
+        self.current_image = None
+        self.loaded_images = []
 
         self._build_ui()
         self._setup_drag_and_drop()
@@ -86,7 +88,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         )
 
         self.file_card.select_button.configure(
-            command=self.select_image
+            command=self.select_images
         )
 
         self.file_card.start_button.configure(
@@ -126,7 +128,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         self.thumbnail_gallery = ThumbnailGallery(
             main,
-            on_select=self.load_image_file,
+            on_select=self.select_loaded_image,
             max_items=10,
         )
         self.thumbnail_gallery.pack(
@@ -166,7 +168,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def _on_drop_file(self, event):
         """
-        Verarbeitet eine per Drag & Drop abgelegte Datei.
+        Verarbeitet eine oder mehrere per Drag & Drop abgelegte Dateien.
         """
 
         dropped_files = self.tk.splitlist(event.data)
@@ -175,16 +177,15 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.log_card.log("Drag & Drop: keine Datei erkannt.")
             return
 
-        filename = dropped_files[0]
-        self.load_image_file(filename)
+        self.load_image_files(dropped_files)
 
-    def select_image(self):
+    def select_images(self):
         """
-        Öffnet einen Dateidialog und zeigt das Bild in der Vorschau.
+        Öffnet einen Dateidialog und lädt ein oder mehrere Bilder.
         """
 
-        filename = filedialog.askopenfilename(
-            title="Bild auswählen",
+        filenames = filedialog.askopenfilenames(
+            title="Bilder auswählen",
             filetypes=[
                 (
                     "Bilddateien",
@@ -197,14 +198,57 @@ class SnapdragonAIStudioV2(BaseWindow):
             ],
         )
 
-        if not filename:
+        if not filenames:
             return
 
-        self.load_image_file(filename)
+        self.load_image_files(filenames)
 
-    def load_image_file(self, filename):
+    def load_image_files(self, filenames):
         """
-        Lädt eine Bilddatei in die GUI.
+        Lädt mehrere Bilddateien in die GUI.
+        """
+
+        valid_files = []
+
+        for filename in filenames:
+            path = Path(filename)
+
+            if not path.exists():
+                self.log_card.log(f"Datei nicht gefunden: {filename}")
+                continue
+
+            if not self._is_supported_image(path):
+                self.log_card.log(
+                    f"Nicht unterstützte Bilddatei: {path.name}"
+                )
+                continue
+
+            full_path = str(path.resolve())
+
+            if full_path not in self.loaded_images:
+                self.loaded_images.append(full_path)
+
+            self.thumbnail_gallery.add_image(full_path)
+            valid_files.append(full_path)
+
+        if not valid_files:
+            self.log_card.log("Keine gültigen Bilddateien geladen.")
+            return
+
+        self.select_loaded_image(valid_files[0])
+
+        if len(valid_files) == 1:
+            self.log_card.log(
+                f"1 Bild geladen: {Path(valid_files[0]).name}"
+            )
+        else:
+            self.log_card.log(
+                f"{len(valid_files)} Bilder geladen."
+            )
+
+    def select_loaded_image(self, filename):
+        """
+        Wählt ein geladenes Bild als aktuelles Bild aus.
         """
 
         path = Path(filename)
@@ -217,10 +261,9 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.log_card.log(f"Nicht unterstützte Bilddatei: {path.name}")
             return
 
-        self.file_card.set_filename(str(path))
-        self.thumbnail_gallery.add_image(str(path))
-        self.log_card.log(f"Bild geladen: {path.name}")
-        self.show_preview(str(path))
+        self.current_image = str(path.resolve())
+        self.file_card.set_filename(self.current_image)
+        self.show_preview(self.current_image)
 
     def _is_supported_image(self, path):
         """
@@ -249,7 +292,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.preview_image = ImageTk.PhotoImage(image)
             self.preview_card.set_image(self.preview_image)
 
-            self.log_card.log("Vorschau aktualisiert.")
+            self.log_card.log(f"Vorschau aktualisiert: {Path(filename).name}")
 
         except Exception as error:
             self.preview_card.set_text(
@@ -261,10 +304,10 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def start_plugin(self):
         """
-        Startet das Upscaling über die Phoenix Engine.
+        Startet das Upscaling für das aktuell ausgewählte Bild.
         """
 
-        filename = self.file_card.get_filename()
+        filename = self.current_image or self.file_card.get_filename()
 
         if not filename:
             self.log_card.log("Kein Bild ausgewählt.")
@@ -289,7 +332,9 @@ class SnapdragonAIStudioV2(BaseWindow):
             "QNN / Snapdragon NPU",
             "Läuft...",
         )
-        self.log_card.log("Starte Phoenix Engine...")
+        self.log_card.log(
+            f"Starte Phoenix Engine für: {Path(filename).name}"
+        )
 
         thread = threading.Thread(
             target=self._worker,
@@ -371,7 +416,7 @@ class SnapdragonAIStudioV2(BaseWindow):
                     self.job_card.finish_job(value)
                     self.thumbnail_gallery.add_image(value)
                     self.log_card.log(f"Fertig: {value}")
-                    self.show_preview(value)
+                    self.select_loaded_image(value)
 
                 elif kind == "error":
                     self.file_card.enable()
