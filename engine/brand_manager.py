@@ -21,13 +21,13 @@ class BrandManager:
     """
     Central branding manager for SnapdragonAI Studio.
 
-    The BrandManager is the single source of truth for:
-    - application name
-    - slogan
-    - version
+    Single source of truth for:
+    - application identity
+    - author and copyright information
+    - slogan and version
     - branding resource paths
     - theme-aware design tokens
-    - logo and installer assets
+    - logo, splash, about and installer assets
     """
 
     def __init__(
@@ -52,6 +52,10 @@ class BrandManager:
         self._app_name = "SnapdragonAI Studio"
         self._slogan = "AI powered by Phoenix Engine"
 
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
     def initialize(self) -> None:
         self._load_tokens()
         self._initialized = True
@@ -64,8 +68,9 @@ class BrandManager:
         self._load_tokens()
         self._initialized = True
 
-    def set_theme(self, theme: str) -> None:
-        self._theme = self._normalize_theme(theme)
+    # ------------------------------------------------------------------
+    # Application identity
+    # ------------------------------------------------------------------
 
     def app_name(self) -> str:
         return str(self._tokens.get("app", {}).get("name", self._app_name))
@@ -76,8 +81,44 @@ class BrandManager:
     def version(self) -> str:
         return self._version
 
+    def version_string(self) -> str:
+        return f"Version {self._version}"
+
+    def engine(self) -> str:
+        return "Phoenix Engine"
+
+    # ------------------------------------------------------------------
+    # Brand identity
+    # ------------------------------------------------------------------
+
+    def company(self) -> str:
+        return "SnapdragonAI Studio"
+
+    def author(self) -> str:
+        return "Holger Kreuzhofen"
+
+    def copyright(self) -> str:
+        return "© 2026 Holger Kreuzhofen"
+
+    def website(self) -> str:
+        return ""
+
+    def github(self) -> str:
+        return ""
+
+    # ------------------------------------------------------------------
+    # Theme
+    # ------------------------------------------------------------------
+
+    def set_theme(self, theme: str) -> None:
+        self._theme = self._normalize_theme(theme)
+
     def theme(self) -> str:
         return self._theme
+
+    # ------------------------------------------------------------------
+    # Branding assets
+    # ------------------------------------------------------------------
 
     def logo(self) -> Path:
         return self.asset_path("LOGO_PRIMARY")
@@ -97,11 +138,48 @@ class BrandManager:
     def installer_logo(self) -> Path:
         return self.asset_path("INSTALLER_LOGO")
 
+    def logo_header(self) -> Path:
+        return self.resource_path("logo/png/phoenix_header_dark.png")
+
+    def logo_header_light(self) -> Path:
+        return self.resource_path("logo/png/phoenix_header_light.png")
+
+    def logo_header_dark(self) -> Path:
+        return self.resource_path("logo/png/phoenix_header_dark.png")
+
+    def logo_about(self) -> Path:
+        return self.resource_path("logo/png/phoenix_about.png")
+
+    def logo_splash(self) -> Path:
+        return self.resource_path("logo/png/phoenix_splash.png")
+
+    def logo_app_icon(self) -> Path:
+        return self.resource_path("logo/ico/snapdragonai.ico")
+
+    # ------------------------------------------------------------------
+    # Paths
+    # ------------------------------------------------------------------
+
     def resource_root(self) -> Path:
         return self._resource_root
 
     def tokens_path(self) -> Path:
         return self._tokens_path
+
+    def resource_path(self, relative_path: str) -> Path:
+        return self._resource_root / relative_path
+
+    def asset_path(self, token_name: str) -> Path:
+        value = self.token(token_name)
+
+        if not isinstance(value, str):
+            raise ValueError(f"Token '{token_name}' is not an asset path.")
+
+        return self.resource_path(value)
+
+    # ------------------------------------------------------------------
+    # Design tokens
+    # ------------------------------------------------------------------
 
     def token(self, name: str) -> Any:
         theme_tokens = self._theme_tokens()
@@ -115,14 +193,6 @@ class BrandManager:
                 return section_tokens[name]
 
         raise KeyError(f"Unknown design token: {name}")
-
-    def asset_path(self, token_name: str) -> Path:
-        value = self.token(token_name)
-
-        if not isinstance(value, str):
-            raise ValueError(f"Token '{token_name}' is not an asset path.")
-
-        return self.resource_path(value)
 
     def color(self, name: str) -> str:
         value = self.token(name)
@@ -156,8 +226,9 @@ class BrandManager:
 
         return value
 
-    def resource_path(self, relative_path: str) -> Path:
-        return self._resource_root / relative_path
+    # ------------------------------------------------------------------
+    # State
+    # ------------------------------------------------------------------
 
     def state(self) -> BrandState:
         return BrandState(
@@ -182,6 +253,10 @@ class BrandManager:
             "resource_root": state.resource_root,
             "tokens_loaded": state.tokens_loaded,
         }
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
 
     def _load_tokens(self) -> None:
         if not self._tokens_path.exists():
