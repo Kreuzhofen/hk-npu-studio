@@ -30,15 +30,7 @@ from engine.brand_manager import BrandManager
 from engine.gui_controller import GuiController
 from resources.branding import Branding
 from resources.theme import Theme
-from widgets.toolbar import Toolbar
-from widgets.file_card import FileCard
-from widgets.preview_card import PreviewCard
-from widgets.log_card import LogCard
-from widgets.plugin_card import PluginCard
-from widgets.job_card import JobCard
-from widgets.thumbnail_gallery import ThumbnailGallery
-from widgets.queue_card import QueueCard
-from widgets.status_bar import StatusBar
+from gui.controllers.ui_builder import UIBuilder
 from widgets.startup_overlay import StartupOverlay
 
 
@@ -77,128 +69,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.after(1600, self.startup_overlay.fade_out)
 
     def _build_ui(self):
-
-        main = tk.Frame(
-            self,
-            bg=Theme.color("background"),
-        )
-        main.pack(fill="both", expand=True, padx=10, pady=10)
-
-        self.toolbar = Toolbar(
-            main,
-            on_select_images=self.select_images,
-            on_select_folder=self.select_folder,
-            on_start=self.start_plugin,
-            on_cancel=self.cancel_processing,
-            on_open_output=self.open_output,
-            on_open_plugin_manager=self.open_plugin_manager,
-        )
-        self.toolbar.pack(fill="x")
-
-        top = tk.Frame(
-            main,
-            bg=Theme.color("background"),
-        )
-        top.pack(fill="x", pady=(10, 0))
-
-        self.file_card = FileCard(top)
-        self.file_card.pack(
-            side="left",
-            fill="x",
-            expand=True,
-            padx=5,
-        )
-
-        self.plugin_card = PluginCard(top)
-        self.plugin_card.pack(
-            side="left",
-            fill="both",
-            padx=5,
-        )
-
-        self.plugin_card.set_plugin(
-            "RealESRGAN",
-            "QNN / Snapdragon NPU",
-            "Bereit",
-        )
-
-        self.job_card = JobCard(main)
-        self.job_card.pack(
-            fill="x",
-            pady=(10, 0),
-        )
-
-        content = tk.Frame(
-            main,
-            bg=Theme.color("background"),
-        )
-        content.pack(
-            fill="both",
-            expand=True,
-            pady=10,
-        )
-
-        preview_area = tk.Frame(
-            content,
-            bg=Theme.color("background"),
-        )
-        preview_area.pack(
-            side="left",
-            fill="both",
-            expand=True,
-            padx=(0, 8),
-        )
-
-        self.preview_card = PreviewCard(preview_area)
-        self.preview_card.pack(
-            fill="both",
-            expand=True,
-        )
-
-        side_area = tk.Frame(
-            content,
-            width=330,
-            bg=Theme.color("background"),
-        )
-        side_area.pack(
-            side="right",
-            fill="y",
-        )
-        side_area.pack_propagate(False)
-
-        self.thumbnail_gallery = ThumbnailGallery(
-            side_area,
-            on_select=self.select_loaded_image,
-            max_items=50,
-        )
-        self.thumbnail_gallery.pack(
-            fill="both",
-            expand=True,
-            pady=(0, 8),
-        )
-
-        self.queue_card = QueueCard(
-            side_area,
-            on_select=self.select_loaded_image,
-        )
-        self.queue_card.pack(
-            fill="both",
-            expand=True,
-        )
-
-        self.log_card = LogCard(main)
-        self.log_card.pack(fill="x", pady=(0, 8))
-
-        self.status_bar = StatusBar(main)
-        self.status_bar.pack(fill="x")
-
-        if DND_AVAILABLE:
-            self.log_card.log("Drag & Drop ist verfügbar.")
-        else:
-            self.log_card.log(
-                "Drag & Drop nicht verfügbar. "
-                "Installiere optional: pip install tkinterdnd2"
-            )
+        UIBuilder(self, dnd_available=DND_AVAILABLE).build()
 
     def open_plugin_manager(self):
         PluginManagerDialog(self)
