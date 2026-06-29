@@ -12,7 +12,6 @@ import queue
 import threading
 import traceback
 import tkinter as tk
-from tkinter import filedialog
 from pathlib import Path
 
 from PIL import Image, ImageTk
@@ -31,6 +30,7 @@ from engine.gui_controller import GuiController
 from resources.branding import Branding
 from resources.theme import Theme
 from gui.controllers.ui_builder import UIBuilder
+from gui.controllers.import_controller import ImportController
 from widgets.startup_overlay import StartupOverlay
 
 
@@ -50,6 +50,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.configure(bg=Theme.color("background"))
 
         self.controller = GuiController()
+        self.import_controller = ImportController(self)
         self.preview_image = None
         self.log_queue = queue.Queue()
         self.cancel_requested = False
@@ -115,80 +116,16 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.load_image_folder(folder)
 
     def select_images(self):
-        filenames = filedialog.askopenfilenames(
-            title="Bilder auswählen",
-            filetypes=[
-                ("Bilddateien", "*.png *.jpg *.jpeg *.bmp *.webp"),
-                ("Alle Dateien", "*.*"),
-            ],
-        )
-
-        if not filenames:
-            return
-
-        self.load_image_files(filenames)
+        self.import_controller.select_images()
 
     def select_folder(self):
-        folder = filedialog.askdirectory(
-            title="Ordner mit Bildern auswählen"
-        )
-
-        if not folder:
-            return
-
-        self.load_image_folder(folder)
+        self.import_controller.select_folder()
 
     def load_image_folder(self, folder_path):
-        result = self.controller.load_image_folder(folder_path)
-        self._handle_import_result(result)
-
-        valid_files = result["valid_files"]
-
-        if valid_files:
-            self.log_card.log(
-                f"Ordner geladen: {Path(folder_path).name} "
-                f"({len(valid_files)} Bilder)"
-            )
-        else:
-            self.log_card.log(
-                f"Keine unterstützten Bilder im Ordner gefunden: "
-                f"{folder_path}"
-            )
+        self.import_controller.load_image_folder(folder_path)
 
     def load_image_files(self, filenames):
-        result = self.controller.load_image_files(filenames)
-        self._handle_import_result(result)
-
-        valid_files = result["valid_files"]
-
-        if not valid_files:
-            self.log_card.log("Keine gültigen Bilddateien geladen.")
-            return
-
-        if len(valid_files) == 1:
-            self.log_card.log(
-                f"1 Bild geladen und zur Queue hinzugefügt: "
-                f"{Path(valid_files[0]).name}"
-            )
-        else:
-            self.log_card.log(
-                f"{len(valid_files)} Bilder geladen und zur Queue hinzugefügt."
-            )
-
-    def _handle_import_result(self, result):
-        valid_files = result["valid_files"]
-        rejected_files = result["rejected_files"]
-
-        for filename, reason in rejected_files:
-            self.log_card.log(f"{reason}: {filename}")
-
-        for filename in valid_files:
-            self.thumbnail_gallery.add_image(filename)
-
-        self.refresh_queue()
-
-        if valid_files:
-            self.select_loaded_image(valid_files[0])
+        self.import_controller.load_image_files(filenames)
 
     def select_loaded_image(self, filename):
         success, value = self.controller.select_image(filename)
