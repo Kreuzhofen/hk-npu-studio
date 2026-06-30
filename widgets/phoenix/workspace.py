@@ -1,0 +1,159 @@
+from __future__ import annotations
+
+import tkinter as tk
+from collections.abc import Callable
+
+from widgets.phoenix.dashboard import PhoenixDashboard
+from widgets.phoenix.header import PhoenixHeader
+from widgets.phoenix.sidebar import PhoenixSidebar
+from widgets.phoenix.theme import PHOENIX_THEME
+
+
+class PhoenixWorkspace(tk.Frame):
+    """Phoenix Workspace v1.0.
+
+    Parallel zur bestehenden GUI.
+    Keine Legacy-Abhängigkeiten werden verändert.
+    """
+
+    VIEW_TITLES: dict[str, str] = {
+        "home": "Home",
+        "plugins": "Plugins",
+        "settings": "Settings",
+        "image": "Image",
+    }
+
+    def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
+        super().__init__(master, bg=PHOENIX_THEME.app_bg)
+        self.controller = controller
+
+        self.header: PhoenixHeader
+        self.sidebar: PhoenixSidebar
+        self.content_host: tk.Frame
+        self.right_panel: tk.Frame | None = None
+
+        self._views: dict[str, tk.Frame] = {}
+        self._view_factories: dict[str, Callable[[tk.Misc], tk.Frame]] = {}
+        self.current_view: str | None = None
+
+        self._configure_grid()
+        self._register_views()
+        self._build_layout()
+        self.show_view("home")
+
+    def _configure_grid(self) -> None:
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=0)
+
+    def _register_views(self) -> None:
+        from widgets.phoenix.views.home_view import PhoenixHomeView
+        from widgets.phoenix.views.image_view import PhoenixImageView
+        from widgets.phoenix.views.plugin_view import PhoenixPluginView
+        from widgets.phoenix.views.settings_view import PhoenixSettingsView
+
+        self._view_factories = {
+            "home": PhoenixHomeView,
+            "plugins": PhoenixPluginView,
+            "settings": PhoenixSettingsView,
+            "image": PhoenixImageView,
+        }
+
+    def _build_layout(self) -> None:
+        self.header = PhoenixHeader(self)
+        self.header.grid(row=0, column=0, columnspan=3, sticky="ew")
+
+        self.sidebar = PhoenixSidebar(
+            self,
+            controller=self.controller,
+            on_navigate=self.show_view,
+        )
+        self.sidebar.grid(row=1, column=0, sticky="nsw")
+
+        self.content_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        self.content_host.grid(row=1, column=1, sticky="nsew", padx=12, pady=12)
+        self.content_host.grid_rowconfigure(0, weight=1)
+        self.content_host.grid_columnconfigure(0, weight=1)
+
+        self.right_panel = self._create_right_panel()
+        if self.right_panel is not None:
+            self.right_panel.grid(row=1, column=2, sticky="nse", padx=(0, 12), pady=12)
+
+    def _create_right_panel(self) -> tk.Frame | None:
+        try:
+            from widgets.phoenix.right_panel import PhoenixRightPanel
+
+            return PhoenixRightPanel(self, controller=self.controller)
+        except Exception:
+            return None
+
+    def show_view(self, view_name: str) -> None:
+        if view_name not in self._view_factories:
+            view_name = "home"
+
+        if self.current_view == view_name:
+            return
+
+        for view in self._views.values():
+            view.grid_forget()
+
+        view = self._get_or_create_view(view_name)
+        view.grid(row=0, column=0, sticky="nsew")
+
+        self.current_view = view_name
+        self.sidebar.set_active(view_name)
+        self.header.set_view(self.VIEW_TITLES.get(view_name, view_name.title()))
+
+    def _get_or_create_view(self, view_name: str) -> tk.Frame:
+        if view_name in self._views:
+            return self._views[view_name]
+
+        factory = self._view_factories[view_name]
+
+        try:
+            view = factory(self.content_host)
+        except Exception as exc:
+            view = self._build_error_view(view_name, exc)
+
+        self._views[view_name] = view
+        return view
+
+    def _build_error_view(self, view_name: str, exc: Exception) -> tk.Frame:
+        frame = tk.Frame(self.content_host, bg=PHOENIX_THEME.content_bg)
+
+        tk.Label(
+            frame,
+            text=f"{self.VIEW_TITLES.get(view_name, view_name.title())} konnte nicht geladen werden",
+            bg=PHOENIX_THEME.content_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=("Segoe UI", 18, "bold"),
+            anchor="w",
+        ).pack(fill="x", padx=24, pady=(24, 8))
+
+        tk.Label(
+            frame,
+            text=str(exc),
+            bg=PHOENIX_THEME.content_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=("Segoe UI", 10),
+            anchor="w",
+            justify="left",
+            wraplength=640,
+        ).pack(fill="x", padx=24, pady=(0, 12))
+
+        PhoenixDashboard(frame, controller=self.controller).pack(fill="both", expand=True)
+
+        return frame
+
+    def open_home(self) -> None:
+        self.show_view("home")
+
+    def open_plugins(self) -> None:
+        self.show_view("plugins")
+
+    def open_settings(self) -> None:
+        self.show_view("settings")
+
+    def open_image(self) -> None:
+        self.show_view("image")
