@@ -21,15 +21,7 @@ except ImportError:
     TkinterDnD = None
     DND_AVAILABLE = False
 
-from engine.brand_manager import BrandManager
-from engine.gui_controller import GuiController
-from resources.branding import Branding
-from resources.theme import Theme
-from gui.controllers.batch_controller import BatchController
-from gui.controllers.dialog_controller import DialogController
-from gui.controllers.import_controller import ImportController
-from gui.controllers.ui_builder import UIBuilder
-from widgets.startup_overlay import StartupOverlay
+from gui.controllers.application_controller import ApplicationController
 
 
 BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
@@ -40,32 +32,12 @@ class SnapdragonAIStudioV2(BaseWindow):
     def __init__(self):
         super().__init__()
 
-        self.brand = BrandManager()
-        self.brand.initialize()
-
-        self.title(Branding.WINDOW_TITLE_WITH_VERSION)
-        self.geometry("1400x900")
-        self.configure(bg=Theme.color("background"))
-
-        self.controller = GuiController()
-        self.import_controller = ImportController(self)
-        self.batch_controller = BatchController(self)
-        self.dialog_controller = DialogController(self)
-        self.preview_image = None
-        self.startup_overlay = None
-
-        self._build_ui()
-        self._setup_drag_and_drop()
-        self._show_startup_overlay()
-        self.batch_controller.start_polling()
-
-    def _show_startup_overlay(self):
-        self.startup_overlay = StartupOverlay(self, self.brand)
-        self.startup_overlay.show()
-        self.after(1600, self.startup_overlay.fade_out)
-
-    def _build_ui(self):
-        UIBuilder(self, dnd_available=DND_AVAILABLE).build()
+        self.application_controller = ApplicationController(
+            self,
+            dnd_available=DND_AVAILABLE,
+            dnd_files=DND_FILES,
+        )
+        self.application_controller.initialize()
 
     def open_plugin_manager(self):
         self.dialog_controller.open_plugin_manager()
@@ -73,23 +45,7 @@ class SnapdragonAIStudioV2(BaseWindow):
     def open_about_dialog(self):
         self.dialog_controller.open_about_dialog()
 
-    def _setup_drag_and_drop(self):
-        if not DND_AVAILABLE:
-            return
-
-        drop_targets = [
-            self,
-            self.file_card,
-            self.preview_card,
-            self.thumbnail_gallery,
-            self.queue_card,
-        ]
-
-        for target in drop_targets:
-            target.drop_target_register(DND_FILES)
-            target.dnd_bind("<<Drop>>", self._on_drop_file)
-
-    def _on_drop_file(self, event):
+    def on_drop_file(self, event):
         dropped_paths = self.tk.splitlist(event.data)
 
         if not dropped_paths:
