@@ -9,7 +9,6 @@ Phoenix UI
 
 from engine.brand_manager import BrandManager
 from engine.gui_controller import GuiController
-from resources.branding import Branding
 from resources.theme import Theme
 from gui.controllers.batch_controller import BatchController
 from gui.controllers.dialog_controller import DialogController
@@ -48,7 +47,7 @@ class ApplicationController:
         self.app.brand.initialize()
 
     def _configure_main_window(self):
-        self.app.title(Branding.WINDOW_TITLE_WITH_VERSION)
+        self.app.title(BrandManager.WINDOW_TITLE_WITH_VERSION)
         self.app.geometry("1400x900")
         self.app.configure(bg=Theme.color("background"))
 

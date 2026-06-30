@@ -9,7 +9,7 @@ Phoenix UI
 
 import tkinter as tk
 
-from resources.branding import Branding
+from engine.brand_manager import BrandManager
 from resources.theme import Theme
 
 
@@ -57,13 +57,13 @@ class StatusBar(tk.Frame):
         percent=0,
     ):
         text = (
-            f"{Branding.ENGINE_NAME} │ "
+            f"{BrandManager.ENGINE_NAME} │ "
             f"{engine_status} │ "
             f"Queue: {queue_count} │ "
             f"Worker: {worker_status} │ "
             f"Backend: {backend} │ "
             f"{percent}% │ "
-            f"v{Branding.APP_VERSION}"
+            f"v{BrandManager.APP_VERSION}"
         )
 
         self.status_label.configure(text=text)

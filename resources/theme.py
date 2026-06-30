@@ -42,6 +42,29 @@ class Theme:
         "large": 12,
     }
 
+    ICON_SIZES = {
+        "small": 16,
+        "medium": 24,
+        "large": 32,
+        "toolbar": 20,
+    }
+
+    BORDER_RADIUS = {
+        "small": 4,
+        "medium": 8,
+        "large": 12,
+    }
+
+    ANIMATION = {
+        "fast": 120,
+        "normal": 200,
+        "slow": 350,
+    }
+
+    DPI = {
+        "icon_scale": 1.0,
+    }
+
     @classmethod
     def color(cls, name):
         return cls.COLORS.get(name, "#000000")
@@ -53,3 +76,19 @@ class Theme:
     @classmethod
     def spacing(cls, name):
         return cls.SPACING.get(name, 0)
+
+    @classmethod
+    def icon_size(cls, name):
+        return cls.ICON_SIZES.get(name, cls.ICON_SIZES["medium"])
+
+    @classmethod
+    def radius(cls, name):
+        return cls.BORDER_RADIUS.get(name, 0)
+
+    @classmethod
+    def animation(cls, name):
+        return cls.ANIMATION.get(name, cls.ANIMATION["normal"])
+
+    @classmethod
+    def dpi(cls, name):
+        return cls.DPI.get(name, 1.0)
