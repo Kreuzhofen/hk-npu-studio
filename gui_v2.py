@@ -21,12 +21,12 @@ except ImportError:
     TkinterDnD = None
     DND_AVAILABLE = False
 
-from dialogs.plugin_manager import PluginManagerDialog
 from engine.brand_manager import BrandManager
 from engine.gui_controller import GuiController
 from resources.branding import Branding
 from resources.theme import Theme
 from gui.controllers.batch_controller import BatchController
+from gui.controllers.dialog_controller import DialogController
 from gui.controllers.import_controller import ImportController
 from gui.controllers.ui_builder import UIBuilder
 from widgets.startup_overlay import StartupOverlay
@@ -50,6 +50,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.controller = GuiController()
         self.import_controller = ImportController(self)
         self.batch_controller = BatchController(self)
+        self.dialog_controller = DialogController(self)
         self.preview_image = None
         self.startup_overlay = None
 
@@ -67,7 +68,10 @@ class SnapdragonAIStudioV2(BaseWindow):
         UIBuilder(self, dnd_available=DND_AVAILABLE).build()
 
     def open_plugin_manager(self):
-        PluginManagerDialog(self)
+        self.dialog_controller.open_plugin_manager()
+
+    def open_about_dialog(self):
+        self.dialog_controller.open_about_dialog()
 
     def _setup_drag_and_drop(self):
         if not DND_AVAILABLE:
