@@ -37,7 +37,7 @@ class BatchController:
         waiting_jobs = self.app.controller.get_waiting_job_count()
 
         if waiting_jobs <= 0:
-            self.app.log_card.log("Keine wartenden Jobs in der Queue.")
+            self.ui.log("Keine wartenden Jobs in der Queue.")
             return
 
         self.cancel_requested = False
@@ -50,12 +50,12 @@ class BatchController:
 
         self.app.job_card.set_batch_progress(0, waiting_jobs, 0)
 
-        self.app.plugin_card.set_plugin(
+        self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
             "Batch läuft...",
         )
-        self.app.log_card.log(
+        self.ui.log(
             f"Starte Batch-Verarbeitung: {waiting_jobs} Job(s)"
         )
 
@@ -69,12 +69,12 @@ class BatchController:
         self.cancel_requested = True
         self.app.controller.scheduler.request_cancel()
         self.ui.disable_cancel_button()
-        self.app.plugin_card.set_plugin(
+        self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
             "Abbruch angefordert",
         )
-        self.app.log_card.log(
+        self.ui.log(
             "Abbruch angefordert. Der aktuelle Job wird noch beendet."
         )
 
@@ -189,12 +189,12 @@ class BatchController:
             input_path=input_path,
         )
         self._apply_progress()
-        self.app.plugin_card.set_plugin(
+        self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
             "Läuft...",
         )
-        self.app.log_card.log(
+        self.ui.log(
             f"Verarbeite: {Path(input_path).name}"
         )
 
@@ -209,7 +209,7 @@ class BatchController:
         self.app.file_card.set_filename(output_path)
         self.app.show_preview(output_path)
         self._apply_progress()
-        self.app.log_card.log(
+        self.ui.log(
             f"Fertig: {Path(input_path).name} -> "
             f"{Path(output_path).name}"
         )
@@ -220,10 +220,10 @@ class BatchController:
         self.app.job_card.fail_job()
         self.app.refresh_queue()
         self._apply_progress()
-        self.app.log_card.log(
+        self.ui.log(
             f"Fehler bei: {Path(input_path).name}"
         )
-        self.app.log_card.log(error)
+        self.ui.log(error)
 
     def _handle_batch_done(self, results):
         self.app.file_card.enable()
@@ -245,13 +245,13 @@ class BatchController:
             status_text = "Batch fertig"
             log_text = f"Batch abgeschlossen: {len(results)} Job(s)"
 
-        self.app.plugin_card.set_plugin(
+        self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
             status_text,
         )
         self.app.refresh_queue()
-        self.app.log_card.log(log_text)
+        self.ui.log(log_text)
 
     def _handle_batch_error(self, value):
         self.app.file_card.enable()
@@ -259,7 +259,7 @@ class BatchController:
         self.ui.enable_select_button()
         self.ui.disable_cancel_button()
         self.ui.disable_output_button()
-        self.app.plugin_card.set_plugin(
+        self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
             "Batch Fehler",
@@ -267,8 +267,8 @@ class BatchController:
         self.app.job_card.fail_job()
         self.app.refresh_queue()
         self._apply_progress()
-        self.app.log_card.log("BATCH-FEHLER:")
-        self.app.log_card.log(value)
+        self.ui.log("BATCH-FEHLER:")
+        self.ui.log(value)
 
     def _is_phoenix(self) -> bool:
         """Returns True when the Phoenix UI is active."""

@@ -41,6 +41,12 @@ class BatchUIAdapter:
     def disable_output_button(self):
         self.app.toolbar.disable_output_button()
 
+    def set_plugin(self, name, backend, status):
+        self.app.plugin_card.set_plugin(name, backend, status)
+
+    def log(self, text):
+        self.app.log_card.log(text)
+
 
 class LegacyBatchUIAdapter(BatchUIAdapter):
     """Adapter for the existing legacy UI widgets."""
