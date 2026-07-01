@@ -33,12 +33,25 @@ class UIBuilder:
         self.ui_mode = ui_mode
 
     def build(self):
-        if self.ui_mode is not UIMode.LEGACY:
-            raise NotImplementedError("Phoenix UI mode is not wired into UIBuilder yet.")
+        if self.ui_mode is UIMode.PHOENIX:
+            self._build_phoenix_ui()
+            return
 
+        self._build_legacy_ui()
+
+    def _build_legacy_ui(self):
         self._build_menu_bar()
         self._build_main_layout()
         self._log_runtime_capabilities()
+
+    def _build_phoenix_ui(self):
+        from widgets.phoenix.workspace import PhoenixWorkspace
+
+        self.app.phoenix_workspace = PhoenixWorkspace(
+            self.app,
+            controller=getattr(self.app, "controller", None),
+        )
+        self.app.phoenix_workspace.pack(fill="both", expand=True)
 
     def _build_menu_bar(self):
         self.app.menu_bar = MenuBar(
