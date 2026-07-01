@@ -21,11 +21,6 @@ from widgets.startup_overlay import StartupOverlay
 class ApplicationController:
     """
     Coordinates application startup and high-level controller wiring.
-
-    The main window stays responsible for being the Tk root object and for
-    exposing UI callback methods. This controller owns the startup sequence:
-    brand initialization, window setup, controller creation, UI building,
-    drag-and-drop registration, startup overlay and runtime polling.
     """
 
     def __init__(self, app, dnd_available=False, dnd_files=None):
@@ -66,14 +61,14 @@ class ApplicationController:
         """
         Builds the active user interface.
 
-        The UI mode is selected centrally.
-        Currently Legacy UI is active.
+        P-035.7:
+        Testweise wird der Phoenix-Modus verwendet.
         """
 
         builder = UIBuilder(
             self.app,
             dnd_available=self.dnd_available,
-            ui_mode=UIMode.LEGACY,
+            ui_mode=UIMode.PHOENIX,
         )
 
         builder.build()
@@ -85,6 +80,10 @@ class ApplicationController:
 
     def _setup_drag_and_drop(self):
         if not self.dnd_available:
+            return
+
+        # Drag & Drop wird erst aktiviert, wenn die Legacy-GUI gebaut wurde.
+        if not hasattr(self.app, "file_card"):
             return
 
         drop_targets = [
