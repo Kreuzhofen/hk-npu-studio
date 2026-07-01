@@ -50,10 +50,6 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.log_card.log(message)
             return
 
-        if hasattr(self, "phoenix_workspace"):
-            print(message)
-            return
-
         print(message)
 
     def on_drop_file(self, event):
@@ -113,10 +109,6 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         if hasattr(self, "queue_card"):
             self.queue_card.set_jobs(jobs)
-            return
-
-        if hasattr(self, "phoenix_workspace"):
-            return
 
     def show_preview(self, filename):
         if hasattr(self, "phoenix_workspace"):
@@ -136,14 +128,20 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.preview_card.set_text(
                 f"Vorschaufehler:\n{error}"
             )
-            self._log(
-                f"Vorschaufehler: {error}"
-            )
+            self._log(f"Vorschaufehler: {error}")
 
     def start_plugin(self):
+        if hasattr(self, "phoenix_workspace") and not hasattr(self, "toolbar"):
+            self._log("Plugin-Start in Phoenix ist noch nicht vollständig verbunden.")
+            return
+
         self.batch_controller.start_plugin()
 
     def cancel_processing(self):
+        if hasattr(self, "phoenix_workspace") and not hasattr(self, "toolbar"):
+            self._log("Stop in Phoenix ist noch nicht vollständig verbunden.")
+            return
+
         self.batch_controller.cancel_processing()
 
     def open_output(self):

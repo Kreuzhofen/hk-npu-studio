@@ -27,6 +27,7 @@ class ApplicationController:
         self.app = app
         self.dnd_available = dnd_available
         self.dnd_files = dnd_files
+        self.ui_mode = UIMode.PHOENIX
 
     def initialize(self):
         self._initialize_branding()
@@ -36,7 +37,7 @@ class ApplicationController:
         self._build_ui()
         self._setup_drag_and_drop()
         self._show_startup_overlay()
-        self.app.batch_controller.start_polling()
+        self._start_runtime_polling()
 
     def _initialize_branding(self):
         self.app.brand = BrandManager()
@@ -58,19 +59,11 @@ class ApplicationController:
         self.app.startup_overlay = None
 
     def _build_ui(self):
-        """
-        Builds the active user interface.
-
-        P-035.7:
-        Testweise wird der Phoenix-Modus verwendet.
-        """
-
         builder = UIBuilder(
             self.app,
             dnd_available=self.dnd_available,
-            ui_mode=UIMode.PHOENIX,
+            ui_mode=self.ui_mode,
         )
-
         builder.build()
 
     def _show_startup_overlay(self):
@@ -82,8 +75,7 @@ class ApplicationController:
         if not self.dnd_available:
             return
 
-        # Drag & Drop wird erst aktiviert, wenn die Legacy-GUI gebaut wurde.
-        if not hasattr(self.app, "file_card"):
+        if self.ui_mode is not UIMode.LEGACY:
             return
 
         drop_targets = [
@@ -97,3 +89,9 @@ class ApplicationController:
         for target in drop_targets:
             target.drop_target_register(self.dnd_files)
             target.dnd_bind("<<Drop>>", self.app.on_drop_file)
+
+    def _start_runtime_polling(self):
+        if self.ui_mode is not UIMode.LEGACY:
+            return
+
+        self.app.batch_controller.start_polling()
