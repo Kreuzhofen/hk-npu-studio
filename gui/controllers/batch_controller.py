@@ -12,6 +12,7 @@ import threading
 import traceback
 from pathlib import Path
 
+from controllers.application_adapter import create_application_adapter
 from controllers.batch_ui_adapter import create_batch_ui_adapter
 
 
@@ -24,6 +25,7 @@ class BatchController:
 
     def __init__(self, app):
         self.app = app
+        self.application = create_application_adapter(app)
         self.ui = create_batch_ui_adapter(app)
         self.log_queue = queue.Queue()
         self.cancel_requested = False
@@ -181,8 +183,8 @@ class BatchController:
         self.app.after(100, self._poll_log_queue)
 
     def _handle_job_start(self, input_path):
-        self.app.refresh_queue()
-        self.app.select_loaded_image(input_path)
+        self.application.refresh_queue()
+        self.application.select_loaded_image(input_path)
         self.ui.start_job(
             plugin=self.PLUGIN_NAME,
             backend=self.BACKEND_NAME,
@@ -205,7 +207,7 @@ class BatchController:
         self.ui.enable_output_button()
         self.ui.finish_job(output_path)
         self.ui.add_thumbnail_image(output_path)
-        self.app.refresh_queue()
+        self.application.refresh_queue()
         self.ui.set_filename(output_path)
         self.ui.show_preview(output_path)
         self._apply_progress()
@@ -218,7 +220,7 @@ class BatchController:
         input_path, error = value
 
         self.ui.fail_job()
-        self.app.refresh_queue()
+        self.application.refresh_queue()
         self._apply_progress()
         self.ui.log(
             f"Fehler bei: {Path(input_path).name}"
@@ -250,7 +252,7 @@ class BatchController:
             self.BACKEND_NAME,
             status_text,
         )
-        self.app.refresh_queue()
+        self.application.refresh_queue()
         self.ui.log(log_text)
 
     def _handle_batch_error(self, value):
@@ -265,7 +267,7 @@ class BatchController:
             "Batch Fehler",
         )
         self.ui.fail_job()
-        self.app.refresh_queue()
+        self.application.refresh_queue()
         self._apply_progress()
         self.ui.log("BATCH-FEHLER:")
         self.ui.log(value)
