@@ -12,6 +12,8 @@ import threading
 import traceback
 from pathlib import Path
 
+from controllers.batch_ui_adapter import create_batch_ui_adapter
+
 
 class BatchController:
     """Controls batch processing and runtime UI updates for the GUI."""
@@ -22,6 +24,7 @@ class BatchController:
 
     def __init__(self, app):
         self.app = app
+        self.ui = create_batch_ui_adapter(app)
         self.log_queue = queue.Queue()
         self.cancel_requested = False
 
@@ -39,10 +42,10 @@ class BatchController:
 
         self.cancel_requested = False
         self.app.controller.clear_last_output()
-        self.app.toolbar.disable_output_button()
-        self.app.toolbar.disable_start_button()
-        self.app.toolbar.disable_select_button()
-        self.app.toolbar.enable_cancel_button()
+        self.ui.disable_output_button()
+        self.ui.disable_start_button()
+        self.ui.disable_select_button()
+        self.ui.enable_cancel_button()
         self.app.file_card.disable()
 
         self.app.job_card.set_batch_progress(0, waiting_jobs, 0)
@@ -65,7 +68,7 @@ class BatchController:
     def cancel_processing(self):
         self.cancel_requested = True
         self.app.controller.scheduler.request_cancel()
-        self.app.toolbar.disable_cancel_button()
+        self.ui.disable_cancel_button()
         self.app.plugin_card.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
@@ -199,7 +202,7 @@ class BatchController:
         input_path, output_path = value
 
         self.app.controller.set_last_output(output_path)
-        self.app.toolbar.enable_output_button()
+        self.ui.enable_output_button()
         self.app.job_card.finish_job(output_path)
         self.app.thumbnail_gallery.add_image(output_path)
         self.app.refresh_queue()
@@ -224,14 +227,14 @@ class BatchController:
 
     def _handle_batch_done(self, results):
         self.app.file_card.enable()
-        self.app.toolbar.enable_start_button()
-        self.app.toolbar.enable_select_button()
-        self.app.toolbar.disable_cancel_button()
+        self.ui.enable_start_button()
+        self.ui.enable_select_button()
+        self.ui.disable_cancel_button()
 
         if self.app.controller.get_last_output():
-            self.app.toolbar.enable_output_button()
+            self.ui.enable_output_button()
         else:
-            self.app.toolbar.disable_output_button()
+            self.ui.disable_output_button()
 
         self._apply_progress()
 
@@ -252,10 +255,10 @@ class BatchController:
 
     def _handle_batch_error(self, value):
         self.app.file_card.enable()
-        self.app.toolbar.enable_start_button()
-        self.app.toolbar.enable_select_button()
-        self.app.toolbar.disable_cancel_button()
-        self.app.toolbar.disable_output_button()
+        self.ui.enable_start_button()
+        self.ui.enable_select_button()
+        self.ui.disable_cancel_button()
+        self.ui.disable_output_button()
         self.app.plugin_card.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
