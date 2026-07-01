@@ -23,6 +23,12 @@ class BatchRuntimeAdapter:
     def get_last_output(self):
         return self.app.controller.get_last_output()
 
+    def get_last_output_directory(self):
+        return self.app.controller.get_last_output_directory()
+
+    def get_last_batch_count(self):
+        return self.app.controller.get_last_batch_count()
+
     def set_last_output(self, output_path):
         self.app.controller.set_last_output(output_path)
 

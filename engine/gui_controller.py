@@ -29,6 +29,8 @@ class GuiController:
         self.loaded_images = []
         self.current_image = None
         self.last_output = None
+        self.last_output_directory = None
+        self.last_batch_count = 0
 
     def is_supported_image(self, path):
         return self.import_service.is_supported_image(path)
@@ -72,12 +74,23 @@ class GuiController:
 
     def clear_last_output(self):
         self.last_output = None
+        self.last_output_directory = None
+        self.last_batch_count = 0
 
     def set_last_output(self, output_path):
         self.last_output = output_path
 
+        if output_path:
+            self.last_output_directory = str(Path(output_path).resolve().parent)
+
     def get_last_output(self):
         return self.last_output
+
+    def get_last_output_directory(self):
+        return self.last_output_directory
+
+    def get_last_batch_count(self):
+        return self.last_batch_count
 
     def add_to_queue(self, input_path):
         full_path = str(Path(input_path).resolve())
@@ -133,6 +146,8 @@ class GuiController:
         on_job_done=None,
         on_job_error=None,
     ):
+        self.last_batch_count = 0
+
         results = self.scheduler.process_all_jobs(
             phoenix_queue=self.phoenix_queue,
             worker=self.worker,
@@ -142,11 +157,12 @@ class GuiController:
             on_job_error=on_job_error,
         )
 
+        self.last_batch_count = len(results)
         return results
 
     def _wrap_job_done(self, callback):
         def wrapped(job, output_path):
-            self.last_output = output_path
+            self.set_last_output(output_path)
 
             if callback:
                 callback(job, output_path)

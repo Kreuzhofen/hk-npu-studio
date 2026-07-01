@@ -8,6 +8,7 @@ Phoenix UI
 """
 
 import os
+import subprocess
 import tkinter as tk
 from pathlib import Path
 
@@ -131,17 +132,9 @@ class SnapdragonAIStudioV2(BaseWindow):
             self._log(f"Vorschaufehler: {error}")
 
     def start_plugin(self):
-        if hasattr(self, "phoenix_workspace") and not hasattr(self, "toolbar"):
-            self._log("Plugin-Start in Phoenix ist noch nicht vollständig verbunden.")
-            return
-
         self.batch_controller.start_plugin()
 
     def cancel_processing(self):
-        if hasattr(self, "phoenix_workspace") and not hasattr(self, "toolbar"):
-            self._log("Stop in Phoenix ist noch nicht vollständig verbunden.")
-            return
-
         self.batch_controller.cancel_processing()
 
     def open_output(self):
@@ -151,14 +144,20 @@ class SnapdragonAIStudioV2(BaseWindow):
             self._log("Noch kein Output vorhanden.")
             return
 
-        output_path = Path(last_output)
+        last_batch_count = self.controller.get_last_batch_count()
+
+        if last_batch_count > 1:
+            self._open_output_directory()
+            return
+
+        self._open_output_file(last_output)
+
+    def _open_output_file(self, output_file):
+        output_path = Path(output_file)
 
         if not output_path.exists():
             self._log(f"Output nicht gefunden: {output_path}")
-
-            if hasattr(self, "toolbar"):
-                self.toolbar.disable_output_button()
-
+            self._disable_output_button()
             return
 
         try:
@@ -167,6 +166,42 @@ class SnapdragonAIStudioV2(BaseWindow):
 
         except Exception as error:
             self._log(f"Output konnte nicht geöffnet werden: {error}")
+
+    def _open_output_directory(self):
+        output_directory = self.controller.get_last_output_directory()
+
+        if not output_directory:
+            self._log("Kein Output-Ordner vorhanden.")
+            return
+
+        output_path = Path(output_directory)
+
+        if not output_path.exists():
+            self._log(f"Output-Ordner nicht gefunden: {output_path}")
+            self._disable_output_button()
+            return
+
+        try:
+            os.startfile(output_path)
+            self._log(f"Output-Ordner geöffnet: {output_path}")
+
+        except Exception:
+            try:
+                subprocess.Popen(["explorer", str(output_path)])
+                self._log(f"Output-Ordner geöffnet: {output_path}")
+
+            except Exception as error:
+                self._log(f"Output-Ordner konnte nicht geöffnet werden: {error}")
+
+    def _disable_output_button(self):
+        if hasattr(self, "toolbar"):
+            self.toolbar.disable_output_button()
+
+        if hasattr(self, "phoenix_workspace"):
+            actions = getattr(self.phoenix_workspace, "actions", None)
+
+            if actions is not None and hasattr(actions, "disable_output_button"):
+                actions.disable_output_button()
 
 
 if __name__ == "__main__":
