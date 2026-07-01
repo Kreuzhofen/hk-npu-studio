@@ -31,7 +31,12 @@ class ApplicationAdapter:
         backend,
         percent,
     ):
-        self.app.status_bar.set_status(
+        status_bar = getattr(self.app, "status_bar", None)
+
+        if status_bar is None:
+            return
+
+        status_bar.set_status(
             engine_status=engine_status,
             queue_count=queue_count,
             worker_status=worker_status,

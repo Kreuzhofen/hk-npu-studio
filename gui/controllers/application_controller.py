@@ -91,7 +91,4 @@ class ApplicationController:
             target.dnd_bind("<<Drop>>", self.app.on_drop_file)
 
     def _start_runtime_polling(self):
-        if self.ui_mode is not UIMode.LEGACY:
-            return
-
         self.app.batch_controller.start_polling()
