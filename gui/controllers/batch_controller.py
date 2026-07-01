@@ -147,7 +147,7 @@ class BatchController:
             "error": "Error",
         }.get(worker_status, worker_status)
 
-        self.app.status_bar.set_status(
+        self.application.set_status_bar(
             engine_status=engine_status_label,
             queue_count=queue_count,
             worker_status=worker_status_label,
