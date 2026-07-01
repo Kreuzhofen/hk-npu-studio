@@ -13,6 +13,7 @@ import traceback
 from pathlib import Path
 
 from controllers.application_adapter import create_application_adapter
+from controllers.batch_runtime_adapter import create_batch_runtime_adapter
 from controllers.batch_ui_adapter import create_batch_ui_adapter
 
 
@@ -26,6 +27,7 @@ class BatchController:
     def __init__(self, app):
         self.app = app
         self.application = create_application_adapter(app)
+        self.runtime = create_batch_runtime_adapter(app)
         self.ui = create_batch_ui_adapter(app)
         self.log_queue = queue.Queue()
         self.cancel_requested = False
@@ -36,14 +38,14 @@ class BatchController:
         self.app.after(500, self._update_status_bar)
 
     def start_plugin(self):
-        waiting_jobs = self.app.controller.get_waiting_job_count()
+        waiting_jobs = self.runtime.get_waiting_job_count()
 
         if waiting_jobs <= 0:
             self.ui.log("Keine wartenden Jobs in der Queue.")
             return
 
         self.cancel_requested = False
-        self.app.controller.clear_last_output()
+        self.runtime.clear_last_output()
         self.ui.disable_output_button()
         self.ui.disable_start_button()
         self.ui.disable_select_button()
@@ -69,7 +71,7 @@ class BatchController:
 
     def cancel_processing(self):
         self.cancel_requested = True
-        self.app.controller.scheduler.request_cancel()
+        self.runtime.request_cancel()
         self.ui.disable_cancel_button()
         self.ui.set_plugin(
             self.PLUGIN_NAME,
@@ -82,7 +84,7 @@ class BatchController:
 
     def _worker_batch(self):
         try:
-            results = self.app.controller.run_batch(
+            results = self.runtime.run_batch(
                 on_job_start=self._on_worker_job_start,
                 on_job_done=self._on_worker_job_done,
                 on_job_error=self._on_worker_job_error,
@@ -113,7 +115,7 @@ class BatchController:
         self.app.after(500, self._update_runtime)
 
     def _apply_progress(self):
-        progress = self.app.controller.get_progress()
+        progress = self.runtime.get_progress()
 
         self.ui.set_batch_progress(
             progress["current"],
@@ -122,7 +124,7 @@ class BatchController:
         )
 
     def _update_status_bar(self):
-        status = self.app.controller.get_engine_status()
+        status = self.runtime.get_engine_status()
         progress = status.get("progress", {})
         scheduler = status.get("scheduler", {})
         worker = status.get("worker", {})
@@ -203,7 +205,7 @@ class BatchController:
     def _handle_job_done(self, value):
         input_path, output_path = value
 
-        self.app.controller.set_last_output(output_path)
+        self.runtime.set_last_output(output_path)
         self.ui.enable_output_button()
         self.ui.finish_job(output_path)
         self.ui.add_thumbnail_image(output_path)
@@ -233,7 +235,7 @@ class BatchController:
         self.ui.enable_select_button()
         self.ui.disable_cancel_button()
 
-        if self.app.controller.get_last_output():
+        if self.runtime.get_last_output():
             self.ui.enable_output_button()
         else:
             self.ui.disable_output_button()
