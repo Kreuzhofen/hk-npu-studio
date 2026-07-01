@@ -266,3 +266,7 @@ class BatchController:
         self._apply_progress()
         self.app.log_card.log("BATCH-FEHLER:")
         self.app.log_card.log(value)
+
+    def _is_phoenix(self) -> bool:
+        """Returns True when the Phoenix UI is active."""
+        return hasattr(self.app, "phoenix_workspace")
