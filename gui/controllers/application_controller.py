@@ -10,6 +10,7 @@ Phoenix UI
 from engine.brand_manager import BrandManager
 from engine.gui_controller import GuiController
 from resources.theme import Theme
+from gui.ui_mode import UIMode
 from gui.controllers.batch_controller import BatchController
 from gui.controllers.dialog_controller import DialogController
 from gui.controllers.import_controller import ImportController
@@ -65,14 +66,14 @@ class ApplicationController:
         """
         Builds the active user interface.
 
-        Currently the legacy UI is used.
-        Later this method will become the single switch point
-        between Legacy UI and Phoenix UI.
+        The UI mode is selected centrally.
+        Currently Legacy UI is active.
         """
 
         builder = UIBuilder(
             self.app,
             dnd_available=self.dnd_available,
+            ui_mode=UIMode.LEGACY,
         )
 
         builder.build()
