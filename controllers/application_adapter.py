@@ -14,6 +14,9 @@ class ApplicationAdapter:
     def __init__(self, app):
         self.app = app
 
+    def after(self, delay_ms, callback):
+        self.app.after(delay_ms, callback)
+
     def refresh_queue(self):
         self.app.refresh_queue()
 

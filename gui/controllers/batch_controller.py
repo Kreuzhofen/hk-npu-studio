@@ -25,7 +25,6 @@ class BatchController:
     STATUS_BACKEND_NAME = "QNN"
 
     def __init__(self, app):
-        self.app = app
         self.application = create_application_adapter(app)
         self.runtime = create_batch_runtime_adapter(app)
         self.ui = create_batch_ui_adapter(app)
@@ -33,9 +32,9 @@ class BatchController:
         self.cancel_requested = False
 
     def start_polling(self):
-        self.app.after(100, self._poll_log_queue)
-        self.app.after(500, self._update_runtime)
-        self.app.after(500, self._update_status_bar)
+        self.application.after(100, self._poll_log_queue)
+        self.application.after(500, self._update_runtime)
+        self.application.after(500, self._update_status_bar)
 
     def start_plugin(self):
         waiting_jobs = self.runtime.get_waiting_job_count()
@@ -112,7 +111,7 @@ class BatchController:
         if self.ui.is_job_running():
             self.ui.update_runtime()
 
-        self.app.after(500, self._update_runtime)
+        self.application.after(500, self._update_runtime)
 
     def _apply_progress(self):
         progress = self.runtime.get_progress()
@@ -157,7 +156,7 @@ class BatchController:
             percent=percent,
         )
 
-        self.app.after(500, self._update_status_bar)
+        self.application.after(500, self._update_status_bar)
 
     def _poll_log_queue(self):
         try:
@@ -182,7 +181,7 @@ class BatchController:
         except queue.Empty:
             pass
 
-        self.app.after(100, self._poll_log_queue)
+        self.application.after(100, self._poll_log_queue)
 
     def _handle_job_start(self, input_path):
         self.application.refresh_queue()
@@ -273,7 +272,3 @@ class BatchController:
         self._apply_progress()
         self.ui.log("BATCH-FEHLER:")
         self.ui.log(value)
-
-    def _is_phoenix(self) -> bool:
-        """Returns True when the Phoenix UI is active."""
-        return hasattr(self.app, "phoenix_workspace")
