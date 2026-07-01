@@ -48,7 +48,7 @@ class BatchController:
         self.ui.enable_cancel_button()
         self.app.file_card.disable()
 
-        self.app.job_card.set_batch_progress(0, waiting_jobs, 0)
+        self.ui.set_batch_progress(0, waiting_jobs, 0)
 
         self.ui.set_plugin(
             self.PLUGIN_NAME,
@@ -105,15 +105,15 @@ class BatchController:
         )
 
     def _update_runtime(self):
-        if self.app.job_card.running:
-            self.app.job_card.update_runtime()
+        if self.ui.is_job_running():
+            self.ui.update_runtime()
 
         self.app.after(500, self._update_runtime)
 
     def _apply_progress(self):
         progress = self.app.controller.get_progress()
 
-        self.app.job_card.set_batch_progress(
+        self.ui.set_batch_progress(
             progress["current"],
             progress["total"],
             progress["percent"],
@@ -183,7 +183,7 @@ class BatchController:
     def _handle_job_start(self, input_path):
         self.app.refresh_queue()
         self.app.select_loaded_image(input_path)
-        self.app.job_card.start_job(
+        self.ui.start_job(
             plugin=self.PLUGIN_NAME,
             backend=self.BACKEND_NAME,
             input_path=input_path,
@@ -203,7 +203,7 @@ class BatchController:
 
         self.app.controller.set_last_output(output_path)
         self.ui.enable_output_button()
-        self.app.job_card.finish_job(output_path)
+        self.ui.finish_job(output_path)
         self.app.thumbnail_gallery.add_image(output_path)
         self.app.refresh_queue()
         self.app.file_card.set_filename(output_path)
@@ -217,7 +217,7 @@ class BatchController:
     def _handle_job_error(self, value):
         input_path, error = value
 
-        self.app.job_card.fail_job()
+        self.ui.fail_job()
         self.app.refresh_queue()
         self._apply_progress()
         self.ui.log(
@@ -264,7 +264,7 @@ class BatchController:
             self.BACKEND_NAME,
             "Batch Fehler",
         )
-        self.app.job_card.fail_job()
+        self.ui.fail_job()
         self.app.refresh_queue()
         self._apply_progress()
         self.ui.log("BATCH-FEHLER:")

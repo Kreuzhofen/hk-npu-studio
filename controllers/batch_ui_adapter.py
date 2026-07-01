@@ -47,6 +47,28 @@ class BatchUIAdapter:
     def log(self, text):
         self.app.log_card.log(text)
 
+    def is_job_running(self) -> bool:
+        return self.app.job_card.running
+
+    def update_runtime(self):
+        self.app.job_card.update_runtime()
+
+    def set_batch_progress(self, current, total, percent):
+        self.app.job_card.set_batch_progress(current, total, percent)
+
+    def start_job(self, plugin, backend, input_path):
+        self.app.job_card.start_job(
+            plugin=plugin,
+            backend=backend,
+            input_path=input_path,
+        )
+
+    def finish_job(self, output_path):
+        self.app.job_card.finish_job(output_path)
+
+    def fail_job(self):
+        self.app.job_card.fail_job()
+
 
 class LegacyBatchUIAdapter(BatchUIAdapter):
     """Adapter for the existing legacy UI widgets."""
