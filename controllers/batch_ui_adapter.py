@@ -7,7 +7,6 @@ Created by Holger Kreuzhofen
 Phoenix UI
 """
 
-
 class BatchUIAdapter:
     """Base interface for batch UI adapters."""
 
@@ -68,6 +67,21 @@ class BatchUIAdapter:
 
     def fail_job(self):
         self.app.job_card.fail_job()
+
+    def enable_file_card(self):
+        self.app.file_card.enable()
+
+    def disable_file_card(self):
+        self.app.file_card.disable()
+
+    def set_filename(self, path):
+        self.app.file_card.set_filename(path)
+
+    def add_thumbnail_image(self, path):
+        self.app.thumbnail_gallery.add_image(path)
+
+    def show_preview(self, path):
+        self.app.show_preview(path)
 
 
 class LegacyBatchUIAdapter(BatchUIAdapter):

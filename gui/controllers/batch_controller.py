@@ -46,7 +46,7 @@ class BatchController:
         self.ui.disable_start_button()
         self.ui.disable_select_button()
         self.ui.enable_cancel_button()
-        self.app.file_card.disable()
+        self.ui.disable_file_card()
 
         self.ui.set_batch_progress(0, waiting_jobs, 0)
 
@@ -204,10 +204,10 @@ class BatchController:
         self.app.controller.set_last_output(output_path)
         self.ui.enable_output_button()
         self.ui.finish_job(output_path)
-        self.app.thumbnail_gallery.add_image(output_path)
+        self.ui.add_thumbnail_image(output_path)
         self.app.refresh_queue()
-        self.app.file_card.set_filename(output_path)
-        self.app.show_preview(output_path)
+        self.ui.set_filename(output_path)
+        self.ui.show_preview(output_path)
         self._apply_progress()
         self.ui.log(
             f"Fertig: {Path(input_path).name} -> "
@@ -226,7 +226,7 @@ class BatchController:
         self.ui.log(error)
 
     def _handle_batch_done(self, results):
-        self.app.file_card.enable()
+        self.ui.enable_file_card()
         self.ui.enable_start_button()
         self.ui.enable_select_button()
         self.ui.disable_cancel_button()
@@ -254,7 +254,7 @@ class BatchController:
         self.ui.log(log_text)
 
     def _handle_batch_error(self, value):
-        self.app.file_card.enable()
+        self.ui.enable_file_card()
         self.ui.enable_start_button()
         self.ui.enable_select_button()
         self.ui.disable_cancel_button()
