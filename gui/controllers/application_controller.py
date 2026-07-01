@@ -62,7 +62,20 @@ class ApplicationController:
         self.app.startup_overlay = None
 
     def _build_ui(self):
-        UIBuilder(self.app, dnd_available=self.dnd_available).build()
+        """
+        Builds the active user interface.
+
+        Currently the legacy UI is used.
+        Later this method will become the single switch point
+        between Legacy UI and Phoenix UI.
+        """
+
+        builder = UIBuilder(
+            self.app,
+            dnd_available=self.dnd_available,
+        )
+
+        builder.build()
 
     def _show_startup_overlay(self):
         self.app.startup_overlay = StartupOverlay(self.app, self.app.brand)
