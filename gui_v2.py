@@ -45,11 +45,22 @@ class SnapdragonAIStudioV2(BaseWindow):
     def open_about_dialog(self):
         self.dialog_controller.open_about_dialog()
 
+    def _log(self, message):
+        if hasattr(self, "log_card"):
+            self.log_card.log(message)
+            return
+
+        if hasattr(self, "phoenix_workspace"):
+            print(message)
+            return
+
+        print(message)
+
     def on_drop_file(self, event):
         dropped_paths = self.tk.splitlist(event.data)
 
         if not dropped_paths:
-            self.log_card.log("Drag & Drop: keine Datei erkannt.")
+            self._log("Drag & Drop: keine Datei erkannt.")
             return
 
         files = []
@@ -85,7 +96,11 @@ class SnapdragonAIStudioV2(BaseWindow):
         success, value = self.controller.select_image(filename)
 
         if not success:
-            self.log_card.log(f"{value}: {filename}")
+            self._log(f"{value}: {filename}")
+            return
+
+        if hasattr(self, "phoenix_workspace"):
+            self.phoenix_workspace.show_image(value)
             return
 
         self.file_card.set_filename(value)
@@ -94,11 +109,20 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.show_preview(value)
 
     def refresh_queue(self):
-        self.queue_card.set_jobs(
-            self.controller.get_queue()
-        )
+        jobs = self.controller.get_queue()
+
+        if hasattr(self, "queue_card"):
+            self.queue_card.set_jobs(jobs)
+            return
+
+        if hasattr(self, "phoenix_workspace"):
+            return
 
     def show_preview(self, filename):
+        if hasattr(self, "phoenix_workspace"):
+            self.phoenix_workspace.show_image(filename)
+            return
+
         try:
             image = Image.open(filename).convert("RGB")
             image.thumbnail((850, 520))
@@ -106,13 +130,13 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.preview_image = ImageTk.PhotoImage(image)
             self.preview_card.set_image(self.preview_image)
 
-            self.log_card.log(f"Vorschau aktualisiert: {Path(filename).name}")
+            self._log(f"Vorschau aktualisiert: {Path(filename).name}")
 
         except Exception as error:
             self.preview_card.set_text(
                 f"Vorschaufehler:\n{error}"
             )
-            self.log_card.log(
+            self._log(
                 f"Vorschaufehler: {error}"
             )
 
@@ -126,22 +150,25 @@ class SnapdragonAIStudioV2(BaseWindow):
         last_output = self.controller.get_last_output()
 
         if not last_output:
-            self.log_card.log("Noch kein Output vorhanden.")
+            self._log("Noch kein Output vorhanden.")
             return
 
         output_path = Path(last_output)
 
         if not output_path.exists():
-            self.log_card.log(f"Output nicht gefunden: {output_path}")
-            self.toolbar.disable_output_button()
+            self._log(f"Output nicht gefunden: {output_path}")
+
+            if hasattr(self, "toolbar"):
+                self.toolbar.disable_output_button()
+
             return
 
         try:
             os.startfile(output_path)
-            self.log_card.log(f"Output geöffnet: {output_path.name}")
+            self._log(f"Output geöffnet: {output_path.name}")
 
         except Exception as error:
-            self.log_card.log(f"Output konnte nicht geöffnet werden: {error}")
+            self._log(f"Output konnte nicht geöffnet werden: {error}")
 
 
 if __name__ == "__main__":

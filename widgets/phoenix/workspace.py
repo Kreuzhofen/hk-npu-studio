@@ -10,11 +10,7 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class PhoenixWorkspace(tk.Frame):
-    """Phoenix Workspace v1.0.
-
-    Parallel zur bestehenden GUI.
-    Keine Legacy-Abhängigkeiten werden verändert.
-    """
+    """Phoenix Workspace v1.0."""
 
     VIEW_TITLES: dict[str, str] = {
         "home": "Home",
@@ -83,7 +79,6 @@ class PhoenixWorkspace(tk.Frame):
     def _create_right_panel(self) -> tk.Frame | None:
         try:
             from widgets.phoenix.right_panel import PhoenixRightPanel
-
             return PhoenixRightPanel(self, controller=self.controller)
         except Exception:
             return None
@@ -157,3 +152,18 @@ class PhoenixWorkspace(tk.Frame):
 
     def open_image(self) -> None:
         self.show_view("image")
+
+    def show_image(self, filename) -> None:
+        """Display an image in the Phoenix Image view."""
+        self.show_view("image")
+        view = self._get_or_create_view("image")
+
+        if hasattr(view, "show_image"):
+            view.show_image(filename)
+
+    def clear_image(self) -> None:
+        """Clear the current image."""
+        view = self._get_or_create_view("image")
+
+        if hasattr(view, "clear_image"):
+            view.clear_image()

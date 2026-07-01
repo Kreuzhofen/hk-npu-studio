@@ -14,10 +14,6 @@ from tkinter import filedialog
 class ImportController:
     """
     Handles image and folder import actions for SnapdragonAI Studio.
-
-    Queue refresh and preview selection remain delegated to the main
-    application in this sprint. They will be moved into dedicated
-    controllers in later refactoring steps.
     """
 
     def __init__(self, app):
@@ -54,12 +50,12 @@ class ImportController:
         valid_files = result["valid_files"]
 
         if valid_files:
-            self.app.log_card.log(
+            self._log(
                 f"Ordner geladen: {Path(folder_path).name} "
                 f"({len(valid_files)} Bilder)"
             )
         else:
-            self.app.log_card.log(
+            self._log(
                 f"Keine unterstützten Bilder im Ordner gefunden: "
                 f"{folder_path}"
             )
@@ -71,16 +67,16 @@ class ImportController:
         valid_files = result["valid_files"]
 
         if not valid_files:
-            self.app.log_card.log("Keine gültigen Bilddateien geladen.")
+            self._log("Keine gültigen Bilddateien geladen.")
             return
 
         if len(valid_files) == 1:
-            self.app.log_card.log(
+            self._log(
                 f"1 Bild geladen und zur Queue hinzugefügt: "
                 f"{Path(valid_files[0]).name}"
             )
         else:
-            self.app.log_card.log(
+            self._log(
                 f"{len(valid_files)} Bilder geladen und zur Queue hinzugefügt."
             )
 
@@ -89,12 +85,24 @@ class ImportController:
         rejected_files = result["rejected_files"]
 
         for filename, reason in rejected_files:
-            self.app.log_card.log(f"{reason}: {filename}")
+            self._log(f"{reason}: {filename}")
 
-        for filename in valid_files:
-            self.app.thumbnail_gallery.add_image(filename)
+        if hasattr(self.app, "thumbnail_gallery"):
+            for filename in valid_files:
+                self.app.thumbnail_gallery.add_image(filename)
 
         self.app.refresh_queue()
 
         if valid_files:
             self.app.select_loaded_image(valid_files[0])
+
+    def _log(self, message):
+        if hasattr(self.app, "_log"):
+            self.app._log(message)
+            return
+
+        if hasattr(self.app, "log_card"):
+            self.app.log_card.log(message)
+            return
+
+        print(message)

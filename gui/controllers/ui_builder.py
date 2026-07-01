@@ -33,11 +33,14 @@ class UIBuilder:
         self.ui_mode = ui_mode
 
     def build(self):
+        self._build_menu_bar()
+
         if self.ui_mode is UIMode.PHOENIX:
             self._build_phoenix_ui()
             return
 
-        self._build_legacy_ui()
+        self._build_main_layout()
+        self._log_runtime_capabilities()
 
     def _build_legacy_ui(self):
         self._build_menu_bar()
