@@ -9,6 +9,7 @@ Phoenix UI
 
 import tkinter as tk
 
+from gui.ui_mode import UIMode
 from resources.theme import Theme
 from widgets.header import Header
 from widgets.menu_bar import MenuBar
@@ -24,17 +25,17 @@ from widgets.status_bar import StatusBar
 
 
 class UIBuilder:
-    """Builds the main SnapdragonAI Studio V2 user interface.
+    """Builds the active SnapdragonAI Studio V2 user interface."""
 
-    This class contains only widget construction and layout wiring.
-    Application behavior stays in SnapdragonAIStudioV2 and its controllers.
-    """
-
-    def __init__(self, app, dnd_available=False):
+    def __init__(self, app, dnd_available=False, ui_mode=UIMode.LEGACY):
         self.app = app
         self.dnd_available = dnd_available
+        self.ui_mode = ui_mode
 
     def build(self):
+        if self.ui_mode is not UIMode.LEGACY:
+            raise NotImplementedError("Phoenix UI mode is not wired into UIBuilder yet.")
+
         self._build_menu_bar()
         self._build_main_layout()
         self._log_runtime_capabilities()
