@@ -32,6 +32,7 @@ class BatchController:
         self.log_queue = queue.Queue()
         self.state_machine = BatchStateMachine()
         self.cancel_requested = False
+        self.current_job_path = None
 
     def start_polling(self):
         self.application.after(100, self._poll_log_queue)
@@ -53,6 +54,93 @@ class BatchController:
     def is_batch_busy(self):
         return self.state_machine.is_busy()
 
+    def get_dashboard_snapshot(self):
+        """Return a read-only snapshot for the Phoenix dashboard."""
+        status = self.runtime.get_engine_status()
+        progress = status.get("progress", {})
+        scheduler = status.get("scheduler", {})
+        worker = status.get("worker", {})
+
+        batch_state = self.state_machine.get_state()
+        waiting_jobs = status.get("waiting_jobs", 0)
+
+        current = progress.get("current", 0)
+        total = progress.get("total", 0)
+        percent = progress.get("percent", 0)
+
+        scheduler_status = scheduler.get("status", "idle")
+        worker_status = worker.get("status", "idle")
+        last_output = self.runtime.get_last_output()
+
+        batch_label = {
+            "idle": "Bereit",
+            "ready": "Bereit",
+            "running": "Läuft",
+            "stopping": "Stoppt",
+            "finished": "Abgeschlossen",
+            "error": "Fehler",
+        }.get(batch_state, str(batch_state))
+
+        lifecycle_label = {
+            "idle": "Idle",
+            "running": "Running",
+            "paused": "Paused",
+            "stopped": "Stopped",
+            "cancel_requested": "Stopping",
+        }.get(scheduler_status, str(scheduler_status))
+
+        worker_label = {
+            "idle": "Worker idle",
+            "running": "Worker aktiv",
+            "done": "Worker fertig",
+            "error": "Worker Fehler",
+        }.get(worker_status, str(worker_status))
+
+        output_label = "Kein Output ausgewählt"
+        if last_output:
+            output_label = Path(last_output).name
+
+        if self.current_job_path:
+            current_job = Path(self.current_job_path).name
+        else:
+            current_job = "Kein aktiver Job"
+
+        detail = (
+            f"Queue: {waiting_jobs} wartend · "
+            f"Fortschritt: {current}/{total} ({percent}%) · "
+            f"{worker_label}"
+        )
+
+        print("----------------------------------------")
+        print("Dashboard Snapshot")
+        print("----------------------------------------")
+        print(f"Batch State: {batch_state}")
+        print(f"Scheduler: {scheduler_status}")
+        print(f"Worker: {worker_status}")
+        print(f"Waiting Jobs: {waiting_jobs}")
+        print(f"Current: {current}")
+        print(f"Total: {total}")
+        print(f"Percent: {percent}")
+        print(f"Last Output: {last_output}")
+        print("----------------------------------------")
+
+        return {
+            "workspace_status": "Aktiv",
+            "batch_status": batch_label,
+            "lifecycle_status": lifecycle_label,
+            "output_status": output_label,
+            "detail": detail,
+            "current": current,
+            "total": total,
+            "percent": percent,
+            "worker_status": worker_label,
+            "waiting_jobs": waiting_jobs,
+            "current_job": current_job,
+            "last_output": output_label,
+            "plugin": self.PLUGIN_NAME,
+            "backend": self.BACKEND_NAME,
+        }
+
     def start_plugin(self):
         if not self.state_machine.can_start():
             self.ui.log(
@@ -72,6 +160,7 @@ class BatchController:
         self.state_machine.start()
 
         self.cancel_requested = False
+        self.current_job_path = None
         self.runtime.clear_last_output()
         self.ui.disable_output_button()
         self.ui.disable_start_button()
@@ -86,9 +175,7 @@ class BatchController:
             self.BACKEND_NAME,
             "Batch läuft...",
         )
-        self.ui.log(
-            f"Starte Batch-Verarbeitung: {waiting_jobs} Job(s)"
-        )
+        self.ui.log(f"Starte Batch-Verarbeitung: {waiting_jobs} Job(s)")
 
         thread = threading.Thread(
             target=self._worker_batch,
@@ -113,9 +200,7 @@ class BatchController:
             self.BACKEND_NAME,
             "Abbruch angefordert",
         )
-        self.ui.log(
-            "Abbruch angefordert. Der aktuelle Job wird noch beendet."
-        )
+        self.ui.log("Abbruch angefordert. Der aktuelle Job wird noch beendet.")
 
     def _worker_batch(self):
         try:
@@ -124,9 +209,7 @@ class BatchController:
                 on_job_done=self._on_worker_job_done,
                 on_job_error=self._on_worker_job_error,
             )
-
             self.log_queue.put(("batch_done", results))
-
         except Exception:
             self.log_queue.put(("batch_error", traceback.format_exc()))
 
@@ -134,14 +217,10 @@ class BatchController:
         self.log_queue.put(("job_start", job["input_path"]))
 
     def _on_worker_job_done(self, job, output_path):
-        self.log_queue.put(
-            ("job_done", (job["input_path"], output_path))
-        )
+        self.log_queue.put(("job_done", (job["input_path"], output_path)))
 
     def _on_worker_job_error(self, job, error):
-        self.log_queue.put(
-            ("job_error", (job["input_path"], error))
-        )
+        self.log_queue.put(("job_error", (job["input_path"], error)))
 
     def _update_runtime(self):
         if self.state_machine.is_busy() or self.ui.is_job_running():
@@ -151,7 +230,6 @@ class BatchController:
 
     def _apply_progress(self):
         progress = self.runtime.get_progress()
-
         self.ui.set_batch_progress(
             progress["current"],
             progress["total"],
@@ -211,16 +289,12 @@ class BatchController:
 
                 if kind == "job_start":
                     self._handle_job_start(value)
-
                 elif kind == "job_done":
                     self._handle_job_done(value)
-
                 elif kind == "job_error":
                     self._handle_job_error(value)
-
                 elif kind == "batch_done":
                     self._handle_batch_done(value)
-
                 elif kind == "batch_error":
                     self._handle_batch_error(value)
 
@@ -230,8 +304,10 @@ class BatchController:
         self.application.after(100, self._poll_log_queue)
 
     def _handle_job_start(self, input_path):
+        self.current_job_path = input_path
         self.application.refresh_queue()
-        self.application.select_loaded_image(input_path)
+        if not self.ui.is_phoenix():
+            self.application.select_loaded_image(input_path)
         self.ui.start_job(
             plugin=self.PLUGIN_NAME,
             backend=self.BACKEND_NAME,
@@ -243,9 +319,7 @@ class BatchController:
             self.BACKEND_NAME,
             "Läuft...",
         )
-        self.ui.log(
-            f"Verarbeite: {Path(input_path).name}"
-        )
+        self.ui.log(f"Verarbeite: {Path(input_path).name}")
 
     def _handle_job_done(self, value):
         input_path, output_path = value
@@ -269,13 +343,12 @@ class BatchController:
         self.ui.fail_job()
         self.application.refresh_queue()
         self._apply_progress()
-        self.ui.log(
-            f"Fehler bei: {Path(input_path).name}"
-        )
+        self.ui.log(f"Fehler bei: {Path(input_path).name}")
         self.ui.log(error)
 
     def _handle_batch_done(self, results):
         self.state_machine.finish()
+        self.current_job_path = None
 
         self.ui.enable_file_card()
         self.ui.enable_start_button()
@@ -306,6 +379,7 @@ class BatchController:
 
     def _handle_batch_error(self, value):
         self.state_machine.fail(value)
+        self.current_job_path = None
 
         self.ui.enable_file_card()
         self.ui.enable_start_button()

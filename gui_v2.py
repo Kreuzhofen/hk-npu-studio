@@ -144,6 +144,10 @@ class SnapdragonAIStudioV2(BaseWindow):
             self._log("Noch kein Output vorhanden.")
             return
 
+        if hasattr(self, "phoenix_workspace"):
+            self._open_output_directory()
+            return
+
         last_batch_count = self.controller.get_last_batch_count()
 
         if last_batch_count > 1:

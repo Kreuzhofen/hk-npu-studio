@@ -6,10 +6,21 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class PhoenixRightPanel(tk.Frame):
+    """Phoenix inspector panel for actions and runtime status."""
+
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
         super().__init__(master, bg=PHOENIX_THEME.panel_bg, width=280)
 
         self.controller = controller
+
+        self.start_button: tk.Button | None = None
+        self.stop_button: tk.Button | None = None
+        self.output_button: tk.Button | None = None
+
+        self._status_value: tk.StringVar = tk.StringVar(value="Ready")
+        self._plugin_value: tk.StringVar = tk.StringVar(value="RealESRGAN")
+        self._backend_value: tk.StringVar = tk.StringVar(value="QNN / Snapdragon NPU")
+        self._file_value: tk.StringVar = tk.StringVar(value="Keine Auswahl")
 
         self.grid_propagate(False)
         self.pack_propagate(False)
@@ -17,47 +28,110 @@ class PhoenixRightPanel(tk.Frame):
         self._build()
 
     def _build(self) -> None:
-        title = tk.Label(
+        tk.Label(
             self,
             text="Inspector",
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 15, "bold"),
             anchor="w",
-        )
-        title.pack(fill="x", padx=18, pady=(18, 10))
+        ).pack(fill="x", padx=18, pady=(18, 4))
 
-        actions = tk.LabelFrame(
+        tk.Label(
             self,
-            text="Aktionen",
+            text="Aktionen und Status",
             bg=PHOENIX_THEME.panel_bg,
-            fg=PHOENIX_THEME.text_primary,
-            padx=10,
-            pady=10,
-        )
-        actions.pack(fill="x", padx=18, pady=(0, 16))
+            fg=PHOENIX_THEME.text_muted,
+            font=("Segoe UI", 9),
+            anchor="w",
+        ).pack(fill="x", padx=18, pady=(0, 14))
 
-        self._button(actions, "▶ Start", self._start_plugin).pack(fill="x", pady=(0, 8))
-        self._button(actions, "■ Stop", self._stop_plugin).pack(fill="x", pady=(0, 8))
-        self._button(actions, "📂 Output öffnen", self._open_output).pack(fill="x")
+        self._build_actions_section()
+        self._build_status_section()
+        self._build_info_section()
 
-        info = tk.Label(
-            self,
+        self.disable_cancel_button()
+        self.disable_output_button()
+
+    def _build_actions_section(self) -> None:
+        section = self._section("Aktionen")
+        section.pack(fill="x", padx=18, pady=(0, 14))
+
+        self.start_button = self._button(section, "▶ Start", self._start_plugin)
+        self.start_button.pack(fill="x", pady=(0, 8))
+
+        self.stop_button = self._button(section, "■ Stop", self._stop_plugin)
+        self.stop_button.pack(fill="x", pady=(0, 8))
+
+        self.output_button = self._button(section, "📂 Output öffnen", self._open_output)
+        self.output_button.pack(fill="x")
+
+    def _build_status_section(self) -> None:
+        section = self._section("Status")
+        section.pack(fill="x", padx=18, pady=(0, 14))
+
+        self._info_row(section, "Runtime", self._status_value)
+        self._info_row(section, "Plugin", self._plugin_value)
+        self._info_row(section, "Backend", self._backend_value)
+
+    def _build_info_section(self) -> None:
+        section = self._section("Datei")
+        section.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+
+        self._info_row(section, "Auswahl", self._file_value)
+
+        tk.Label(
+            section,
             text=(
-                "Noch keine Auswahl.\n\n"
-                "Dieser Bereich wird später für\n"
-                "Dateiinfos, Pluginstatus,\n"
-                "Fortschritt und Batch-Infos\n"
-                "genutzt."
+                "Der Inspector zeigt künftig Details zum aktiven Job, "
+                "zur Queue und zum letzten Output."
             ),
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 9),
             justify="left",
             anchor="nw",
-            wraplength=230,
+            wraplength=220,
+        ).pack(fill="x", pady=(12, 0))
+
+    def _section(self, title: str) -> tk.Frame:
+        frame = tk.Frame(
+            self,
+            bg=PHOENIX_THEME.panel_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
         )
-        info.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+
+        tk.Label(
+            frame,
+            text=title,
+            bg=PHOENIX_THEME.panel_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=("Segoe UI", 9, "bold"),
+            anchor="w",
+        ).pack(fill="x", padx=12, pady=(10, 8))
+
+        return frame
+
+    def _info_row(self, master: tk.Misc, label: str, value: tk.StringVar) -> None:
+        tk.Label(
+            master,
+            text=label,
+            bg=PHOENIX_THEME.panel_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=("Segoe UI", 8),
+            anchor="w",
+        ).pack(fill="x", padx=12)
+
+        tk.Label(
+            master,
+            textvariable=value,
+            bg=PHOENIX_THEME.panel_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=("Segoe UI", 10, "bold"),
+            anchor="w",
+            wraplength=220,
+        ).pack(fill="x", padx=12, pady=(2, 8))
 
     def _button(self, master: tk.Misc, text: str, command) -> tk.Button:
         return tk.Button(
@@ -68,6 +142,7 @@ class PhoenixRightPanel(tk.Frame):
             fg="#FFFFFF",
             activebackground=PHOENIX_THEME.accent_dark,
             activeforeground="#FFFFFF",
+            disabledforeground="#B0B0B0",
             relief="flat",
             bd=0,
             padx=12,
@@ -76,24 +151,65 @@ class PhoenixRightPanel(tk.Frame):
             cursor="hand2",
         )
 
+    def refresh(self) -> None:
+        provider = getattr(self.controller, "get_dashboard_snapshot", None)
+
+        if not callable(provider):
+            return
+
+        try:
+            snapshot = provider()
+        except Exception:
+            self._status_value.set("Unbekannt")
+            return
+
+        if isinstance(snapshot, dict):
+            self._status_value.set(str(snapshot.get("batch_status", "Ready")))
+            self._plugin_value.set(str(snapshot.get("plugin", "RealESRGAN")))
+            self._backend_value.set(str(snapshot.get("backend", "QNN / Snapdragon NPU")))
+            self._file_value.set(str(snapshot.get("last_output", "Keine Auswahl")))
+
+    def enable_start_button(self) -> None:
+        if self.start_button is not None:
+            self.start_button.configure(state="normal")
+
+    def disable_start_button(self) -> None:
+        if self.start_button is not None:
+            self.start_button.configure(state="disabled")
+
+    def enable_cancel_button(self) -> None:
+        if self.stop_button is not None:
+            self.stop_button.configure(state="normal")
+
+    def disable_cancel_button(self) -> None:
+        if self.stop_button is not None:
+            self.stop_button.configure(state="disabled")
+
+    def enable_output_button(self) -> None:
+        if self.output_button is not None:
+            self.output_button.configure(state="normal")
+
+    def disable_output_button(self) -> None:
+        if self.output_button is not None:
+            self.output_button.configure(state="disabled")
+
     def _app(self):
         return self.winfo_toplevel()
 
     def _start_plugin(self) -> None:
-        print("Phoenix Start Button geklickt")
         app = self._app()
-        print("App:", app)
-        print("Hat start_plugin:", hasattr(app, "start_plugin"))
 
         if hasattr(app, "start_plugin"):
             app.start_plugin()
 
     def _stop_plugin(self) -> None:
         app = self._app()
+
         if hasattr(app, "cancel_processing"):
             app.cancel_processing()
 
     def _open_output(self) -> None:
         app = self._app()
+
         if hasattr(app, "open_output"):
             app.open_output()

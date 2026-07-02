@@ -181,7 +181,15 @@ class PhoenixBatchUIAdapter(BatchUIAdapter):
         pass
 
     def show_preview(self, path):
-        self.app.show_preview(path)
+        workspace = getattr(self.app, "phoenix_workspace", None)
+
+        if workspace is None:
+            return
+
+        view = workspace._get_or_create_view("image")
+
+        if hasattr(view, "show_image"):
+            view.show_image(path)
 
 
 class DynamicBatchUIAdapter(BatchUIAdapter):

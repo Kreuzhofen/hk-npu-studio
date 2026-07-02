@@ -52,7 +52,7 @@ class UIBuilder:
 
         self.app.phoenix_workspace = PhoenixWorkspace(
             self.app,
-            controller=getattr(self.app, "controller", None),
+            controller=getattr(self.app, "batch_controller", None),
         )
         self.app.phoenix_workspace.pack(fill="both", expand=True)
 

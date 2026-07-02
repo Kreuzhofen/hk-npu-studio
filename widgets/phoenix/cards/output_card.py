@@ -5,15 +5,15 @@ import tkinter as tk
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
-class PhoenixStatusCard(tk.Frame):
-    """Reusable dashboard status card."""
+class PhoenixOutputCard(tk.Frame):
+    """Reusable card for the last known Phoenix output."""
 
     def __init__(
         self,
         master: tk.Misc,
-        title: str,
-        value: str,
-        detail: str = "",
+        title: str = "Letzter Output",
+        filename: str = "Kein Output vorhanden",
+        detail: str = "Noch wurde kein Ergebnis erzeugt.",
     ) -> None:
         super().__init__(
             master,
@@ -23,7 +23,7 @@ class PhoenixStatusCard(tk.Frame):
         )
 
         self._title_var = tk.StringVar(value=title)
-        self._value_var = tk.StringVar(value=value)
+        self._filename_var = tk.StringVar(value=filename)
         self._detail_var = tk.StringVar(value=detail)
 
         self._build()
@@ -40,14 +40,14 @@ class PhoenixStatusCard(tk.Frame):
 
         tk.Label(
             self,
-            textvariable=self._value_var,
+            textvariable=self._filename_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=("Segoe UI", 14, "bold"),
             anchor="w",
         ).pack(fill="x", padx=16)
 
-        self._detail_label = tk.Label(
+        tk.Label(
             self,
             textvariable=self._detail_var,
             bg=PHOENIX_THEME.card_bg,
@@ -55,44 +55,30 @@ class PhoenixStatusCard(tk.Frame):
             font=("Segoe UI", 9),
             anchor="w",
             justify="left",
-            wraplength=360,
-        )
-        self._detail_label.pack(fill="x", padx=16, pady=(6, 14))
-
-        self._update_detail_visibility()
+            wraplength=520,
+        ).pack(fill="x", padx=16, pady=(8, 14))
 
     def update(
         self,
         *,
         title: str | None = None,
-        value: str | None = None,
+        filename: str | None = None,
         detail: str | None = None,
     ) -> None:
-        """Update the card content without recreating widgets."""
-
         if title is not None:
             self._title_var.set(title)
 
-        if value is not None:
-            self._value_var.set(value)
+        if filename is not None:
+            self._filename_var.set(filename)
 
         if detail is not None:
             self._detail_var.set(detail)
-
-        self._update_detail_visibility()
 
     def configure_content(
         self,
         *,
         title: str | None = None,
-        value: str | None = None,
+        filename: str | None = None,
         detail: str | None = None,
     ) -> None:
-        """Compatibility wrapper for older code."""
-        self.update(title=title, value=value, detail=detail)
-
-    def _update_detail_visibility(self) -> None:
-        if self._detail_var.get().strip():
-            self._detail_label.pack_configure(pady=(6, 14))
-        else:
-            self._detail_label.pack_configure(pady=(0, 14))
+        self.update(title=title, filename=filename, detail=detail)

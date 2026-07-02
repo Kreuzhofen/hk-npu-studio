@@ -14,6 +14,7 @@ class PhoenixWorkspace(tk.Frame):
 
     VIEW_TITLES: dict[str, str] = {
         "home": "Home",
+        "dashboard": "Dashboard",
         "plugins": "Plugins",
         "settings": "Settings",
         "image": "Image",
@@ -36,6 +37,11 @@ class PhoenixWorkspace(tk.Frame):
         self._register_views()
         self._build_layout()
         self.show_view("home")
+        self._refresh_views()
+
+    @property
+    def actions(self):
+        return self.right_panel
 
     def _configure_grid(self) -> None:
         self.grid_rowconfigure(1, weight=1)
@@ -50,7 +56,8 @@ class PhoenixWorkspace(tk.Frame):
         from widgets.phoenix.views.settings_view import PhoenixSettingsView
 
         self._view_factories = {
-            "home": PhoenixHomeView,
+            "home": lambda master: PhoenixHomeView(master, controller=self.controller),
+            "dashboard": lambda master: PhoenixDashboard(master, controller=self.controller),
             "plugins": PhoenixPluginView,
             "settings": PhoenixSettingsView,
             "image": PhoenixImageView,
@@ -100,6 +107,10 @@ class PhoenixWorkspace(tk.Frame):
         self.sidebar.set_active(view_name)
         self.header.set_view(self.VIEW_TITLES.get(view_name, view_name.title()))
 
+        refresh = getattr(view, "refresh", None)
+        if callable(refresh):
+            refresh()
+
     def _get_or_create_view(self, view_name: str) -> tk.Frame:
         if view_name in self._views:
             return self._views[view_name]
@@ -144,6 +155,9 @@ class PhoenixWorkspace(tk.Frame):
     def open_home(self) -> None:
         self.show_view("home")
 
+    def open_dashboard(self) -> None:
+        self.show_view("dashboard")
+
     def open_plugins(self) -> None:
         self.show_view("plugins")
 
@@ -152,6 +166,25 @@ class PhoenixWorkspace(tk.Frame):
 
     def open_image(self) -> None:
         self.show_view("image")
+
+    def refresh_dashboard(self) -> None:
+        dashboard = self._views.get("dashboard")
+        refresh = getattr(dashboard, "refresh", None)
+        if callable(refresh):
+            refresh()
+
+    def _refresh_views(self) -> None:
+        for view in self._views.values():
+            refresh = getattr(view, "refresh", None)
+            if callable(refresh):
+                refresh()
+
+        if self.right_panel is not None:
+            refresh = getattr(self.right_panel, "refresh", None)
+            if callable(refresh):
+                refresh()
+
+        self.after(500, self._refresh_views)
 
     def show_image(self, filename) -> None:
         """Display an image in the Phoenix Image view."""
