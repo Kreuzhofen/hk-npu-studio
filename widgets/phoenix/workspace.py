@@ -75,13 +75,13 @@ class PhoenixWorkspace(tk.Frame):
         self.sidebar.grid(row=1, column=0, sticky="nsw")
 
         self.content_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        self.content_host.grid(row=1, column=1, sticky="nsew", padx=12, pady=12)
+        self.content_host.grid(row=1, column=1, sticky="nsew", padx=16, pady=16)
         self.content_host.grid_rowconfigure(0, weight=1)
         self.content_host.grid_columnconfigure(0, weight=1)
 
         self.right_panel = self._create_right_panel()
         if self.right_panel is not None:
-            self.right_panel.grid(row=1, column=2, sticky="nse", padx=(0, 12), pady=12)
+            self.right_panel.grid(row=1, column=2, sticky="nse", padx=(0, 16), pady=16)
 
     def _create_right_panel(self) -> tk.Frame | None:
         try:

@@ -40,7 +40,7 @@ class PhoenixDashboard(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=("Segoe UI", 22, "bold"),
             anchor="w",
-        ).pack(fill="x", padx=24, pady=(24, 8))
+        ).pack(fill="x", padx=28, pady=(28, 8))
 
         tk.Label(
             self,
@@ -49,12 +49,14 @@ class PhoenixDashboard(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 11),
             anchor="w",
-        ).pack(fill="x", padx=24, pady=(0, 16))
+        ).pack(fill="x", padx=28, pady=(0, 22))
 
         cards_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        cards_host.pack(fill="x", padx=24, pady=(0, 8))
-        cards_host.grid_columnconfigure(0, weight=1)
-        cards_host.grid_columnconfigure(1, weight=1)
+        cards_host.pack(fill="x", padx=28, pady=(0, 18))
+        cards_host.grid_columnconfigure(0, weight=1, uniform="dashboard_cards")
+        cards_host.grid_columnconfigure(1, weight=1, uniform="dashboard_cards")
+        cards_host.grid_rowconfigure(0, weight=1, uniform="dashboard_rows")
+        cards_host.grid_rowconfigure(1, weight=1, uniform="dashboard_rows")
 
         self._create_status_card(cards_host, "workspace", "Workspace", "Bereit", 0, 0)
         self._create_status_card(cards_host, "batch", "Batch", "Bereit", 0, 1)
@@ -69,7 +71,7 @@ class PhoenixDashboard(tk.Frame):
             percent=0,
             detail="Noch kein Batch gestartet.",
         )
-        self._progress_card.pack(fill="x", padx=24, pady=8)
+        self._progress_card.pack(fill="x", padx=28, pady=(0, 16))
 
     def _create_status_card(
         self,
@@ -81,7 +83,7 @@ class PhoenixDashboard(tk.Frame):
         column: int,
     ) -> None:
         card = PhoenixStatusCard(master, title=title, value=value)
-        card.grid(row=row, column=column, sticky="ew", padx=6, pady=6)
+        card.grid(row=row, column=column, sticky="nsew", padx=8, pady=8)
         self._cards[key] = card
 
     def refresh(self) -> None:

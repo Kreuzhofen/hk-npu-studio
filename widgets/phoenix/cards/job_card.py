@@ -22,10 +22,14 @@ class PhoenixJobCard(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
+            height=178,
         )
+        self.pack_propagate(False)
+        self.grid_propagate(False)
 
         self._title_var = tk.StringVar(value=title)
-        self._filename_var = tk.StringVar(value=filename)
+        self._full_filename = filename
+        self._filename_var = tk.StringVar(value=self._format_filename(filename))
         self._plugin_var = tk.StringVar(value=plugin)
         self._backend_var = tk.StringVar(value=backend)
         self._detail_var = tk.StringVar(value=detail)
@@ -40,45 +44,47 @@ class PhoenixJobCard(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
             anchor="w",
-        ).pack(fill="x", padx=16, pady=(14, 4))
+            height=1,
+        ).pack(fill="x", padx=20, pady=(18, 6))
 
         tk.Label(
             self,
             textvariable=self._filename_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 15, "bold"),
             anchor="w",
-        ).pack(fill="x", padx=16)
+            height=1,
+        ).pack(fill="x", padx=20)
 
         tk.Label(
             self,
             textvariable=self._plugin_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 9),
             anchor="w",
-        ).pack(fill="x", padx=16, pady=(6, 0))
+        ).pack(fill="x", padx=20, pady=(10, 0))
 
         tk.Label(
             self,
             textvariable=self._backend_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 9),
             anchor="w",
-        ).pack(fill="x", padx=16, pady=(2, 0))
+        ).pack(fill="x", padx=20, pady=(2, 0))
 
         tk.Label(
             self,
             textvariable=self._detail_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 8),
             anchor="w",
             justify="left",
             wraplength=520,
-        ).pack(fill="x", padx=16, pady=(8, 14))
+        ).pack(fill="x", padx=20, pady=(12, 18))
 
     def update(
         self,
@@ -93,7 +99,8 @@ class PhoenixJobCard(tk.Frame):
             self._title_var.set(title)
 
         if filename is not None:
-            self._filename_var.set(filename)
+            self._full_filename = filename
+            self._filename_var.set(self._format_filename(filename))
 
         if plugin is not None:
             self._plugin_var.set(plugin)
@@ -120,3 +127,9 @@ class PhoenixJobCard(tk.Frame):
             backend=backend,
             detail=detail,
         )
+
+    def _format_filename(self, filename: str) -> str:
+        if len(filename) > 30:
+            return f"{filename[:30]}..."
+
+        return filename

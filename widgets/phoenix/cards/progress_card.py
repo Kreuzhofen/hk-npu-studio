@@ -22,7 +22,10 @@ class PhoenixProgressCard(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
+            height=186,
         )
+        self.pack_propagate(False)
+        self.grid_propagate(False)
 
         self._title_var = tk.StringVar(value=title)
         self._progress_var = tk.StringVar(value=self._format_progress(current, total, percent))
@@ -38,29 +41,31 @@ class PhoenixProgressCard(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
             anchor="w",
-        ).pack(fill="x", padx=16, pady=(14, 4))
+            height=1,
+        ).pack(fill="x", padx=22, pady=(20, 8))
 
         tk.Label(
             self,
             textvariable=self._progress_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 20, "bold"),
             anchor="w",
-        ).pack(fill="x", padx=16)
+            height=1,
+        ).pack(fill="x", padx=22)
 
         self._bar_outer = tk.Frame(
             self,
             bg=PHOENIX_THEME.border,
-            height=8,
+            height=12,
         )
-        self._bar_outer.pack(fill="x", padx=16, pady=(10, 6))
+        self._bar_outer.pack(fill="x", padx=22, pady=(18, 10))
         self._bar_outer.pack_propagate(False)
 
         self._bar_inner = tk.Frame(
             self._bar_outer,
             bg=PHOENIX_THEME.accent,
-            height=8,
+            height=12,
         )
         self._bar_inner.place(x=0, y=0, relheight=1.0, relwidth=0.0)
 
@@ -69,11 +74,11 @@ class PhoenixProgressCard(tk.Frame):
             textvariable=self._detail_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 8),
             anchor="w",
             justify="left",
             wraplength=520,
-        ).pack(fill="x", padx=16, pady=(4, 14))
+        ).pack(fill="x", padx=22, pady=(2, 20))
 
     def update(
         self,
@@ -124,6 +129,6 @@ class PhoenixProgressCard(tk.Frame):
 
     def _format_progress(self, current: int, total: int, percent: int) -> str:
         if total <= 0:
-            return "0 / 0 · 0 %"
+            return "0 % abgeschlossen (0 von 0)"
 
-        return f"{current} / {total} · {percent} %"
+        return f"{percent} % abgeschlossen ({current} von {total})"

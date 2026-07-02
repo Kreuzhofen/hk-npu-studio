@@ -33,6 +33,7 @@ class BatchController:
         self.state_machine = BatchStateMachine()
         self.cancel_requested = False
         self.current_job_path = None
+        self.activity_log = []
 
     def start_polling(self):
         self.application.after(100, self._poll_log_queue)
@@ -53,6 +54,10 @@ class BatchController:
 
     def is_batch_busy(self):
         return self.state_machine.is_busy()
+
+    def _append_activity(self, message):
+        self.activity_log.append(message)
+        self.activity_log = self.activity_log[-20:]
 
     def get_dashboard_snapshot(self):
         """Return a read-only snapshot for the Phoenix dashboard."""
@@ -105,24 +110,16 @@ class BatchController:
         else:
             current_job = "Kein aktiver Job"
 
+        if waiting_jobs:
+            queue_label = f"Queue: {waiting_jobs} wartend"
+        else:
+            queue_label = "Queue leer"
+
         detail = (
-            f"Queue: {waiting_jobs} wartend · "
+            f"{queue_label} · "
             f"Fortschritt: {current}/{total} ({percent}%) · "
             f"{worker_label}"
         )
-
-        print("----------------------------------------")
-        print("Dashboard Snapshot")
-        print("----------------------------------------")
-        print(f"Batch State: {batch_state}")
-        print(f"Scheduler: {scheduler_status}")
-        print(f"Worker: {worker_status}")
-        print(f"Waiting Jobs: {waiting_jobs}")
-        print(f"Current: {current}")
-        print(f"Total: {total}")
-        print(f"Percent: {percent}")
-        print(f"Last Output: {last_output}")
-        print("----------------------------------------")
 
         return {
             "workspace_status": "Aktiv",
@@ -139,6 +136,7 @@ class BatchController:
             "last_output": output_label,
             "plugin": self.PLUGIN_NAME,
             "backend": self.BACKEND_NAME,
+            "activity": list(self.activity_log),
         }
 
     def start_plugin(self):
@@ -175,6 +173,7 @@ class BatchController:
             self.BACKEND_NAME,
             "Batch läuft...",
         )
+        self._append_activity("Batch gestartet")
         self.ui.log(f"Starte Batch-Verarbeitung: {waiting_jobs} Job(s)")
 
         thread = threading.Thread(
@@ -305,6 +304,7 @@ class BatchController:
 
     def _handle_job_start(self, input_path):
         self.current_job_path = input_path
+        self._append_activity(f"Job gestartet: {Path(input_path).name}")
         self.application.refresh_queue()
         if not self.ui.is_phoenix():
             self.application.select_loaded_image(input_path)
@@ -325,6 +325,7 @@ class BatchController:
         input_path, output_path = value
 
         self.runtime.set_last_output(output_path)
+        self._append_activity(f"Job fertig: {Path(input_path).name}")
         self.ui.enable_output_button()
         self.ui.finish_job(output_path)
         self.ui.add_thumbnail_image(output_path)
@@ -374,12 +375,14 @@ class BatchController:
             self.BACKEND_NAME,
             status_text,
         )
+        self._append_activity("Batch abgeschlossen")
         self.application.refresh_queue()
         self.ui.log(log_text)
 
     def _handle_batch_error(self, value):
         self.state_machine.fail(value)
         self.current_job_path = None
+        self._append_activity("Batch Fehler")
 
         self.ui.enable_file_card()
         self.ui.enable_start_button()
