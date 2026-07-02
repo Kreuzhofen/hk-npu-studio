@@ -15,6 +15,7 @@ from pathlib import Path
 from controllers.application_adapter import create_application_adapter
 from controllers.batch_runtime_adapter import create_batch_runtime_adapter
 from controllers.batch_ui_adapter import create_batch_ui_adapter
+from engine.batch_state_machine import BatchStateMachine
 
 
 class BatchController:
@@ -29,6 +30,7 @@ class BatchController:
         self.runtime = create_batch_runtime_adapter(app)
         self.ui = create_batch_ui_adapter(app)
         self.log_queue = queue.Queue()
+        self.state_machine = BatchStateMachine()
         self.cancel_requested = False
 
     def start_polling(self):
@@ -36,12 +38,38 @@ class BatchController:
         self.application.after(500, self._update_runtime)
         self.application.after(500, self._update_status_bar)
 
+    def get_batch_state(self):
+        return self.state_machine.get_state()
+
+    def get_batch_last_error(self):
+        return self.state_machine.get_last_error()
+
+    def can_start_batch(self):
+        return self.state_machine.can_start()
+
+    def can_stop_batch(self):
+        return self.state_machine.can_stop()
+
+    def is_batch_busy(self):
+        return self.state_machine.is_busy()
+
     def start_plugin(self):
+        if not self.state_machine.can_start():
+            self.ui.log(
+                f"Batch kann im aktuellen Zustand nicht gestartet werden: "
+                f"{self.state_machine.get_state()}"
+            )
+            return
+
         waiting_jobs = self.runtime.get_waiting_job_count()
 
         if waiting_jobs <= 0:
+            self.state_machine.reset()
             self.ui.log("Keine wartenden Jobs in der Queue.")
             return
+
+        self.state_machine.set_ready()
+        self.state_machine.start()
 
         self.cancel_requested = False
         self.runtime.clear_last_output()
@@ -69,7 +97,15 @@ class BatchController:
         thread.start()
 
     def cancel_processing(self):
+        if not self.state_machine.can_stop():
+            self.ui.log(
+                f"Abbruch ist im aktuellen Zustand nicht möglich: "
+                f"{self.state_machine.get_state()}"
+            )
+            return
+
         self.cancel_requested = True
+        self.state_machine.request_stop()
         self.runtime.request_cancel()
         self.ui.disable_cancel_button()
         self.ui.set_plugin(
@@ -108,7 +144,7 @@ class BatchController:
         )
 
     def _update_runtime(self):
-        if self.ui.is_job_running():
+        if self.state_machine.is_busy() or self.ui.is_job_running():
             self.ui.update_runtime()
 
         self.application.after(500, self._update_runtime)
@@ -132,6 +168,7 @@ class BatchController:
         worker_status = worker.get("status", "idle")
         queue_count = status.get("waiting_jobs", 0)
         percent = progress.get("percent", 0)
+        batch_state = self.state_machine.get_state()
 
         engine_status_label = {
             "idle": "Ready",
@@ -147,6 +184,15 @@ class BatchController:
             "done": "Done",
             "error": "Error",
         }.get(worker_status, worker_status)
+
+        if batch_state == "running":
+            engine_status_label = "Running"
+        elif batch_state == "stopping":
+            engine_status_label = "Stopping"
+        elif batch_state == "finished":
+            engine_status_label = "Finished"
+        elif batch_state == "error":
+            engine_status_label = "Error"
 
         self.application.set_status_bar(
             engine_status=engine_status_label,
@@ -229,6 +275,8 @@ class BatchController:
         self.ui.log(error)
 
     def _handle_batch_done(self, results):
+        self.state_machine.finish()
+
         self.ui.enable_file_card()
         self.ui.enable_start_button()
         self.ui.enable_select_button()
@@ -257,6 +305,8 @@ class BatchController:
         self.ui.log(log_text)
 
     def _handle_batch_error(self, value):
+        self.state_machine.fail(value)
+
         self.ui.enable_file_card()
         self.ui.enable_start_button()
         self.ui.enable_select_button()
