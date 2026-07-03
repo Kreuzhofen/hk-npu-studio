@@ -1,4 +1,4 @@
-# Codex Instructions - Snapdragon AI by Holger Kreuzhofen
+# Codex Instructions - Snapdragon AI Studio
 
 ## Rolle
 
@@ -9,7 +9,7 @@ Du arbeitest fuer Holger Kreuzhofen.
 Projektname:
 
 ```text
-Snapdragon AI by Holger Kreuzhofen
+Snapdragon AI Studio
 ```
 
 ## Projektziel

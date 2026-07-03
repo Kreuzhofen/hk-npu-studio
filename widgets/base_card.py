@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 Base Card Widget
 
@@ -13,7 +13,7 @@ from tkinter import ttk
 class BaseCard(ttk.LabelFrame):
     """
     Gemeinsame Basisklasse für alle Karten-Widgets
-    im SnapdragonAI Studio.
+    im Snapdragon AI Studio.
     """
 
     def __init__(self, master, title: str):

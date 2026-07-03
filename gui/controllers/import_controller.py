@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 Import Controller
 
@@ -13,7 +13,7 @@ from tkinter import filedialog
 
 class ImportController:
     """
-    Handles image and folder import actions for SnapdragonAI Studio.
+    Handles image and folder import actions for Snapdragon AI Studio.
     """
 
     def __init__(self, app):

@@ -1,4 +1,4 @@
-# Empfohlene naechste Schritte - SnapdragonAI Studio
+# Empfohlene naechste Schritte - Snapdragon AI Studio
 
 Datum: 2026-07-01
 

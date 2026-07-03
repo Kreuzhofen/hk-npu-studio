@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 Branding
 
@@ -12,7 +12,7 @@ class Branding:
     Zentrale Branding-Informationen.
     """
 
-    APP_NAME = "SnapdragonAI Studio"
+    APP_NAME = "Snapdragon AI Studio"
     APP_VERSION = "2.0.0-dev68"
 
     ENGINE_NAME = "Phoenix Engine"

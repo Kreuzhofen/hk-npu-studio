@@ -22,7 +22,7 @@ class PhoenixHeader(tk.Frame):
 
         self.title_label = tk.Label(
             left,
-            text="SnapdragonAI Studio 2.0",
+            text="Snapdragon AI Studio",
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_primary,
             font=("Segoe UI", 15, "bold"),
@@ -42,7 +42,7 @@ class PhoenixHeader(tk.Frame):
 
         badge = tk.Label(
             self,
-            text="Phoenix Workspace",
+            text="Local AI Workspace",
             bg=PHOENIX_THEME.accent_dark,
             fg=PHOENIX_THEME.accent_soft,
             font=("Segoe UI", 9, "bold"),

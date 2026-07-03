@@ -1,4 +1,4 @@
-# Aktueller Projektzustand - SnapdragonAI Studio
+# Aktueller Projektzustand - Snapdragon AI Studio
 
 Datum: 2026-07-01
 

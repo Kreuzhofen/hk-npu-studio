@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 UI Builder for GUI Version 2
 
@@ -25,7 +25,7 @@ from widgets.status_bar import StatusBar
 
 
 class UIBuilder:
-    """Builds the active SnapdragonAI Studio V2 user interface."""
+    """Builds the active Snapdragon AI Studio V2 user interface."""
 
     def __init__(self, app, dnd_available=False, ui_mode=UIMode.LEGACY):
         self.app = app

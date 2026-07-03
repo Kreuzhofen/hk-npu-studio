@@ -1,4 +1,4 @@
-# SnapdragonAI Studio Development Journal
+# Snapdragon AI Studio Development Journal
 
 Created by Holger Kreuzhofen
 

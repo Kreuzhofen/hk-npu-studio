@@ -1,4 +1,4 @@
-# SnapdragonAI Studio Roadmap
+# Snapdragon AI Studio Roadmap
 
 ## v1.1 Identity
 

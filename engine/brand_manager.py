@@ -14,9 +14,9 @@ class BrandState:
 
 
 class BrandManager:
-    """Central branding and asset manager for SnapdragonAI Studio."""
+    """Central branding and asset manager for Snapdragon AI Studio."""
 
-    APP_NAME = "SnapdragonAI Studio"
+    APP_NAME = "Snapdragon AI Studio"
     APP_VERSION = "2.0.0-dev68"
 
     ENGINE_NAME = "Phoenix Engine"

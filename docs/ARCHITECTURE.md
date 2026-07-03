@@ -1,4 +1,4 @@
-# SnapdragonAI Studio Architecture
+# Snapdragon AI Studio Architecture
 
 Created by Holger Kreuzhofen
 
@@ -8,7 +8,7 @@ Phoenix Architecture
 
 ## Goal
 
-SnapdragonAI Studio wird von einer fensterbasierten Anwendung zu einer modularen Seiten-Anwendung umgebaut.
+Snapdragon AI Studio wird von einer fensterbasierten Anwendung zu einer modularen Seiten-Anwendung umgebaut.
 
 ## Target Structure
 

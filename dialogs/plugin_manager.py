@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 Plugin Manager Dialog
 
@@ -26,7 +26,7 @@ class PluginManagerDialog(tk.Toplevel):
 
         title = tk.Label(
             self,
-            text="SnapdragonAI Plugin Manager",
+            text="Snapdragon AI Studio Plugin Manager",
             font=("Segoe UI", 13, "bold"),
             anchor="w",
         )

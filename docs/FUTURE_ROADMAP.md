@@ -1,11 +1,11 @@
-# Future Roadmap - Snapdragon AI by Holger Kreuzhofen
+# Future Roadmap - Snapdragon AI Studio
 
 Datum: 2026-07-01
 Status: Strategische Roadmap
 
 ## Zielbild
 
-Snapdragon AI by Holger Kreuzhofen soll eine professionelle lokale KI-Plattform fuer Windows 11 ARM64 und Qualcomm Snapdragon X werden. Die Plattform soll langfristig mehrere KI-Domaenen unter einer sauberen Architektur vereinen:
+Snapdragon AI Studio soll eine professionelle lokale KI-Plattform fuer Windows 11 ARM64 und Qualcomm Snapdragon X werden. Die Plattform soll langfristig mehrere KI-Domaenen unter einer sauberen Architektur vereinen:
 
 - Textgeneration
 - Bildgenerierung
@@ -265,4 +265,4 @@ Model Registry V2 aufbauen
 Logging und Fehlerbehandlung ordnen
 ```
 
-Erst danach sollten weitere KI-Domaenen wie OCR, Whisper, LLMs, RAG und Agenten aktiv integriert werden. Dadurch bleibt Snapdragon AI by Holger Kreuzhofen langfristig wartbar, stabil und wirklich NPU-orientiert.
+Erst danach sollten weitere KI-Domaenen wie OCR, Whisper, LLMs, RAG und Agenten aktiv integriert werden. Dadurch bleibt Snapdragon AI Studio langfristig wartbar, stabil und wirklich NPU-orientiert.

@@ -17,7 +17,7 @@ class AboutWindow(tk.Toplevel):
     def __init__(self, master=None, plugin_count=0):
         super().__init__(master)
 
-        self.title("About SnapdragonAI Studio")
+        self.title("About Snapdragon AI Studio")
         self.geometry("620x560")
         self.resizable(False, False)
         self.configure(bg=BG)
@@ -113,7 +113,7 @@ class AboutWindow(tk.Toplevel):
 
         self._label(
             card,
-            getattr(version, "DESCRIPTION", "SnapdragonAI Studio"),
+            getattr(version, "DESCRIPTION", "Snapdragon AI Studio"),
             10,
             False,
             MUTED,

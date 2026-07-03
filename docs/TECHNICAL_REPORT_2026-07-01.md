@@ -1,12 +1,12 @@
-# Technischer Bericht - SnapdragonAI Studio
+# Technischer Bericht - Snapdragon AI Studio
 
 Datum: 2026-07-01
 Autor: Codex, im Auftrag von Holger Kreuzhofen
-Projekt: Snapdragon AI by Holger Kreuzhofen
+Projekt: Snapdragon AI Studio
 
 ## Zweck dieses Dokuments
 
-Dieses Dokument fasst den aktuell analysierten Zustand des lokalen SnapdragonAI-Projekts zusammen. Es wurden fuer diese Analyse keine Konfigurationen geaendert, keine Software installiert und keine Dateien geloescht.
+Dieses Dokument fasst den aktuell analysierten Zustand des lokalen Snapdragon AI Studio Projekts zusammen. Es wurden fuer diese Analyse keine Konfigurationen geaendert, keine Software installiert und keine Dateien geloescht.
 
 Das Ziel des Gesamtprojekts ist eine moeglichst gute lokale KI-Umgebung auf Windows 11 ARM64 mit Qualcomm Snapdragon X Prozessor. Prioritaet hat dabei Qualcomm NPU-Beschleunigung ueber QNN, sofern technisch sinnvoll und stabil moeglich.
 

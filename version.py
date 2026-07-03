@@ -1,4 +1,4 @@
-APP_NAME = "SnapdragonAI Studio"
+APP_NAME = "Snapdragon AI Studio"
 VERSION = "1.1.0"
 CODENAME = "Identity"
 
@@ -10,4 +10,4 @@ AI_ASSISTANCE = "Developed with AI assistance using OpenAI ChatGPT"
 
 BUILD = "2026.06.27"
 
-DESCRIPTION = "SnapdragonAI Studio"
+DESCRIPTION = "Snapdragon AI Studio"

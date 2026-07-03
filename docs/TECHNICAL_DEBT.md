@@ -1,4 +1,4 @@
-# Technical Debt - Snapdragon AI by Holger Kreuzhofen
+# Technical Debt - Snapdragon AI Studio
 
 Datum: 2026-07-01
 Status: Analyse- und Planungsdokument

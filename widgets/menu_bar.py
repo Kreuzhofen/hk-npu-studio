@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 Native Menu Bar Widget
 
@@ -11,7 +11,7 @@ import tkinter as tk
 
 
 class MenuBar:
-    """Native Tk menu bar for SnapdragonAI Studio.
+    """Native Tk menu bar for Snapdragon AI Studio.
 
     The menu owns no application logic. It only maps menu entries to callback
     names supplied by UIBuilder.
@@ -162,7 +162,7 @@ class MenuBar:
         )
         menu.add_separator()
         menu.add_command(
-            label="About SnapdragonAI Studio...",
+            label="About Snapdragon AI Studio...",
             command=lambda: self._callback("about"),
         )
 

@@ -28,7 +28,7 @@ PURPLE = "#7c3aed"
 class SnapdragonAIStudio(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("SnapdragonAI Studio v1.1 Identity")
+        self.title("Snapdragon AI Studio")
         self.geometry("1080x740")
         self.minsize(960, 660)
         self.configure(bg=BG)
@@ -125,7 +125,7 @@ class SnapdragonAIStudio(tk.Tk):
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
-        self._label(sidebar, "SnapdragonAI", 18, True, TEXT, PANEL).pack(
+        self._label(sidebar, "Snapdragon AI Studio", 18, True, TEXT, PANEL).pack(
             anchor="w", padx=18, pady=(22, 2)
         )
         self._label(sidebar, "Studio v1.1 Identity", 10, False, MUTED, PANEL).pack(
@@ -201,7 +201,7 @@ class SnapdragonAIStudio(tk.Tk):
         )
         self._label(
             generate_card,
-            "ComfyUI lokal starten, API-Workflow speichern und Prompt aus SnapdragonAI Studio senden.",
+            "ComfyUI lokal starten, API-Workflow speichern und Prompt aus Snapdragon AI Studio senden.",
             10,
             False,
             MUTED,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-APP_NAME = "SnapdragonAI Studio 2.0"
-WORKSPACE_NAME = "Phoenix Workspace"
+APP_NAME = "Snapdragon AI Studio"
+WORKSPACE_NAME = "Local AI Workspace"
 WORKSPACE_VERSION = "v1.0"
 
 SIDEBAR_WIDTH = 220

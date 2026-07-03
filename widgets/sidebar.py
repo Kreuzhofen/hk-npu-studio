@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 Sidebar Widget
 
@@ -60,7 +60,7 @@ class Sidebar(tk.Frame):
     def build(self):
         tk.Label(
             self,
-            text="SnapdragonAI",
+            text="Snapdragon AI Studio",
             bg=BG,
             fg="white",
             font=("Segoe UI", 18, "bold"),

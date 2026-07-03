@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 About Dialog
 
@@ -76,7 +76,7 @@ class AboutDialog(tk.Toplevel):
         description = tk.Label(
             container,
             text=(
-                "SnapdragonAI Studio is a modular AI platform\n"
+                "Snapdragon AI Studio is a modular AI platform\n"
                 "for local workflows, plugins and Phoenix Engine automation."
             ),
             font=Theme.font("small"),

@@ -1,7 +1,7 @@
 def main():
     while True:
         print("=" * 50)
-        print("      SnapdragonAI Studio v1.0")
+        print("      Snapdragon AI Studio v1.0")
         print("=" * 50)
         print()
         print("1  GUI starten")

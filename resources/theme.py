@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 
 Theme Foundation
 
@@ -10,7 +10,7 @@ Phoenix UI Theme
 
 class Theme:
 
-    APP_NAME = "SnapdragonAI Studio"
+    APP_NAME = "Snapdragon AI Studio"
     ENGINE_NAME = "Phoenix Engine 1.0"
 
     COLORS = {

@@ -1,5 +1,5 @@
 """
-SnapdragonAI Studio
+Snapdragon AI Studio
 Phoenix Architecture
 
 Created by Holger Kreuzhofen
