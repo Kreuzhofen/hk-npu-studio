@@ -133,7 +133,31 @@ class SliderRenderer(SideRenderer):
 
 
 class OverlayRenderer(SideRenderer):
-    """Vorbereiteter Renderer fuer spaetere Overlay-Compare-Ansicht."""
+    """Rendert Original und Output als gemeinsamen Overlay-Blend."""
+
+    def render_original(self, preview_size: tuple[int, int]) -> ImageTk.PhotoImage | None:
+        original = self.controller.original_image
+        output = self.controller.output_image
+
+        if original is None and output is None:
+            return None
+
+        if original is None:
+            return self.render_image(output, preview_size)
+
+        if output is None:
+            return self.render_image(original, preview_size)
+
+        original_canvas = self.render_image_canvas(original, preview_size)
+        output_canvas = self.render_image_canvas(output, preview_size)
+        opacity = self.controller.get_overlay_opacity()
+
+        blended = Image.blend(original_canvas, output_canvas, opacity)
+
+        return ImageTk.PhotoImage(blended)
+
+    def render_output(self, preview_size: tuple[int, int]) -> ImageTk.PhotoImage | None:
+        return None
 
 
 class DifferenceRenderer(SideRenderer):

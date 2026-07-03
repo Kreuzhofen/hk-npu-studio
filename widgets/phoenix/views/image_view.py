@@ -99,6 +99,10 @@ class PhoenixImageView(tk.Frame):
         self.compare_controller.set_slider_position(value)
         self._apply_compare_view_state()
 
+    def set_overlay_opacity(self, value: float) -> None:
+        self.compare_controller.set_overlay_opacity(value)
+        self._apply_compare_view_state()
+
     def _build(self) -> None:
         page_padding = 28
         card_padding = 16
@@ -581,7 +585,7 @@ class PhoenixImageView(tk.Frame):
         )
         if self.output_preview_image is not None:
             self.output_preview_label.configure(image=self.output_preview_image, text="")
-        elif self.get_compare_mode() == "slider":
+        elif self.get_compare_mode() in {"slider", "overlay"}:
             self.output_preview_label.configure(image="", text="")
 
     def _reset_pan_state(self) -> None:
