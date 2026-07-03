@@ -60,7 +60,10 @@ class PhoenixWorkspace(tk.Frame):
             "dashboard": lambda master: PhoenixDashboard(master, controller=self.controller),
             "plugins": PhoenixPluginView,
             "settings": PhoenixSettingsView,
-            "image": PhoenixImageView,
+            "image": lambda master: PhoenixImageView(
+                master,
+                on_gallery_select=self.select_gallery_image,
+            ),
         }
 
     def _build_layout(self) -> None:
@@ -193,6 +196,28 @@ class PhoenixWorkspace(tk.Frame):
 
         if hasattr(view, "show_image"):
             view.show_image(filename)
+
+    def show_image_pair(self, input_filename, output_filename) -> None:
+        """Update the Phoenix Image view with an original/output pair."""
+        view = self._get_or_create_view("image")
+
+        if hasattr(view, "show_image_pair"):
+            view.show_image_pair(input_filename, output_filename)
+
+    def set_gallery_images(self, image_paths) -> None:
+        """Update the Phoenix Image gallery thumbnails."""
+        view = self._get_or_create_view("image")
+
+        if hasattr(view, "set_gallery_images"):
+            view.set_gallery_images(image_paths)
+
+    def select_gallery_image(self, filename) -> None:
+        """Store the active Gallery selection in the application."""
+        app = self.winfo_toplevel()
+        set_selection = getattr(app, "set_gallery_selection", None)
+
+        if callable(set_selection):
+            set_selection(filename)
 
     def clear_image(self) -> None:
         """Clear the current image."""

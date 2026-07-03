@@ -9,6 +9,8 @@ Phoenix Controller Layer
 
 from pathlib import Path
 
+from PIL import Image, ImageOps
+
 from engine.import_service import ImportService
 from engine.phoenix_adapter import PhoenixAdapter
 from engine.phoenix_queue import PhoenixQueue
@@ -175,7 +177,88 @@ class GuiController:
             input_path=job["input_path"],
         )
 
-        return result["output_path"]
+        return self._make_unique_output_path(
+            input_path=job["input_path"],
+            output_path=result["output_path"],
+        )
+
+    def _make_unique_output_path(self, input_path, output_path):
+        source_path = Path(output_path)
+
+        if not source_path.exists():
+            raise FileNotFoundError(source_path)
+
+        self._match_output_orientation_to_original(input_path, source_path)
+
+        target_path = self._build_unique_output_path(
+            input_path=input_path,
+            output_dir=source_path.parent,
+        )
+
+        if source_path.resolve() == target_path.resolve():
+            return str(source_path)
+
+        source_path.replace(target_path)
+        return str(target_path)
+
+    def _match_output_orientation_to_original(self, input_path, output_path):
+        orientation = self._get_original_orientation(input_path)
+
+        if orientation in (None, 1):
+            return
+
+        if self._output_matches_visible_orientation(input_path, output_path):
+            return
+
+        transpose_operation = {
+            2: Image.Transpose.FLIP_LEFT_RIGHT,
+            3: Image.Transpose.ROTATE_180,
+            4: Image.Transpose.FLIP_TOP_BOTTOM,
+            5: Image.Transpose.TRANSPOSE,
+            6: Image.Transpose.ROTATE_270,
+            7: Image.Transpose.TRANSVERSE,
+            8: Image.Transpose.ROTATE_90,
+        }.get(orientation)
+
+        if transpose_operation is None:
+            return
+
+        with Image.open(output_path) as output_image:
+            corrected_image = output_image.transpose(transpose_operation)
+            corrected_image.save(output_path)
+
+    def _output_matches_visible_orientation(self, input_path, output_path):
+        try:
+            with Image.open(input_path) as input_image:
+                visible_input = ImageOps.exif_transpose(input_image)
+                input_ratio = visible_input.width / visible_input.height
+
+            with Image.open(output_path) as output_image:
+                output_ratio = output_image.width / output_image.height
+
+            return abs(input_ratio - output_ratio) < 0.01
+        except Exception:
+            return False
+
+    def _get_original_orientation(self, input_path):
+        try:
+            with Image.open(input_path) as input_image:
+                exif = input_image.getexif()
+                return exif.get(274)
+        except Exception:
+            return None
+
+    def _build_unique_output_path(self, input_path, output_dir):
+        input_stem = Path(input_path).stem
+        base_name = f"{input_stem}_upscaled"
+        candidate = Path(output_dir) / f"{base_name}.png"
+        counter = 2
+
+        while candidate.exists():
+            candidate = Path(output_dir) / f"{base_name}_{counter}.png"
+            counter += 1
+
+        return candidate
 
     def get_progress(self):
         return self.scheduler.get_progress()

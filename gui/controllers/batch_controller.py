@@ -34,6 +34,7 @@ class BatchController:
         self.cancel_requested = False
         self.current_job_path = None
         self.activity_log = []
+        self.deferred_gallery_jobs = []
 
     def start_polling(self):
         self.application.after(100, self._poll_log_queue)
@@ -147,6 +148,7 @@ class BatchController:
             )
             return
 
+        self._prepare_gallery_selection_batch()
         waiting_jobs = self.runtime.get_waiting_job_count()
 
         if waiting_jobs <= 0:
@@ -200,6 +202,46 @@ class BatchController:
             "Abbruch angefordert",
         )
         self.ui.log("Abbruch angefordert. Der aktuelle Job wird noch beendet.")
+
+    def _prepare_gallery_selection_batch(self):
+        self.deferred_gallery_jobs = []
+        selected_image = self.application.get_selected_gallery_image()
+
+        if not selected_image:
+            return
+
+        selected_path = str(Path(selected_image).resolve())
+        status = self.runtime.get_engine_status()
+        queue = status.get("queue", [])
+        selected_found = False
+
+        for job in queue:
+            input_path = job.get("input_path")
+
+            if not input_path:
+                continue
+
+            resolved_input = str(Path(input_path).resolve())
+
+            if resolved_input == selected_path:
+                selected_found = True
+                if job.get("status") != "wartet":
+                    self.runtime.set_queue_status(input_path, "wartet")
+                continue
+
+            if job.get("status") == "wartet":
+                self.runtime.set_queue_status(input_path, "zurückgestellt")
+                self.deferred_gallery_jobs.append(input_path)
+
+        if selected_found:
+            self.ui.log(f"Gallery-Auswahl aktiv: {Path(selected_path).name}")
+
+    def _restore_deferred_gallery_jobs(self):
+        for input_path in self.deferred_gallery_jobs:
+            self.runtime.set_queue_status(input_path, "wartet")
+
+        self.deferred_gallery_jobs = []
+        self.application.clear_gallery_selection()
 
     def _worker_batch(self):
         try:
@@ -331,7 +373,7 @@ class BatchController:
         self.ui.add_thumbnail_image(output_path)
         self.application.refresh_queue()
         self.ui.set_filename(output_path)
-        self.ui.show_preview(output_path)
+        self.ui.show_image_pair(input_path, output_path)
         self._apply_progress()
         self.ui.log(
             f"Fertig: {Path(input_path).name} -> "
@@ -350,6 +392,7 @@ class BatchController:
     def _handle_batch_done(self, results):
         self.state_machine.finish()
         self.current_job_path = None
+        self._restore_deferred_gallery_jobs()
 
         self.ui.enable_file_card()
         self.ui.enable_start_button()
@@ -382,6 +425,7 @@ class BatchController:
     def _handle_batch_error(self, value):
         self.state_machine.fail(value)
         self.current_job_path = None
+        self._restore_deferred_gallery_jobs()
         self._append_activity("Batch Fehler")
 
         self.ui.enable_file_card()

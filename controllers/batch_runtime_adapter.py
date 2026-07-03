@@ -38,6 +38,9 @@ class BatchRuntimeAdapter:
     def get_engine_status(self):
         return self.app.controller.get_engine_status()
 
+    def set_queue_status(self, input_path, status, output_path=None):
+        self.app.controller.set_queue_status(input_path, status, output_path)
+
     def request_cancel(self):
         self.app.controller.scheduler.request_cancel()
 

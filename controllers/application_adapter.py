@@ -23,6 +23,20 @@ class ApplicationAdapter:
     def select_loaded_image(self, input_path):
         self.app.select_loaded_image(input_path)
 
+    def get_selected_gallery_image(self):
+        getter = getattr(self.app, "get_selected_gallery_image", None)
+
+        if callable(getter):
+            return getter()
+
+        return None
+
+    def clear_gallery_selection(self):
+        clearer = getattr(self.app, "clear_gallery_selection", None)
+
+        if callable(clearer):
+            clearer()
+
     def set_status_bar(
         self,
         engine_status,

@@ -90,6 +90,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.import_controller.load_image_files(filenames)
 
     def select_loaded_image(self, filename):
+        self.clear_gallery_selection()
         success, value = self.controller.select_image(filename)
 
         if not success:
@@ -105,11 +106,30 @@ class SnapdragonAIStudioV2(BaseWindow):
         self.queue_card.select_job(value)
         self.show_preview(value)
 
+    def set_gallery_selection(self, filename):
+        success, value = self.controller.select_image(filename)
+
+        if not success:
+            self._log(f"{value}: {filename}")
+            return
+
+        self.selected_gallery_image = value
+
+    def get_selected_gallery_image(self):
+        return getattr(self, "selected_gallery_image", None)
+
+    def clear_gallery_selection(self):
+        self.selected_gallery_image = None
+
     def refresh_queue(self):
         jobs = self.controller.get_queue()
 
         if hasattr(self, "queue_card"):
             self.queue_card.set_jobs(jobs)
+
+        if hasattr(self, "phoenix_workspace"):
+            image_paths = [job["input_path"] for job in jobs if job.get("input_path")]
+            self.phoenix_workspace.set_gallery_images(image_paths)
 
     def show_preview(self, filename):
         if hasattr(self, "phoenix_workspace"):

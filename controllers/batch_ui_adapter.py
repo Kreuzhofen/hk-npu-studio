@@ -88,6 +88,9 @@ class LegacyBatchUIAdapter(BatchUIAdapter):
     def show_preview(self, path):
         self.app.show_preview(path)
 
+    def show_image_pair(self, input_path, output_path):
+        self.show_preview(output_path)
+
 
 class PhoenixBatchUIAdapter(BatchUIAdapter):
     """Adapter for the Phoenix UI widgets."""
@@ -188,8 +191,27 @@ class PhoenixBatchUIAdapter(BatchUIAdapter):
 
         view = workspace._get_or_create_view("image")
 
-        if hasattr(view, "show_image"):
+        if hasattr(view, "show_output_image"):
+            view.show_output_image(path)
+        elif hasattr(view, "show_image"):
             view.show_image(path)
+
+    def show_image_pair(self, input_path, output_path):
+        workspace = getattr(self.app, "phoenix_workspace", None)
+
+        if workspace is None:
+            return
+
+        if hasattr(workspace, "show_image_pair"):
+            workspace.show_image_pair(input_path, output_path)
+            return
+
+        view = workspace._get_or_create_view("image")
+
+        if hasattr(view, "show_image_pair"):
+            view.show_image_pair(input_path, output_path)
+        elif hasattr(view, "show_output_image"):
+            view.show_output_image(output_path)
 
 
 class DynamicBatchUIAdapter(BatchUIAdapter):
@@ -263,6 +285,9 @@ class DynamicBatchUIAdapter(BatchUIAdapter):
 
     def show_preview(self, path):
         self._target().show_preview(path)
+
+    def show_image_pair(self, input_path, output_path):
+        self._target().show_image_pair(input_path, output_path)
 
 
 def create_batch_ui_adapter(app) -> BatchUIAdapter:

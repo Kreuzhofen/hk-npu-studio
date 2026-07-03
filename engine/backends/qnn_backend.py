@@ -12,7 +12,7 @@ import os
 import subprocess
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 class QNNBackend:
@@ -22,6 +22,10 @@ class QNNBackend:
     Diese Klasse kapselt sämtliche Kommunikation
     mit qnn-net-run und den QNN-Modellen.
     """
+
+    MODEL_INPUT_SIZE = (128, 128)
+    MODEL_SCALE = 4
+    MODEL_OUTPUT_SHAPE = (1, 512, 512, 3)
 
     def __init__(self):
         self.base_path = Path(r"C:\SnapdragonAI")
@@ -44,11 +48,12 @@ class QNNBackend:
         Bereitet ein Bild für das QNN-RealESRGAN-Modell vor.
         """
 
-        image = Image.open(image_path).convert("RGB")
-        image = image.resize((128, 128))
+        with Image.open(image_path) as source_image:
+            image = ImageOps.exif_transpose(source_image).convert("RGB")
+        image = image.resize(self.MODEL_INPUT_SIZE)
 
         arr = np.asarray(image).astype(np.float32) / 255.0
-        arr = arr.reshape(1, 128, 128, 3)
+        arr = arr.reshape(1, self.MODEL_INPUT_SIZE[1], self.MODEL_INPUT_SIZE[0], 3)
 
         return arr
 
@@ -119,21 +124,26 @@ class QNNBackend:
             raise FileNotFoundError(self.result_raw)
 
         output = np.fromfile(self.result_raw, dtype=np.float32)
-        output = output.reshape(1, 512, 512, 3)
+        output = output.reshape(self.MODEL_OUTPUT_SHAPE)
 
         return output
 
-    def save_output(self, output):
+    def save_output(self, output, input_path):
         """
         Speichert den QNN-Ausgabetensor als PNG-Datei.
         """
 
         image = output[0]
         image = np.clip(image * 255, 0, 255).astype(np.uint8)
+        image = Image.fromarray(image)
+        image = self._restore_target_resolution(image, input_path)
 
-        Image.fromarray(image).save(self.result_png)
+        image.save(self.result_png)
 
         return self.result_png
+
+    def _restore_target_resolution(self, image, input_path):
+        return image
 
     def upscale(self, image_path):
         """
@@ -151,7 +161,7 @@ class QNNBackend:
         self.execute_qnn(files["input_list"])
 
         output = self.read_output()
-        result_png = self.save_output(output)
+        result_png = self.save_output(output, image_path)
 
         return {
             "status": "success",
