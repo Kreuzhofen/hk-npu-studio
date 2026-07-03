@@ -6,6 +6,7 @@ from pathlib import Path
 from PIL import Image, ImageOps, ImageTk
 
 from widgets.phoenix.preview.compare_controller import CompareController
+from widgets.phoenix.preview.compare_renderer import CompareRenderer
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
@@ -15,6 +16,7 @@ class PhoenixImageView(tk.Frame):
 
         self.on_gallery_select = on_gallery_select
         self.compare_controller = CompareController()
+        self.compare_renderer = CompareRenderer(self.compare_controller)
         self.current_image_path: Path | None = None
         self.preview_image: ImageTk.PhotoImage | None = None
         self.output_preview_image: ImageTk.PhotoImage | None = None
@@ -509,16 +511,14 @@ class PhoenixImageView(tk.Frame):
 
     def _apply_compare_view_state(self) -> None:
         self._apply_pan_state()
-        self.preview_image = self._render_preview_image(
-            self.original_display_image,
-            self.preview_label,
+        self.preview_image = self.compare_renderer.render_original(
+            self._get_preview_size(self.preview_label),
         )
         if self.preview_image is not None:
             self.preview_label.configure(image=self.preview_image, text="")
 
-        self.output_preview_image = self._render_preview_image(
-            self.output_display_image,
-            self.output_preview_label,
+        self.output_preview_image = self.compare_renderer.render_output(
+            self._get_preview_size(self.output_preview_label),
         )
         if self.output_preview_image is not None:
             self.output_preview_label.configure(image=self.output_preview_image, text="")
@@ -593,12 +593,9 @@ class PhoenixImageView(tk.Frame):
         if image is None:
             return (0, 0)
 
-        preview_width, preview_height = self._get_preview_size(target_label)
-        display_width, display_height = self._get_scaled_display_size(image)
-
-        return (
-            max(0, (display_width - preview_width) // 2),
-            max(0, (display_height - preview_height) // 2),
+        return self.compare_renderer.get_pan_bounds(
+            image,
+            self._get_preview_size(target_label),
         )
 
     def _set_zoom_mode(self, zoom_mode: str) -> None:
@@ -641,42 +638,6 @@ class PhoenixImageView(tk.Frame):
             else:
                 self.zoom_value_label.configure(text=f"Zoom: {int(self.zoom_level * 100)} %")
 
-    def _render_preview_image(
-        self,
-        image: Image.Image | None,
-        target_label: tk.Label,
-    ) -> ImageTk.PhotoImage | None:
-        if image is None:
-            return None
-
-        if self.compare_controller.get_render_mode() != "side":
-            return None
-
-        preview_width, preview_height = self._get_preview_size(target_label)
-
-        canvas_image = Image.new(
-            "RGB",
-            (preview_width, preview_height),
-            PHOENIX_THEME.card_bg,
-        )
-
-        if self.zoom_mode == "fit":
-            display_image = image.copy()
-            display_image.thumbnail((preview_width, preview_height))
-        else:
-            target_size = self._get_scaled_display_size(image)
-            display_image = image.resize(target_size, Image.Resampling.LANCZOS)
-
-        pan_x = self.pan_x if self._is_pan_enabled() else 0
-        pan_y = self.pan_y if self._is_pan_enabled() else 0
-        max_pan_x = max(0, (display_image.width - preview_width) // 2)
-        max_pan_y = max(0, (display_image.height - preview_height) // 2)
-        offset_x = (preview_width - display_image.width) // 2 + int(max_pan_x * pan_x)
-        offset_y = (preview_height - display_image.height) // 2 + int(max_pan_y * pan_y)
-        canvas_image.paste(display_image, (offset_x, offset_y))
-
-        return ImageTk.PhotoImage(canvas_image)
-
     def _get_preview_size(self, target_label: tk.Label) -> tuple[int, int]:
         target_label.update_idletasks()
         preview_width = target_label.winfo_width()
@@ -687,13 +648,6 @@ class PhoenixImageView(tk.Frame):
             preview_height = 360
 
         return (preview_width, preview_height)
-
-    def _get_scaled_display_size(self, image: Image.Image) -> tuple[int, int]:
-        scale = self.zoom_level
-        return (
-            max(1, int(image.width * scale)),
-            max(1, int(image.height * scale)),
-        )
 
     def set_gallery_images(self, filenames: list[str | Path]) -> None:
         self._clear_gallery()
