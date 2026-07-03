@@ -17,16 +17,16 @@ class BrandManager:
     """Central branding and asset manager for Snapdragon AI Studio."""
 
     APP_NAME = "Snapdragon AI Studio"
-    APP_VERSION = "2.0.0-dev68"
+    APP_VERSION = "2.0 Preview"
 
     ENGINE_NAME = "Phoenix Engine"
     ENGINE_VERSION = "1.0"
 
     AUTHOR = "Holger Kreuzhofen"
-    COPYRIGHT = "© 2026 Holger Kreuzhofen"
+    COPYRIGHT = "© Holger Kreuzhofen"
 
     SLOGAN = "Phoenix Engine"
-    WINDOW_TITLE_WITH_VERSION = f"{APP_NAME} {APP_VERSION}"
+    WINDOW_TITLE_WITH_VERSION = APP_NAME
 
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
     BRAND_ROOT = PROJECT_ROOT / "assets" / "brand"
@@ -96,7 +96,7 @@ class BrandManager:
         return self.ENGINE_VERSION
 
     def window_title(self) -> str:
-        return f"{self.APP_NAME} {self.APP_VERSION}"
+        return self.APP_NAME
 
     def author(self) -> str:
         return self.AUTHOR

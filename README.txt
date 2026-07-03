@@ -1,4 +1,4 @@
-Snapdragon AI Studio v1.0 ComfyUI Backend
+Snapdragon AI Studio
 
 Neu:
 - AI Generate kann jetzt mit lokalem ComfyUI sprechen.

@@ -48,7 +48,7 @@ def show_splash():
 
     tk.Label(
         frame,
-        text=f'Version {version.VERSION} "{version.CODENAME}"',
+        text=f"Version {version.VERSION}",
         bg=PANEL,
         fg=MUTED,
         font=("Segoe UI", 10),

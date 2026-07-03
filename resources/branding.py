@@ -13,20 +13,20 @@ class Branding:
     """
 
     APP_NAME = "Snapdragon AI Studio"
-    APP_VERSION = "2.0.0-dev68"
+    APP_VERSION = "2.0 Preview"
 
     ENGINE_NAME = "Phoenix Engine"
     ENGINE_VERSION = "1.0"
 
     AUTHOR = "Holger Kreuzhofen"
-    COPYRIGHT = "© 2026 Holger Kreuzhofen"
+    COPYRIGHT = "© Holger Kreuzhofen"
 
     COMPANY = ""
     WEBSITE = ""
     GITHUB = ""
 
     WINDOW_TITLE = APP_NAME
-    WINDOW_TITLE_WITH_VERSION = f"{APP_NAME} {APP_VERSION}"
+    WINDOW_TITLE_WITH_VERSION = APP_NAME
 
     ABOUT = (
         f"{APP_NAME}\n"

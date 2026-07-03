@@ -51,7 +51,7 @@ class AboutWindow(tk.Toplevel):
         self._label(card, version.APP_NAME, 22, True, TEXT, PANEL).pack()
         self._label(
             card,
-            f'Version {version.VERSION} "{version.CODENAME}"',
+            f"Version {version.VERSION}",
             11,
             False,
             MUTED,
