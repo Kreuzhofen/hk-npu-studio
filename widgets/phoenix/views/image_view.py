@@ -5,67 +5,8 @@ from pathlib import Path
 
 from PIL import Image, ImageOps, ImageTk
 
+from widgets.phoenix.preview.compare_controller import CompareController
 from widgets.phoenix.theme import PHOENIX_THEME
-
-
-class CompareController:
-    """Zentrale Zustandsverwaltung fuer den Compare Workspace."""
-
-    VALID_COMPARE_MODES = {"side", "slider", "overlay", "difference"}
-
-    def __init__(self) -> None:
-        self.compare_mode = "side"
-        self.reset_camera()
-
-    def set_compare_mode(self, compare_mode: str) -> None:
-        if compare_mode not in self.VALID_COMPARE_MODES:
-            raise ValueError(f"Unsupported compare mode: {compare_mode}")
-
-        self.compare_mode = compare_mode
-
-    def reset_camera(self) -> None:
-        self.zoom_mode = "fit"
-        self.zoom_level = 1.0
-        self.pan_x = 0
-        self.pan_y = 0
-
-    def reset_pan(self) -> None:
-        self.pan_x = 0
-        self.pan_y = 0
-
-    def set_zoom_mode(self, zoom_mode: str) -> None:
-        self.zoom_mode = zoom_mode
-        self.zoom_level = {
-            "fit": 1.0,
-            "100": 1.0,
-        }.get(zoom_mode, 1.0)
-
-        if zoom_mode == "fit":
-            self.reset_pan()
-        else:
-            self.clamp_pan()
-
-    def set_zoom_percent(self, zoom_percent: int) -> None:
-        self.zoom_level = zoom_percent / 100
-
-        if zoom_percent == 100:
-            self.zoom_mode = "100"
-        else:
-            self.zoom_mode = "custom"
-
-        self.clamp_pan()
-
-    def set_pan(self, pan_x: float, pan_y: float) -> None:
-        self.pan_x = pan_x
-        self.pan_y = pan_y
-        self.clamp_pan()
-
-    def clamp_pan(self) -> None:
-        self.pan_x = min(max(self.pan_x, -1), 1)
-        self.pan_y = min(max(self.pan_y, -1), 1)
-
-    def is_pan_enabled(self) -> bool:
-        return self.zoom_mode != "fit" and self.zoom_level > 1.0
 
 
 class PhoenixImageView(tk.Frame):
@@ -147,7 +88,7 @@ class PhoenixImageView(tk.Frame):
         self._apply_compare_view_state()
 
     def get_compare_mode(self) -> str:
-        return self.compare_controller.compare_mode
+        return self.compare_controller.get_compare_mode()
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
@@ -440,6 +381,7 @@ class PhoenixImageView(tk.Frame):
             self.output_preview_image = None
             self.original_display_image = None
             self.output_display_image = None
+            self.compare_controller.set_images(None, None)
             self.path_label.configure(text=f"Bild nicht gefunden: {image_path}")
             self.image_info_value.configure(text="Keine Bildinformationen verfügbar.")
             self.output_info_value.configure(text="Keine Ausgabeinformationen verfügbar.")
@@ -465,6 +407,10 @@ class PhoenixImageView(tk.Frame):
             file_size = self._format_file_size(image_path.stat().st_size)
             self.original_display_image = image
             self.current_image_path = image_path
+            self.compare_controller.set_images(
+                self.original_display_image,
+                self.output_display_image,
+            )
 
             self.path_label.configure(text=str(image_path))
             self.image_info_value.configure(
@@ -489,6 +435,7 @@ class PhoenixImageView(tk.Frame):
             self.current_image_path = None
             self.preview_image = None
             self.original_display_image = None
+            self.compare_controller.set_images(None, self.output_display_image)
             self.path_label.configure(text=str(image_path))
             self.image_info_value.configure(text="Keine Bildinformationen verfügbar.")
             self.output_info_value.configure(text="Keine Ausgabeinformationen verfügbar.")
@@ -503,6 +450,10 @@ class PhoenixImageView(tk.Frame):
         if not image_path.exists():
             self.output_preview_image = None
             self.output_display_image = None
+            self.compare_controller.set_images(
+                self.original_display_image,
+                None,
+            )
             self.output_info_value.configure(text="Output: Nicht gefunden")
             self.output_preview_label.configure(
                 image="",
@@ -520,6 +471,10 @@ class PhoenixImageView(tk.Frame):
 
             file_size = self._format_file_size(image_path.stat().st_size)
             self.output_display_image = image
+            self.compare_controller.set_images(
+                self.original_display_image,
+                self.output_display_image,
+            )
             self.output_info_value.configure(
                 text=(
                     f"Output: {image_path.name}\n"
@@ -534,6 +489,10 @@ class PhoenixImageView(tk.Frame):
         except Exception as error:
             self.output_preview_image = None
             self.output_display_image = None
+            self.compare_controller.set_images(
+                self.original_display_image,
+                None,
+            )
             self.output_info_value.configure(text="Keine Ausgabeinformationen verfügbar.")
             self.output_preview_label.configure(
                 image="",
@@ -603,14 +562,19 @@ class PhoenixImageView(tk.Frame):
         else:
             pan_y = 0
 
-        self.compare_controller.set_pan(pan_x, pan_y)
+        self.compare_controller.pan_x = self.drag_start_pan_x
+        self.compare_controller.pan_y = self.drag_start_pan_y
+        self.compare_controller.pan_by(
+            pan_x - self.drag_start_pan_x,
+            pan_y - self.drag_start_pan_y,
+        )
         self._apply_compare_view_state()
 
     def _end_pan(self, event) -> None:
         self._clamp_pan_state()
 
     def _reset_to_fit(self, event=None) -> None:
-        self.compare_controller.reset_camera()
+        self.compare_controller.fit()
         self._update_zoom_buttons()
         self._apply_compare_view_state()
 
@@ -647,7 +611,7 @@ class PhoenixImageView(tk.Frame):
             return
 
         zoom_percent = int(float(value))
-        self.compare_controller.set_zoom_percent(zoom_percent)
+        self.compare_controller.zoom_to(zoom_percent / 100)
         self._update_zoom_buttons()
         self._apply_compare_view_state()
 
@@ -683,6 +647,9 @@ class PhoenixImageView(tk.Frame):
         target_label: tk.Label,
     ) -> ImageTk.PhotoImage | None:
         if image is None:
+            return None
+
+        if self.compare_controller.get_render_mode() != "side":
             return None
 
         preview_width, preview_height = self._get_preview_size(target_label)
@@ -854,6 +821,7 @@ class PhoenixImageView(tk.Frame):
         self.output_preview_image = None
         self.original_display_image = None
         self.output_display_image = None
+        self.compare_controller.set_images(None, None)
         self._reset_compare_view_state()
         self.path_label.configure(text="Noch kein Bild geladen.")
         self.image_info_value.configure(text="Keine Bildinformationen verfügbar.")
