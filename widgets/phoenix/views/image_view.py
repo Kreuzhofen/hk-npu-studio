@@ -87,6 +87,7 @@ class PhoenixImageView(tk.Frame):
 
     def set_compare_mode(self, compare_mode: str) -> None:
         self.compare_controller.set_compare_mode(compare_mode)
+        self._update_compare_cursor()
         self._apply_compare_view_state()
 
     def get_compare_mode(self) -> str:
@@ -542,6 +543,10 @@ class PhoenixImageView(tk.Frame):
         target_label.bind("<Double-Button-1>", self._reset_to_fit)
 
     def _start_pan(self, event) -> None:
+        if self._is_slider_mode():
+            self._update_slider_from_event(event)
+            return
+
         if not self._is_pan_enabled():
             return
 
@@ -551,6 +556,10 @@ class PhoenixImageView(tk.Frame):
         self.drag_start_pan_y = self.pan_y
 
     def _drag_pan(self, event) -> None:
+        if self._is_slider_mode():
+            self._update_slider_from_event(event)
+            return
+
         if not self._is_pan_enabled():
             return
 
@@ -577,12 +586,44 @@ class PhoenixImageView(tk.Frame):
         self._apply_compare_view_state()
 
     def _end_pan(self, event) -> None:
+        if self._is_slider_mode():
+            return
+
         self._clamp_pan_state()
 
     def _reset_to_fit(self, event=None) -> None:
+        if self._is_slider_mode():
+            self._reset_slider_position(event)
+            return
+
         self.compare_controller.fit()
         self._update_zoom_buttons()
         self._apply_compare_view_state()
+
+    def _is_slider_mode(self) -> bool:
+        return self.get_compare_mode() == "slider"
+
+    def _update_slider_from_event(self, event) -> None:
+        preview_width, _preview_height = self._get_preview_size(event.widget)
+
+        if preview_width <= 0:
+            return
+
+        self.compare_controller.set_slider_position(event.x / preview_width)
+        self._apply_compare_view_state()
+
+    def _reset_slider_position(self, event=None) -> None:
+        self.compare_controller.set_slider_position(0.5)
+        self._apply_compare_view_state()
+
+    def _update_compare_cursor(self) -> None:
+        cursor = "sb_h_double_arrow" if self._is_slider_mode() else ""
+
+        if hasattr(self, "preview_label"):
+            self.preview_label.configure(cursor=cursor)
+
+        if hasattr(self, "output_preview_label"):
+            self.output_preview_label.configure(cursor=cursor)
 
     def _is_pan_enabled(self) -> bool:
         return self.compare_controller.is_pan_enabled()
