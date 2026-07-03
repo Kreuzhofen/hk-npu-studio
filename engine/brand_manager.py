@@ -52,11 +52,16 @@ class BrandManager:
     ABOUT_IMAGE = BRAND_ROOT / "about" / "phoenix_about.png"
 
     COLORS = {
-        "COLOR_BACKGROUND": "#0F1117",
-        "COLOR_SURFACE": "#171B24",
+        "COLOR_BACKGROUND": "#111315",
+        "COLOR_SURFACE": "#181B1F",
+        "COLOR_CARD": "#20242A",
+        "COLOR_ELEVATED": "#272C33",
+        "COLOR_BORDER": "#343A43",
         "COLOR_PRIMARY": "#2F80ED",
         "COLOR_TEXT": "#F2F4F8",
+        "COLOR_TEXT_ON_ACCENT": "#F2F4F8",
         "COLOR_TEXT_SECONDARY": "#AAB2C0",
+        "COLOR_DISABLED_TEXT": "#6B7280",
     }
 
     FONTS = {
@@ -117,7 +122,7 @@ class BrandManager:
         return self.ABOUT_DESCRIPTION
 
     def color(self, name: str) -> str:
-        return self.COLORS.get(name, "#FFFFFF")
+        return self.COLORS.get(name, self.COLORS["COLOR_TEXT"])
 
     def font(self, name: str) -> str:
         return self.FONTS.get(name, "Segoe UI")

@@ -16,16 +16,18 @@ class Theme:
     ENGINE_NAME = BrandManager().engine()
 
     COLORS = {
-        "background": "#F5F6F8",
-        "card": "#FFFFFF",
-        "border": "#D0D4DA",
-        "text": "#202124",
-        "muted_text": "#5F6368",
-        "accent": "#C62828",
-        "success": "#2E7D32",
-        "warning": "#F9A825",
-        "error": "#C62828",
-        "info": "#1565C0",
+        "background": BrandManager.COLORS["COLOR_BACKGROUND"],
+        "surface": BrandManager.COLORS["COLOR_SURFACE"],
+        "card": BrandManager.COLORS["COLOR_CARD"],
+        "elevated": BrandManager.COLORS["COLOR_ELEVATED"],
+        "border": BrandManager.COLORS["COLOR_BORDER"],
+        "text": BrandManager.COLORS["COLOR_TEXT"],
+        "muted_text": BrandManager.COLORS["COLOR_TEXT_SECONDARY"],
+        "accent": BrandManager.COLORS["COLOR_PRIMARY"],
+        "success": BrandManager.COLORS["COLOR_PRIMARY"],
+        "warning": BrandManager.COLORS["COLOR_TEXT_SECONDARY"],
+        "error": BrandManager.COLORS["COLOR_TEXT_SECONDARY"],
+        "info": BrandManager.COLORS["COLOR_PRIMARY"],
     }
 
     FONTS = {
@@ -69,7 +71,7 @@ class Theme:
 
     @classmethod
     def color(cls, name):
-        return cls.COLORS.get(name, "#000000")
+        return cls.COLORS.get(name, cls.COLORS["text"])
 
     @classmethod
     def font(cls, name):

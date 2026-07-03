@@ -24,7 +24,7 @@ class PhoenixToolbar(tk.Frame):
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_secondary,
             activebackground=PHOENIX_THEME.accent,
-            activeforeground="#FFFFFF",
+            activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat",
             bd=0,
             font=PHOENIX_THEME.font_card_title,

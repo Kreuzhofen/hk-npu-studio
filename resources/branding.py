@@ -21,6 +21,15 @@ class Branding:
     AUTHOR = "Holger Kreuzhofen"
     COPYRIGHT = "© 2026 Holger Kreuzhofen\nAll rights reserved."
 
+    COLOR_BACKGROUND = "#111315"
+    COLOR_SURFACE = "#181B1F"
+    COLOR_CARD = "#20242A"
+    COLOR_ELEVATED = "#272C33"
+    COLOR_BORDER = "#343A43"
+    COLOR_ACCENT = "#2F80ED"
+    COLOR_TEXT = "#F2F4F8"
+    COLOR_MUTED_TEXT = "#AAB2C0"
+
     COMPANY = ""
     WEBSITE = ""
     GITHUB = ""

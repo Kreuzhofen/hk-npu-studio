@@ -5,20 +5,23 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PhoenixTheme:
-    app_bg: str = "#0B1020"
-    panel_bg: str = "#111827"
-    content_bg: str = "#0F172A"
-    header_bg: str = "#020617"
-    card_bg: str = "#111827"
-    border: str = "#1E293B"
+    app_bg: str = "#111315"
+    panel_bg: str = "#181B1F"
+    content_bg: str = "#111315"
+    header_bg: str = "#181B1F"
+    card_bg: str = "#20242A"
+    elevated_bg: str = "#272C33"
+    border: str = "#343A43"
 
-    text_primary: str = "#F8FAFC"
-    text_secondary: str = "#CBD5E1"
-    text_muted: str = "#94A3B8"
+    text_primary: str = "#F2F4F8"
+    text_secondary: str = "#D7DCE4"
+    text_muted: str = "#AAB2C0"
+    text_disabled: str = "#6B7280"
+    text_on_accent: str = "#F2F4F8"
 
-    accent: str = "#2563EB"
-    accent_dark: str = "#172554"
-    accent_soft: str = "#DBEAFE"
+    accent: str = "#2F80ED"
+    accent_dark: str = "#1E5FBF"
+    accent_soft: str = "#D8E8FF"
 
     font_title: tuple[str, int, str] = ("Segoe UI", 22, "bold")
     font_section: tuple[str, int, str] = ("Segoe UI", 15, "bold")

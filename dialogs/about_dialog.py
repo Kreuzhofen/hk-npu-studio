@@ -151,6 +151,14 @@ class AboutDialog(tk.Toplevel):
             text="OK",
             command=self.destroy,
             font=Theme.font("button"),
+            bg=Theme.color("accent"),
+            fg=Theme.color("text"),
+            activebackground=Theme.color("elevated"),
+            activeforeground=Theme.color("text"),
+            relief="flat",
+            bd=0,
+            padx=14,
+            pady=8,
             width=12,
         )
         ok_button.pack(anchor="center")

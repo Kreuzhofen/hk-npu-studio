@@ -55,7 +55,7 @@ class PhoenixSidebar(tk.Frame):
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_secondary,
             activebackground=PHOENIX_THEME.accent,
-            activeforeground="#FFFFFF",
+            activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat",
             bd=0,
             font=PHOENIX_THEME.font_button,
@@ -76,14 +76,14 @@ class PhoenixSidebar(tk.Frame):
             if name == view_name:
                 button.configure(
                     bg=PHOENIX_THEME.accent,
-                    fg="#FFFFFF",
+                    fg=PHOENIX_THEME.text_on_accent,
                     activebackground=PHOENIX_THEME.accent,
-                    activeforeground="#FFFFFF",
+                    activeforeground=PHOENIX_THEME.text_on_accent,
                 )
             else:
                 button.configure(
                     bg=PHOENIX_THEME.panel_bg,
                     fg=PHOENIX_THEME.text_secondary,
                     activebackground=PHOENIX_THEME.accent,
-                    activeforeground="#FFFFFF",
+                    activeforeground=PHOENIX_THEME.text_on_accent,
                 )
