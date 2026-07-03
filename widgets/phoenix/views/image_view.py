@@ -100,6 +100,12 @@ class PhoenixImageView(tk.Frame):
         self._apply_compare_view_state()
 
     def _build(self) -> None:
+        page_padding = 28
+        card_padding = 16
+        section_gap = 18
+        panel_gap = 16
+        control_gap = 8
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=3, minsize=220)
         self.grid_rowconfigure(3, weight=0, minsize=236)
@@ -112,7 +118,7 @@ class PhoenixImageView(tk.Frame):
             font=("Segoe UI", 22, "bold"),
             anchor="w",
         )
-        self.title_label.grid(row=0, column=0, sticky="ew", padx=28, pady=(28, 8))
+        self.title_label.grid(row=0, column=0, sticky="ew", padx=page_padding, pady=(28, 8))
 
         self.path_label = tk.Label(
             self,
@@ -122,7 +128,7 @@ class PhoenixImageView(tk.Frame):
             font=("Segoe UI", 11),
             anchor="w",
         )
-        self.path_label.grid(row=1, column=0, sticky="ew", padx=28, pady=(0, 20))
+        self.path_label.grid(row=1, column=0, sticky="ew", padx=page_padding, pady=(0, 18))
 
         preview_frame = tk.Frame(
             self,
@@ -130,7 +136,7 @@ class PhoenixImageView(tk.Frame):
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
-        preview_frame.grid(row=2, column=0, sticky="nsew", padx=28, pady=(0, 18))
+        preview_frame.grid(row=2, column=0, sticky="nsew", padx=page_padding, pady=(0, section_gap))
         preview_frame.grid_columnconfigure(0, weight=1)
         preview_frame.grid_rowconfigure(0, weight=1)
 
@@ -139,7 +145,7 @@ class PhoenixImageView(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
         )
         self.preview_container = self.compare_container
-        self.preview_container.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
+        self.preview_container.grid(row=0, column=0, sticky="nsew", padx=card_padding, pady=card_padding)
         self.preview_container.grid_columnconfigure(0, weight=1, uniform="preview_columns")
         self.preview_container.grid_columnconfigure(1, weight=1, uniform="preview_columns")
         self.preview_container.grid_rowconfigure(0, weight=0)
@@ -149,7 +155,16 @@ class PhoenixImageView(tk.Frame):
             self.preview_container,
             bg=PHOENIX_THEME.card_bg,
         )
-        self.compare_toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        self.compare_toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 12))
+
+        tk.Label(
+            self.compare_toolbar,
+            text="Compare",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=("Segoe UI", 9, "bold"),
+            anchor="w",
+        ).grid(row=0, column=0, sticky="w", padx=(0, control_gap))
 
         for index, (mode, label) in enumerate(
             (
@@ -173,12 +188,21 @@ class PhoenixImageView(tk.Frame):
                 highlightbackground=PHOENIX_THEME.border,
                 font=("Segoe UI", 9, "bold"),
                 padx=10,
-                pady=4,
+                pady=5,
             )
-            button.grid(row=0, column=index, sticky="w", padx=(0, 8))
+            button.grid(row=0, column=index + 1, sticky="w", padx=(0, control_gap))
             self.compare_mode_buttons[mode] = button
 
-        for index, (mode, label) in enumerate((("fit", "Fit"), ("100", "100 %")), start=5):
+        tk.Label(
+            self.compare_toolbar,
+            text="Zoom",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=("Segoe UI", 9, "bold"),
+            anchor="w",
+        ).grid(row=0, column=6, sticky="w", padx=(panel_gap, control_gap))
+
+        for index, (mode, label) in enumerate((("fit", "Fit"), ("100", "100 %")), start=7):
             button = tk.Button(
                 self.compare_toolbar,
                 text=label,
@@ -192,10 +216,10 @@ class PhoenixImageView(tk.Frame):
                 highlightthickness=1,
                 highlightbackground=PHOENIX_THEME.border,
                 font=("Segoe UI", 9, "bold"),
-                padx=12,
-                pady=4,
+                padx=10,
+                pady=5,
             )
-            button.grid(row=0, column=index, sticky="w", padx=(0, 8))
+            button.grid(row=0, column=index, sticky="w", padx=(0, control_gap))
             self.zoom_buttons[mode] = button
 
         self.zoom_slider = tk.Scale(
@@ -213,7 +237,7 @@ class PhoenixImageView(tk.Frame):
             showvalue=False,
             length=220,
         )
-        self.zoom_slider.grid(row=0, column=7, sticky="w", padx=(4, 8))
+        self.zoom_slider.grid(row=0, column=9, sticky="w", padx=(0, control_gap))
         self.zoom_slider.set(100)
 
         self.zoom_value_label = tk.Label(
@@ -225,7 +249,7 @@ class PhoenixImageView(tk.Frame):
             anchor="w",
             width=11,
         )
-        self.zoom_value_label.grid(row=0, column=8, sticky="w")
+        self.zoom_value_label.grid(row=0, column=10, sticky="w")
 
         self.original_preview_frame = tk.Frame(
             self.preview_container,
@@ -234,7 +258,7 @@ class PhoenixImageView(tk.Frame):
             highlightthickness=1,
         )
         original_preview = self.original_preview_frame
-        original_preview.grid(row=1, column=0, sticky="nsew", padx=(0, 8))
+        original_preview.grid(row=1, column=0, sticky="nsew", padx=(0, panel_gap // 2))
         original_preview.grid_columnconfigure(0, weight=1)
         original_preview.grid_rowconfigure(1, weight=1)
 
@@ -245,7 +269,7 @@ class PhoenixImageView(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
             anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 6))
+        ).grid(row=0, column=0, sticky="ew", padx=14, pady=(12, 6))
 
         self.preview_label = tk.Label(
             original_preview,
@@ -255,7 +279,7 @@ class PhoenixImageView(tk.Frame):
             font=("Segoe UI", 12),
             anchor="center",
         )
-        self.preview_label.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.preview_label.grid(row=1, column=0, sticky="nsew", padx=14, pady=(0, 14))
         self._bind_pan_events(self.preview_label)
 
         self.output_preview_frame = tk.Frame(
@@ -265,7 +289,7 @@ class PhoenixImageView(tk.Frame):
             highlightthickness=1,
         )
         output_preview = self.output_preview_frame
-        output_preview.grid(row=1, column=1, sticky="nsew", padx=(8, 0))
+        output_preview.grid(row=1, column=1, sticky="nsew", padx=(panel_gap // 2, 0))
         output_preview.grid_columnconfigure(0, weight=1)
         output_preview.grid_rowconfigure(1, weight=1)
 
@@ -276,7 +300,7 @@ class PhoenixImageView(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
             anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 6))
+        ).grid(row=0, column=0, sticky="ew", padx=14, pady=(12, 6))
 
         self.output_preview_label = tk.Label(
             output_preview,
@@ -286,7 +310,7 @@ class PhoenixImageView(tk.Frame):
             font=("Segoe UI", 12),
             anchor="center",
         )
-        self.output_preview_label.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.output_preview_label.grid(row=1, column=0, sticky="nsew", padx=14, pady=(0, 14))
         self._bind_pan_events(self.output_preview_label)
 
         gallery_frame = tk.Frame(
@@ -295,7 +319,7 @@ class PhoenixImageView(tk.Frame):
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
-        gallery_frame.grid(row=3, column=0, sticky="nsew", padx=28, pady=(0, 18))
+        gallery_frame.grid(row=3, column=0, sticky="nsew", padx=page_padding, pady=(0, section_gap))
         gallery_frame.grid_columnconfigure(0, weight=1)
         gallery_frame.grid_rowconfigure(1, weight=0)
 
@@ -306,10 +330,10 @@ class PhoenixImageView(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
             anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=20, pady=(14, 8))
+        ).grid(row=0, column=0, sticky="ew", padx=card_padding, pady=(14, 8))
 
         gallery_host = tk.Frame(gallery_frame, bg=PHOENIX_THEME.card_bg)
-        gallery_host.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 14))
+        gallery_host.grid(row=1, column=0, sticky="nsew", padx=card_padding, pady=(0, card_padding))
         gallery_host.grid_columnconfigure(0, weight=1)
         gallery_host.grid_columnconfigure(1, weight=0)
         gallery_host.grid_rowconfigure(0, weight=0, minsize=172)
@@ -319,7 +343,7 @@ class PhoenixImageView(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightthickness=0,
             bd=0,
-            height=172,
+            height=176,
         )
         self.gallery_canvas.grid(row=0, column=0, sticky="nsew")
 
@@ -349,12 +373,12 @@ class PhoenixImageView(tk.Frame):
         )
 
         info_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        info_host.grid(row=4, column=0, sticky="ew", padx=28, pady=(0, 18))
+        info_host.grid(row=4, column=0, sticky="ew", padx=page_padding, pady=(0, section_gap))
         info_host.grid_columnconfigure(0, weight=1, uniform="image_info_cards")
         info_host.grid_columnconfigure(1, weight=1, uniform="image_info_cards")
 
         image_info = self._build_info_card(info_host, "Bildinformationen")
-        image_info.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        image_info.grid(row=0, column=0, sticky="nsew", padx=(0, panel_gap // 2))
         self.image_info_value = tk.Label(
             image_info,
             text="Keine Bildinformationen verfügbar.",
@@ -364,10 +388,10 @@ class PhoenixImageView(tk.Frame):
             anchor="w",
             justify="left",
         )
-        self.image_info_value.pack(fill="x", padx=20, pady=(0, 18))
+        self.image_info_value.pack(fill="x", padx=card_padding, pady=(0, card_padding))
 
         output_info = self._build_info_card(info_host, "Ausgabeinformationen")
-        output_info.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+        output_info.grid(row=0, column=1, sticky="nsew", padx=(panel_gap // 2, 0))
         self.output_info_value = tk.Label(
             output_info,
             text="Keine Ausgabeinformationen verfügbar.",
@@ -377,7 +401,7 @@ class PhoenixImageView(tk.Frame):
             anchor="w",
             justify="left",
         )
-        self.output_info_value.pack(fill="x", padx=20, pady=(0, 18))
+        self.output_info_value.pack(fill="x", padx=card_padding, pady=(0, card_padding))
         self._update_compare_mode_buttons()
         self._update_zoom_buttons()
 
@@ -387,7 +411,7 @@ class PhoenixImageView(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
-            height=112,
+            height=124,
         )
         card.grid_propagate(False)
         card.pack_propagate(False)
@@ -400,7 +424,7 @@ class PhoenixImageView(tk.Frame):
             font=("Segoe UI", 9, "bold"),
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=20, pady=(18, 8))
+        ).pack(fill="x", padx=16, pady=(16, 8))
 
         return card
 
@@ -817,15 +841,15 @@ class PhoenixImageView(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
-            width=116,
-            height=124,
+            width=120,
+            height=128,
         )
         card.grid(
             row=thumbnail_index // column_count,
             column=thumbnail_index % column_count,
             sticky="nsew",
-            padx=(0, 10),
-            pady=(0, 10),
+            padx=(0, 12),
+            pady=(0, 12),
         )
         card.pack_propagate(False)
         self.gallery_thumbnail_cards.append(card)
@@ -836,7 +860,7 @@ class PhoenixImageView(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             anchor="center",
         )
-        thumbnail_label.pack(fill="both", expand=True, padx=10, pady=(10, 4))
+        thumbnail_label.pack(fill="both", expand=True, padx=12, pady=(12, 4))
 
         filename_label = tk.Label(
             card,
@@ -847,7 +871,7 @@ class PhoenixImageView(tk.Frame):
             anchor="center",
             wraplength=96,
         )
-        filename_label.pack(fill="x", padx=8, pady=(0, 8))
+        filename_label.pack(fill="x", padx=10, pady=(0, 10))
 
         def select_thumbnail(event, selected_path=image_path):
             self._set_selected_gallery_thumbnail(selected_path, card)
