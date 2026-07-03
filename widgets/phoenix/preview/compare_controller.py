@@ -17,6 +17,7 @@ class CompareController:
         self.original_image: Image.Image | None = None
         self.output_image: Image.Image | None = None
         self.compare_mode = "side"
+        self.slider_position = 0.5
         self.reset_camera()
 
     def set_images(
@@ -46,10 +47,16 @@ class CompareController:
         return self.compare_mode
 
     def get_render_mode(self) -> str:
-        if self.compare_mode in {"slider", "overlay", "difference"}:
+        if self.compare_mode in {"overlay", "difference"}:
             return "side"
 
         return self.compare_mode
+
+    def set_slider_position(self, value: float) -> None:
+        self.slider_position = min(max(float(value), 0.0), 1.0)
+
+    def get_slider_position(self) -> float:
+        return self.slider_position
 
     def reset_camera(self) -> None:
         self.zoom_mode = "fit"

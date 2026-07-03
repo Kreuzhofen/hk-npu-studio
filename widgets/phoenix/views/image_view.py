@@ -92,6 +92,10 @@ class PhoenixImageView(tk.Frame):
     def get_compare_mode(self) -> str:
         return self.compare_controller.get_compare_mode()
 
+    def set_slider_position(self, value: float) -> None:
+        self.compare_controller.set_slider_position(value)
+        self._apply_compare_view_state()
+
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=3, minsize=220)
@@ -522,6 +526,8 @@ class PhoenixImageView(tk.Frame):
         )
         if self.output_preview_image is not None:
             self.output_preview_label.configure(image=self.output_preview_image, text="")
+        elif self.get_compare_mode() == "slider":
+            self.output_preview_label.configure(image="", text="")
 
     def _reset_pan_state(self) -> None:
         self.compare_controller.reset_pan()

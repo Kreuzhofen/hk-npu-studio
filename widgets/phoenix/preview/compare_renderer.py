@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PIL import Image, ImageTk
+from PIL import Image, ImageColor, ImageTk
 
 from widgets.phoenix.preview.compare_controller import CompareController
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -26,6 +26,13 @@ class SideRenderer:
         if image is None:
             return None
 
+        return ImageTk.PhotoImage(self.render_image_canvas(image, preview_size))
+
+    def render_image_canvas(
+        self,
+        image: Image.Image,
+        preview_size: tuple[int, int],
+    ) -> Image.Image:
         preview_width, preview_height = preview_size
         canvas_image = Image.new(
             "RGB",
@@ -51,7 +58,7 @@ class SideRenderer:
 
         canvas_image.paste(display_image, (offset_x, offset_y))
 
-        return ImageTk.PhotoImage(canvas_image)
+        return canvas_image
 
     def get_pan_bounds(
         self,
@@ -78,7 +85,51 @@ class SideRenderer:
 
 
 class SliderRenderer(SideRenderer):
-    """Vorbereiteter Renderer fuer spaetere Slider-Compare-Ansicht."""
+    """Rendert Original und Output als Before/After-Slider."""
+
+    def render_original(self, preview_size: tuple[int, int]) -> ImageTk.PhotoImage | None:
+        original = self.controller.original_image
+        output = self.controller.output_image
+
+        if original is None and output is None:
+            return None
+
+        if original is None:
+            return self.render_image(output, preview_size)
+
+        if output is None:
+            return self.render_image(original, preview_size)
+
+        original_canvas = self.render_image_canvas(original, preview_size)
+        output_canvas = self.render_image_canvas(output, preview_size)
+        preview_width, preview_height = preview_size
+        split_x = int(preview_width * self.controller.get_slider_position())
+
+        combined = Image.new(
+            "RGB",
+            (preview_width, preview_height),
+            PHOENIX_THEME.card_bg,
+        )
+        combined.paste(original_canvas.crop((0, 0, split_x, preview_height)), (0, 0))
+        combined.paste(
+            output_canvas.crop((split_x, 0, preview_width, preview_height)),
+            (split_x, 0),
+        )
+        self._draw_split_line(combined, split_x)
+
+        return ImageTk.PhotoImage(combined)
+
+    def render_output(self, preview_size: tuple[int, int]) -> ImageTk.PhotoImage | None:
+        return None
+
+    def _draw_split_line(self, image: Image.Image, split_x: int) -> None:
+        line_color = ImageColor.getrgb(getattr(PHOENIX_THEME, "accent", "#3B82F6"))
+        left = max(0, split_x - 1)
+        right = min(image.width, split_x + 1)
+
+        for x in range(left, right):
+            for y in range(image.height):
+                image.putpixel((x, y), line_color)
 
 
 class OverlayRenderer(SideRenderer):
