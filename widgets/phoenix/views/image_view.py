@@ -37,6 +37,7 @@ class PhoenixImageView(tk.Frame):
         self.path_label: tk.Label
         self.compare_container: tk.Frame
         self.compare_toolbar: tk.Frame
+        self.compare_mode_buttons: dict[str, tk.Button] = {}
         self.zoom_buttons: dict[str, tk.Button] = {}
         self.zoom_slider: tk.Scale
         self.zoom_value_label: tk.Label
@@ -87,6 +88,7 @@ class PhoenixImageView(tk.Frame):
 
     def set_compare_mode(self, compare_mode: str) -> None:
         self.compare_controller.set_compare_mode(compare_mode)
+        self._update_compare_mode_buttons()
         self._update_compare_cursor()
         self._apply_compare_view_state()
 
@@ -149,7 +151,34 @@ class PhoenixImageView(tk.Frame):
         )
         self.compare_toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
-        for index, (mode, label) in enumerate((("fit", "Fit"), ("100", "100 %"))):
+        for index, (mode, label) in enumerate(
+            (
+                ("side", "Side"),
+                ("slider", "Slider"),
+                ("overlay", "Overlay"),
+                ("difference", "Difference"),
+            )
+        ):
+            button = tk.Button(
+                self.compare_toolbar,
+                text=label,
+                command=lambda selected_mode=mode: self._set_compare_mode(selected_mode),
+                bg=PHOENIX_THEME.card_bg,
+                fg=PHOENIX_THEME.text_secondary,
+                activebackground=PHOENIX_THEME.card_bg,
+                activeforeground=PHOENIX_THEME.text_primary,
+                relief="flat",
+                bd=0,
+                highlightthickness=1,
+                highlightbackground=PHOENIX_THEME.border,
+                font=("Segoe UI", 9, "bold"),
+                padx=10,
+                pady=4,
+            )
+            button.grid(row=0, column=index, sticky="w", padx=(0, 8))
+            self.compare_mode_buttons[mode] = button
+
+        for index, (mode, label) in enumerate((("fit", "Fit"), ("100", "100 %")), start=5):
             button = tk.Button(
                 self.compare_toolbar,
                 text=label,
@@ -184,7 +213,7 @@ class PhoenixImageView(tk.Frame):
             showvalue=False,
             length=220,
         )
-        self.zoom_slider.grid(row=0, column=2, sticky="w", padx=(4, 8))
+        self.zoom_slider.grid(row=0, column=7, sticky="w", padx=(4, 8))
         self.zoom_slider.set(100)
 
         self.zoom_value_label = tk.Label(
@@ -196,7 +225,7 @@ class PhoenixImageView(tk.Frame):
             anchor="w",
             width=11,
         )
-        self.zoom_value_label.grid(row=0, column=3, sticky="w")
+        self.zoom_value_label.grid(row=0, column=8, sticky="w")
 
         self.original_preview_frame = tk.Frame(
             self.preview_container,
@@ -349,6 +378,7 @@ class PhoenixImageView(tk.Frame):
             justify="left",
         )
         self.output_info_value.pack(fill="x", padx=20, pady=(0, 18))
+        self._update_compare_mode_buttons()
         self._update_zoom_buttons()
 
     def _build_info_card(self, master: tk.Misc, title: str) -> tk.Frame:
@@ -650,6 +680,9 @@ class PhoenixImageView(tk.Frame):
         self._update_zoom_buttons()
         self._apply_compare_view_state()
 
+    def _set_compare_mode(self, compare_mode: str) -> None:
+        self.set_compare_mode(compare_mode)
+
     def _set_zoom_percent(self, value: str) -> None:
         if self._syncing_zoom_controls:
             return
@@ -684,6 +717,22 @@ class PhoenixImageView(tk.Frame):
                 self.zoom_value_label.configure(text="Zoom: Fit")
             else:
                 self.zoom_value_label.configure(text=f"Zoom: {int(self.zoom_level * 100)} %")
+
+    def _update_compare_mode_buttons(self) -> None:
+        selected_border = getattr(PHOENIX_THEME, "accent", "#3B82F6")
+        current_mode = self.get_compare_mode()
+
+        for mode, button in self.compare_mode_buttons.items():
+            if mode == current_mode:
+                button.configure(
+                    fg=PHOENIX_THEME.text_primary,
+                    highlightbackground=selected_border,
+                )
+            else:
+                button.configure(
+                    fg=PHOENIX_THEME.text_secondary,
+                    highlightbackground=PHOENIX_THEME.border,
+                )
 
     def _get_preview_size(self, target_label: tk.Label) -> tuple[int, int]:
         target_label.update_idletasks()
