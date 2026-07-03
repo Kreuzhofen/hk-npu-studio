@@ -19,6 +19,7 @@ class StartupOverlay(tk.Frame):
         self._progress = 0
         self._fade_step = 0
         self._progress_job: Optional[str] = None
+        self.logo_image: tk.PhotoImage | None = None
 
         self._build_ui()
 
@@ -32,13 +33,23 @@ class StartupOverlay(tk.Frame):
         )
         container.grid(row=0, column=0)
 
-        self.logo_label = tk.Label(
-            container,
-            text="◆",
-            font=(self.brand.font("FONT_TITLE"), 64, "bold"),
-            fg=self.brand.color("COLOR_PRIMARY"),
-            bg=self.brand.color("COLOR_BACKGROUND"),
-        )
+        logo_path = self.brand.png(128)
+        if logo_path.exists():
+            self.logo_image = tk.PhotoImage(file=str(logo_path))
+            self.logo_label = tk.Label(
+                container,
+                image=self.logo_image,
+                bg=self.brand.color("COLOR_BACKGROUND"),
+                bd=0,
+            )
+        else:
+            self.logo_label = tk.Label(
+                container,
+                text=self.brand.app_name()[:1],
+                font=(self.brand.font("FONT_TITLE"), 64, "bold"),
+                fg=self.brand.color("COLOR_PRIMARY"),
+                bg=self.brand.color("COLOR_BACKGROUND"),
+            )
         self.logo_label.pack(pady=(0, 18))
 
         self.title_label = tk.Label(
@@ -57,11 +68,20 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.slogan_label.pack(pady=(8, 36))
+        self.slogan_label.pack(pady=(8, 6))
+
+        self.copyright_label = tk.Label(
+            container,
+            text=self.brand.copyright(),
+            font=(self.brand.font("FONT_BODY"), 10),
+            fg=self.brand.color("COLOR_TEXT_SECONDARY"),
+            bg=self.brand.color("COLOR_BACKGROUND"),
+        )
+        self.copyright_label.pack(pady=(0, 30))
 
         self.status_label = tk.Label(
             container,
-            text="Initializing Phoenix...",
+            text=f"Initializing {self.brand.engine_name()}...",
             font=(self.brand.font("FONT_BODY"), 12),
             fg=self.brand.color("COLOR_TEXT"),
             bg=self.brand.color("COLOR_BACKGROUND"),
@@ -98,7 +118,7 @@ class StartupOverlay(tk.Frame):
 
         self.version_label = tk.Label(
             container,
-            text=f"Version {self.brand.version()}",
+            text=self.brand.version_string(),
             font=(self.brand.font("FONT_SMALL"), 10),
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),

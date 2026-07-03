@@ -13,6 +13,7 @@ from modules.model_manager_gui import ModelManagerWindow
 from modules.generate_gui import GenerateWindow
 from modules.about import AboutWindow
 from config import INPUT_DIR, OUTPUT_DIR
+from engine.brand_manager import BrandManager
 from engine.phoenix_adapter import PhoenixAdapter
 
 BG = "#101418"
@@ -28,7 +29,8 @@ PURPLE = "#7c3aed"
 class SnapdragonAIStudio(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Snapdragon AI Studio")
+        self.brand = BrandManager()
+        self.title(self.brand.window_title())
         self.geometry("1080x740")
         self.minsize(960, 660)
         self.configure(bg=BG)
@@ -125,7 +127,7 @@ class SnapdragonAIStudio(tk.Tk):
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
-        self._label(sidebar, "Snapdragon AI Studio", 18, True, TEXT, PANEL).pack(
+        self._label(sidebar, self.brand.app_name(), 18, True, TEXT, PANEL).pack(
             anchor="w", padx=18, pady=(22, 2)
         )
         self._label(sidebar, "Studio v1.1 Identity", 10, False, MUTED, PANEL).pack(
@@ -166,7 +168,7 @@ class SnapdragonAIStudio(tk.Tk):
         self._label(hw, "NPU / QNN bereit ✔", 9, False, GREEN, PANEL_2).pack(
             anchor="w", padx=10
         )
-        self._label(hw, "Created by Holger Kreuzhofen", 8, False, MUTED, PANEL_2).pack(
+        self._label(hw, self.brand.copyright(), 8, False, MUTED, PANEL_2).pack(
             anchor="w", padx=10, pady=(4, 10)
         )
 
@@ -201,7 +203,7 @@ class SnapdragonAIStudio(tk.Tk):
         )
         self._label(
             generate_card,
-            "ComfyUI lokal starten, API-Workflow speichern und Prompt aus Snapdragon AI Studio senden.",
+            f"ComfyUI lokal starten, API-Workflow speichern und Prompt aus {self.brand.app_name()} senden.",
             10,
             False,
             MUTED,
@@ -428,7 +430,7 @@ class SnapdragonAIStudio(tk.Tk):
             return
 
         self.start_button.config(state="disabled")
-        self.status_text.set("Phoenix Engine läuft...")
+        self.status_text.set(f"{self.brand.engine_name()} läuft...")
         self.progress_text.set("")
         self.progress_value.set(0)
         self.log_text.delete("1.0", "end")
@@ -451,8 +453,8 @@ class SnapdragonAIStudio(tk.Tk):
 
     def _worker(self, image_path):
         try:
-            self.log("Starte Phoenix Engine...")
-            self.set_status("Phoenix Engine läuft...")
+            self.log(f"Starte {self.brand.engine_name()}...")
+            self.set_status(f"{self.brand.engine_name()} läuft...")
             self.set_progress("QNN / NPU läuft")
             self.set_percent(10)
 

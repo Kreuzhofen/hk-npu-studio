@@ -3,6 +3,7 @@ import sys
 import tkinter as tk
 
 import version
+from engine.brand_manager import BrandManager
 
 BG = "#101418"
 PANEL = "#171d23"
@@ -17,7 +18,8 @@ class AboutWindow(tk.Toplevel):
     def __init__(self, master=None, plugin_count=0):
         super().__init__(master)
 
-        self.title("About Snapdragon AI Studio")
+        self.brand = BrandManager()
+        self.title(f"About {self.brand.app_name()}")
         self.geometry("620x560")
         self.resizable(False, False)
         self.configure(bg=BG)
@@ -113,7 +115,7 @@ class AboutWindow(tk.Toplevel):
 
         self._label(
             card,
-            getattr(version, "DESCRIPTION", "Snapdragon AI Studio"),
+            getattr(version, "DESCRIPTION", self.brand.app_name()),
             10,
             False,
             MUTED,

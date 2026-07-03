@@ -44,7 +44,12 @@ class ApplicationController:
         self.app.brand.initialize()
 
     def _configure_main_window(self):
-        self.app.title(BrandManager.WINDOW_TITLE_WITH_VERSION)
+        self.app.title(self.app.brand.window_title())
+        if BrandManager.APP_ICON.exists():
+            try:
+                self.app.iconbitmap(str(BrandManager.APP_ICON))
+            except Exception:
+                pass
         self.app.geometry("1400x900")
         self.app.configure(bg=Theme.color("background"))
 

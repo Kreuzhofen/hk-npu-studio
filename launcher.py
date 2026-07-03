@@ -1,7 +1,10 @@
+from engine.brand_manager import BrandManager
+
+
 def main():
     while True:
         print("=" * 50)
-        print("      Snapdragon AI Studio v1.0")
+        print(f"      {BrandManager.APP_NAME} {BrandManager.APP_VERSION}")
         print("=" * 50)
         print()
         print("1  GUI starten")

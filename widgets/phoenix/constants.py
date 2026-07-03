@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-APP_NAME = "Snapdragon AI Studio"
-WORKSPACE_NAME = "Local AI Workspace"
-WORKSPACE_VERSION = "v1.0"
+from engine.brand_manager import BrandManager
+
+APP_NAME = BrandManager.APP_NAME
+WORKSPACE_NAME = BrandManager.SLOGAN
+WORKSPACE_VERSION = BrandManager.ENGINE_VERSION
 
 SIDEBAR_WIDTH = 220
 RIGHT_PANEL_WIDTH = 280

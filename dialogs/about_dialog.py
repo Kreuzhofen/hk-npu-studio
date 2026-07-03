@@ -10,6 +10,8 @@ Phoenix UI
 import tkinter as tk
 from tkinter import ttk
 
+from PIL import Image, ImageTk
+
 from engine.brand_manager import BrandManager
 from resources.theme import Theme
 
@@ -20,6 +22,7 @@ class AboutDialog(tk.Toplevel):
         super().__init__(master)
 
         self.brand = brand
+        self.logo_image = None
 
         self.title(f"About {self.brand.app_name()}")
         self.resizable(False, False)
@@ -42,6 +45,18 @@ class AboutDialog(tk.Toplevel):
             pady=24,
         )
         container.pack(fill="both", expand=True, padx=16, pady=16)
+
+        logo_path = self.brand.png(128)
+        if logo_path.exists():
+            logo = Image.open(logo_path).convert("RGBA")
+            self.logo_image = ImageTk.PhotoImage(logo)
+            logo_label = tk.Label(
+                container,
+                image=self.logo_image,
+                bg=Theme.color("card"),
+                bd=0,
+            )
+            logo_label.pack(anchor="center", pady=(0, 12))
 
         title = tk.Label(
             container,
@@ -75,10 +90,7 @@ class AboutDialog(tk.Toplevel):
 
         description = tk.Label(
             container,
-            text=(
-                "Snapdragon AI Studio is a modular AI platform\n"
-                "for local workflows, plugins and Phoenix Engine automation."
-            ),
+            text=self.brand.about_description(),
             font=Theme.font("small"),
             fg=Theme.color("muted_text"),
             bg=Theme.color("card"),
@@ -88,7 +100,7 @@ class AboutDialog(tk.Toplevel):
 
         engine = tk.Label(
             container,
-            text=f"Powered by {self.brand.engine()}",
+            text=self.brand.engine(),
             font=Theme.font("button"),
             fg=Theme.color("text"),
             bg=Theme.color("card"),
@@ -124,6 +136,15 @@ class AboutDialog(tk.Toplevel):
             bg=Theme.color("card"),
         )
         copyright_label.pack(anchor="center", pady=(0, 18))
+
+        assistance_label = tk.Label(
+            container,
+            text=self.brand.ai_assistance(),
+            font=Theme.font("small"),
+            fg=Theme.color("muted_text"),
+            bg=Theme.color("card"),
+        )
+        assistance_label.pack(anchor="center", pady=(0, 18))
 
         ok_button = tk.Button(
             container,

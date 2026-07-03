@@ -8,6 +8,8 @@ Created by Holger Kreuzhofen
 
 import tkinter as tk
 
+from engine.brand_manager import BrandManager
+
 
 BG = "#171d23"
 TEXT = "#e8edf2"
@@ -60,7 +62,7 @@ class Sidebar(tk.Frame):
     def build(self):
         tk.Label(
             self,
-            text="Snapdragon AI Studio",
+            text=BrandManager.APP_NAME,
             bg=BG,
             fg="white",
             font=("Segoe UI", 18, "bold"),
@@ -68,7 +70,7 @@ class Sidebar(tk.Frame):
 
         tk.Label(
             self,
-            text="Phoenix Preview",
+            text=BrandManager.SLOGAN,
             bg=BG,
             fg=MUTED,
             font=("Segoe UI", 9),

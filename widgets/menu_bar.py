@@ -9,6 +9,8 @@ Phoenix UI
 
 import tkinter as tk
 
+from engine.brand_manager import BrandManager
+
 
 class MenuBar:
     """Native Tk menu bar for Snapdragon AI Studio.
@@ -162,7 +164,7 @@ class MenuBar:
         )
         menu.add_separator()
         menu.add_command(
-            label="About Snapdragon AI Studio...",
+            label=f"About {BrandManager.APP_NAME}...",
             command=lambda: self._callback("about"),
         )
 

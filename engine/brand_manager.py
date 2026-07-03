@@ -26,6 +26,11 @@ class BrandManager:
     COPYRIGHT = "© Holger Kreuzhofen"
 
     SLOGAN = "Phoenix Engine"
+    AI_ASSISTANCE = "AI assistance"
+    ABOUT_DESCRIPTION = (
+        "Modular local AI platform for image workflows, plugins "
+        "and Phoenix Engine automation."
+    )
     WINDOW_TITLE_WITH_VERSION = APP_NAME
 
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +108,12 @@ class BrandManager:
 
     def copyright(self) -> str:
         return self.COPYRIGHT
+
+    def ai_assistance(self) -> str:
+        return self.AI_ASSISTANCE
+
+    def about_description(self) -> str:
+        return self.ABOUT_DESCRIPTION
 
     def color(self, name: str) -> str:
         return self.COLORS.get(name, "#FFFFFF")

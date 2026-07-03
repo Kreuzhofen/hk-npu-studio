@@ -9,6 +9,8 @@ Phoenix UI
 
 import tkinter as tk
 
+from engine.brand_manager import BrandManager
+
 
 class PluginManagerDialog(tk.Toplevel):
 
@@ -26,7 +28,7 @@ class PluginManagerDialog(tk.Toplevel):
 
         title = tk.Label(
             self,
-            text="Snapdragon AI Studio Plugin Manager",
+            text=f"{BrandManager.APP_NAME} Plugin Manager",
             font=("Segoe UI", 13, "bold"),
             anchor="w",
         )

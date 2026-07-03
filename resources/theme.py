@@ -7,11 +7,13 @@ Created by Holger Kreuzhofen
 Phoenix UI Theme
 """
 
+from engine.brand_manager import BrandManager
+
 
 class Theme:
 
-    APP_NAME = "Snapdragon AI Studio"
-    ENGINE_NAME = "Phoenix Engine 1.0"
+    APP_NAME = BrandManager.APP_NAME
+    ENGINE_NAME = BrandManager().engine()
 
     COLORS = {
         "background": "#F5F6F8",

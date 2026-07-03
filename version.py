@@ -1,13 +1,15 @@
-APP_NAME = "Snapdragon AI Studio"
-VERSION = "2.0 Preview"
+from engine.brand_manager import BrandManager
+
+APP_NAME = BrandManager.APP_NAME
+VERSION = BrandManager.APP_VERSION
 CODENAME = "Identity"
 
-AUTHOR = "Holger Kreuzhofen"
+AUTHOR = BrandManager.AUTHOR
 
-COPYRIGHT = "© Holger Kreuzhofen"
+COPYRIGHT = BrandManager.COPYRIGHT
 
-AI_ASSISTANCE = "Developed with AI assistance using OpenAI ChatGPT"
+AI_ASSISTANCE = BrandManager.AI_ASSISTANCE
 
 BUILD = "2026.06.27"
 
-DESCRIPTION = "Snapdragon AI Studio"
+DESCRIPTION = BrandManager.APP_NAME

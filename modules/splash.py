@@ -2,7 +2,7 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
-import version
+from engine.brand_manager import BrandManager
 
 BG = "#101418"
 PANEL = "#171d23"
@@ -12,6 +12,7 @@ ACCENT = "#3b82f6"
 
 
 def show_splash():
+    brand = BrandManager()
     splash = tk.Tk()
     splash.overrideredirect(True)
     splash.configure(bg=BG)
@@ -40,7 +41,7 @@ def show_splash():
 
     tk.Label(
         frame,
-        text=version.APP_NAME,
+        text=brand.app_name(),
         bg=PANEL,
         fg=TEXT,
         font=("Segoe UI", 20, "bold"),
@@ -48,7 +49,7 @@ def show_splash():
 
     tk.Label(
         frame,
-        text=f"Version {version.VERSION}",
+        text=brand.version_string(),
         bg=PANEL,
         fg=MUTED,
         font=("Segoe UI", 10),
@@ -56,7 +57,7 @@ def show_splash():
 
     tk.Label(
         frame,
-        text="Created by",
+        text=brand.slogan(),
         bg=PANEL,
         fg=MUTED,
         font=("Segoe UI", 10),
@@ -64,7 +65,7 @@ def show_splash():
 
     tk.Label(
         frame,
-        text=version.AUTHOR,
+        text=brand.copyright(),
         bg=PANEL,
         fg=TEXT,
         font=("Segoe UI", 13, "bold"),

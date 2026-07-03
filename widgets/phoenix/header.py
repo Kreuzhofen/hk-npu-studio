@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 
+from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
@@ -13,6 +14,8 @@ class PhoenixHeader(tk.Frame):
 
         self.title_label: tk.Label
         self.view_label: tk.Label
+        self.brand = getattr(self.winfo_toplevel(), "brand", BrandManager())
+        self.logo_image: tk.PhotoImage | None = None
 
         self._build()
 
@@ -20,9 +23,22 @@ class PhoenixHeader(tk.Frame):
         left = tk.Frame(self, bg=PHOENIX_THEME.header_bg)
         left.pack(side="left", fill="y", padx=18)
 
+        logo_path = BrandManager.png(32)
+        if logo_path.exists():
+            self.logo_image = tk.PhotoImage(file=str(logo_path))
+            tk.Label(
+                left,
+                image=self.logo_image,
+                bg=PHOENIX_THEME.header_bg,
+                bd=0,
+            ).pack(side="left", padx=(0, 10), pady=16)
+
+        title_group = tk.Frame(left, bg=PHOENIX_THEME.header_bg)
+        title_group.pack(side="left", fill="y")
+
         self.title_label = tk.Label(
-            left,
-            text="Snapdragon AI Studio",
+            title_group,
+            text=self.brand.app_name(),
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_primary,
             font=("Segoe UI", 15, "bold"),
@@ -31,7 +47,7 @@ class PhoenixHeader(tk.Frame):
         self.title_label.pack(side="top", anchor="w", pady=(10, 0))
 
         self.view_label = tk.Label(
-            left,
+            title_group,
             text="Home",
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -42,7 +58,7 @@ class PhoenixHeader(tk.Frame):
 
         badge = tk.Label(
             self,
-            text="Local AI Workspace",
+            text=self.brand.slogan(),
             bg=PHOENIX_THEME.accent_dark,
             fg=PHOENIX_THEME.accent_soft,
             font=("Segoe UI", 9, "bold"),
