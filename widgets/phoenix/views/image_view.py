@@ -8,11 +8,72 @@ from PIL import Image, ImageOps, ImageTk
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
+class CompareController:
+    """Zentrale Zustandsverwaltung fuer den Compare Workspace."""
+
+    VALID_COMPARE_MODES = {"side", "slider", "overlay", "difference"}
+
+    def __init__(self) -> None:
+        self.compare_mode = "side"
+        self.reset_camera()
+
+    def set_compare_mode(self, compare_mode: str) -> None:
+        if compare_mode not in self.VALID_COMPARE_MODES:
+            raise ValueError(f"Unsupported compare mode: {compare_mode}")
+
+        self.compare_mode = compare_mode
+
+    def reset_camera(self) -> None:
+        self.zoom_mode = "fit"
+        self.zoom_level = 1.0
+        self.pan_x = 0
+        self.pan_y = 0
+
+    def reset_pan(self) -> None:
+        self.pan_x = 0
+        self.pan_y = 0
+
+    def set_zoom_mode(self, zoom_mode: str) -> None:
+        self.zoom_mode = zoom_mode
+        self.zoom_level = {
+            "fit": 1.0,
+            "100": 1.0,
+        }.get(zoom_mode, 1.0)
+
+        if zoom_mode == "fit":
+            self.reset_pan()
+        else:
+            self.clamp_pan()
+
+    def set_zoom_percent(self, zoom_percent: int) -> None:
+        self.zoom_level = zoom_percent / 100
+
+        if zoom_percent == 100:
+            self.zoom_mode = "100"
+        else:
+            self.zoom_mode = "custom"
+
+        self.clamp_pan()
+
+    def set_pan(self, pan_x: float, pan_y: float) -> None:
+        self.pan_x = pan_x
+        self.pan_y = pan_y
+        self.clamp_pan()
+
+    def clamp_pan(self) -> None:
+        self.pan_x = min(max(self.pan_x, -1), 1)
+        self.pan_y = min(max(self.pan_y, -1), 1)
+
+    def is_pan_enabled(self) -> bool:
+        return self.zoom_mode != "fit" and self.zoom_level > 1.0
+
+
 class PhoenixImageView(tk.Frame):
     def __init__(self, master: tk.Misc, on_gallery_select=None) -> None:
         super().__init__(master, bg=PHOENIX_THEME.content_bg)
 
         self.on_gallery_select = on_gallery_select
+        self.compare_controller = CompareController()
         self.current_image_path: Path | None = None
         self.preview_image: ImageTk.PhotoImage | None = None
         self.output_preview_image: ImageTk.PhotoImage | None = None
@@ -23,11 +84,7 @@ class PhoenixImageView(tk.Frame):
         self.selected_gallery_path: Path | None = None
         self.selected_image_paths: list[Path] = []
         self.gallery_window_id: int | None = None
-        self.zoom_mode = "fit"
-        self.zoom_level = 1.0
         self._syncing_zoom_controls = False
-        self.pan_x = 0
-        self.pan_y = 0
         self.drag_start_x = 0
         self.drag_start_y = 0
         self.drag_start_pan_x = 0
@@ -52,6 +109,45 @@ class PhoenixImageView(tk.Frame):
         self.output_info_value: tk.Label
 
         self._build()
+
+    @property
+    def zoom_mode(self) -> str:
+        return self.compare_controller.zoom_mode
+
+    @zoom_mode.setter
+    def zoom_mode(self, value: str) -> None:
+        self.compare_controller.zoom_mode = value
+
+    @property
+    def zoom_level(self) -> float:
+        return self.compare_controller.zoom_level
+
+    @zoom_level.setter
+    def zoom_level(self, value: float) -> None:
+        self.compare_controller.zoom_level = value
+
+    @property
+    def pan_x(self) -> float:
+        return self.compare_controller.pan_x
+
+    @pan_x.setter
+    def pan_x(self, value: float) -> None:
+        self.compare_controller.pan_x = value
+
+    @property
+    def pan_y(self) -> float:
+        return self.compare_controller.pan_y
+
+    @pan_y.setter
+    def pan_y(self, value: float) -> None:
+        self.compare_controller.pan_y = value
+
+    def set_compare_mode(self, compare_mode: str) -> None:
+        self.compare_controller.set_compare_mode(compare_mode)
+        self._apply_compare_view_state()
+
+    def get_compare_mode(self) -> str:
+        return self.compare_controller.compare_mode
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
@@ -449,9 +545,7 @@ class PhoenixImageView(tk.Frame):
         self.show_output_image(output_filename)
 
     def _reset_compare_view_state(self) -> None:
-        self.zoom_mode = "fit"
-        self.zoom_level = 1.0
-        self._reset_pan_state()
+        self.compare_controller.reset_camera()
         self._update_zoom_buttons()
 
     def _apply_compare_view_state(self) -> None:
@@ -471,8 +565,7 @@ class PhoenixImageView(tk.Frame):
             self.output_preview_label.configure(image=self.output_preview_image, text="")
 
     def _reset_pan_state(self) -> None:
-        self.pan_x = 0
-        self.pan_y = 0
+        self.compare_controller.reset_pan()
 
     def _apply_pan_state(self) -> None:
         pass
@@ -501,34 +594,31 @@ class PhoenixImageView(tk.Frame):
         delta_y = event.y - self.drag_start_y
 
         if max_pan_x > 0:
-            self.pan_x = self.drag_start_pan_x + delta_x / max_pan_x
+            pan_x = self.drag_start_pan_x + delta_x / max_pan_x
         else:
-            self.pan_x = 0
+            pan_x = 0
 
         if max_pan_y > 0:
-            self.pan_y = self.drag_start_pan_y + delta_y / max_pan_y
+            pan_y = self.drag_start_pan_y + delta_y / max_pan_y
         else:
-            self.pan_y = 0
+            pan_y = 0
 
-        self._clamp_pan_state()
+        self.compare_controller.set_pan(pan_x, pan_y)
         self._apply_compare_view_state()
 
     def _end_pan(self, event) -> None:
         self._clamp_pan_state()
 
     def _reset_to_fit(self, event=None) -> None:
-        self.zoom_mode = "fit"
-        self.zoom_level = 1.0
-        self._reset_pan_state()
+        self.compare_controller.reset_camera()
         self._update_zoom_buttons()
         self._apply_compare_view_state()
 
     def _is_pan_enabled(self) -> bool:
-        return self.zoom_mode != "fit" and self.zoom_level > 1.0
+        return self.compare_controller.is_pan_enabled()
 
     def _clamp_pan_state(self) -> None:
-        self.pan_x = min(max(self.pan_x, -1), 1)
-        self.pan_y = min(max(self.pan_y, -1), 1)
+        self.compare_controller.clamp_pan()
 
     def _get_widget_pan_bounds(self, target_label: tk.Label) -> tuple[int, int]:
         if target_label == self.output_preview_label:
@@ -548,15 +638,7 @@ class PhoenixImageView(tk.Frame):
         )
 
     def _set_zoom_mode(self, zoom_mode: str) -> None:
-        self.zoom_mode = zoom_mode
-        self.zoom_level = {
-            "fit": 1.0,
-            "100": 1.0,
-        }.get(zoom_mode, 1.0)
-        if zoom_mode == "fit":
-            self._reset_pan_state()
-        else:
-            self._clamp_pan_state()
+        self.compare_controller.set_zoom_mode(zoom_mode)
         self._update_zoom_buttons()
         self._apply_compare_view_state()
 
@@ -565,14 +647,7 @@ class PhoenixImageView(tk.Frame):
             return
 
         zoom_percent = int(float(value))
-        self.zoom_level = zoom_percent / 100
-
-        if zoom_percent == 100:
-            self.zoom_mode = "100"
-        else:
-            self.zoom_mode = "custom"
-
-        self._clamp_pan_state()
+        self.compare_controller.set_zoom_percent(zoom_percent)
         self._update_zoom_buttons()
         self._apply_compare_view_state()
 
