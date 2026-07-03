@@ -50,7 +50,7 @@ class StartupOverlay(tk.Frame):
                 fg=self.brand.color("COLOR_PRIMARY"),
                 bg=self.brand.color("COLOR_BACKGROUND"),
             )
-        self.logo_label.pack(pady=(0, 18))
+        self.logo_label.pack(pady=(0, 20))
 
         self.title_label = tk.Label(
             container,
@@ -68,7 +68,7 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.slogan_label.pack(pady=(8, 6))
+        self.slogan_label.pack(pady=(8, 8))
 
         self.copyright_label = tk.Label(
             container,
@@ -77,7 +77,7 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.copyright_label.pack(pady=(0, 30))
+        self.copyright_label.pack(pady=(0, 32))
 
         self.status_label = tk.Label(
             container,
@@ -123,7 +123,7 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.version_label.pack(pady=(22, 0))
+        self.version_label.pack(pady=(24, 0))
 
     def show(self) -> None:
         self.place(relx=0, rely=0, relwidth=1, relheight=1)

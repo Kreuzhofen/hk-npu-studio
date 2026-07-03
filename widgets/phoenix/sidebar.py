@@ -29,7 +29,7 @@ class PhoenixSidebar(tk.Frame):
             text="PHOENIX",
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 16, "bold"),
+            font=PHOENIX_THEME.font_section,
             anchor="w",
         ).pack(fill="x", padx=18, pady=(18, 4))
 
@@ -38,7 +38,7 @@ class PhoenixSidebar(tk.Frame):
             text="Workspace v1.0",
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 9),
+            font=PHOENIX_THEME.font_small,
             anchor="w",
         ).pack(fill="x", padx=18, pady=(0, 18))
 
@@ -58,10 +58,10 @@ class PhoenixSidebar(tk.Frame):
             activeforeground="#FFFFFF",
             relief="flat",
             bd=0,
-            font=("Segoe UI", 10, "bold"),
+            font=PHOENIX_THEME.font_button,
             anchor="w",
-            padx=14,
-            pady=10,
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.button_pad_y,
             cursor="hand2",
         )
         button.pack(fill="x", padx=12, pady=4)

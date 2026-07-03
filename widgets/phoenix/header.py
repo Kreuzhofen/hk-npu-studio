@@ -41,7 +41,7 @@ class PhoenixHeader(tk.Frame):
             text=self.brand.app_name(),
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 15, "bold"),
+            font=PHOENIX_THEME.font_section,
             anchor="w",
         )
         self.title_label.pack(side="top", anchor="w", pady=(10, 0))
@@ -51,7 +51,7 @@ class PhoenixHeader(tk.Frame):
             text="Home",
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 9),
+            font=PHOENIX_THEME.font_small,
             anchor="w",
         )
         self.view_label.pack(side="top", anchor="w", pady=(0, 8))
@@ -61,9 +61,9 @@ class PhoenixHeader(tk.Frame):
             text=self.brand.slogan(),
             bg=PHOENIX_THEME.accent_dark,
             fg=PHOENIX_THEME.accent_soft,
-            font=("Segoe UI", 9, "bold"),
-            padx=10,
-            pady=4,
+            font=PHOENIX_THEME.font_card_title,
+            padx=PHOENIX_THEME.space_md,
+            pady=PHOENIX_THEME.space_xs,
         )
         badge.pack(side="right", padx=18)
 

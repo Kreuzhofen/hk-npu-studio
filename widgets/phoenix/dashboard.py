@@ -38,21 +38,21 @@ class PhoenixDashboard(tk.Frame):
             text="Dashboard",
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 22, "bold"),
+            font=PHOENIX_THEME.font_title,
             anchor="w",
-        ).pack(fill="x", padx=28, pady=(28, 8))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(PHOENIX_THEME.space_xl, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
             text="Phoenix Statuszentrale für Batch-Lifecycle, Engine, Queue und Output.",
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 11),
+            font=PHOENIX_THEME.font_body,
             anchor="w",
-        ).pack(fill="x", padx=28, pady=(0, 22))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 22))
 
         cards_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        cards_host.pack(fill="x", padx=28, pady=(0, 18))
+        cards_host.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, PHOENIX_THEME.space_lg))
         cards_host.grid_columnconfigure(0, weight=1, uniform="dashboard_cards")
         cards_host.grid_columnconfigure(1, weight=1, uniform="dashboard_cards")
         cards_host.grid_rowconfigure(0, weight=1, uniform="dashboard_rows")
@@ -71,7 +71,7 @@ class PhoenixDashboard(tk.Frame):
             percent=0,
             detail="Noch kein Batch gestartet.",
         )
-        self._progress_card.pack(fill="x", padx=28, pady=(0, 16))
+        self._progress_card.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 16))
 
     def _create_status_card(
         self,
@@ -83,7 +83,7 @@ class PhoenixDashboard(tk.Frame):
         column: int,
     ) -> None:
         card = PhoenixStatusCard(master, title=title, value=value)
-        card.grid(row=row, column=column, sticky="nsew", padx=8, pady=8)
+        card.grid(row=row, column=column, sticky="nsew", padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm)
         self._cards[key] = card
 
     def refresh(self) -> None:

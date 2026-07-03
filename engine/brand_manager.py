@@ -23,13 +23,13 @@ class BrandManager:
     ENGINE_VERSION = "1.0"
 
     AUTHOR = "Holger Kreuzhofen"
-    COPYRIGHT = "© Holger Kreuzhofen"
+    COPYRIGHT = "© 2026 Holger Kreuzhofen\nAll rights reserved."
 
     SLOGAN = "Phoenix Engine"
-    AI_ASSISTANCE = "AI assistance"
+    AI_ASSISTANCE = "Developed with AI assistance using OpenAI"
     ABOUT_DESCRIPTION = (
-        "Modular local AI platform for image workflows, plugins "
-        "and Phoenix Engine automation."
+        "Professional local AI platform for image enhancement,\n"
+        "AI workflows and Snapdragon NPU acceleration."
     )
     WINDOW_TITLE_WITH_VERSION = APP_NAME
 
@@ -62,6 +62,7 @@ class BrandManager:
     FONTS = {
         "FONT_TITLE": "Segoe UI",
         "FONT_BODY": "Segoe UI",
+        "FONT_SMALL": "Segoe UI",
     }
 
     def __init__(self):

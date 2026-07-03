@@ -35,21 +35,21 @@ class PhoenixActivityCard(tk.Frame):
             textvariable=self._title_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 9, "bold"),
+            font=PHOENIX_THEME.font_card_title,
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=20, pady=(18, 6))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.card_pad_y, 6))
 
         tk.Label(
             self,
             textvariable=self._activity_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 9),
+            font=PHOENIX_THEME.font_small,
             anchor="nw",
             justify="left",
             wraplength=760,
-        ).pack(fill="both", expand=True, padx=20, pady=(4, 18))
+        ).pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=(4, PHOENIX_THEME.card_pad_y))
 
     def update(
         self,

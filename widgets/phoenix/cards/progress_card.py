@@ -39,10 +39,10 @@ class PhoenixProgressCard(tk.Frame):
             textvariable=self._title_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 9, "bold"),
+            font=PHOENIX_THEME.font_card_title,
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=22, pady=(20, 8))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(20, 8))
 
         tk.Label(
             self,
@@ -52,14 +52,14 @@ class PhoenixProgressCard(tk.Frame):
             font=("Segoe UI", 20, "bold"),
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=22)
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x)
 
         self._bar_outer = tk.Frame(
             self,
             bg=PHOENIX_THEME.border,
             height=12,
         )
-        self._bar_outer.pack(fill="x", padx=22, pady=(18, 10))
+        self._bar_outer.pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(18, 10))
         self._bar_outer.pack_propagate(False)
 
         self._bar_inner = tk.Frame(
@@ -74,11 +74,11 @@ class PhoenixProgressCard(tk.Frame):
             textvariable=self._detail_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 8),
+            font=PHOENIX_THEME.font_caption,
             anchor="w",
             justify="left",
             wraplength=520,
-        ).pack(fill="x", padx=22, pady=(2, 20))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(2, 20))
 
     def update(
         self,

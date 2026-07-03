@@ -19,7 +19,7 @@ class Branding:
     ENGINE_VERSION = "1.0"
 
     AUTHOR = "Holger Kreuzhofen"
-    COPYRIGHT = "© Holger Kreuzhofen"
+    COPYRIGHT = "© 2026 Holger Kreuzhofen\nAll rights reserved."
 
     COMPANY = ""
     WEBSITE = ""

@@ -33,7 +33,7 @@ class PhoenixRightPanel(tk.Frame):
             text="Inspector",
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 15, "bold"),
+            font=PHOENIX_THEME.font_section,
             anchor="w",
         ).pack(fill="x", padx=18, pady=(18, 4))
 
@@ -42,7 +42,7 @@ class PhoenixRightPanel(tk.Frame):
             text="Aktionen und Status",
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 9),
+            font=PHOENIX_THEME.font_small,
             anchor="w",
         ).pack(fill="x", padx=18, pady=(0, 14))
 
@@ -88,7 +88,7 @@ class PhoenixRightPanel(tk.Frame):
             ),
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 9),
+            font=PHOENIX_THEME.font_small,
             justify="left",
             anchor="nw",
             wraplength=220,
@@ -107,7 +107,7 @@ class PhoenixRightPanel(tk.Frame):
             text=title,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 9, "bold"),
+            font=PHOENIX_THEME.font_card_title,
             anchor="w",
         ).pack(fill="x", padx=12, pady=(10, 8))
 
@@ -119,7 +119,7 @@ class PhoenixRightPanel(tk.Frame):
             text=label,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_secondary,
-            font=("Segoe UI", 8),
+            font=PHOENIX_THEME.font_caption,
             anchor="w",
         ).pack(fill="x", padx=12)
 
@@ -128,7 +128,7 @@ class PhoenixRightPanel(tk.Frame):
             textvariable=value,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 10, "bold"),
+            font=PHOENIX_THEME.font_button,
             anchor="w",
             wraplength=220,
         ).pack(fill="x", padx=12, pady=(2, 8))
@@ -145,9 +145,9 @@ class PhoenixRightPanel(tk.Frame):
             disabledforeground="#B0B0B0",
             relief="flat",
             bd=0,
-            padx=12,
-            pady=8,
-            font=("Segoe UI", 10, "bold"),
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.button_pad_y,
+            font=PHOENIX_THEME.font_button,
             cursor="hand2",
         )
 

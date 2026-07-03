@@ -19,7 +19,7 @@ class PhoenixSearchBox(tk.Frame):
             insertbackground=PHOENIX_THEME.text_primary,
             relief="flat",
             bd=0,
-            font=("Segoe UI", 10),
+            font=PHOENIX_THEME.font_body,
         )
-        self.entry.pack(fill="x", padx=10, pady=8)
+        self.entry.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=PHOENIX_THEME.space_sm)
         self.entry.insert(0, placeholder)

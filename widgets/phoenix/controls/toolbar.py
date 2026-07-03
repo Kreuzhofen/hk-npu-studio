@@ -27,11 +27,11 @@ class PhoenixToolbar(tk.Frame):
             activeforeground="#FFFFFF",
             relief="flat",
             bd=0,
-            font=("Segoe UI", 9, "bold"),
-            padx=12,
-            pady=6,
+            font=PHOENIX_THEME.font_card_title,
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.button_pad_y,
             cursor="hand2",
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, PHOENIX_THEME.space_sm))
 
     def _noop(self) -> None:
         return None

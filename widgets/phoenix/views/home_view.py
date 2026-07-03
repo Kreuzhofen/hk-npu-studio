@@ -48,28 +48,28 @@ class PhoenixHomeView(tk.Frame):
 
     def _build(self) -> None:
         command_bar = PhoenixCommandBar(self)
-        command_bar.pack(fill="x", padx=28, pady=(24, 12))
+        command_bar.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(24, PHOENIX_THEME.space_md))
 
         tk.Label(
             self,
             text="Home",
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 22, "bold"),
+            font=PHOENIX_THEME.font_title,
             anchor="w",
-        ).pack(fill="x", padx=28, pady=(4, 6))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(PHOENIX_THEME.space_xs, 6))
 
         tk.Label(
             self,
             text="Phoenix Statuszentrale für Workspace, Batch-Lifecycle, Engine und Output.",
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=("Segoe UI", 11),
+            font=PHOENIX_THEME.font_body,
             anchor="w",
-        ).pack(fill="x", padx=28, pady=(0, 22))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 22))
 
         cards_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        cards_host.pack(fill="x", padx=28, pady=(0, 18))
+        cards_host.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, PHOENIX_THEME.space_lg))
 
         for column in range(4):
             cards_host.grid_columnconfigure(column, weight=1, uniform="status_cards")
@@ -88,10 +88,10 @@ class PhoenixHomeView(tk.Frame):
             percent=0,
             detail="Noch kein Batch gestartet.",
         )
-        self._progress_card.pack(fill="x", padx=28, pady=(0, 20))
+        self._progress_card.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 20))
 
         lower_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        lower_host.pack(fill="x", padx=28, pady=(0, 16))
+        lower_host.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 16))
         lower_host.grid_columnconfigure(0, weight=1, uniform="lower_cards")
         lower_host.grid_columnconfigure(1, weight=1, uniform="lower_cards")
         lower_host.grid_rowconfigure(0, weight=1)
@@ -103,7 +103,7 @@ class PhoenixHomeView(tk.Frame):
         self._output_card.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=0)
 
         self._activity_card = PhoenixActivityCard(self)
-        self._activity_card.pack(fill="x", padx=28, pady=(0, 16))
+        self._activity_card.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 16))
 
     def _create_status_card(
         self,
@@ -115,7 +115,7 @@ class PhoenixHomeView(tk.Frame):
         column: int,
     ) -> None:
         card = PhoenixStatusCard(master, title=title, value=value)
-        card.grid(row=row, column=column, sticky="nsew", padx=8, pady=0)
+        card.grid(row=row, column=column, sticky="nsew", padx=PHOENIX_THEME.space_sm, pady=0)
         self._cards[key] = card
 
     def refresh(self) -> None:
