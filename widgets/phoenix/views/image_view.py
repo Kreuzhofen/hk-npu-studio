@@ -585,7 +585,7 @@ class PhoenixImageView(tk.Frame):
         )
         if self.output_preview_image is not None:
             self.output_preview_label.configure(image=self.output_preview_image, text="")
-        elif self.get_compare_mode() in {"slider", "overlay"}:
+        elif self.get_compare_mode() in {"slider", "overlay", "difference"}:
             self.output_preview_label.configure(image="", text="")
 
     def _reset_pan_state(self) -> None:

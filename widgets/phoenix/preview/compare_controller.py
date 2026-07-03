@@ -48,9 +48,6 @@ class CompareController:
         return self.compare_mode
 
     def get_render_mode(self) -> str:
-        if self.compare_mode == "difference":
-            return "side"
-
         return self.compare_mode
 
     def set_slider_position(self, value: float) -> None:

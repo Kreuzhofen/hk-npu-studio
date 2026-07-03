@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PIL import Image, ImageColor, ImageTk
+from PIL import Image, ImageChops, ImageColor, ImageTk
 
 from widgets.phoenix.preview.compare_controller import CompareController
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -161,7 +161,29 @@ class OverlayRenderer(SideRenderer):
 
 
 class DifferenceRenderer(SideRenderer):
-    """Vorbereiteter Renderer fuer spaetere Difference-Compare-Ansicht."""
+    """Rendert die echte Pixel-Differenz zwischen Original und Output."""
+
+    def render_original(self, preview_size: tuple[int, int]) -> ImageTk.PhotoImage | None:
+        original = self.controller.original_image
+        output = self.controller.output_image
+
+        if original is None and output is None:
+            return None
+
+        if original is None:
+            return self.render_image(output, preview_size)
+
+        if output is None:
+            return self.render_image(original, preview_size)
+
+        original_canvas = self.render_image_canvas(original, preview_size)
+        output_canvas = self.render_image_canvas(output, preview_size)
+        difference = ImageChops.difference(original_canvas, output_canvas)
+
+        return ImageTk.PhotoImage(difference)
+
+    def render_output(self, preview_size: tuple[int, int]) -> ImageTk.PhotoImage | None:
+        return None
 
 
 class CompareRenderer:
