@@ -76,7 +76,7 @@ class PluginManagerDialog(StudioDialog):
             anchor="w",
         ).pack(fill="x", pady=(PHOENIX_THEME.space_xs, 0))
 
-        self.add_footer_button("Schließen", self.close)
+        self.add_footer_button("OK", self.close)
 
     def _info_row(self, master: tk.Misc, label: str, value: str) -> None:
         row = tk.Frame(master, bg=PHOENIX_THEME.elevated_bg)

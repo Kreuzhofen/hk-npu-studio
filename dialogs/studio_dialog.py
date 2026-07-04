@@ -59,18 +59,24 @@ class StudioDialog(tk.Toplevel):
             padx=PHOENIX_THEME.space_lg,
             pady=PHOENIX_THEME.space_lg,
         )
+        self.container.grid_columnconfigure(0, weight=1)
+        self.container.grid_rowconfigure(0, weight=1)
+        self.container.grid_rowconfigure(1, weight=0)
 
         self.body = tk.Frame(self.container, bg=PHOENIX_THEME.card_bg)
-        self.body.pack(
-            fill="both",
-            expand=True,
+        self.body.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
             padx=PHOENIX_THEME.space_xl,
             pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_md),
         )
 
         self.footer = tk.Frame(self.container, bg=PHOENIX_THEME.card_bg)
-        self.footer.pack(
-            fill="x",
+        self.footer.grid(
+            row=1,
+            column=0,
+            sticky="ew",
             padx=PHOENIX_THEME.space_xl,
             pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_lg),
         )

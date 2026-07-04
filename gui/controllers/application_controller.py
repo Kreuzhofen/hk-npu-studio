@@ -37,6 +37,7 @@ class ApplicationController:
         self._build_ui()
         self._setup_drag_and_drop()
         self._show_startup_overlay()
+        self.app.deiconify()
         self._start_runtime_polling()
 
     def _initialize_branding(self):

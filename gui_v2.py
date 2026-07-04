@@ -32,6 +32,7 @@ class SnapdragonAIStudioV2(BaseWindow):
 
     def __init__(self):
         super().__init__()
+        self.withdraw()
 
         self.application_controller = ApplicationController(
             self,
