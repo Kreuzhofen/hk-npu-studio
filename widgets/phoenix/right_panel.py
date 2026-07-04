@@ -55,20 +55,20 @@ class PhoenixRightPanel(tk.Frame):
 
     def _build_actions_section(self) -> None:
         section = self._section("Aktionen")
-        section.pack(fill="x", padx=18, pady=(0, 14))
+        section.pack(fill="x", padx=18, pady=(0, PHOENIX_THEME.space_md))
 
         self.start_button = self._button(section, "▶ Start", self._start_plugin)
-        self.start_button.pack(fill="x", pady=(0, 8))
+        self.start_button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(0, PHOENIX_THEME.space_sm))
 
         self.stop_button = self._button(section, "■ Stop", self._stop_plugin)
-        self.stop_button.pack(fill="x", pady=(0, 8))
+        self.stop_button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(0, PHOENIX_THEME.space_sm))
 
         self.output_button = self._button(section, "📂 Output öffnen", self._open_output)
-        self.output_button.pack(fill="x")
+        self.output_button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(0, PHOENIX_THEME.space_md))
 
     def _build_status_section(self) -> None:
         section = self._section("Status")
-        section.pack(fill="x", padx=18, pady=(0, 14))
+        section.pack(fill="x", padx=18, pady=(0, PHOENIX_THEME.space_md))
 
         self._info_row(section, "Runtime", self._status_value)
         self._info_row(section, "Plugin", self._plugin_value)
@@ -109,7 +109,7 @@ class PhoenixRightPanel(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).pack(fill="x", padx=12, pady=(10, 8))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm))
 
         return frame
 
@@ -121,7 +121,7 @@ class PhoenixRightPanel(tk.Frame):
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_caption,
             anchor="w",
-        ).pack(fill="x", padx=12)
+        ).pack(fill="x", padx=PHOENIX_THEME.space_md)
 
         tk.Label(
             master,
@@ -131,7 +131,7 @@ class PhoenixRightPanel(tk.Frame):
             font=PHOENIX_THEME.font_button,
             anchor="w",
             wraplength=220,
-        ).pack(fill="x", padx=12, pady=(2, 8))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(2, PHOENIX_THEME.space_sm))
 
     def _button(self, master: tk.Misc, text: str, command) -> tk.Button:
         return tk.Button(

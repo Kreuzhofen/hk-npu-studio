@@ -40,7 +40,7 @@ class PhoenixStatusCard(tk.Frame):
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.card_pad_y, 6))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
@@ -62,7 +62,7 @@ class PhoenixStatusCard(tk.Frame):
             justify="left",
             wraplength=360,
         )
-        self._detail_label.pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(8, PHOENIX_THEME.card_pad_y))
+        self._detail_label.pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_lg))
 
         self._update_detail_visibility()
 
@@ -98,6 +98,6 @@ class PhoenixStatusCard(tk.Frame):
 
     def _update_detail_visibility(self) -> None:
         if self._detail_var.get().strip():
-            self._detail_label.pack_configure(pady=(8, PHOENIX_THEME.card_pad_y))
+            self._detail_label.pack_configure(pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_lg))
         else:
-            self._detail_label.pack_configure(pady=(2, PHOENIX_THEME.card_pad_y))
+            self._detail_label.pack_configure(pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_lg))

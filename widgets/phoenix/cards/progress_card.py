@@ -42,7 +42,7 @@ class PhoenixProgressCard(tk.Frame):
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(20, 8))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
@@ -59,7 +59,7 @@ class PhoenixProgressCard(tk.Frame):
             bg=PHOENIX_THEME.border,
             height=12,
         )
-        self._bar_outer.pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(18, 10))
+        self._bar_outer.pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_md))
         self._bar_outer.pack_propagate(False)
 
         self._bar_inner = tk.Frame(
