@@ -22,8 +22,8 @@ class AboutDialog(StudioDialog):
             master,
             title=f"About {brand.app_name()}",
             brand=brand,
-            size=(460, 640),
-            min_size=(420, 560),
+            size=(460, 700),
+            min_size=(420, 640),
             resizable=False,
         )
 
@@ -62,7 +62,7 @@ class AboutDialog(StudioDialog):
             font=PHOENIX_THEME.font_button,
             fg=PHOENIX_THEME.text_primary,
             bg=PHOENIX_THEME.card_bg,
-        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_xl))
 
         self.add_separator()
 
@@ -99,7 +99,7 @@ class AboutDialog(StudioDialog):
             font=PHOENIX_THEME.font_button,
             fg=PHOENIX_THEME.text_primary,
             bg=PHOENIX_THEME.card_bg,
-        ).pack(anchor="center", pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md))
+        ).pack(anchor="center", pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self.body,
@@ -107,7 +107,7 @@ class AboutDialog(StudioDialog):
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
-        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_md))
 
         tk.Label(
             self.body,
@@ -115,6 +115,6 @@ class AboutDialog(StudioDialog):
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
-        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_xl))
 
         self.add_footer_button("OK", self.close)

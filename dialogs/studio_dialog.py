@@ -72,7 +72,7 @@ class StudioDialog(tk.Toplevel):
         self.footer.pack(
             fill="x",
             padx=PHOENIX_THEME.space_xl,
-            pady=(0, PHOENIX_THEME.space_lg),
+            pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_lg),
         )
 
         self.bind("<Escape>", lambda _event: self.close())
