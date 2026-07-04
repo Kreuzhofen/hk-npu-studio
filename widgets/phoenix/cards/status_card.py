@@ -20,7 +20,7 @@ class PhoenixStatusCard(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
-            height=140,
+            height=156,
         )
         self.pack_propagate(False)
         self.grid_propagate(False)
@@ -30,6 +30,7 @@ class PhoenixStatusCard(tk.Frame):
         self._detail_var = tk.StringVar(value=detail)
 
         self._build()
+        self.bind("<Configure>", self._update_wraplengths)
 
     def _build(self) -> None:
         tk.Label(
@@ -42,15 +43,16 @@ class PhoenixStatusCard(tk.Frame):
             height=1,
         ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
-        tk.Label(
+        self._value_label = tk.Label(
             self,
             textvariable=self._value_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_value,
             anchor="w",
-            height=1,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x)
+            justify="left",
+        )
+        self._value_label.pack(fill="x", padx=PHOENIX_THEME.card_pad_x)
 
         self._detail_label = tk.Label(
             self,
@@ -65,6 +67,11 @@ class PhoenixStatusCard(tk.Frame):
         self._detail_label.pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_lg))
 
         self._update_detail_visibility()
+
+    def _update_wraplengths(self, _event: tk.Event | None = None) -> None:
+        wraplength = max(80, self.winfo_width() - (PHOENIX_THEME.card_pad_x * 2))
+        self._value_label.configure(wraplength=wraplength)
+        self._detail_label.configure(wraplength=wraplength)
 
     def update(
         self,

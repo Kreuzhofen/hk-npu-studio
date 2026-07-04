@@ -73,7 +73,7 @@ class PhoenixHomeView(tk.Frame):
 
         for column in range(4):
             cards_host.grid_columnconfigure(column, weight=1, uniform="status_cards")
-        cards_host.grid_rowconfigure(0, weight=1, uniform="status_rows")
+        cards_host.grid_rowconfigure(0, weight=1, uniform="status_rows", minsize=156)
 
         self._create_status_card(cards_host, "workspace", "Workspace", "Aktiv", 0, 0)
         self._create_status_card(cards_host, "batch", "Batch", "Bereit", 0, 1)
