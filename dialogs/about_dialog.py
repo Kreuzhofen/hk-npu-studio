@@ -7,176 +7,114 @@ Created by Holger Kreuzhofen
 Phoenix UI
 """
 
+from __future__ import annotations
+
 import tkinter as tk
-from tkinter import ttk
 
-from PIL import Image, ImageTk
-
+from dialogs.studio_dialog import StudioDialog
 from engine.brand_manager import BrandManager
-from resources.theme import Theme
+from widgets.phoenix.theme import PHOENIX_THEME
 
 
-class AboutDialog(tk.Toplevel):
-
-    def __init__(self, master, brand: BrandManager):
-        super().__init__(master)
-
-        self.brand = brand
-        self.logo_image = None
-
-        self.title(f"About {self.brand.app_name()}")
-        self.resizable(False, False)
-        self.configure(bg=Theme.color("background"))
-
-        self.transient(master)
-        self.grab_set()
+class AboutDialog(StudioDialog):
+    def __init__(self, master: tk.Misc, brand: BrandManager):
+        super().__init__(
+            master,
+            title=f"About {brand.app_name()}",
+            brand=brand,
+            size=(460, 640),
+            min_size=(420, 560),
+            resizable=False,
+        )
 
         self._build_ui()
-        self._center(master)
+        self.center(master)
 
-    def _build_ui(self):
-        container = tk.Frame(
-            self,
-            bg=Theme.color("card"),
-            bd=1,
-            relief="solid",
-            highlightbackground=Theme.color("border"),
-            padx=28,
-            pady=24,
-        )
-        container.pack(fill="both", expand=True, padx=16, pady=16)
-
-        logo_path = self.brand.png(128)
-        if logo_path.exists():
-            logo = Image.open(logo_path).convert("RGBA")
-            self.logo_image = ImageTk.PhotoImage(logo)
-            logo_label = tk.Label(
-                container,
-                image=self.logo_image,
-                bg=Theme.color("card"),
+    def _build_ui(self) -> None:
+        logo_image = self.load_logo_image(128)
+        if logo_image is not None:
+            tk.Label(
+                self.body,
+                image=logo_image,
+                bg=PHOENIX_THEME.card_bg,
                 bd=0,
-            )
-            logo_label.pack(anchor="center", pady=(0, 12))
+            ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_md))
 
-        title = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.app_name(),
-            font=Theme.font("title"),
-            fg=Theme.color("text"),
-            bg=Theme.color("card"),
-        )
-        title.pack(anchor="center")
+            font=PHOENIX_THEME.font_title,
+            fg=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center")
 
-        version = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.version_string(),
-            font=Theme.font("small"),
-            fg=Theme.color("muted_text"),
-            bg=Theme.color("card"),
-        )
-        version.pack(anchor="center", pady=(4, 12))
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md))
 
-        slogan = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.slogan(),
-            font=Theme.font("button"),
-            fg=Theme.color("text"),
-            bg=Theme.color("card"),
-        )
-        slogan.pack(anchor="center", pady=(0, 18))
+            font=PHOENIX_THEME.font_button,
+            fg=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
 
-        separator_1 = ttk.Separator(container, orient="horizontal")
-        separator_1.pack(fill="x", pady=(0, 18))
+        self.add_separator()
 
-        description = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.about_description(),
-            font=Theme.font("small"),
-            fg=Theme.color("muted_text"),
-            bg=Theme.color("card"),
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
             justify="center",
-        )
-        description.pack(anchor="center", pady=(0, 18))
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
 
-        engine = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.engine(),
-            font=Theme.font("button"),
-            fg=Theme.color("text"),
-            bg=Theme.color("card"),
-        )
-        engine.pack(anchor="center", pady=(0, 18))
+            font=PHOENIX_THEME.font_button,
+            fg=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
 
-        separator_2 = ttk.Separator(container, orient="horizontal")
-        separator_2.pack(fill="x", pady=(0, 18))
+        self.add_separator()
 
-        created = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text="Created and maintained by",
-            font=Theme.font("small"),
-            fg=Theme.color("muted_text"),
-            bg=Theme.color("card"),
-        )
-        created.pack(anchor="center")
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center")
 
-        author = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.author(),
-            font=Theme.font("button"),
-            fg=Theme.color("text"),
-            bg=Theme.color("card"),
-        )
-        author.pack(anchor="center", pady=(4, 12))
+            font=PHOENIX_THEME.font_button,
+            fg=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md))
 
-        copyright_label = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.copyright(),
-            font=Theme.font("small"),
-            fg=Theme.color("muted_text"),
-            bg=Theme.color("card"),
-        )
-        copyright_label.pack(anchor="center", pady=(0, 18))
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
 
-        assistance_label = tk.Label(
-            container,
+        tk.Label(
+            self.body,
             text=self.brand.ai_assistance(),
-            font=Theme.font("small"),
-            fg=Theme.color("muted_text"),
-            bg=Theme.color("card"),
-        )
-        assistance_label.pack(anchor="center", pady=(0, 18))
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
 
-        ok_button = tk.Button(
-            container,
-            text="OK",
-            command=self.destroy,
-            font=Theme.font("button"),
-            bg=Theme.color("accent"),
-            fg=Theme.color("text"),
-            activebackground=Theme.color("elevated"),
-            activeforeground=Theme.color("text"),
-            relief="flat",
-            bd=0,
-            padx=14,
-            pady=8,
-            width=12,
-        )
-        ok_button.pack(anchor="center")
-
-        self.bind("<Escape>", lambda _event: self.destroy())
-
-    def _center(self, master):
-        self.update_idletasks()
-
-        width = self.winfo_width()
-        height = self.winfo_height()
-
-        master_x = master.winfo_rootx()
-        master_y = master.winfo_rooty()
-        master_width = master.winfo_width()
-        master_height = master.winfo_height()
-
-        x = master_x + (master_width // 2) - (width // 2)
-        y = master_y + (master_height // 2) - (height // 2)
-
-        self.geometry(f"{width}x{height}+{x}+{y}")
+        self.add_footer_button("OK", self.close)
