@@ -66,12 +66,11 @@ class PhoenixHeader(tk.Frame):
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption,
-            padx=PHOENIX_THEME.space_sm,
+            padx=PHOENIX_THEME.space_md,
             pady=PHOENIX_THEME.space_xs,
         )
-        badge.pack(side="right", padx=PHOENIX_THEME.space_lg)
+        badge.pack(side="right", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_xs))
 
     def set_view(self, title: str) -> None:
         self.view_label.configure(text=title)
-
 

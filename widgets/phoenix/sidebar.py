@@ -30,18 +30,18 @@ class PhoenixSidebar(tk.Frame):
             text=BrandManager.ENGINE_NAME,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_button,
+            font=PHOENIX_THEME.font_section,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(22, 5))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
             text="Workspace 1.0",
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_small,
+            font=PHOENIX_THEME.font_caption,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(0, 18))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_xl))
 
         self._nav_button("home", "Home")
         self._nav_button("plugins", "Plugins")
@@ -65,7 +65,7 @@ class PhoenixSidebar(tk.Frame):
             pady=PHOENIX_THEME.space_sm,
             cursor="hand2",
         )
-        button.pack(fill="x", padx=14, pady=3)
+        button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=PHOENIX_THEME.space_xs)
         self._buttons[view_name] = button
 
     def _navigate(self, view_name: str) -> None:
@@ -88,3 +88,4 @@ class PhoenixSidebar(tk.Frame):
                     activebackground=PHOENIX_THEME.elevated_bg,
                     activeforeground=PHOENIX_THEME.text_on_accent,
                 )
+

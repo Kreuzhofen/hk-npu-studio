@@ -35,7 +35,7 @@ class PhoenixRightPanel(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_xs))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
@@ -44,7 +44,7 @@ class PhoenixRightPanel(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_md))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_lg))
 
         self._build_actions_section()
         self._build_status_section()
@@ -87,12 +87,12 @@ class PhoenixRightPanel(tk.Frame):
                 "zur Queue und zum letzten Output."
             ),
             bg=PHOENIX_THEME.panel_bg,
-            fg=PHOENIX_THEME.text_secondary,
-            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
             justify="left",
             anchor="nw",
             wraplength=220,
-        ).pack(fill="x", pady=(12, 0))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_md))
 
     def _section(self, title: str) -> tk.Frame:
         frame = tk.Frame(
@@ -109,7 +109,7 @@ class PhoenixRightPanel(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_xs))
 
         return frame
 
@@ -128,10 +128,10 @@ class PhoenixRightPanel(tk.Frame):
             textvariable=value,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_button,
+            font=PHOENIX_THEME.font_body,
             anchor="w",
             wraplength=220,
-        ).pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(2, PHOENIX_THEME.space_sm))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_sm))
 
     def _button(self, master: tk.Misc, text: str, command) -> tk.Button:
         return tk.Button(
