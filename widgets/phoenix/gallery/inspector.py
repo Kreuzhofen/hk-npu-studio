@@ -22,7 +22,7 @@ class GalleryInspector(tk.Frame):
         self.file_card: tk.Frame
         self.path_card: tk.Frame
         self._build()
-        self.update_image(None)
+        self.update_selection([])
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
@@ -61,28 +61,34 @@ class GalleryInspector(tk.Frame):
         self.file_card = self._create_section("Datei", 3)
         self.path_card = self._create_section("Pfad", 4)
 
-    def update_image(self, image: GalleryImage | None) -> None:
-        self._set_section(
-            self.selection_card,
-            ("Keine Auswahl", "Klicke ein Thumbnail an.")
-            if image is None
-            else ("1 Bild ausgewählt", image.filename),
-        )
+    def update_selection(self, images: list[GalleryImage]) -> None:
+        if not images:
+            self._set_section(self.selection_card, ("Keine Auswahl", "Klicke ein Thumbnail an."))
+            self._set_section(self.file_card, ("Name: -", "Auflösung: -", "Format: -", "Dateigröße: -"))
+            self._set_section(self.path_card, ("-",))
+            return
+
+        if len(images) > 1:
+            self._set_section(
+                self.selection_card,
+                (f"{len(images)} Bilder ausgewählt", "Ctrl/Shift-Auswahl aktiv."),
+            )
+            self._set_section(self.file_card, ("Mehrfachauswahl", "Einzeldetails werden nicht erzwungen."))
+            self._set_section(self.path_card, ("-",))
+            return
+
+        image = images[0]
+        self._set_section(self.selection_card, ("1 Bild ausgewählt", image.filename))
         self._set_section(
             self.file_card,
-            ("Name: -", "Auflösung: -", "Format: -", "Dateigröße: -")
-            if image is None
-            else (
+            (
                 f"Name: {image.filename}",
                 f"Auflösung: {image.resolution_label}",
                 f"Format: {image.format_label}",
                 f"Dateigröße: {image.size_label}",
             ),
         )
-        self._set_section(
-            self.path_card,
-            ("-",) if image is None else (str(image.path),),
-        )
+        self._set_section(self.path_card, (str(image.path),))
 
     def _create_section(self, title: str, row: int) -> tk.Frame:
         card = tk.Frame(

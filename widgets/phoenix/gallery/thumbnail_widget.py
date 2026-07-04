@@ -17,7 +17,8 @@ class ThumbnailWidget(tk.Frame):
         thumbnail_image: tk.PhotoImage | None,
         size: int,
         selected: bool,
-        command: Callable[[GalleryImage], None],
+        command: Callable[[GalleryImage, tk.Event], None],
+        double_command: Callable[[GalleryImage], None],
     ) -> None:
         super().__init__(
             master,
@@ -28,10 +29,11 @@ class ThumbnailWidget(tk.Frame):
         self.image = image
         self.thumbnail_image = thumbnail_image
         self.command = command
+        self.double_command = double_command
         self.size = size
         self.selected = selected
         self._build()
-        self._bind_clicks(self)
+        self._bind_events(self)
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
@@ -68,8 +70,8 @@ class ThumbnailWidget(tk.Frame):
                 bd=0,
             )
         image_label.grid(row=0, column=0)
-        self._bind_clicks(preview)
-        self._bind_clicks(image_label)
+        self._bind_events(preview)
+        self._bind_events(image_label)
 
         name_label = tk.Label(
             self,
@@ -88,13 +90,29 @@ class ThumbnailWidget(tk.Frame):
             padx=PHOENIX_THEME.space_sm,
             pady=(0, PHOENIX_THEME.space_sm),
         )
-        self._bind_clicks(name_label)
+        self._bind_events(name_label)
 
-    def _bind_clicks(self, widget: tk.Widget) -> None:
+    def _bind_events(self, widget: tk.Widget) -> None:
         widget.bind("<Button-1>", self._on_click)
+        widget.bind("<Double-Button-1>", self._on_double_click)
+        widget.bind("<Enter>", self._on_enter)
+        widget.bind("<Leave>", self._on_leave)
 
-    def _on_click(self, _event: tk.Event) -> None:
-        self.command(self.image)
+    def _on_click(self, event: tk.Event) -> str:
+        self.command(self.image, event)
+        return "break"
+
+    def _on_double_click(self, _event: tk.Event) -> str:
+        self.double_command(self.image)
+        return "break"
+
+    def _on_enter(self, _event: tk.Event) -> None:
+        if not self.selected:
+            self.configure(highlightbackground=PHOENIX_THEME.text_muted)
+
+    def _on_leave(self, _event: tk.Event) -> None:
+        if not self.selected:
+            self.configure(highlightbackground=PHOENIX_THEME.border)
 
     def _short_filename(self, filename: str) -> str:
         if len(filename) <= 28:

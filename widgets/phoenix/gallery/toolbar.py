@@ -11,10 +11,11 @@ class GalleryToolbar(tk.Frame):
 
     SORT_OPTIONS = ("Name", "Datum", "Größe", "Typ")
     SIZE_OPTIONS = ("Klein", "Mittel", "Groß", "Sehr groß")
+    FILTER_OPTIONS = ("Alle", "JPG/JPEG", "PNG", "WEBP", "TIFF", "BMP")
     PLACEHOLDER = "Suchen…"
     BUTTON_WIDTH_OPEN = 136
     BUTTON_WIDTH_REFRESH = 128
-    BUTTON_WIDTH_FILTER = 96
+    BUTTON_WIDTH_FILTER = 104
     DROPDOWN_WIDTH_SORT = 122
     DROPDOWN_WIDTH_SIZE = 136
 
@@ -24,6 +25,9 @@ class GalleryToolbar(tk.Frame):
         on_open_folder: Callable[[], None],
         on_refresh: Callable[[], None],
         on_thumbnail_size_change: Callable[[str], None],
+        on_search_change: Callable[[str], None],
+        on_sort_change: Callable[[str], None],
+        on_filter_change: Callable[[str], None],
     ) -> None:
         super().__init__(
             master,
@@ -34,9 +38,14 @@ class GalleryToolbar(tk.Frame):
         self.on_open_folder = on_open_folder
         self.on_refresh = on_refresh
         self.on_thumbnail_size_change = on_thumbnail_size_change
+        self.on_search_change = on_search_change
+        self.on_sort_change = on_sort_change
+        self.on_filter_change = on_filter_change
         self.search_value = tk.StringVar(value=self.PLACEHOLDER)
         self.sort_value = tk.StringVar(value=self.SORT_OPTIONS[0])
         self.size_value = tk.StringVar(value=self.SIZE_OPTIONS[1])
+        self.filter_value = tk.StringVar(value=self.FILTER_OPTIONS[0])
+        self._placeholder_active = True
 
         self._build()
 
@@ -118,6 +127,7 @@ class GalleryToolbar(tk.Frame):
         )
         self.search_entry.bind("<FocusIn>", self._clear_search_placeholder)
         self.search_entry.bind("<FocusOut>", self._restore_search_placeholder)
+        self.search_value.trace_add("write", self._on_search_changed)
         return group
 
     def _build_view_group(self) -> tk.Frame:
@@ -128,7 +138,7 @@ class GalleryToolbar(tk.Frame):
             self.sort_value,
             self.SORT_OPTIONS,
             self.DROPDOWN_WIDTH_SORT,
-            None,
+            self.on_sort_change,
         ).pack(side="left")
         self._dropdown(
             group,
@@ -139,7 +149,14 @@ class GalleryToolbar(tk.Frame):
             self.on_thumbnail_size_change,
         ).pack(side="left", padx=(PHOENIX_THEME.space_sm, 0))
         self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        self._button(group, "⧉  Filter", self._noop, self.BUTTON_WIDTH_FILTER).pack(side="left")
+        self._dropdown(
+            group,
+            "Filter",
+            self.filter_value,
+            self.FILTER_OPTIONS,
+            self.BUTTON_WIDTH_FILTER,
+            self.on_filter_change,
+        ).pack(side="left")
         return group
 
     def _group_frame(self) -> tk.Frame:
@@ -178,7 +195,7 @@ class GalleryToolbar(tk.Frame):
         variable: tk.StringVar,
         values: tuple[str, ...],
         width_px: int,
-        callback: Callable[[str], None] | None,
+        callback: Callable[[str], None],
     ) -> tk.Menubutton:
         button = tk.Menubutton(
             master,
@@ -219,24 +236,27 @@ class GalleryToolbar(tk.Frame):
         self,
         variable: tk.StringVar,
         value: str,
-        callback: Callable[[str], None] | None,
+        callback: Callable[[str], None],
     ) -> None:
         variable.set(value)
-        if callback is not None:
-            callback(value)
+        callback(value)
 
     def _separator(self, master: tk.Misc) -> tk.Frame:
         return tk.Frame(master, bg=PHOENIX_THEME.border, width=1)
 
     def _clear_search_placeholder(self, _event: tk.Event) -> None:
-        if self.search_value.get() == self.PLACEHOLDER:
+        if self._placeholder_active:
+            self._placeholder_active = False
             self.search_value.set("")
             self.search_entry.configure(fg=PHOENIX_THEME.text_primary)
 
     def _restore_search_placeholder(self, _event: tk.Event) -> None:
         if not self.search_value.get():
+            self._placeholder_active = True
             self.search_value.set(self.PLACEHOLDER)
             self.search_entry.configure(fg=PHOENIX_THEME.text_muted)
 
-    def _noop(self) -> None:
-        return None
+    def _on_search_changed(self, *_args: object) -> None:
+        if self._placeholder_active:
+            return
+        self.on_search_change(self.search_value.get())

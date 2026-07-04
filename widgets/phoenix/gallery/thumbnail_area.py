@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from collections.abc import Callable
+from pathlib import Path
 
 from controllers.gallery_model import GalleryImage
 from widgets.phoenix.gallery.thumbnail_cache import ThumbnailCache
@@ -18,19 +19,25 @@ class GalleryThumbnailArea(tk.Frame):
     def __init__(
         self,
         master: tk.Misc,
-        on_select: Callable[[GalleryImage], None],
+        on_select: Callable[[GalleryImage, tk.Event], None],
+        on_clear_selection: Callable[[], None],
+        on_double_click: Callable[[GalleryImage], None],
     ) -> None:
         super().__init__(
             master,
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
+            takefocus=True,
         )
         self.on_select = on_select
+        self.on_clear_selection = on_clear_selection
+        self.on_double_click = on_double_click
         self.cache = ThumbnailCache()
         self.images: list[GalleryImage] = []
-        self.selected_image: GalleryImage | None = None
+        self.selected_paths: set[Path] = set()
         self.thumbnail_size = 124
+        self.current_columns = 1
         self.canvas: tk.Canvas
         self.grid_frame: tk.Frame
         self.empty_state: tk.Frame
@@ -62,21 +69,30 @@ class GalleryThumbnailArea(tk.Frame):
 
         self.grid_frame.bind("<Configure>", self._update_scroll_region)
         self.canvas.bind("<Configure>", self._on_canvas_resize)
+        self.canvas.bind("<Button-1>", self._on_free_space_click)
+        self.grid_frame.bind("<Button-1>", self._on_free_space_click)
         self._build_empty_state()
 
     def set_images(
         self,
         images: list[GalleryImage],
-        selected_image: GalleryImage | None,
+        selected_paths: set[Path],
         thumbnail_size: int,
     ) -> None:
         self.images = images
-        self.selected_image = selected_image
+        self.selected_paths = selected_paths
         self.thumbnail_size = thumbnail_size
         self._render_grid()
 
     def clear_cache(self) -> None:
         self.cache.clear()
+
+    def get_column_count(self) -> int:
+        return self.current_columns
+
+    def focus_gallery(self) -> None:
+        self.focus_set()
+        self.canvas.focus_set()
 
     def _build_empty_state(self) -> None:
         self.empty_state = tk.Frame(self.grid_frame, bg=PHOENIX_THEME.card_bg)
@@ -141,15 +157,15 @@ class GalleryThumbnailArea(tk.Frame):
         self.grid_frame.grid_rowconfigure(0, weight=0)
         canvas_width = max(self.canvas.winfo_width(), self.thumbnail_size + 80)
         card_width = self.thumbnail_size + self.CARD_EXTRA_WIDTH
-        columns = max(1, canvas_width // (card_width + self.CARD_GAP))
+        self.current_columns = max(1, canvas_width // (card_width + self.CARD_GAP))
 
-        for column in range(columns):
+        for column in range(self.current_columns):
             self.grid_frame.grid_columnconfigure(column, weight=1)
 
         for index, image in enumerate(self.images):
-            row = index // columns
-            column = index % columns
-            selected = self.selected_image is not None and image.path == self.selected_image.path
+            row = index // self.current_columns
+            column = index % self.current_columns
+            selected = image.path in self.selected_paths
             thumbnail = self.cache.get(image.path, self.thumbnail_size)
             widget = ThumbnailWidget(
                 self.grid_frame,
@@ -157,7 +173,8 @@ class GalleryThumbnailArea(tk.Frame):
                 thumbnail_image=thumbnail,
                 size=self.thumbnail_size,
                 selected=selected,
-                command=self.on_select,
+                command=self._select_image,
+                double_command=self.on_double_click,
             )
             widget.grid(
                 row=row,
@@ -166,6 +183,15 @@ class GalleryThumbnailArea(tk.Frame):
                 padx=(self.CARD_GAP // 2),
                 pady=(self.CARD_GAP // 2),
             )
+
+    def _select_image(self, image: GalleryImage, event: tk.Event) -> None:
+        self.focus_gallery()
+        self.on_select(image, event)
+
+    def _on_free_space_click(self, event: tk.Event) -> None:
+        if event.widget in {self.canvas, self.grid_frame}:
+            self.focus_gallery()
+            self.on_clear_selection()
 
     def _update_scroll_region(self, _event: tk.Event | None) -> None:
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
