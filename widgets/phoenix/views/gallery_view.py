@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 
 from controllers.gallery_controller import GalleryController
+from widgets.phoenix.gallery.toolbar import GalleryToolbar
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
@@ -136,6 +137,7 @@ class PhoenixGalleryView(tk.Frame):
         self.controller = controller or GalleryController()
 
         self.toolbar: tk.Frame
+        self.gallery_toolbar: GalleryToolbar
         self.thumbnail_view: GalleryThumbnailView
         self.inspector: GalleryInspector
         self.status_bar: tk.Frame
@@ -181,6 +183,14 @@ class PhoenixGalleryView(tk.Frame):
             font=PHOENIX_THEME.font_body,
             anchor="w",
         ).grid(row=1, column=0, sticky="w", pady=(PHOENIX_THEME.space_xs, 0))
+
+        self.gallery_toolbar = GalleryToolbar(self.toolbar)
+        self.gallery_toolbar.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            pady=(PHOENIX_THEME.space_md, 0),
+        )
 
     def _build_thumbnail_area(self) -> None:
         self.thumbnail_view = GalleryThumbnailView(self)
