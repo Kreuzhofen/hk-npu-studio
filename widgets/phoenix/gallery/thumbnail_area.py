@@ -53,18 +53,24 @@ class GalleryThumbnailArea(tk.Frame):
         self.grid_frame.grid_columnconfigure(0, weight=1)
 
         self.empty_state = tk.Frame(self.grid_frame, bg=PHOENIX_THEME.card_bg)
-        self.empty_state.grid(row=0, column=0, sticky="nsew", padx=48, pady=48)
+        self.empty_state.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=PHOENIX_THEME.space_xl,
+            pady=PHOENIX_THEME.space_xl,
+        )
         self.empty_state.grid_columnconfigure(0, weight=1)
 
         icon = tk.Label(
             self.empty_state,
-            text="▦",
+            text="▧",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.accent,
-            font=(PHOENIX_THEME.font_title[0], 34, "bold"),
+            font=(PHOENIX_THEME.font_title[0], 38, "bold"),
             anchor="center",
         )
-        icon.grid(row=0, column=0, pady=(0, PHOENIX_THEME.space_md))
+        icon.grid(row=0, column=0, pady=(0, PHOENIX_THEME.space_lg))
 
         tk.Label(
             self.empty_state,
@@ -84,7 +90,7 @@ class GalleryThumbnailArea(tk.Frame):
             anchor="center",
             justify="center",
             wraplength=420,
-        ).grid(row=2, column=0, sticky="ew", pady=(PHOENIX_THEME.space_sm, 0))
+        ).grid(row=2, column=0, sticky="ew", pady=(PHOENIX_THEME.space_md, 0))
 
     def _update_scroll_region(self, _event: tk.Event) -> None:
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))

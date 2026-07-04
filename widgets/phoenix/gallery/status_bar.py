@@ -19,12 +19,15 @@ class GalleryStatusBar(tk.Frame):
         self._build()
 
     def _build(self) -> None:
-        self.grid_columnconfigure(3, weight=1)
+        self.grid_columnconfigure(6, weight=1)
 
         self._item("Bilder", "0", 0)
-        self._item("Auswahl", "0", 1)
-        self._item("Zoom", "Mittel", 2)
-        self._item("Status", self.status, 3, sticky="e")
+        self._divider(1)
+        self._item("Auswahl", "0", 2)
+        self._divider(3)
+        self._item("Zoom", "Mittel", 4)
+        self._divider(5)
+        self._item("Status", self.status, 6, sticky="e")
 
     def _item(self, label: str, value: str, column: int, sticky: str = "w") -> None:
         host = tk.Frame(self, bg=PHOENIX_THEME.surface)
@@ -32,7 +35,7 @@ class GalleryStatusBar(tk.Frame):
             row=0,
             column=column,
             sticky=sticky,
-            padx=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_lg),
+            padx=PHOENIX_THEME.space_md,
             pady=PHOENIX_THEME.space_sm,
         )
 
@@ -53,3 +56,11 @@ class GalleryStatusBar(tk.Frame):
             font=PHOENIX_THEME.font_small,
             anchor="w",
         ).pack(side="left", padx=(PHOENIX_THEME.space_xs, 0))
+
+    def _divider(self, column: int) -> None:
+        tk.Frame(self, bg=PHOENIX_THEME.border, width=1).grid(
+            row=0,
+            column=column,
+            sticky="ns",
+            pady=PHOENIX_THEME.space_sm,
+        )

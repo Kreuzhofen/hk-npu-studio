@@ -34,12 +34,27 @@ class GalleryInspector(tk.Frame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.card_pad_x,
-            pady=(PHOENIX_THEME.card_pad_y, PHOENIX_THEME.space_md),
+            pady=(PHOENIX_THEME.card_pad_y, PHOENIX_THEME.space_xs),
         )
 
-        self._section("Auswahl", ("Keine Auswahl", "Metadaten werden nach Auswahl angezeigt."), 1)
-        self._section("Datei", ("Name: -", "Typ: -", "Auflösung: -"), 2)
-        self._section("Verarbeitung", ("Original / Output: vorbereitet", "Compare: vorbereitet"), 3)
+        tk.Label(
+            self,
+            text="Bilddetails und Auswahlstatus",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+        ).grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=PHOENIX_THEME.card_pad_x,
+            pady=(0, PHOENIX_THEME.space_lg),
+        )
+
+        self._section("Auswahl", ("Keine Auswahl", "Bereit für Einzel- und Mehrfachauswahl."), 2)
+        self._section("Datei", ("Name: -", "Typ: -", "Auflösung: -"), 3)
+        self._section("Verarbeitung", ("Original / Output: vorbereitet", "Compare: vorbereitet"), 4)
 
     def _section(self, title: str, lines: tuple[str, ...], row: int) -> None:
         card = tk.Frame(
@@ -69,7 +84,7 @@ class GalleryInspector(tk.Frame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_xs),
+            pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm),
         )
 
         for index, line in enumerate(lines, start=1):
@@ -90,7 +105,7 @@ class GalleryInspector(tk.Frame):
                 pady=(0, PHOENIX_THEME.space_xs),
             )
 
-        tk.Frame(card, bg=PHOENIX_THEME.elevated_bg, height=PHOENIX_THEME.space_xs).grid(
+        tk.Frame(card, bg=PHOENIX_THEME.elevated_bg, height=PHOENIX_THEME.space_sm).grid(
             row=len(lines) + 1,
             column=0,
             sticky="ew",
