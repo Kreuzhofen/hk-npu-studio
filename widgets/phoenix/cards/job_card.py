@@ -22,7 +22,7 @@ class PhoenixJobCard(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
-            height=178,
+            height=210,
         )
         self.pack_propagate(False)
         self.grid_propagate(False)

@@ -94,7 +94,7 @@ class PhoenixHomeView(tk.Frame):
         lower_host.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 16))
         lower_host.grid_columnconfigure(0, weight=1, uniform="lower_cards")
         lower_host.grid_columnconfigure(1, weight=1, uniform="lower_cards")
-        lower_host.grid_rowconfigure(0, weight=1)
+        lower_host.grid_rowconfigure(0, weight=1, minsize=210)
 
         self._job_card = PhoenixJobCard(lower_host)
         self._job_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)

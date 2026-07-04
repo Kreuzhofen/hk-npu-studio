@@ -22,7 +22,7 @@ class PhoenixProgressCard(tk.Frame):
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
-            height=186,
+            height=200,
         )
         self.pack_propagate(False)
         self.grid_propagate(False)
