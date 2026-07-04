@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable
 
+from resources.icons import IconManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
@@ -76,13 +77,19 @@ class GalleryToolbar(tk.Frame):
 
     def _build_action_group(self) -> tk.Frame:
         group = self._group_frame()
-        self._button(group, "▣  Ordner öffnen", self.on_open_folder, self.BUTTON_WIDTH_OPEN).pack(
-            side="left"
-        )
+        self._button(
+            group,
+            IconManager.get_label("folder", "Ordner öffnen"),
+            self.on_open_folder,
+            self.BUTTON_WIDTH_OPEN,
+        ).pack(side="left")
         self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        self._button(group, "↻  Aktualisieren", self.on_refresh, self.BUTTON_WIDTH_REFRESH).pack(
-            side="left"
-        )
+        self._button(
+            group,
+            IconManager.get_label("refresh", "Aktualisieren"),
+            self.on_refresh,
+            self.BUTTON_WIDTH_REFRESH,
+        ).pack(side="left")
         return group
 
     def _build_search_group(self) -> tk.Frame:
@@ -100,7 +107,7 @@ class GalleryToolbar(tk.Frame):
 
         tk.Label(
             search_host,
-            text="⌕",
+            text=IconManager.get_symbol("search"),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,

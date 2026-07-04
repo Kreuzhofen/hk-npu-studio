@@ -5,6 +5,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from controllers.gallery_model import GalleryImage
+from resources.icons import IconManager
 from widgets.phoenix.gallery.thumbnail_cache import ThumbnailCache
 from widgets.phoenix.gallery.thumbnail_widget import ThumbnailWidget
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -100,7 +101,7 @@ class GalleryThumbnailArea(tk.Frame):
 
         icon = tk.Label(
             self.empty_state,
-            text="▧",
+            text=IconManager.get_symbol("gallery"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.accent,
             font=(PHOENIX_THEME.font_title[0], 38, "bold"),
@@ -201,3 +202,4 @@ class GalleryThumbnailArea(tk.Frame):
         self.grid_frame.configure(height=event.height)
         if self.images:
             self._render_grid()
+
