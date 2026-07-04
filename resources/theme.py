@@ -8,6 +8,7 @@ Phoenix UI Theme
 """
 
 from engine.brand_manager import BrandManager
+from engine.theme_manager import ThemeManager
 
 
 class Theme:
@@ -28,6 +29,11 @@ class Theme:
         "warning": BrandManager.COLORS["COLOR_TEXT_SECONDARY"],
         "error": BrandManager.COLORS["COLOR_TEXT_SECONDARY"],
         "info": BrandManager.COLORS["COLOR_PRIMARY"],
+    }
+
+    ROLE_ALIASES = {
+        "muted_text": "text_secondary",
+        "info": "accent",
     }
 
     FONTS = {
@@ -71,7 +77,8 @@ class Theme:
 
     @classmethod
     def color(cls, name):
-        return cls.COLORS.get(name, cls.COLORS["text"])
+        role = cls.ROLE_ALIASES.get(name, name)
+        return ThemeManager.color(role)
 
     @classmethod
     def font(cls, name):

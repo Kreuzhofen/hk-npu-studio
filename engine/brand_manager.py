@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from engine.theme_manager import ThemeManager
+
 
 @dataclass(frozen=True)
 class BrandState:
@@ -70,6 +72,19 @@ class BrandManager:
         "FONT_SMALL": "Segoe UI",
     }
 
+    COLOR_ROLES = {
+        "COLOR_BACKGROUND": "background",
+        "COLOR_SURFACE": "surface",
+        "COLOR_CARD": "card",
+        "COLOR_ELEVATED": "elevated",
+        "COLOR_BORDER": "border",
+        "COLOR_PRIMARY": "accent",
+        "COLOR_TEXT": "text",
+        "COLOR_TEXT_ON_ACCENT": "text_on_accent",
+        "COLOR_TEXT_SECONDARY": "text_secondary",
+        "COLOR_DISABLED_TEXT": "text_disabled",
+    }
+
     def __init__(self):
         self.state = BrandState(
             app_name=self.APP_NAME,
@@ -122,6 +137,10 @@ class BrandManager:
         return self.ABOUT_DESCRIPTION
 
     def color(self, name: str) -> str:
+        role = self.COLOR_ROLES.get(name)
+        if role is not None:
+            return ThemeManager.color(role)
+
         return self.COLORS.get(name, self.COLORS["COLOR_TEXT"])
 
     def font(self, name: str) -> str:

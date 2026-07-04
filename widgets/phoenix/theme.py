@@ -2,26 +2,39 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from engine.theme_manager import ThemeManager
+
 
 @dataclass(frozen=True)
 class PhoenixTheme:
-    app_bg: str = "#111315"
-    panel_bg: str = "#181B1F"
-    content_bg: str = "#111315"
-    header_bg: str = "#181B1F"
-    card_bg: str = "#20242A"
-    elevated_bg: str = "#272C33"
-    border: str = "#343A43"
+    app_bg: str
+    panel_bg: str
+    content_bg: str
+    header_bg: str
+    card_bg: str
+    elevated_bg: str
+    border: str
 
-    text_primary: str = "#F2F4F8"
-    text_secondary: str = "#D7DCE4"
-    text_muted: str = "#AAB2C0"
-    text_disabled: str = "#6B7280"
-    text_on_accent: str = "#F2F4F8"
+    text_primary: str
+    text_secondary: str
+    text_muted: str
+    text_disabled: str
+    text_on_accent: str
 
-    accent: str = "#2F80ED"
-    accent_dark: str = "#1E5FBF"
-    accent_soft: str = "#D8E8FF"
+    accent: str
+    accent_dark: str
+    accent_soft: str
+
+    background: str
+    surface: str
+    card: str
+    elevated: str
+    button: str
+    button_hover: str
+    button_active: str
+    sidebar: str
+    header: str
+    workspace: str
 
     font_title: tuple[str, int, str] = ("Segoe UI", 22, "bold")
     font_section: tuple[str, int, str] = ("Segoe UI", 15, "bold")
@@ -43,4 +56,36 @@ class PhoenixTheme:
     button_pad_y: int = 8
 
 
-PHOENIX_THEME = PhoenixTheme()
+def _create_phoenix_theme() -> PhoenixTheme:
+    palette = ThemeManager.palette()
+
+    return PhoenixTheme(
+        app_bg=palette.background,
+        panel_bg=palette.sidebar,
+        content_bg=palette.workspace,
+        header_bg=palette.header,
+        card_bg=palette.card,
+        elevated_bg=palette.elevated,
+        border=palette.border,
+        text_primary=palette.text,
+        text_secondary=palette.text,
+        text_muted=palette.text_secondary,
+        text_disabled=palette.text_disabled,
+        text_on_accent=palette.text_on_accent,
+        accent=palette.accent,
+        accent_dark=palette.button_active,
+        accent_soft=palette.surface,
+        background=palette.background,
+        surface=palette.surface,
+        card=palette.card,
+        elevated=palette.elevated,
+        button=palette.button,
+        button_hover=palette.button_hover,
+        button_active=palette.button_active,
+        sidebar=palette.sidebar,
+        header=palette.header,
+        workspace=palette.workspace,
+    )
+
+
+PHOENIX_THEME = _create_phoenix_theme()
