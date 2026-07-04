@@ -17,7 +17,6 @@ class PhoenixSidebar(tk.Frame):
         super().__init__(master, bg=PHOENIX_THEME.panel_bg, width=220)
         self.controller = controller
         self.on_navigate = on_navigate
-        self.brand = getattr(self.winfo_toplevel(), "brand", BrandManager())
         self.logo_image: tk.PhotoImage | None = None
         self.grid_propagate(False)
         self.pack_propagate(False)
@@ -39,18 +38,16 @@ class PhoenixSidebar(tk.Frame):
 
         tk.Label(
             self,
-            text=self.brand.app_name(),
+            text=BrandManager.ENGINE_NAME,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_section,
+            font=PHOENIX_THEME.font_button,
             anchor="w",
-            justify="left",
-            wraplength=172,
         ).pack(fill="x", padx=18, pady=(0, 4))
 
         tk.Label(
             self,
-            text=self.brand.engine(),
+            text="Workspace 1.0",
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
