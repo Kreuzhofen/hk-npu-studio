@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from PIL import Image
+
 from engine.theme_manager import ThemeManager
 
 
@@ -145,6 +147,23 @@ class BrandManager:
 
     def font(self, name: str) -> str:
         return self.FONTS.get(name, "Segoe UI")
+
+    def logo_image(self, size: int) -> Image.Image:
+        image = Image.open(self.png(size)).convert("RGBA")
+
+        if ThemeManager.active_theme() == ThemeManager.PROFESSIONAL_LIGHT:
+            alpha = image.getchannel("A")
+            image = Image.new("RGBA", image.size, (*self._light_logo_color(), 0))
+            image.putalpha(alpha)
+
+        return image
+
+    def _light_logo_color(self) -> tuple[int, int, int]:
+        text_color = ThemeManager.color("text").lstrip("#")
+        return tuple(
+            int(text_color[index : index + 2], 16)
+            for index in (0, 2, 4)
+        )
 
     @classmethod
     def png(cls, size: int) -> Path:

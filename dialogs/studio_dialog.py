@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import tkinter as tk
 
-from PIL import Image, ImageTk
+from PIL import ImageTk
 
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -148,13 +148,7 @@ class StudioDialog(tk.Toplevel):
         return button
 
     def load_logo_image(self, size: int) -> ImageTk.PhotoImage | None:
-        logo_path = self.brand.png(size)
-        if not logo_path.exists():
-            return None
-
-        with Image.open(logo_path) as logo:
-            image = ImageTk.PhotoImage(logo.convert("RGBA"))
-
+        image = ImageTk.PhotoImage(self.brand.logo_image(size))
         self._dialog_images.append(image)
         return image
 

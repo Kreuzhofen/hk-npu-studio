@@ -25,17 +25,15 @@ class PhoenixHeader(tk.Frame):
         left = tk.Frame(self, bg=PHOENIX_THEME.header_bg)
         left.pack(side="left", fill="y", padx=PHOENIX_THEME.space_lg)
 
-        logo_path = BrandManager.png(48)
-        if logo_path.exists():
-            with Image.open(logo_path) as logo:
-                logo = logo.resize((35, 35), Image.Resampling.LANCZOS)
-                self.logo_image = ImageTk.PhotoImage(logo)
-            tk.Label(
-                left,
-                image=self.logo_image,
-                bg=PHOENIX_THEME.header_bg,
-                bd=0,
-            ).pack(side="left", padx=(0, PHOENIX_THEME.space_md), pady=(12, 13))
+        logo = self.brand.logo_image(48)
+        logo = logo.resize((35, 35), Image.Resampling.LANCZOS)
+        self.logo_image = ImageTk.PhotoImage(logo)
+        tk.Label(
+            left,
+            image=self.logo_image,
+            bg=PHOENIX_THEME.header_bg,
+            bd=0,
+        ).pack(side="left", padx=(0, PHOENIX_THEME.space_md), pady=(12, 13))
 
         title_group = tk.Frame(left, bg=PHOENIX_THEME.header_bg)
         title_group.pack(side="left", fill="y")

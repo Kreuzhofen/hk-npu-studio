@@ -3,6 +3,8 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Optional
 
+from PIL import ImageTk
+
 from engine.brand_manager import BrandManager
 
 
@@ -33,23 +35,13 @@ class StartupOverlay(tk.Frame):
         )
         container.grid(row=0, column=0)
 
-        logo_path = self.brand.png(128)
-        if logo_path.exists():
-            self.logo_image = tk.PhotoImage(file=str(logo_path))
-            self.logo_label = tk.Label(
-                container,
-                image=self.logo_image,
-                bg=self.brand.color("COLOR_BACKGROUND"),
-                bd=0,
-            )
-        else:
-            self.logo_label = tk.Label(
-                container,
-                text=self.brand.app_name()[:1],
-                font=(self.brand.font("FONT_TITLE"), 64, "bold"),
-                fg=self.brand.color("COLOR_PRIMARY"),
-                bg=self.brand.color("COLOR_BACKGROUND"),
-            )
+        self.logo_image = ImageTk.PhotoImage(self.brand.logo_image(128))
+        self.logo_label = tk.Label(
+            container,
+            image=self.logo_image,
+            bg=self.brand.color("COLOR_BACKGROUND"),
+            bd=0,
+        )
         self.logo_label.pack(pady=(0, 20))
 
         self.title_label = tk.Label(
