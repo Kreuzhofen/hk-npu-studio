@@ -17,7 +17,6 @@ class PhoenixSidebar(tk.Frame):
         super().__init__(master, bg=PHOENIX_THEME.panel_bg, width=220)
         self.controller = controller
         self.on_navigate = on_navigate
-        self.logo_image: tk.PhotoImage | None = None
         self.grid_propagate(False)
         self.pack_propagate(False)
 
@@ -26,16 +25,6 @@ class PhoenixSidebar(tk.Frame):
         self._build()
 
     def _build(self) -> None:
-        logo_path = BrandManager.png(32)
-        if logo_path.exists():
-            self.logo_image = tk.PhotoImage(file=str(logo_path))
-            tk.Label(
-                self,
-                image=self.logo_image,
-                bg=PHOENIX_THEME.panel_bg,
-                bd=0,
-            ).pack(fill="x", padx=18, pady=(18, 8))
-
         tk.Label(
             self,
             text=BrandManager.ENGINE_NAME,
@@ -43,7 +32,7 @@ class PhoenixSidebar(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_button,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(0, 4))
+        ).pack(fill="x", padx=18, pady=(18, 4))
 
         tk.Label(
             self,

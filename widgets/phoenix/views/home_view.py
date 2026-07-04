@@ -115,7 +115,9 @@ class PhoenixHomeView(tk.Frame):
         column: int,
     ) -> None:
         card = PhoenixStatusCard(master, title=title, value=value)
-        card.grid(row=row, column=column, sticky="nsew", padx=PHOENIX_THEME.space_sm, pady=0)
+        left_pad = 0 if column == 0 else PHOENIX_THEME.space_sm
+        right_pad = 0 if column == 3 else PHOENIX_THEME.space_sm
+        card.grid(row=row, column=column, sticky="nsew", padx=(left_pad, right_pad), pady=0)
         self._cards[key] = card
 
     def refresh(self) -> None:
