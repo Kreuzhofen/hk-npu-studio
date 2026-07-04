@@ -3,8 +3,6 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Callable
 
-from PIL import Image, ImageTk
-
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
@@ -19,7 +17,6 @@ class PhoenixSidebar(tk.Frame):
         super().__init__(master, bg=PHOENIX_THEME.panel_bg, width=220)
         self.controller = controller
         self.on_navigate = on_navigate
-        self.logo_image: ImageTk.PhotoImage | None = None
         self.grid_propagate(False)
         self.pack_propagate(False)
 
@@ -28,18 +25,6 @@ class PhoenixSidebar(tk.Frame):
         self._build()
 
     def _build(self) -> None:
-        logo_path = BrandManager.png(48)
-        if logo_path.exists():
-            logo = Image.open(logo_path).convert("RGBA")
-            logo.thumbnail((36, 36), Image.Resampling.LANCZOS)
-            self.logo_image = ImageTk.PhotoImage(logo)
-            tk.Label(
-                self,
-                image=self.logo_image,
-                bg=PHOENIX_THEME.panel_bg,
-                bd=0,
-            ).pack(fill="x", padx=18, pady=(22, 10))
-
         tk.Label(
             self,
             text=BrandManager.ENGINE_NAME,
@@ -47,7 +32,7 @@ class PhoenixSidebar(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_button,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(0, 5))
+        ).pack(fill="x", padx=18, pady=(22, 5))
 
         tk.Label(
             self,
@@ -56,7 +41,7 @@ class PhoenixSidebar(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(0, 22))
+        ).pack(fill="x", padx=18, pady=(0, 18))
 
         self._nav_button("home", "Home")
         self._nav_button("plugins", "Plugins")
