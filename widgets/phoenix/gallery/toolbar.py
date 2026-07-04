@@ -7,7 +7,7 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class GalleryToolbar(tk.Frame):
-    """Professional toolbar foundation for the Gallery Workspace."""
+    """Professional toolbar for the Gallery Workspace."""
 
     SORT_OPTIONS = ("Name", "Datum", "Größe", "Typ")
     SIZE_OPTIONS = ("Klein", "Mittel", "Groß", "Sehr groß")
@@ -18,13 +18,22 @@ class GalleryToolbar(tk.Frame):
     DROPDOWN_WIDTH_SORT = 122
     DROPDOWN_WIDTH_SIZE = 136
 
-    def __init__(self, master: tk.Misc) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        on_open_folder: Callable[[], None],
+        on_refresh: Callable[[], None],
+        on_thumbnail_size_change: Callable[[str], None],
+    ) -> None:
         super().__init__(
             master,
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
+        self.on_open_folder = on_open_folder
+        self.on_refresh = on_refresh
+        self.on_thumbnail_size_change = on_thumbnail_size_change
         self.search_value = tk.StringVar(value=self.PLACEHOLDER)
         self.sort_value = tk.StringVar(value=self.SORT_OPTIONS[0])
         self.size_value = tk.StringVar(value=self.SIZE_OPTIONS[1])
@@ -58,11 +67,11 @@ class GalleryToolbar(tk.Frame):
 
     def _build_action_group(self) -> tk.Frame:
         group = self._group_frame()
-        self._button(group, "▣  Ordner öffnen", self._noop, self.BUTTON_WIDTH_OPEN).pack(
+        self._button(group, "▣  Ordner öffnen", self.on_open_folder, self.BUTTON_WIDTH_OPEN).pack(
             side="left"
         )
         self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        self._button(group, "↻  Aktualisieren", self._noop, self.BUTTON_WIDTH_REFRESH).pack(
+        self._button(group, "↻  Aktualisieren", self.on_refresh, self.BUTTON_WIDTH_REFRESH).pack(
             side="left"
         )
         return group
@@ -119,6 +128,7 @@ class GalleryToolbar(tk.Frame):
             self.sort_value,
             self.SORT_OPTIONS,
             self.DROPDOWN_WIDTH_SORT,
+            None,
         ).pack(side="left")
         self._dropdown(
             group,
@@ -126,6 +136,7 @@ class GalleryToolbar(tk.Frame):
             self.size_value,
             self.SIZE_OPTIONS,
             self.DROPDOWN_WIDTH_SIZE,
+            self.on_thumbnail_size_change,
         ).pack(side="left", padx=(PHOENIX_THEME.space_sm, 0))
         self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self._button(group, "⧉  Filter", self._noop, self.BUTTON_WIDTH_FILTER).pack(side="left")
@@ -167,6 +178,7 @@ class GalleryToolbar(tk.Frame):
         variable: tk.StringVar,
         values: tuple[str, ...],
         width_px: int,
+        callback: Callable[[str], None] | None,
     ) -> tk.Menubutton:
         button = tk.Menubutton(
             master,
@@ -198,10 +210,20 @@ class GalleryToolbar(tk.Frame):
         for value in values:
             menu.add_command(
                 label=f"{label}: {value}",
-                command=lambda item=value: variable.set(item),
+                command=lambda item=value: self._set_dropdown_value(variable, item, callback),
             )
         button.configure(menu=menu)
         return button
+
+    def _set_dropdown_value(
+        self,
+        variable: tk.StringVar,
+        value: str,
+        callback: Callable[[str], None] | None,
+    ) -> None:
+        variable.set(value)
+        if callback is not None:
+            callback(value)
 
     def _separator(self, master: tk.Misc) -> tk.Frame:
         return tk.Frame(master, bg=PHOENIX_THEME.border, width=1)

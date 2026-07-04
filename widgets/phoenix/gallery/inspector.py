@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import tkinter as tk
 
+from controllers.gallery_model import GalleryImage
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class GalleryInspector(tk.Frame):
-    """Prepared inspector area for future Gallery metadata."""
+    """Inspector area for selected Gallery image metadata."""
 
     def __init__(self, master: tk.Misc) -> None:
         super().__init__(
@@ -17,7 +18,11 @@ class GalleryInspector(tk.Frame):
             highlightthickness=1,
         )
         self.grid_propagate(False)
+        self.selection_card: tk.Frame
+        self.file_card: tk.Frame
+        self.path_card: tk.Frame
         self._build()
+        self.update_image(None)
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
@@ -52,11 +57,34 @@ class GalleryInspector(tk.Frame):
             pady=(0, PHOENIX_THEME.space_lg),
         )
 
-        self._section("Auswahl", ("Keine Auswahl", "Bereit für Einzel- und Mehrfachauswahl."), 2)
-        self._section("Datei", ("Name: -", "Typ: -", "Auflösung: -"), 3)
-        self._section("Verarbeitung", ("Original / Output: vorbereitet", "Compare: vorbereitet"), 4)
+        self.selection_card = self._create_section("Auswahl", 2)
+        self.file_card = self._create_section("Datei", 3)
+        self.path_card = self._create_section("Pfad", 4)
 
-    def _section(self, title: str, lines: tuple[str, ...], row: int) -> None:
+    def update_image(self, image: GalleryImage | None) -> None:
+        self._set_section(
+            self.selection_card,
+            ("Keine Auswahl", "Klicke ein Thumbnail an.")
+            if image is None
+            else ("1 Bild ausgewählt", image.filename),
+        )
+        self._set_section(
+            self.file_card,
+            ("Name: -", "Auflösung: -", "Format: -", "Dateigröße: -")
+            if image is None
+            else (
+                f"Name: {image.filename}",
+                f"Auflösung: {image.resolution_label}",
+                f"Format: {image.format_label}",
+                f"Dateigröße: {image.size_label}",
+            ),
+        )
+        self._set_section(
+            self.path_card,
+            ("-",) if image is None else (str(image.path),),
+        )
+
+    def _create_section(self, title: str, row: int) -> tk.Frame:
         card = tk.Frame(
             self,
             bg=PHOENIX_THEME.elevated_bg,
@@ -86,6 +114,13 @@ class GalleryInspector(tk.Frame):
             padx=PHOENIX_THEME.space_md,
             pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm),
         )
+        return card
+
+    def _set_section(self, card: tk.Frame, lines: tuple[str, ...]) -> None:
+        for child in card.grid_slaves():
+            info = child.grid_info()
+            if int(info.get("row", 0)) > 0:
+                child.destroy()
 
         for index, line in enumerate(lines, start=1):
             tk.Label(
