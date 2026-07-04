@@ -18,6 +18,7 @@ class PhoenixWorkspace(tk.Frame):
         "plugins": "Plugins",
         "settings": "Settings",
         "image": "Image",
+        "gallery": "Gallery",
     }
 
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
@@ -50,6 +51,7 @@ class PhoenixWorkspace(tk.Frame):
         self.grid_columnconfigure(2, weight=0)
 
     def _register_views(self) -> None:
+        from widgets.phoenix.views.gallery_view import PhoenixGalleryView
         from widgets.phoenix.views.home_view import PhoenixHomeView
         from widgets.phoenix.views.image_view import PhoenixImageView
         from widgets.phoenix.views.plugin_view import PhoenixPluginView
@@ -64,6 +66,7 @@ class PhoenixWorkspace(tk.Frame):
                 master,
                 on_gallery_select=self.select_gallery_image,
             ),
+            "gallery": PhoenixGalleryView,
         }
 
     def _build_layout(self) -> None:
@@ -169,6 +172,9 @@ class PhoenixWorkspace(tk.Frame):
 
     def open_image(self) -> None:
         self.show_view("image")
+
+    def open_gallery(self) -> None:
+        self.show_view("gallery")
 
     def refresh_dashboard(self) -> None:
         dashboard = self._views.get("dashboard")

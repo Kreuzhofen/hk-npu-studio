@@ -47,6 +47,7 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("plugins", "Plugins")
         self._nav_button("settings", "Settings")
         self._nav_button("image", "Image")
+        self._nav_button("gallery", "Gallery")
 
     def _nav_button(self, view_name: str, text: str) -> None:
         button = tk.Button(
