@@ -152,16 +152,39 @@ class BrandManager:
         image = Image.open(self.png(size)).convert("RGBA")
 
         if ThemeManager.active_theme() == ThemeManager.PROFESSIONAL_LIGHT:
-            alpha = image.getchannel("A")
-            image = Image.new("RGBA", image.size, (*self._light_logo_color(), 0))
-            image.putalpha(alpha)
+            return self._create_light_logo_image(image)
 
         return image
 
+    def _create_light_logo_image(self, image: Image.Image) -> Image.Image:
+        silhouette_color = self._light_logo_color()
+        detail_color = self._light_logo_detail_color()
+        output = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        source_pixels = image.load()
+        output_pixels = output.load()
+
+        for y in range(image.height):
+            for x in range(image.width):
+                red, green, blue, alpha = source_pixels[x, y]
+                if alpha == 0:
+                    continue
+
+                luminance = (red * 299 + green * 587 + blue * 114) / 1000
+                color = detail_color if alpha > 32 and luminance < 96 else silhouette_color
+                output_pixels[x, y] = (*color, alpha)
+
+        return output
+
     def _light_logo_color(self) -> tuple[int, int, int]:
-        text_color = ThemeManager.color("text").lstrip("#")
+        return self._hex_to_rgb(ThemeManager.color("text"))
+
+    def _light_logo_detail_color(self) -> tuple[int, int, int]:
+        return self._hex_to_rgb(ThemeManager.color("header"))
+
+    def _hex_to_rgb(self, value: str) -> tuple[int, int, int]:
+        color = value.lstrip("#")
         return tuple(
-            int(text_color[index : index + 2], 16)
+            int(color[index : index + 2], 16)
             for index in (0, 2, 4)
         )
 
