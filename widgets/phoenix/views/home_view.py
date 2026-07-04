@@ -27,6 +27,8 @@ class PhoenixHomeSnapshot:
     last_output: str = "Kein Output vorhanden"
     plugin: str = "RealESRGAN"
     backend: str = "QNN / Snapdragon NPU"
+    worker_status: str = "Worker idle"
+    waiting_jobs: int = 0
     activity: tuple[str, ...] = ()
 
 
@@ -157,35 +159,49 @@ class PhoenixHomeView(tk.Frame):
                 last_output=str(data.get("last_output", "Kein Output vorhanden")),
                 plugin=str(data.get("plugin", "RealESRGAN")),
                 backend=str(data.get("backend", "QNN / Snapdragon NPU")),
+                worker_status=str(data.get("worker_status", "Worker idle")),
+                waiting_jobs=int(data.get("waiting_jobs", 0)),
                 activity=tuple(str(item) for item in data.get("activity", ())),
             )
 
         return PhoenixHomeSnapshot()
 
     def _render(self, snapshot: PhoenixHomeSnapshot) -> None:
+        queue_detail = (
+            f"Queue: {snapshot.waiting_jobs} wartend"
+            if snapshot.waiting_jobs
+            else "Queue leer"
+        )
+        worker_detail = snapshot.worker_status
+        output_detail = (
+            "Kein Output ausgewählt"
+            if snapshot.last_output in ("", "Kein Output vorhanden", "Kein Output ausgewählt")
+            else f"Datei: {snapshot.last_output}"
+        )
+
         self._update_card(
             "workspace",
             "Workspace",
             snapshot.workspace_status,
-            "Phoenix UI aktiv.",
+            "",
         )
         self._update_card(
             "batch",
             "Batch",
             snapshot.batch_status,
-            snapshot.detail,
+            "",
         )
         self._update_card(
             "engine",
             "Engine",
             snapshot.lifecycle_status,
-            "Lifecycle-Schicht.",
+            "",
         )
         self._update_card(
             "output",
             "Output",
-            snapshot.output_status,
-            "Letzter Output.",
+            self._summary_output_status(snapshot.output_status),
+            "",
         )
 
         if self._progress_card is not None:
@@ -194,7 +210,7 @@ class PhoenixHomeView(tk.Frame):
                 current=snapshot.current,
                 total=snapshot.total,
                 percent=snapshot.percent,
-                detail=snapshot.detail,
+                detail=f"{queue_detail} · {worker_detail}",
             )
 
         if self._job_card is not None:
@@ -202,13 +218,13 @@ class PhoenixHomeView(tk.Frame):
                 filename=snapshot.current_job,
                 plugin=snapshot.plugin,
                 backend=snapshot.backend,
-                detail=snapshot.detail,
+                detail=f"{queue_detail} · {worker_detail}",
             )
 
         if self._output_card is not None:
             self._output_card.update(
                 filename=snapshot.last_output,
-                detail="Smart Output Handling liefert den letzten bekannten Output.",
+                detail=output_detail,
             )
 
         if self._activity_card is not None:
@@ -218,3 +234,9 @@ class PhoenixHomeView(tk.Frame):
         card = self._cards.get(key)
         if card is not None:
             card.update(title=title, value=value, detail=detail)
+
+    def _summary_output_status(self, output_status: str) -> str:
+        if output_status in ("", "Kein Output vorhanden", "Kein Output ausgewählt"):
+            return "Kein Output"
+
+        return "Vorhanden"
