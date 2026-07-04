@@ -71,8 +71,8 @@ class PhoenixHomeView(tk.Frame):
         cards_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
         cards_host.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, PHOENIX_THEME.space_lg))
 
-        for column in range(4):
-            cards_host.grid_columnconfigure(column, weight=1, uniform="status_cards")
+        for column, weight in enumerate((24, 26, 20, 30)):
+            cards_host.grid_columnconfigure(column, weight=weight)
         cards_host.grid_rowconfigure(0, weight=1, uniform="status_rows", minsize=156)
 
         self._create_status_card(cards_host, "workspace", "Workspace", "Aktiv", 0, 0)
