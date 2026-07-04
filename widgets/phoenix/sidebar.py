@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Callable
 
+from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
@@ -16,6 +17,8 @@ class PhoenixSidebar(tk.Frame):
         super().__init__(master, bg=PHOENIX_THEME.panel_bg, width=220)
         self.controller = controller
         self.on_navigate = on_navigate
+        self.brand = getattr(self.winfo_toplevel(), "brand", BrandManager())
+        self.logo_image: tk.PhotoImage | None = None
         self.grid_propagate(False)
         self.pack_propagate(False)
 
@@ -24,18 +27,30 @@ class PhoenixSidebar(tk.Frame):
         self._build()
 
     def _build(self) -> None:
+        logo_path = BrandManager.png(32)
+        if logo_path.exists():
+            self.logo_image = tk.PhotoImage(file=str(logo_path))
+            tk.Label(
+                self,
+                image=self.logo_image,
+                bg=PHOENIX_THEME.panel_bg,
+                bd=0,
+            ).pack(fill="x", padx=18, pady=(18, 8))
+
         tk.Label(
             self,
-            text="PHOENIX",
+            text=self.brand.app_name(),
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(18, 4))
+            justify="left",
+            wraplength=172,
+        ).pack(fill="x", padx=18, pady=(0, 4))
 
         tk.Label(
             self,
-            text="Workspace v1.0",
+            text=self.brand.engine(),
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
