@@ -49,7 +49,7 @@ class PhoenixProgressCard(tk.Frame):
             textvariable=self._progress_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
-            font=("Segoe UI", 20, "bold"),
+            font=PHOENIX_THEME.font_title,
             anchor="w",
             height=1,
         ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x)
@@ -78,7 +78,7 @@ class PhoenixProgressCard(tk.Frame):
             anchor="w",
             justify="left",
             wraplength=520,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(2, 20))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.card_pad_y))
 
     def update(
         self,
@@ -132,3 +132,4 @@ class PhoenixProgressCard(tk.Frame):
             return "0 % abgeschlossen (0 von 0)"
 
         return f"{percent} % abgeschlossen ({current} von {total})"
+

@@ -38,7 +38,7 @@ class PhoenixActivityCard(tk.Frame):
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.card_pad_y, 6))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
@@ -49,7 +49,7 @@ class PhoenixActivityCard(tk.Frame):
             anchor="nw",
             justify="left",
             wraplength=760,
-        ).pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=(4, PHOENIX_THEME.card_pad_y))
+        ).pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.card_pad_y))
 
     def update(
         self,
@@ -76,3 +76,4 @@ class PhoenixActivityCard(tk.Frame):
             return "Noch keine Aktivität"
 
         return "\n".join(activity[-5:])
+

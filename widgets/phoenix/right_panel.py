@@ -35,7 +35,7 @@ class PhoenixRightPanel(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(18, 4))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_xs))
 
         tk.Label(
             self,
@@ -44,7 +44,7 @@ class PhoenixRightPanel(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="w",
-        ).pack(fill="x", padx=18, pady=(0, 14))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_md))
 
         self._build_actions_section()
         self._build_status_section()
@@ -55,7 +55,7 @@ class PhoenixRightPanel(tk.Frame):
 
     def _build_actions_section(self) -> None:
         section = self._section("Aktionen")
-        section.pack(fill="x", padx=18, pady=(0, PHOENIX_THEME.space_md))
+        section.pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_md))
 
         self.start_button = self._button(section, "▶ Start", self._start_plugin)
         self.start_button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(0, PHOENIX_THEME.space_sm))
@@ -68,7 +68,7 @@ class PhoenixRightPanel(tk.Frame):
 
     def _build_status_section(self) -> None:
         section = self._section("Status")
-        section.pack(fill="x", padx=18, pady=(0, PHOENIX_THEME.space_md))
+        section.pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_md))
 
         self._info_row(section, "Runtime", self._status_value)
         self._info_row(section, "Plugin", self._plugin_value)
@@ -76,7 +76,7 @@ class PhoenixRightPanel(tk.Frame):
 
     def _build_info_section(self) -> None:
         section = self._section("Datei")
-        section.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        section.pack(fill="both", expand=True, padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_lg))
 
         self._info_row(section, "Auswahl", self._file_value)
 
@@ -213,3 +213,4 @@ class PhoenixRightPanel(tk.Frame):
 
         if hasattr(app, "open_output"):
             app.open_output()
+

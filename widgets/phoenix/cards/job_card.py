@@ -45,7 +45,7 @@ class PhoenixJobCard(tk.Frame):
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.card_pad_y, 6))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
@@ -64,7 +64,7 @@ class PhoenixJobCard(tk.Frame):
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_small,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(10, 0))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_md, 0))
 
         tk.Label(
             self,
@@ -73,7 +73,7 @@ class PhoenixJobCard(tk.Frame):
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_small,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(2, 0))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_xs, 0))
 
         tk.Label(
             self,
@@ -84,7 +84,7 @@ class PhoenixJobCard(tk.Frame):
             anchor="w",
             justify="left",
             wraplength=520,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(12, PHOENIX_THEME.card_pad_y))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.card_pad_y))
 
     def update(
         self,
@@ -133,3 +133,4 @@ class PhoenixJobCard(tk.Frame):
             return f"{filename[:30]}..."
 
         return filename
+

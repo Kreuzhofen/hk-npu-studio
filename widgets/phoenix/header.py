@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import tkinter as tk
 
+from PIL import Image, ImageTk
+
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
@@ -15,7 +17,7 @@ class PhoenixHeader(tk.Frame):
         self.title_label: tk.Label
         self.view_label: tk.Label
         self.brand = getattr(self.winfo_toplevel(), "brand", BrandManager())
-        self.logo_image: tk.PhotoImage | None = None
+        self.logo_image: ImageTk.PhotoImage | None = None
 
         self._build()
 
@@ -23,15 +25,17 @@ class PhoenixHeader(tk.Frame):
         left = tk.Frame(self, bg=PHOENIX_THEME.header_bg)
         left.pack(side="left", fill="y", padx=PHOENIX_THEME.space_lg)
 
-        logo_path = BrandManager.png(32)
+        logo_path = BrandManager.png(48)
         if logo_path.exists():
-            self.logo_image = tk.PhotoImage(file=str(logo_path))
+            with Image.open(logo_path) as logo:
+                logo = logo.resize((35, 35), Image.Resampling.LANCZOS)
+                self.logo_image = ImageTk.PhotoImage(logo)
             tk.Label(
                 left,
                 image=self.logo_image,
                 bg=PHOENIX_THEME.header_bg,
                 bd=0,
-            ).pack(side="left", padx=(0, PHOENIX_THEME.space_md), pady=14)
+            ).pack(side="left", padx=(0, PHOENIX_THEME.space_md), pady=(12, 13))
 
         title_group = tk.Frame(left, bg=PHOENIX_THEME.header_bg)
         title_group.pack(side="left", fill="y")
@@ -44,7 +48,7 @@ class PhoenixHeader(tk.Frame):
             font=PHOENIX_THEME.font_section,
             anchor="w",
         )
-        self.title_label.pack(side="top", anchor="w", pady=(8, 0))
+        self.title_label.pack(side="top", anchor="w", pady=(9, 0))
 
         self.view_label = tk.Label(
             title_group,
@@ -54,18 +58,20 @@ class PhoenixHeader(tk.Frame):
             font=PHOENIX_THEME.font_small,
             anchor="w",
         )
-        self.view_label.pack(side="top", anchor="w", pady=(0, 7))
+        self.view_label.pack(side="top", anchor="w", pady=(0, 8))
 
         badge = tk.Label(
             self,
             text=self.brand.slogan(),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_card_title,
-            padx=PHOENIX_THEME.space_md,
+            font=PHOENIX_THEME.font_caption,
+            padx=PHOENIX_THEME.space_sm,
             pady=PHOENIX_THEME.space_xs,
         )
         badge.pack(side="right", padx=PHOENIX_THEME.space_lg)
 
     def set_view(self, title: str) -> None:
         self.view_label.configure(text=title)
+
+

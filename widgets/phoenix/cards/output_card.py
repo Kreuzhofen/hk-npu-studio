@@ -40,7 +40,7 @@ class PhoenixOutputCard(tk.Frame):
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
             height=1,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.card_pad_y, 6))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
         tk.Label(
             self,
@@ -61,7 +61,7 @@ class PhoenixOutputCard(tk.Frame):
             anchor="w",
             justify="left",
             wraplength=520,
-        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(12, PHOENIX_THEME.card_pad_y))
+        ).pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.card_pad_y))
 
     def update(
         self,
@@ -93,3 +93,4 @@ class PhoenixOutputCard(tk.Frame):
             return "—"
 
         return filename
+
