@@ -11,6 +11,7 @@ class GalleryToolbar(tk.Frame):
 
     SORT_OPTIONS = ("Name", "Datum", "Größe", "Typ")
     SIZE_OPTIONS = ("Klein", "Mittel", "Groß", "Sehr groß")
+    PLACEHOLDER = "Suchen…"
 
     def __init__(self, master: tk.Misc) -> None:
         super().__init__(
@@ -19,38 +20,56 @@ class GalleryToolbar(tk.Frame):
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
-        self.search_value = tk.StringVar(value="Suchen…")
+        self.search_value = tk.StringVar(value=self.PLACEHOLDER)
         self.sort_value = tk.StringVar(value=self.SORT_OPTIONS[0])
         self.size_value = tk.StringVar(value=self.SIZE_OPTIONS[1])
 
         self._build()
 
     def _build(self) -> None:
-        self.grid_columnconfigure(2, weight=1)
+        self.grid_columnconfigure(1, weight=1)
 
-        self._button("Ordner öffnen", self._noop).grid(
+        self._build_action_group().grid(
             row=0,
             column=0,
             sticky="w",
-            padx=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm),
+            padx=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_lg),
             pady=PHOENIX_THEME.space_sm,
         )
-        self._button("Aktualisieren", self._noop).grid(
+        self._build_search_group().grid(
             row=0,
             column=1,
-            sticky="w",
+            sticky="ew",
+            padx=(0, PHOENIX_THEME.space_lg),
+            pady=PHOENIX_THEME.space_sm,
+        )
+        self._build_view_group().grid(
+            row=0,
+            column=2,
+            sticky="e",
             padx=(0, PHOENIX_THEME.space_md),
             pady=PHOENIX_THEME.space_sm,
         )
 
-        search_host = self._field_frame()
-        search_host.grid(
-            row=0,
-            column=2,
-            sticky="ew",
-            padx=(0, PHOENIX_THEME.space_md),
-            pady=PHOENIX_THEME.space_sm,
+    def _build_action_group(self) -> tk.Frame:
+        group = self._group_frame()
+        self._button(group, "Ordner öffnen", self._noop).pack(side="left")
+        self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
+        self._button(group, "Aktualisieren", self._noop).pack(side="left")
+        return group
+
+    def _build_search_group(self) -> tk.Frame:
+        group = self._group_frame()
+        group.grid_columnconfigure(0, weight=1)
+
+        search_host = tk.Frame(
+            group,
+            bg=PHOENIX_THEME.elevated_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
         )
+        search_host.grid(row=0, column=0, sticky="ew")
+
         self.search_entry = tk.Entry(
             search_host,
             textvariable=self.search_value,
@@ -61,35 +80,28 @@ class GalleryToolbar(tk.Frame):
             bd=0,
             font=PHOENIX_THEME.font_body,
         )
-        self.search_entry.pack(fill="both", expand=True, padx=PHOENIX_THEME.space_md)
+        self.search_entry.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=PHOENIX_THEME.button_pad_y)
         self.search_entry.bind("<FocusIn>", self._clear_search_placeholder)
         self.search_entry.bind("<FocusOut>", self._restore_search_placeholder)
+        return group
 
-        self._dropdown(self.sort_value, self.SORT_OPTIONS).grid(
-            row=0,
-            column=3,
-            sticky="e",
-            padx=(0, PHOENIX_THEME.space_sm),
-            pady=PHOENIX_THEME.space_sm,
+    def _build_view_group(self) -> tk.Frame:
+        group = self._group_frame()
+        self._dropdown(group, self.sort_value, self.SORT_OPTIONS, 112).pack(side="left")
+        self._dropdown(group, self.size_value, self.SIZE_OPTIONS, 126).pack(
+            side="left",
+            padx=(PHOENIX_THEME.space_sm, 0),
         )
-        self._dropdown(self.size_value, self.SIZE_OPTIONS).grid(
-            row=0,
-            column=4,
-            sticky="e",
-            padx=(0, PHOENIX_THEME.space_sm),
-            pady=PHOENIX_THEME.space_sm,
-        )
-        self._button("Filter", self._noop).grid(
-            row=0,
-            column=5,
-            sticky="e",
-            padx=(0, PHOENIX_THEME.space_md),
-            pady=PHOENIX_THEME.space_sm,
-        )
+        self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
+        self._button(group, "Filter", self._noop).pack(side="left")
+        return group
 
-    def _button(self, text: str, command: Callable[[], None]) -> tk.Button:
+    def _group_frame(self) -> tk.Frame:
+        return tk.Frame(self, bg=PHOENIX_THEME.card_bg)
+
+    def _button(self, master: tk.Misc, text: str, command: Callable[[], None]) -> tk.Button:
         return tk.Button(
-            self,
+            master,
             text=text,
             command=command,
             bg=PHOENIX_THEME.elevated_bg,
@@ -104,18 +116,15 @@ class GalleryToolbar(tk.Frame):
             cursor="hand2",
         )
 
-    def _field_frame(self) -> tk.Frame:
-        return tk.Frame(
-            self,
-            bg=PHOENIX_THEME.elevated_bg,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
-            height=36,
-        )
-
-    def _dropdown(self, variable: tk.StringVar, values: tuple[str, ...]) -> tk.Menubutton:
+    def _dropdown(
+        self,
+        master: tk.Misc,
+        variable: tk.StringVar,
+        values: tuple[str, ...],
+        width: int,
+    ) -> tk.Menubutton:
         button = tk.Menubutton(
-            self,
+            master,
             textvariable=variable,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_secondary,
@@ -128,6 +137,7 @@ class GalleryToolbar(tk.Frame):
             pady=PHOENIX_THEME.button_pad_y,
             cursor="hand2",
             indicatoron=True,
+            width=max(1, width // 9),
         )
         menu = tk.Menu(
             button,
@@ -145,14 +155,17 @@ class GalleryToolbar(tk.Frame):
         button.configure(menu=menu)
         return button
 
+    def _separator(self, master: tk.Misc) -> tk.Frame:
+        return tk.Frame(master, bg=PHOENIX_THEME.border, width=1)
+
     def _clear_search_placeholder(self, _event: tk.Event) -> None:
-        if self.search_value.get() == "Suchen…":
+        if self.search_value.get() == self.PLACEHOLDER:
             self.search_value.set("")
             self.search_entry.configure(fg=PHOENIX_THEME.text_primary)
 
     def _restore_search_placeholder(self, _event: tk.Event) -> None:
         if not self.search_value.get():
-            self.search_value.set("Suchen…")
+            self.search_value.set(self.PLACEHOLDER)
             self.search_entry.configure(fg=PHOENIX_THEME.text_muted)
 
     def _noop(self) -> None:
