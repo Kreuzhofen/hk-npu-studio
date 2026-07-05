@@ -9,10 +9,10 @@ from widgets.phoenix.gallery.inspector import GalleryInspector
 from widgets.phoenix.gallery.status_bar import GalleryStatusBar
 from widgets.phoenix.gallery.thumbnail_area import GalleryThumbnailArea
 from widgets.phoenix.gallery.toolbar import GalleryToolbar
-from widgets.phoenix.theme import PHOENIX_THEME
+from widgets.phoenix.layout.workspace import WorkspaceFrame
 
 
-class PhoenixGalleryView(tk.Frame):
+class PhoenixGalleryView(WorkspaceFrame):
     """Professional interactive Gallery Workspace."""
 
     CTRL_MASK = 0x0004
@@ -23,10 +23,14 @@ class PhoenixGalleryView(tk.Frame):
         master: tk.Misc,
         controller: GalleryController | None = None,
     ) -> None:
-        super().__init__(master, bg=PHOENIX_THEME.content_bg)
+        super().__init__(
+            master,
+            title="Gallery Workspace",
+            subtitle="Öffne einen lokalen Ordner, um Bilder als responsive Galerie zu durchsuchen.",
+            has_inspector=True,
+        )
         self.controller = controller or GalleryController()
 
-        self.header: tk.Frame
         self.gallery_toolbar: GalleryToolbar
         self.thumbnail_area: GalleryThumbnailArea
         self.inspector: GalleryInspector
@@ -37,50 +41,13 @@ class PhoenixGalleryView(tk.Frame):
         self._refresh_ui()
 
     def _build(self) -> None:
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=0)
-
-        self._build_header()
+        self._build_toolbar()
         self._build_main_area()
         self._build_status_bar()
 
-    def _build_header(self) -> None:
-        self.header = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        self.header.grid(
-            row=0,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=PHOENIX_THEME.space_lg,
-            pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_md),
-        )
-        self.header.grid_columnconfigure(0, weight=1)
-
-        title_group = tk.Frame(self.header, bg=PHOENIX_THEME.content_bg)
-        title_group.grid(row=0, column=0, sticky="ew")
-        title_group.grid_columnconfigure(0, weight=1)
-
-        tk.Label(
-            title_group,
-            text="Gallery Workspace",
-            bg=PHOENIX_THEME.content_bg,
-            fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_title,
-            anchor="w",
-        ).grid(row=0, column=0, sticky="w")
-
-        tk.Label(
-            title_group,
-            text="Öffne einen lokalen Ordner, um Bilder als responsive Galerie zu durchsuchen.",
-            bg=PHOENIX_THEME.content_bg,
-            fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_body,
-            anchor="w",
-        ).grid(row=1, column=0, sticky="w", pady=(PHOENIX_THEME.space_xs, 0))
-
+    def _build_toolbar(self) -> None:
         self.gallery_toolbar = GalleryToolbar(
-            self.header,
+            self.header.toolbar_slot,
             on_open_folder=self._open_folder,
             on_refresh=self._refresh_folder,
             on_thumbnail_size_change=self._set_thumbnail_size,
@@ -88,47 +55,26 @@ class PhoenixGalleryView(tk.Frame):
             on_sort_change=self._set_sort_mode,
             on_filter_change=self._set_filter_mode,
         )
-        self.gallery_toolbar.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            pady=(PHOENIX_THEME.space_md, 0),
-        )
+        self.gallery_toolbar.grid(row=0, column=0, sticky="ew")
 
     def _build_main_area(self) -> None:
         self.thumbnail_area = GalleryThumbnailArea(
-            self,
+            self.content_slot,
             on_select=self._select_image,
             on_clear_selection=self._clear_selection,
             on_double_click=self._prepare_preview,
         )
-        self.thumbnail_area.grid(
-            row=1,
-            column=0,
-            sticky="nsew",
-            padx=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_md),
-            pady=(0, PHOENIX_THEME.space_md),
-        )
+        self.thumbnail_area.grid(row=0, column=0, sticky="nsew")
 
-        self.inspector = GalleryInspector(self)
-        self.inspector.grid(
-            row=1,
-            column=1,
-            sticky="nsew",
-            padx=(0, PHOENIX_THEME.space_lg),
-            pady=(0, PHOENIX_THEME.space_md),
-        )
+        if self.inspector_slot is None:
+            return
+
+        self.inspector = GalleryInspector(self.inspector_slot)
+        self.inspector.grid(row=0, column=0, sticky="nsew")
 
     def _build_status_bar(self) -> None:
-        self.status_bar = GalleryStatusBar(self, self.controller.get_status())
-        self.status_bar.grid(
-            row=2,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=PHOENIX_THEME.space_lg,
-            pady=(0, PHOENIX_THEME.space_lg),
-        )
+        self.status_bar = GalleryStatusBar(self.status_slot, self.controller.get_status())
+        self.status_bar.grid(row=0, column=0, sticky="ew")
 
     def _bind_keyboard(self) -> None:
         self._bind_gallery_key("<Control-a>", self._select_all)

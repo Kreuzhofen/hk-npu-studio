@@ -4,10 +4,11 @@ import tkinter as tk
 from collections.abc import Callable
 
 from resources.icons import IconManager
+from widgets.phoenix.layout.workspace import WorkspaceToolbarBase
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
-class GalleryToolbar(tk.Frame):
+class GalleryToolbar(WorkspaceToolbarBase):
     """Professional toolbar for the Gallery Workspace."""
 
     SORT_OPTIONS = ("Name", "Datum", "Größe", "Typ")
@@ -30,12 +31,7 @@ class GalleryToolbar(tk.Frame):
         on_sort_change: Callable[[str], None],
         on_filter_change: Callable[[str], None],
     ) -> None:
-        super().__init__(
-            master,
-            bg=PHOENIX_THEME.card_bg,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
-        )
+        super().__init__(master)
         self.on_open_folder = on_open_folder
         self.on_refresh = on_refresh
         self.on_thumbnail_size_change = on_thumbnail_size_change
@@ -76,15 +72,15 @@ class GalleryToolbar(tk.Frame):
         )
 
     def _build_action_group(self) -> tk.Frame:
-        group = self._group_frame()
-        self._button(
+        group = self.group_frame()
+        self.toolbar_button(
             group,
             IconManager.get_label("folder", "Ordner öffnen"),
             self.on_open_folder,
             self.BUTTON_WIDTH_OPEN,
         ).pack(side="left")
-        self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        self._button(
+        self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
+        self.toolbar_button(
             group,
             IconManager.get_label("refresh", "Aktualisieren"),
             self.on_refresh,
@@ -93,7 +89,7 @@ class GalleryToolbar(tk.Frame):
         return group
 
     def _build_search_group(self) -> tk.Frame:
-        group = self._group_frame()
+        group = self.group_frame()
         group.grid_columnconfigure(0, weight=1)
 
         search_host = tk.Frame(
@@ -138,8 +134,8 @@ class GalleryToolbar(tk.Frame):
         return group
 
     def _build_view_group(self) -> tk.Frame:
-        group = self._group_frame()
-        self._dropdown(
+        group = self.group_frame()
+        self.toolbar_dropdown(
             group,
             "Sortieren",
             self.sort_value,
@@ -147,7 +143,7 @@ class GalleryToolbar(tk.Frame):
             self.DROPDOWN_WIDTH_SORT,
             self.on_sort_change,
         ).pack(side="left")
-        self._dropdown(
+        self.toolbar_dropdown(
             group,
             "Größe",
             self.size_value,
@@ -155,8 +151,8 @@ class GalleryToolbar(tk.Frame):
             self.DROPDOWN_WIDTH_SIZE,
             self.on_thumbnail_size_change,
         ).pack(side="left", padx=(PHOENIX_THEME.space_sm, 0))
-        self._separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        self._dropdown(
+        self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
+        self.toolbar_dropdown(
             group,
             "Filter",
             self.filter_value,
@@ -165,91 +161,6 @@ class GalleryToolbar(tk.Frame):
             self.on_filter_change,
         ).pack(side="left")
         return group
-
-    def _group_frame(self) -> tk.Frame:
-        return tk.Frame(self, bg=PHOENIX_THEME.card_bg)
-
-    def _button(
-        self,
-        master: tk.Misc,
-        text: str,
-        command: Callable[[], None],
-        width_px: int,
-    ) -> tk.Button:
-        button = tk.Button(
-            master,
-            text=text,
-            command=command,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_secondary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.button_pad_y,
-            cursor="hand2",
-            anchor="center",
-        )
-        button.configure(width=max(1, width_px // 9))
-        return button
-
-    def _dropdown(
-        self,
-        master: tk.Misc,
-        label: str,
-        variable: tk.StringVar,
-        values: tuple[str, ...],
-        width_px: int,
-        callback: Callable[[str], None],
-    ) -> tk.Menubutton:
-        button = tk.Menubutton(
-            master,
-            textvariable=variable,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_secondary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.button_pad_y,
-            cursor="hand2",
-            indicatoron=True,
-            width=max(1, width_px // 9),
-        )
-        menu = tk.Menu(
-            button,
-            tearoff=False,
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_body,
-        )
-        for value in values:
-            menu.add_command(
-                label=f"{label}: {value}",
-                command=lambda item=value: self._set_dropdown_value(variable, item, callback),
-            )
-        button.configure(menu=menu)
-        return button
-
-    def _set_dropdown_value(
-        self,
-        variable: tk.StringVar,
-        value: str,
-        callback: Callable[[str], None],
-    ) -> None:
-        variable.set(value)
-        callback(value)
-
-    def _separator(self, master: tk.Misc) -> tk.Frame:
-        return tk.Frame(master, bg=PHOENIX_THEME.border, width=1)
 
     def _clear_search_placeholder(self, _event: tk.Event) -> None:
         if self._placeholder_active:
