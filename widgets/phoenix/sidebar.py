@@ -48,6 +48,7 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("settings", "Settings")
         self._nav_button("image", "Image")
         self._nav_button("gallery", "Gallery")
+        self._nav_button("compare", "Compare")
 
     def _nav_button(self, view_name: str, text: str) -> None:
         button = tk.Button(
@@ -89,4 +90,3 @@ class PhoenixSidebar(tk.Frame):
                     activebackground=PHOENIX_THEME.elevated_bg,
                     activeforeground=PHOENIX_THEME.text_on_accent,
                 )
-

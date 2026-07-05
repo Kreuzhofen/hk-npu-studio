@@ -19,6 +19,7 @@ class PhoenixWorkspace(tk.Frame):
         "settings": "Settings",
         "image": "Image",
         "gallery": "Gallery",
+        "compare": "Compare",
     }
 
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
@@ -51,6 +52,7 @@ class PhoenixWorkspace(tk.Frame):
         self.grid_columnconfigure(2, weight=0)
 
     def _register_views(self) -> None:
+        from widgets.phoenix.views.compare_view import PhoenixCompareView
         from widgets.phoenix.views.gallery_view import PhoenixGalleryView
         from widgets.phoenix.views.home_view import PhoenixHomeView
         from widgets.phoenix.views.image_view import PhoenixImageView
@@ -67,6 +69,7 @@ class PhoenixWorkspace(tk.Frame):
                 on_gallery_select=self.select_gallery_image,
             ),
             "gallery": PhoenixGalleryView,
+            "compare": PhoenixCompareView,
         }
 
     def _build_layout(self) -> None:
@@ -175,6 +178,9 @@ class PhoenixWorkspace(tk.Frame):
 
     def open_gallery(self) -> None:
         self.show_view("gallery")
+
+    def open_compare(self) -> None:
+        self.show_view("compare")
 
     def refresh_dashboard(self) -> None:
         dashboard = self._views.get("dashboard")
