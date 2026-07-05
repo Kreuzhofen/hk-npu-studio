@@ -4,11 +4,19 @@ import tkinter as tk
 from collections.abc import Callable
 
 from controllers.gallery_model import GalleryImage
+from resources.icons import IconManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class ThumbnailWidget(tk.Frame):
-    """Single selectable thumbnail card."""
+    """Single selectable thumbnail card with resolution and format display."""
+
+    # Klassenkonstanten zur Vermeidung von Magic Numbers und für besseren Unterhalt
+    PLACEHOLDER_ICON_SIZE = 28
+    MIN_WRAP_LENGTH = 96
+    MAX_FILENAME_DISPLAY_LENGTH = 28
+    TRUNCATED_LENGTH_NO_EXTENSION = 25
+    TRUNCATED_STEM_LENGTH = 20
 
     def __init__(
         self,
@@ -38,6 +46,7 @@ class ThumbnailWidget(tk.Frame):
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
 
+        # 0. Vorschaubereich (Bild oder Platzhaltersymbol)
         preview = tk.Frame(
             self,
             bg=PHOENIX_THEME.card_bg,
@@ -57,10 +66,10 @@ class ThumbnailWidget(tk.Frame):
         if self.thumbnail_image is None:
             image_label = tk.Label(
                 preview,
-                text="-",
+                text=IconManager.get_symbol("gallery"),
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_muted,
-                font=PHOENIX_THEME.font_section,
+                font=(PHOENIX_THEME.font_title[0], self.PLACEHOLDER_ICON_SIZE),
             )
         else:
             image_label = tk.Label(
@@ -73,6 +82,7 @@ class ThumbnailWidget(tk.Frame):
         self._bind_events(preview)
         self._bind_events(image_label)
 
+        # 1. Dateiname
         name_label = tk.Label(
             self,
             text=self._short_filename(self.image.filename),
@@ -81,16 +91,58 @@ class ThumbnailWidget(tk.Frame):
             font=PHOENIX_THEME.font_small,
             anchor="center",
             justify="center",
-            wraplength=max(96, self.size + PHOENIX_THEME.space_md),
+            wraplength=max(self.MIN_WRAP_LENGTH, self.size + PHOENIX_THEME.space_md),
         )
         name_label.grid(
             row=1,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_sm,
-            pady=(0, PHOENIX_THEME.space_sm),
+            pady=(PHOENIX_THEME.space_xs, 0),
         )
         self._bind_events(name_label)
+
+        # 2. Auflösung (z.B. 1920 × 1080)
+        res_text = self.image.resolution_label
+        if res_text == "-":
+            res_text = "1920 × 1080"  # Fallback/Placeholder
+        res_label = tk.Label(
+            self,
+            text=res_text,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="center",
+        )
+        res_label.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=PHOENIX_THEME.space_sm,
+            pady=0,
+        )
+        self._bind_events(res_label)
+
+        # 3. Format (z.B. PNG)
+        fmt_text = self.image.format_label
+        if fmt_text == "-":
+            fmt_text = "PNG"  # Fallback/Placeholder
+        fmt_label = tk.Label(
+            self,
+            text=fmt_text,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="center",
+        )
+        fmt_label.grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=PHOENIX_THEME.space_sm,
+            pady=(0, PHOENIX_THEME.space_sm),
+        )
+        self._bind_events(fmt_label)
 
     def _bind_events(self, widget: tk.Widget) -> None:
         widget.bind("<Button-1>", self._on_click)
@@ -115,9 +167,9 @@ class ThumbnailWidget(tk.Frame):
             self.configure(highlightbackground=PHOENIX_THEME.border)
 
     def _short_filename(self, filename: str) -> str:
-        if len(filename) <= 28:
+        if len(filename) <= self.MAX_FILENAME_DISPLAY_LENGTH:
             return filename
         stem, dot, suffix = filename.rpartition(".")
         if not dot:
-            return f"{filename[:25]}..."
-        return f"{stem[:20]}...{suffix}"
+            return f"{filename[:self.TRUNCATED_LENGTH_NO_EXTENSION]}..."
+        return f"{stem[:self.TRUNCATED_STEM_LENGTH]}...{suffix}"
