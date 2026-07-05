@@ -8,6 +8,7 @@ Phoenix Controller Layer
 """
 
 from pathlib import Path
+from engine.file_utils import get_unique_filename
 
 from PIL import Image, ImageOps
 
@@ -250,15 +251,8 @@ class GuiController:
 
     def _build_unique_output_path(self, input_path, output_dir):
         input_stem = Path(input_path).stem
-        base_name = f"{input_stem}_upscaled"
-        candidate = Path(output_dir) / f"{base_name}.png"
-        counter = 2
-
-        while candidate.exists():
-            candidate = Path(output_dir) / f"{base_name}_{counter}.png"
-            counter += 1
-
-        return candidate
+        base_name = f"{input_stem}_upscaled.png"
+        return get_unique_filename(output_dir, base_name)
 
     def get_progress(self):
         return self.scheduler.get_progress()

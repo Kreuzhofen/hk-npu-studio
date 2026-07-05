@@ -1,4 +1,5 @@
 from pathlib import Path
+from engine.file_utils import get_unique_filename
 import math
 import time
 from PIL import Image
@@ -94,8 +95,7 @@ def upscale_tiled(image_path: Path, log=None, progress=None, status=None, percen
             result.paste(upscaled_tile, (left*SCALE, top*SCALE))
 
     _percent(98)
-    _status("PNG wird gespeichert...")
-    output_path = OUTPUT_DIR / f"{image_path.stem}_tile_upscaled_x4.png"
+    output_path = get_unique_filename(OUTPUT_DIR, f"{image_path.stem}_tile_upscaled_x4.png")
     result.save(output_path)
     _status("Fertig")
     _percent(100)
