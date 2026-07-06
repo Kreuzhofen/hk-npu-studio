@@ -103,7 +103,10 @@ class PhoenixGalleryView(WorkspaceFrame):
         self._refresh_ui()
 
     def _on_double_click(self, image: GalleryImage) -> None:
-        pass
+        # First ensure the image is selected in the controller
+        self.controller.select_image(image, ctrl=False, shift=False)
+        self.controller.prepare_compare_source()
+        self._refresh_ui()
 
     def refresh(self) -> None:
         """Aktualisiert die Galerie beim Wechseln/Periodisch."""

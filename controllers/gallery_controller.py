@@ -105,6 +105,14 @@ class GalleryController:
         if image is not None:
             self.status = f"Preview vorbereitet: {image.filename}"
 
+    def prepare_compare_source(self) -> Path | None:
+        """Prepares and returns the path of the selected image as a source for comparison."""
+        image = self.selected_image
+        if image is not None:
+            self.status = f"Compare-Quelle vorbereitet: {image.filename}"
+            return image.path
+        return None
+
     def get_thumbnail_size(self) -> int:
         return self.THUMBNAIL_SIZES[self.thumbnail_size_label]
 
