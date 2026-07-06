@@ -35,8 +35,8 @@ class ThumbnailProvider:
         # Queue for processed PIL images waiting to be converted to PhotoImage in UI thread
         self._response_queue: queue.Queue[tuple[ThumbnailRequest, Image.Image | None]] = queue.Queue()
         
-        # Set of currently pending image paths to avoid duplicate loading
-        self._pending_paths: set[tuple[Path, int]] = set()
+        # Dictionary mapping (Path, size) to list of callbacks waiting for this thumbnail
+        self._pending_callbacks: dict[tuple[Path, int], list[Callable[[ImageTk.PhotoImage], None]]] = {}
         
         # Start background worker thread
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
@@ -60,9 +60,11 @@ class ThumbnailProvider:
         # 1. Future: check RAM cache
         # 2. Future: check Disk cache
         
-        # If not pending, queue the request
-        if key not in self._pending_paths:
-            self._pending_paths.add(key)
+        # If already pending, register callback; otherwise, queue request
+        if key in self._pending_callbacks:
+            self._pending_callbacks[key].append(callback)
+        else:
+            self._pending_callbacks[key] = [callback]
             self._request_queue.put(ThumbnailRequest(image_path, size, callback))
             
         return None
@@ -89,15 +91,21 @@ class ThumbnailProvider:
                 request, resized_img = self._response_queue.get_nowait()
                 key = (request.image_path, request.size)
                 
-                if key in self._pending_paths:
-                    self._pending_paths.remove(key)
+                # Fetch all registered callbacks for this key, falling back to the request's callback if none found
+                callbacks = self._pending_callbacks.pop(key, [])
+                if not callbacks:
+                    callbacks = [request.callback]
                 
                 if resized_img is not None:
                     # Convert to PhotoImage in UI thread
                     photo_image = ImageTk.PhotoImage(resized_img)
                     
-                    # Invoke callback
-                    request.callback(photo_image)
+                    # Invoke all callbacks
+                    for cb in callbacks:
+                        try:
+                            cb(photo_image)
+                        except Exception:
+                            pass
             except queue.Empty:
                 break
             except Exception:

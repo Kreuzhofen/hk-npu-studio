@@ -81,6 +81,12 @@ class GalleryThumbnailArea(tk.Frame):
         selected_paths: set[Path],
         thumbnail_size: int,
     ) -> None:
+        if (
+            self.images == images
+            and self.selected_paths == selected_paths
+            and self.thumbnail_size == thumbnail_size
+        ):
+            return
         self.images = images
         self.selected_paths = selected_paths
         self.thumbnail_size = thumbnail_size
@@ -220,9 +226,12 @@ class GalleryThumbnailArea(tk.Frame):
 
     def _on_canvas_resize(self, event: tk.Event) -> None:
         self.canvas.itemconfigure("thumbnail_grid", width=event.width)
-        self.grid_frame.configure(height=event.height)
         if self.images:
-            self._render_grid()
+            canvas_width = max(event.width, self.thumbnail_size + 80)
+            card_width = self.thumbnail_size + self.CARD_EXTRA_WIDTH
+            new_columns = max(1, canvas_width // (card_width + self.CARD_GAP))
+            if new_columns != self.current_columns:
+                self._render_grid()
 
     def cleanup(self) -> None:
         """Clears all loaded images and explicitly destroys widgets to release memory."""
