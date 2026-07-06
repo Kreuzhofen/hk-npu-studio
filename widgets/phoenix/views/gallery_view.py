@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import tkinter as tk
-from pathlib import Path
 
+from controllers.gallery_controller import GalleryController
 from controllers.gallery_model import GalleryImage
+from widgets.phoenix.gallery.status_bar import GalleryStatusBar
 from widgets.phoenix.gallery.thumbnail_area import GalleryThumbnailArea
+from widgets.phoenix.gallery.toolbar import GalleryToolbar
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 
 
@@ -13,7 +15,6 @@ class PhoenixGalleryView(WorkspaceFrame):
 
     # Klassenkonstanten zur Vermeidung von Magic Numbers
     DEFAULT_THUMBNAIL_SIZE = 124
-    MOCK_IMAGE_COUNT = 12
 
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
         super().__init__(
@@ -22,84 +23,103 @@ class PhoenixGalleryView(WorkspaceFrame):
             subtitle="Bildkatalog durchsuchen und verwalten",
             has_inspector=False,
         )
-        self.controller = controller
-
-        # Lokale Zustände für die Auswahldemo (ohne Model/Controller)
-        self.selected_paths: set[Path] = set()
-        self.mock_images: list[GalleryImage] = []
+        self.controller = controller or GalleryController()
 
         self.thumbnail_area: GalleryThumbnailArea
+        self.toolbar: GalleryToolbar
+        self.status_bar: GalleryStatusBar
 
-        self._generate_mock_data()
         self._build_shell()
         self._refresh_ui()
 
-    def _generate_mock_data(self) -> None:
-        """
-        Erzeugt 12 temporäre Platzhalter-Bilder für das Layout-Grid (Sprint P-049.0B).
-        Diese Daten werden in einem zukünftigen Sprint durch den echten Image Loader ersetzt.
-        """
-        formats = [".png", ".jpg", ".webp", ".tiff"]
-        resolutions = [
-            (1920, 1080),
-            (1280, 720),
-            (2048, 2048),
-            (1024, 768),
-        ]
-        
-        for i in range(1, self.MOCK_IMAGE_COUNT + 1):
-            fmt = formats[(i - 1) % len(formats)]
-            res = resolutions[(i - 1) % len(resolutions)]
-            filename = f"placeholder_{i:03d}{fmt}"
-            
-            self.mock_images.append(
-                GalleryImage(
-                    path=Path(f"mock_dir/{filename}"),
-                    filename=filename,
-                    extension=fmt,
-                    width=res[0],
-                    height=res[1],
-                    file_size=1024 * 1024 * i,  # Mock Dateigröße
-                )
-            )
-
     def _build_shell(self) -> None:
-        # Konfigurieren der Grid-Spalten im Inhaltsbereich
+        # 1. Build Toolbar and place in self.header.toolbar_slot
+        self.toolbar = GalleryToolbar(
+            self.header.toolbar_slot,
+            on_open_folder=self._on_open_folder,
+            on_refresh=self._on_refresh,
+            on_thumbnail_size_change=self._on_thumbnail_size_change,
+            on_search_change=self._on_search_change,
+            on_sort_change=self._on_sort_change,
+            on_filter_change=self._on_filter_change,
+        )
+        self.toolbar.grid(row=0, column=0, sticky="ew")
+
+        # 2. Build Thumbnail Area and place in self.content_slot
         self.content_slot.grid_rowconfigure(0, weight=1)
         self.content_slot.grid_columnconfigure(0, weight=1)
 
-        # Verwende die modulare Grid-Komponente für die Platzhalter
         self.thumbnail_area = GalleryThumbnailArea(
             self.content_slot,
             on_select=self._select_image,
             on_clear_selection=self._clear_selection,
-            on_double_click=self._on_double_click_placeholder,
+            on_double_click=self._on_double_click,
         )
         self.thumbnail_area.grid(row=0, column=0, sticky="nsew")
 
+        # 3. Build Status Bar and place in self.status_slot
+        self.status_bar = GalleryStatusBar(self.status_slot, self.controller.get_status())
+        self.status_bar.grid(row=0, column=0, sticky="ew")
+
+    def _on_open_folder(self) -> None:
+        from tkinter import filedialog
+        folder = filedialog.askdirectory(
+            title="Bilderordner auswählen",
+            initialdir=self.controller.current_folder or ""
+        )
+        if folder:
+            self.controller.open_folder(folder)
+            self._refresh_ui()
+
+    def _on_refresh(self) -> None:
+        self.controller.refresh()
+        self._refresh_ui()
+
+    def _on_thumbnail_size_change(self, size_label: str) -> None:
+        self.controller.set_thumbnail_size(size_label)
+        self._refresh_ui()
+
+    def _on_search_change(self, value: str) -> None:
+        self.controller.set_search_text(value)
+        self._refresh_ui()
+
+    def _on_sort_change(self, value: str) -> None:
+        self.controller.set_sort_mode(value)
+        self._refresh_ui()
+
+    def _on_filter_change(self, value: str) -> None:
+        self.controller.set_filter_mode(value)
+        self._refresh_ui()
+
     def _select_image(self, image: GalleryImage, event: tk.Event) -> None:
         """Behandelt das Anklicken einer Karte zur visuellen Markierung."""
-        # Nur Einzelbildauswahl (Mehrfachauswahl NICHT implementiert)
-        if image.path in self.selected_paths:
-            self.selected_paths.remove(image.path)
-        else:
-            self.selected_paths.clear()
-            self.selected_paths.add(image.path)
+        # Einzelbildauswahl (Mehrfachauswahl laut Sprintumfang nicht implementiert)
+        self.controller.select_image(image, ctrl=False, shift=False)
         self._refresh_ui()
 
     def _clear_selection(self) -> None:
         """Löscht die visuelle Selektionsmarkierung."""
-        self.selected_paths.clear()
+        self.controller.clear_selection()
         self._refresh_ui()
 
-    def _on_double_click_placeholder(self, image: GalleryImage) -> None:
-        """Doppelklick-Platzhalter-Callback."""
+    def _on_double_click(self, image: GalleryImage) -> None:
         pass
+
+    def refresh(self) -> None:
+        """Aktualisiert die Galerie beim Wechseln/Periodisch."""
+        self._refresh_ui()
 
     def _refresh_ui(self) -> None:
         """Aktualisiert die Galerie-Ansicht."""
         self.thumbnail_area.set_images(
-            images=self.mock_images,
-            selected_paths=self.selected_paths,
-            thumbnail_size=self.DEFAULT_THUMBNAIL_SIZE,
+            images=self.controller.visible_images,
+            selected_paths=self.controller.selected_paths,
+            thumbnail_size=self.controller.get_thumbnail_size(),
         )
+        self.status_bar.update_values(
+            image_count=self.controller.get_image_count(),
+            selection_count=self.controller.get_selection_count(),
+            thumbnail_size=self.controller.thumbnail_size_label,
+            status=self.controller.get_status(),
+        )
+
