@@ -45,6 +45,9 @@ class CompareWorkspaceController:
         image, metadata = self._load_image(filename)
         self.model.set_output(image, metadata)
 
+    def clear_output(self) -> None:
+        self.model.clear_output()
+
     def get_original_image(self) -> Image.Image | None:
         return self.model.original_image
 
@@ -70,9 +73,11 @@ class CompareWorkspaceController:
 
     def status_items(self) -> dict[str, str]:
         state = self.get_state()
+        original_name = state.original_metadata.filename if (state.original_loaded and state.original_metadata) else "Nicht geladen"
+        output_name = state.output_metadata.filename if (state.output_loaded and state.output_metadata) else "Nicht geladen"
         return {
-            "Original": "Geladen" if state.original_loaded else "Nicht geladen",
-            "Output": "Geladen" if state.output_loaded else "Nicht geladen",
+            "Original": original_name,
+            "Output": output_name,
             "Zoom": state.zoom_label,
             "Sync": state.sync_label,
             "Status": state.status,

@@ -98,3 +98,17 @@ class ApplicationController:
 
     def _start_runtime_polling(self):
         self.app.batch_controller.start_polling()
+
+    def open_compare_with_image(self, path) -> None:
+        """Switches to the Compare Workspace and loads the given path as the original image, clearing the output."""
+        if not hasattr(self.app, "phoenix_workspace"):
+            return
+
+        workspace = self.app.phoenix_workspace
+        compare_view = workspace._get_or_create_view("compare")
+
+        if hasattr(compare_view, "controller") and compare_view.controller is not None:
+            compare_view.controller.load_original(path)
+            compare_view.controller.clear_output()
+
+        workspace.show_view("compare")

@@ -62,6 +62,19 @@ class CompareWorkspaceModel:
             output_metadata=metadata,
         )
 
+    def clear_output(self) -> None:
+        self.output_image = None
+        self.state = CompareWorkspaceState(
+            original_loaded=self.state.original_loaded,
+            output_loaded=False,
+            zoom_label=self.state.zoom_label,
+            zoom_scale=self.state.zoom_scale,
+            sync_label=self.state.sync_label,
+            status=self.state.status,
+            original_metadata=self.state.original_metadata,
+            output_metadata=None,
+        )
+
     def swap_images(self) -> None:
         self.original_image, self.output_image = self.output_image, self.original_image
         original_metadata = self.state.output_metadata
