@@ -58,7 +58,7 @@ class AboutDialog(StudioDialog):
 
         tk.Label(
             self.body,
-            text=self.brand.slogan(),
+            text=self.brand.engine(),
             font=PHOENIX_THEME.font_button,
             fg=PHOENIX_THEME.text_primary,
             bg=PHOENIX_THEME.card_bg,
@@ -75,19 +75,11 @@ class AboutDialog(StudioDialog):
             justify="center",
         ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
 
-        tk.Label(
-            self.body,
-            text=self.brand.engine(),
-            font=PHOENIX_THEME.font_button,
-            fg=PHOENIX_THEME.text_primary,
-            bg=PHOENIX_THEME.card_bg,
-        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
-
         self.add_separator()
 
         tk.Label(
             self.body,
-            text="Created and maintained by",
+            text="Created by",
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
@@ -98,6 +90,14 @@ class AboutDialog(StudioDialog):
             text=self.brand.author(),
             font=PHOENIX_THEME.font_button,
             fg=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(PHOENIX_THEME.space_xs, 0))
+
+        tk.Label(
+            self.body,
+            text="Founder • Product Owner • Release Manager",
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
         ).pack(anchor="center", pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_sm))
 
