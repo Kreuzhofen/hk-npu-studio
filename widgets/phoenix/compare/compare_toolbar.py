@@ -9,7 +9,7 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class CompareToolbar(WorkspaceToolbarBase):
-    """Toolbar foundation for future Compare Workspace actions."""
+    """Toolbar component for Compare Workspace actions."""
 
     BUTTON_WIDTH_WIDE = 128
     BUTTON_WIDTH_MEDIUM = 96

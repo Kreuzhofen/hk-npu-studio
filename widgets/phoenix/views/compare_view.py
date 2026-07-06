@@ -4,11 +4,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 from controllers.compare_workspace_controller import CompareWorkspaceController
-from widgets.phoenix.compare.inspector import CompareInspector
-from widgets.phoenix.compare.split_view import CompareSplitView
+from widgets.phoenix.compare.compare_panel import ComparePanel
 from widgets.phoenix.compare.status_bar import CompareStatusBar
-from widgets.phoenix.compare.toolbar import CompareToolbar
+from widgets.phoenix.compare.compare_toolbar import CompareToolbar
 from widgets.phoenix.layout.workspace import WorkspaceFrame
+from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class PhoenixCompareView(WorkspaceFrame):
@@ -31,12 +31,12 @@ class PhoenixCompareView(WorkspaceFrame):
             master,
             title="Compare Workspace",
             subtitle="Lade Original und Ergebnis, um AI-Outputs direkt nebeneinander zu prüfen.",
-            has_inspector=True,
+            has_inspector=False,  # Inspector is not implemented in this sprint
         )
         self.controller = controller or CompareWorkspaceController()
         self.toolbar: CompareToolbar
-        self.split_view: CompareSplitView
-        self.inspector: CompareInspector
+        self.original_panel: ComparePanel
+        self.result_panel: ComparePanel
         self.status_bar: CompareStatusBar
         self._build()
         self.refresh()
@@ -61,27 +61,47 @@ class PhoenixCompareView(WorkspaceFrame):
         self.toolbar.grid(row=0, column=0, sticky="ew")
 
     def _build_main_area(self) -> None:
-        self.split_view = CompareSplitView(self.content_slot)
-        self.split_view.grid(row=0, column=0, sticky="nsew")
+        # Create a container frame for the responsive split layout
+        self.split_container = tk.Frame(self.content_slot, bg=PHOENIX_THEME.content_bg)
+        self.split_container.grid(row=0, column=0, sticky="nsew")
+        self.split_container.grid_columnconfigure(0, weight=1, uniform="compare_panel")
+        self.split_container.grid_columnconfigure(1, weight=1, uniform="compare_panel")
+        self.split_container.grid_rowconfigure(0, weight=1)
 
-        if self.inspector_slot is None:
-            return
+        self.original_panel = ComparePanel(
+            self.split_container,
+            title="Original",
+            empty_title="Originalbild laden",
+            empty_text="Öffne links ein Ausgangsbild für den Qualitätsvergleich.",
+            icon_name="image",
+        )
+        self.original_panel.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, PHOENIX_THEME.space_sm),
+        )
 
-        self.inspector = CompareInspector(self.inspector_slot)
-        self.inspector.grid(row=0, column=0, sticky="nsew")
+        self.result_panel = ComparePanel(
+            self.split_container,
+            title="Ergebnis",
+            empty_title="Ausgabe laden",
+            empty_text="Öffne rechts ein Ergebnisbild, z. B. einen AI-Output.",
+            icon_name="output",
+        )
+        self.result_panel.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(PHOENIX_THEME.space_sm, 0),
+        )
 
     def _build_status_bar(self) -> None:
         self.status_bar = CompareStatusBar(self.status_slot, self.controller.status_items())
         self.status_bar.grid(row=0, column=0, sticky="ew")
 
     def refresh(self) -> None:
-        state = self.controller.get_state()
-        self.split_view.update_images(
-            self.controller.get_original_image(),
-            self.controller.get_output_image(),
-            state,
-        )
-        self.inspector.update_sections(self.controller.inspector_sections())
+        # Update values on status bar (Image display and Inspector are not implemented in this sprint)
         self.status_bar.update_values(self.controller.status_items())
 
     def _open_original(self) -> None:
