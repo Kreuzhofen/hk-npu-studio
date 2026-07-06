@@ -105,6 +105,8 @@ class PhoenixCompareView(WorkspaceFrame):
         self.status_bar.update_values(self.controller.status_items())
         self.original_panel.update_panel(self.controller.get_original_image(), state.zoom_scale)
         self.result_panel.update_panel(self.controller.get_output_image(), state.zoom_scale)
+        self.toolbar.set_zoom_mode(state.zoom_label)
+
 
     def _open_original(self) -> None:
         filename = self._ask_image_filename("Originalbild öffnen")

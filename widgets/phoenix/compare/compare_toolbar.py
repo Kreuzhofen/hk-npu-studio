@@ -11,9 +11,9 @@ from widgets.phoenix.theme import PHOENIX_THEME
 class CompareToolbar(WorkspaceToolbarBase):
     """Toolbar component for Compare Workspace actions."""
 
-    BUTTON_WIDTH_WIDE = 128
-    BUTTON_WIDTH_MEDIUM = 96
-    BUTTON_WIDTH_SMALL = 74
+    BUTTON_WIDTH_WIDE = 100
+    BUTTON_WIDTH_MEDIUM = 80
+    BUTTON_WIDTH_SMALL = 58
 
     def __init__(
         self,
@@ -45,21 +45,21 @@ class CompareToolbar(WorkspaceToolbarBase):
             row=0,
             column=0,
             sticky="w",
-            padx=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_lg),
+            padx=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md),
             pady=PHOENIX_THEME.space_md,
         )
         self._build_zoom_group().grid(
             row=0,
             column=1,
             sticky="w",
-            padx=(0, PHOENIX_THEME.space_lg),
+            padx=(0, PHOENIX_THEME.space_md),
             pady=PHOENIX_THEME.space_md,
         )
         self._build_compare_group().grid(
             row=0,
             column=2,
             sticky="w",
-            padx=(0, PHOENIX_THEME.space_md),
+            padx=(0, PHOENIX_THEME.space_sm),
             pady=PHOENIX_THEME.space_md,
         )
 
@@ -67,14 +67,14 @@ class CompareToolbar(WorkspaceToolbarBase):
         group = self.group_frame()
         self.toolbar_button(
             group,
-            IconManager.get_label("folder", "Original öffnen"),
+            IconManager.get_label("folder", "Original"),
             self.on_open_original,
             self.BUTTON_WIDTH_WIDE,
         ).pack(side="left")
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self.toolbar_button(
             group,
-            IconManager.get_label("output", "Ausgabe öffnen"),
+            IconManager.get_label("output", "Ausgabe"),
             self.on_open_output,
             self.BUTTON_WIDTH_WIDE,
         ).pack(side="left")
@@ -82,25 +82,50 @@ class CompareToolbar(WorkspaceToolbarBase):
 
     def _build_zoom_group(self) -> tk.Frame:
         group = self.group_frame()
-        self.toolbar_button(group, "Fit", self.on_fit, self.BUTTON_WIDTH_SMALL).pack(side="left")
-        self.toolbar_button(group, "50 %", self.on_zoom_50, self.BUTTON_WIDTH_SMALL).pack(
-            side="left", padx=(PHOENIX_THEME.space_sm, 0)
-        )
-        self.toolbar_button(group, "100 %", self.on_zoom_100, self.BUTTON_WIDTH_SMALL).pack(
-            side="left", padx=(PHOENIX_THEME.space_sm, 0)
-        )
-        self.toolbar_button(group, "200 %", self.on_zoom_200, self.BUTTON_WIDTH_SMALL).pack(
-            side="left", padx=(PHOENIX_THEME.space_sm, 0)
-        )
+        self.zoom_buttons = {}
+
+        btn_fit = self.toolbar_button(group, "Fit", self.on_fit, self.BUTTON_WIDTH_SMALL)
+        btn_fit.pack(side="left")
+        self.zoom_buttons["Fit"] = btn_fit
+
+        btn_50 = self.toolbar_button(group, "50 %", self.on_zoom_50, self.BUTTON_WIDTH_SMALL)
+        btn_50.pack(side="left", padx=(PHOENIX_THEME.space_sm, 0))
+        self.zoom_buttons["50 %"] = btn_50
+
+        btn_100 = self.toolbar_button(group, "100 %", self.on_zoom_100, self.BUTTON_WIDTH_SMALL)
+        btn_100.pack(side="left", padx=(PHOENIX_THEME.space_sm, 0))
+        self.zoom_buttons["100 %"] = btn_100
+
+        btn_200 = self.toolbar_button(group, "200 %", self.on_zoom_200, self.BUTTON_WIDTH_SMALL)
+        btn_200.pack(side="left", padx=(PHOENIX_THEME.space_sm, 0))
+        self.zoom_buttons["200 %"] = btn_200
+
         return group
+
+    def set_zoom_mode(self, zoom_label: str) -> None:
+        """Visually mark the active zoom mode button using theme colors."""
+        if not hasattr(self, "zoom_buttons"):
+            return
+        for label, button in self.zoom_buttons.items():
+            if label == zoom_label:
+                button.configure(
+                    bg=PHOENIX_THEME.accent,
+                    fg=PHOENIX_THEME.text_on_accent,
+                )
+            else:
+                button.configure(
+                    bg=PHOENIX_THEME.elevated_bg,
+                    fg=PHOENIX_THEME.text_secondary,
+                )
+
 
     def _build_compare_group(self) -> tk.Frame:
         group = self.group_frame()
         self.toolbar_button(
             group,
-            IconManager.get_label("refresh", "Synchronisieren"),
+            IconManager.get_label("refresh", "Sync"),
             self.on_sync,
-            self.BUTTON_WIDTH_WIDE,
+            self.BUTTON_WIDTH_MEDIUM,
         ).pack(side="left")
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self.toolbar_button(
