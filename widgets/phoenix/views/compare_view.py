@@ -101,8 +101,9 @@ class PhoenixCompareView(WorkspaceFrame):
         self.status_bar.grid(row=0, column=0, sticky="ew")
 
     def refresh(self) -> None:
-        # Update values on status bar (Image display and Inspector are not implemented in this sprint)
         self.status_bar.update_values(self.controller.status_items())
+        self.original_panel.set_image(self.controller.get_original_image())
+        self.result_panel.set_image(self.controller.get_output_image())
 
     def _open_original(self) -> None:
         filename = self._ask_image_filename("Originalbild öffnen")
