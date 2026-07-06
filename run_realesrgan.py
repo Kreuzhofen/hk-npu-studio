@@ -3,6 +3,7 @@ import os
 import subprocess
 import numpy as np
 from PIL import Image
+Image.MAX_IMAGE_PIXELS = None
 
 QNN_BIN = r"C:\Qualcomm\AIStack\2.47.0.260601\bin\aarch64-windows-msvc\qnn-net-run.exe"
 QNN_BACKEND = r"C:\Qualcomm\AIStack\2.47.0.260601\lib\aarch64-windows-msvc\QnnHtp.dll"
@@ -56,7 +57,17 @@ subprocess.run(cmd, env=env, check=True)
 
 out = np.fromfile(RESULT_RAW, dtype=np.float32).reshape(1, 512, 512, 3)[0]
 out = np.clip(out * 255, 0, 255).astype(np.uint8)
-Image.fromarray(out).save(RESULT_PNG)
+img_out = Image.fromarray(out)
+
+# Restore correct aspect ratio (RealESRGAN x4)
+from PIL import ImageOps
+with Image.open(image_path) as orig:
+    orig_transposed = ImageOps.exif_transpose(orig)
+    orig_w, orig_h = orig_transposed.size
+target_w = orig_w * 4
+target_h = orig_h * 4
+img_out = img_out.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
+img_out.save(RESULT_PNG)
 
 print("Fertig:")
 print(RESULT_PNG)

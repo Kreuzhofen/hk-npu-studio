@@ -21,6 +21,10 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 * Standardisierung der Benutzeroberfläche von klassischen, fensterbasierten Dialogen hin zu einem einheitlichen Single-Window-Design.
 * Migration von Bildverarbeitungsschritten in dedizierte Module (`modules/qnn.py`, `modules/realesrgan_core.py`).
 
+### Behoben
+* **Gallery Thumbnail-Rendering nach Resize (Bugfix):** Behebung eines Problems, bei dem Thumbnail-Widgets nach Fenster-Resizes oder Spaltenwechseln als dauerhafte Platzhalter verblieben. Der `ThumbnailProvider` wurde so erweitert, dass er mehrere Callbacks für denselben pending Thumbnail-Ladevorgang registriert und nach Fertigstellung alle auslöst.
+* **Verzerrter Bild-Output im RealESRGAN-Plugin (Bugfix):** Behebung eines Problems, bei dem das vom RealESRGAN-Plugin erzeugte Ausgabebild verzerrt (quadratisch gestaucht) gespeichert wurde. `_restore_target_resolution` im `QNNBackend` wurde implementiert, um das NPU-Ergebnis proportional korrekt auf `(original_width * 4, original_height * 4)` zu skalieren und das originale Seitenverhältnis wiederherzustellen.
+
 ---
 
 ## [1.5.0] – 2026-05-15 (Generation Release)

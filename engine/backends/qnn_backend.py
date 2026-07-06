@@ -13,6 +13,7 @@ import subprocess
 
 import numpy as np
 from PIL import Image, ImageOps
+Image.MAX_IMAGE_PIXELS = None
 
 
 class QNNBackend:
@@ -143,7 +144,19 @@ class QNNBackend:
         return self.result_png
 
     def _restore_target_resolution(self, image, input_path):
-        return image
+        """
+        Stretches the upscaled square image (512x512) back to the target resolution
+        (original width * MODEL_SCALE, original height * MODEL_SCALE) to restore
+        the correct aspect ratio and prevent distortion.
+        """
+        with Image.open(input_path) as orig:
+            orig_transposed = ImageOps.exif_transpose(orig)
+            orig_w, orig_h = orig_transposed.size
+        
+        target_w = orig_w * self.MODEL_SCALE
+        target_h = orig_h * self.MODEL_SCALE
+        
+        return image.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
 
     def upscale(self, image_path):
         """
@@ -154,6 +167,20 @@ class QNNBackend:
 
         if not image_path.exists():
             raise FileNotFoundError(image_path)
+
+        # Check original size and target size to prevent too large output files
+        with Image.open(image_path) as orig:
+            orig_transposed = ImageOps.exif_transpose(orig)
+            orig_w, orig_h = orig_transposed.size
+            
+        target_w = orig_w * self.MODEL_SCALE
+        target_h = orig_h * self.MODEL_SCALE
+        
+        if target_w * target_h > 250_000_000:
+            raise ValueError(
+                f"Zielauflösung ({target_w}x{target_h} = {target_w * target_h / 1000000:.1f} MP) "
+                f"überschreitet das Limit von 250 MP."
+            )
 
         tensor = self.prepare_input(image_path)
         files = self.write_raw_input(tensor)

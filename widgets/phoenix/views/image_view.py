@@ -4,6 +4,7 @@ import tkinter as tk
 from pathlib import Path
 
 from PIL import Image, ImageOps, ImageTk
+Image.MAX_IMAGE_PIXELS = None
 
 from widgets.phoenix.preview.compare_controller import CompareController
 from widgets.phoenix.preview.compare_renderer import CompareRenderer
@@ -434,6 +435,14 @@ class PhoenixImageView(tk.Frame):
 
     def _load_display_image(self, image_path: Path) -> Image.Image:
         with Image.open(image_path) as source_image:
+            w, h = source_image.size
+            if w * h > 50_000_000:
+                scale_factor = min(4096 / w, 4096 / h)
+                if scale_factor < 1.0:
+                    target_w = int(w * scale_factor)
+                    target_h = int(h * scale_factor)
+                    image = ImageOps.exif_transpose(source_image)
+                    return image.resize((target_w, target_h), resample=Image.Resampling.BILINEAR)
             image = ImageOps.exif_transpose(source_image)
             return image.convert("RGB")
 
