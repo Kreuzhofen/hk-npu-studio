@@ -40,10 +40,15 @@ class ThemeManager:
     PROFESSIONAL_DARK = "professional_dark"
     PROFESSIONAL_LIGHT = "professional_light"
 
-    _active_theme = os.environ.get(
-        "SNAPDRAGON_AI_THEME",
-        PROFESSIONAL_DARK,
-    ).strip().lower()
+    # Evaluate environment variable and map 'dark' / 'light' to internal theme names
+    _env_val = os.environ.get("SNAPDRAGON_AI_THEME", "").strip().lower()
+    if _env_val in ("light", PROFESSIONAL_LIGHT):
+        _active_theme = PROFESSIONAL_LIGHT
+    elif _env_val in ("dark", PROFESSIONAL_DARK):
+        _active_theme = PROFESSIONAL_DARK
+    else:
+        _active_theme = PROFESSIONAL_DARK
+
 
     _palettes = {
         PROFESSIONAL_DARK: ThemePalette(
@@ -93,10 +98,15 @@ class ThemeManager:
     @classmethod
     def set_active_theme(cls, theme_name: str) -> None:
         normalized = theme_name.strip().lower()
-        if normalized not in cls._palettes:
+        if normalized in ("light", cls.PROFESSIONAL_LIGHT):
+            normalized = cls.PROFESSIONAL_LIGHT
+        elif normalized in ("dark", cls.PROFESSIONAL_DARK):
+            normalized = cls.PROFESSIONAL_DARK
+        else:
             normalized = cls.PROFESSIONAL_DARK
 
         cls._active_theme = normalized
+
 
     @classmethod
     def active_theme(cls) -> str:
