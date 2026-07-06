@@ -64,7 +64,7 @@ class ThumbnailWidget(tk.Frame):
         preview.grid_rowconfigure(0, weight=1)
 
         if self.thumbnail_image is None:
-            image_label = tk.Label(
+            self.image_label = tk.Label(
                 preview,
                 text=IconManager.get_symbol("gallery"),
                 bg=PHOENIX_THEME.card_bg,
@@ -72,15 +72,15 @@ class ThumbnailWidget(tk.Frame):
                 font=(PHOENIX_THEME.font_title[0], self.PLACEHOLDER_ICON_SIZE),
             )
         else:
-            image_label = tk.Label(
+            self.image_label = tk.Label(
                 preview,
                 image=self.thumbnail_image,
                 bg=PHOENIX_THEME.card_bg,
                 bd=0,
             )
-        image_label.grid(row=0, column=0)
+        self.image_label.grid(row=0, column=0)
         self._bind_events(preview)
-        self._bind_events(image_label)
+        self._bind_events(self.image_label)
 
         # 1. Dateiname
         name_label = tk.Label(
@@ -173,3 +173,12 @@ class ThumbnailWidget(tk.Frame):
         if not dot:
             return f"{filename[:self.TRUNCATED_LENGTH_NO_EXTENSION]}..."
         return f"{stem[:self.TRUNCATED_STEM_LENGTH]}...{suffix}"
+
+    def set_thumbnail(self, thumbnail_image: ImageTk.PhotoImage) -> None:
+        """Dynamically updates the thumbnail image on the card, replacing placeholder."""
+        self.thumbnail_image = thumbnail_image
+        self.image_label.configure(
+            image=self.thumbnail_image,
+            text="",
+            font=None,
+        )

@@ -34,7 +34,7 @@ class GalleryThumbnailArea(tk.Frame):
         self.on_select = on_select
         self.on_clear_selection = on_clear_selection
         self.on_double_click = on_double_click
-        self.provider = ThumbnailProvider()
+        self.provider = ThumbnailProvider(self)
         self.images: list[GalleryImage] = []
         self.selected_paths: set[Path] = set()
         self.thumbnail_size = 124
@@ -165,11 +165,11 @@ class GalleryThumbnailArea(tk.Frame):
             row = index // self.current_columns
             column = index % self.current_columns
             selected = image.path in self.selected_paths
-            thumbnail = self.provider.get_thumbnail(image.path, self.thumbnail_size)
+
             widget = ThumbnailWidget(
                 self.grid_frame,
                 image=image,
-                thumbnail_image=thumbnail,
+                thumbnail_image=None,
                 size=self.thumbnail_size,
                 selected=selected,
                 command=self._select_image,
@@ -182,6 +182,22 @@ class GalleryThumbnailArea(tk.Frame):
                 padx=(self.CARD_GAP // 2),
                 pady=(self.CARD_GAP // 2),
             )
+
+            # Request thumbnail asynchronously
+            thumbnail = self.provider.get_thumbnail(
+                image.path,
+                self.thumbnail_size,
+                callback=lambda img, w=widget: self._update_widget_safe(w, img),
+            )
+            if thumbnail is not None:
+                widget.set_thumbnail(thumbnail)
+
+    def _update_widget_safe(self, widget: ThumbnailWidget, photo_image: ImageTk.PhotoImage) -> None:
+        try:
+            if widget.winfo_exists():
+                widget.set_thumbnail(photo_image)
+        except Exception:
+            pass
 
     def _select_image(self, image: GalleryImage, event: tk.Event) -> None:
         self.focus_gallery()
