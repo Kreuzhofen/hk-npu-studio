@@ -6,6 +6,7 @@ from pathlib import Path
 
 from controllers.gallery_model import GalleryImage
 from resources.icons import IconManager
+from widgets.phoenix.gallery.thumbnail_provider import ThumbnailProvider
 from widgets.phoenix.gallery.thumbnail_widget import ThumbnailWidget
 from widgets.phoenix.theme import PHOENIX_THEME
 
@@ -33,6 +34,7 @@ class GalleryThumbnailArea(tk.Frame):
         self.on_select = on_select
         self.on_clear_selection = on_clear_selection
         self.on_double_click = on_double_click
+        self.provider = ThumbnailProvider()
         self.images: list[GalleryImage] = []
         self.selected_paths: set[Path] = set()
         self.thumbnail_size = 124
@@ -163,8 +165,7 @@ class GalleryThumbnailArea(tk.Frame):
             row = index // self.current_columns
             column = index % self.current_columns
             selected = image.path in self.selected_paths
-            # Weiterhin Platzhalterbilder verwenden – noch keine echten Thumbnails (Sprint P-049.0C)
-            thumbnail = None
+            thumbnail = self.provider.get_thumbnail(image.path, self.thumbnail_size)
             widget = ThumbnailWidget(
                 self.grid_frame,
                 image=image,
