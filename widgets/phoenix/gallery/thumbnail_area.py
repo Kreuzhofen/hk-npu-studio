@@ -35,6 +35,7 @@ class GalleryThumbnailArea(tk.Frame):
         self.on_clear_selection = on_clear_selection
         self.on_double_click = on_double_click
         self.provider = ThumbnailProvider(self)
+        self.render_generation = 0
         self.images: list[GalleryImage] = []
         self.selected_paths: set[Path] = set()
         self.thumbnail_size = 124
@@ -128,6 +129,7 @@ class GalleryThumbnailArea(tk.Frame):
         ).grid(row=2, column=0, sticky="ew", pady=(PHOENIX_THEME.space_md, 0))
 
     def _render_grid(self) -> None:
+        self.render_generation += 1
         self.empty_state.grid_forget()
         for child in self.grid_frame.winfo_children():
             if child is not self.empty_state:
@@ -183,18 +185,23 @@ class GalleryThumbnailArea(tk.Frame):
                 pady=(self.CARD_GAP // 2),
             )
 
-            # Request thumbnail asynchronously
+            # Request thumbnail asynchronously with safety checks (generation, widget lifetime, path alignment)
             thumbnail = self.provider.get_thumbnail(
                 image.path,
                 self.thumbnail_size,
-                callback=lambda img, w=widget: self._update_widget_safe(w, img),
+                callback=lambda img, w=widget, path=image.path, gen=self.render_generation: self._update_widget_safe(w, img, path, gen),
             )
             if thumbnail is not None:
                 widget.set_thumbnail(thumbnail)
 
-    def _update_widget_safe(self, widget: ThumbnailWidget, photo_image: ImageTk.PhotoImage) -> None:
+    def _update_widget_safe(self, widget: ThumbnailWidget, photo_image: ImageTk.PhotoImage, path: Path, gen: int) -> None:
         try:
-            if widget.winfo_exists():
+            if (
+                gen == self.render_generation
+                and widget.winfo_exists()
+                and getattr(widget, "image", None) is not None
+                and widget.image.path == path
+            ):
                 widget.set_thumbnail(photo_image)
         except Exception:
             pass
