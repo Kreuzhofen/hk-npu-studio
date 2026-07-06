@@ -89,3 +89,20 @@ class ComparePanel(tk.Frame):
             self.placeholder.grid_forget()
             self.image_canvas.grid(row=0, column=0, sticky="nsew")
             self.image_canvas.set_image(image)
+
+    def set_zoom(self, zoom_scale: float | None) -> None:
+        """Sets the zoom scale on the image canvas component."""
+        self.image_canvas.set_zoom(zoom_scale)
+
+    def update_panel(self, image: Image.Image | None, zoom_scale: float | None) -> None:
+        """Updates the panel content slot with image and zoom scale."""
+        self.active_image = image
+
+        if image is None:
+            self.image_canvas.grid_forget()
+            self.placeholder.grid(row=0, column=0, sticky="nsew")
+            self.image_canvas.update_viewport(None, zoom_scale)
+        else:
+            self.placeholder.grid_forget()
+            self.image_canvas.grid(row=0, column=0, sticky="nsew")
+            self.image_canvas.update_viewport(image, zoom_scale)

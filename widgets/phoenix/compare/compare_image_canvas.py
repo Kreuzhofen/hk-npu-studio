@@ -39,11 +39,27 @@ class CompareImageCanvas(tk.Frame):
         self.canvas.bind("<Configure>", self._on_resize)
 
     def set_image(self, image: Image.Image | None) -> None:
-        """Sets the active PIL image and resets viewport state to auto-fit."""
+        """Sets the active PIL image and triggers a render."""
         self.image = image
-        self.auto_fit = True
-        self.pan_offset_x = 0
-        self.pan_offset_y = 0
+        self.render()
+
+    def set_zoom(self, zoom_scale: float | None) -> None:
+        """Sets the viewport zoom scale. If None, auto-fit is enabled."""
+        if zoom_scale is None:
+            self.auto_fit = True
+        else:
+            self.auto_fit = False
+            self.zoom_scale = zoom_scale
+        self.render()
+
+    def update_viewport(self, image: Image.Image | None, zoom_scale: float | None) -> None:
+        """Updates both image and zoom scale, then renders once."""
+        self.image = image
+        if zoom_scale is None:
+            self.auto_fit = True
+        else:
+            self.auto_fit = False
+            self.zoom_scale = zoom_scale
         self.render()
 
     def render(self) -> None:

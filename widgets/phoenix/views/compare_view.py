@@ -101,9 +101,10 @@ class PhoenixCompareView(WorkspaceFrame):
         self.status_bar.grid(row=0, column=0, sticky="ew")
 
     def refresh(self) -> None:
+        state = self.controller.get_state()
         self.status_bar.update_values(self.controller.status_items())
-        self.original_panel.set_image(self.controller.get_original_image())
-        self.result_panel.set_image(self.controller.get_output_image())
+        self.original_panel.update_panel(self.controller.get_original_image(), state.zoom_scale)
+        self.result_panel.update_panel(self.controller.get_output_image(), state.zoom_scale)
 
     def _open_original(self) -> None:
         filename = self._ask_image_filename("Originalbild öffnen")
