@@ -224,3 +224,11 @@ class GalleryThumbnailArea(tk.Frame):
         if self.images:
             self._render_grid()
 
+    def cleanup(self) -> None:
+        """Clears all loaded images and explicitly destroys widgets to release memory."""
+        self.images = []
+        self.selected_paths = set()
+        for child in self.grid_frame.winfo_children():
+            if child is not self.empty_state:
+                child.destroy()
+

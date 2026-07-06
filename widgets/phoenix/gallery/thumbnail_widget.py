@@ -182,3 +182,10 @@ class ThumbnailWidget(tk.Frame):
             text="",
             font=None,
         )
+
+    def destroy(self) -> None:
+        """Releases the PhotoImage reference immediately to free memory."""
+        self.thumbnail_image = None
+        if hasattr(self, "image_label"):
+            self.image_label = None
+        super().destroy()
