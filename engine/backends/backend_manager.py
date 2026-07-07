@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from engine.backends.backend_adapter import BackendAdapter
 from engine.backends.cpu_backend_adapter import CPUBackendAdapter
 from engine.backends.qnn_backend_adapter import QNNBackendAdapter
@@ -88,3 +89,71 @@ class BackendManager:
         qnn_status = "Gefunden" if res.qnn_sdk_found else "Nicht gefunden"
         onnx_status = f"Installiert ({res.onnx_version})" if res.onnx_available else "Nicht installiert"
         return f"QNN NPU: {qnn_status} | ONNX: {onnx_status}"
+
+    def get_best_backend(self, model: dict[str, Any] | str | None = None) -> BackendAdapter | None:
+        """
+        Selects the best available backend based on model preferences and system capability.
+        Priority:
+        1. Model's preferred backend if available.
+        2. Qualcomm QNN NPU if available.
+        3. ONNX Runtime if available.
+        4. CPU (Stub) as fallback.
+        """
+        target_backend_name = None
+        preferred = None
+        
+        if model is not None:
+            if isinstance(model, dict):
+                preferred = model.get("recommended_backend") or model.get("backend")
+            elif isinstance(model, str):
+                try:
+                    from controllers.model_repository import ModelRepository
+                    repo = ModelRepository()
+                    model_dict = repo.get_model(model)
+                    if model_dict:
+                        preferred = model_dict.get("recommended_backend") or model_dict.get("backend")
+                except Exception:
+                    pass
+            
+            if preferred:
+                pref_lower = preferred.lower()
+                if "qnn" in pref_lower or "npu" in pref_lower:
+                    target_backend_name = "Qualcomm QNN NPU (Stub)"
+                elif "onnx" in pref_lower:
+                    target_backend_name = "ONNX Runtime (Stub)"
+                elif "remote" in pref_lower:
+                    target_backend_name = "Remote Cloud API (Stub)"
+                elif "cpu" in pref_lower:
+                    target_backend_name = "CPU (Stub)"
+
+        # General priority fallback list
+        general_order = [
+            "Qualcomm QNN NPU (Stub)",
+            "ONNX Runtime (Stub)",
+            "CPU (Stub)"
+        ]
+
+        # Put preferred backend first if it is registered
+        order = []
+        if target_backend_name and target_backend_name in self._backends:
+            order.append(target_backend_name)
+        for b in general_order:
+            if b not in order:
+                order.append(b)
+
+        # Return the first available backend in the order list
+        for name in order:
+            adapter = self.get_backend(name)
+            if adapter and adapter.is_available():
+                return adapter
+
+        # Fallback to any active or registered backend
+        active = self.get_active_backend()
+        if active and active.is_available():
+            return active
+            
+        for adapter in self._backends.values():
+            if adapter.is_available():
+                return adapter
+
+        return None

@@ -551,3 +551,22 @@ Status: Completed
 ### Notes
 
 Durch Setzen von `borderwidth=0` und `relief="flat"` auf der Treeview- und Heading-Klasse wird der doppelte Rahmen entfernt. Die Tabelle verschmilzt optisch mit dem Kartenhintergrund und wirkt dank der Hover-Indikatoren auf den Header-Schaltflächen hochgradig interaktiv und professionell.
+
+## 07.07.2026 – Sprint P-071 – Backend Manager Routing Foundation
+
+Status: Completed
+
+### Goals
+
+- Implementierung der Kern-Routinginfrastruktur für automatische Backend-Auswahl im `BackendManager`.
+- Auswertung des bevorzugten Modell-Backends aus der JSON-Konfigurationsdatei des Repositorys.
+- Realisierung eines geordneten Fallbacks: QNN (NPU) -> ONNX (Runtime) -> CPU (Stub) basierend auf der lokalen Hardware-Verfügbarkeit.
+- Unterstützung von `dict` (Metadaten), `str` (Model-ID) und `None` (Standard-Auswahl) als Parameter.
+
+### Modified / Added
+
+- `engine/backends/backend_manager.py` (modifiziert)
+
+### Notes
+
+Das Routing arbeitet robust und greift auf die `is_available()` Schnittstelle der Backend-Adapter zurück. Falls ein Modell ein bevorzugtes Backend definiert und dieses auf dem Host-System lauffähig ist, wird es bevorzugt. Andernfalls wird kaskadierend nach der allgemeinen Priorität (NPU -> ONNX -> CPU) ausgewählt. Die Methode `get_best_backend` ist vollständig rückwärtskompatibel.

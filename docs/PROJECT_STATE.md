@@ -10,6 +10,11 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-071 (Backend Manager Routing Foundation):**
+  * **Backend-Auswahl-Infrastruktur:** Implementierung des automatischen Backend-Auswahlmechanismus in `BackendManager` via `get_best_backend(model)`.
+  * **Routing-Priorisierung:** Nutzt das bevorzugte Backend des Modells aus der Konfigurationsdatei (z.B. `"recommended_backend"` wie `Qualcomm QNN NPU (Stub)`) als erste Präferenz. Ist dieses nicht verfügbar, erfolgt ein geordneter Fallback auf verfügbare Backends: `QNN` -> `ONNX` -> `CPU (Stub)`.
+  * **Dateien:** [backend_manager.py](file:///C:/SnapdragonAI/engine/backends/backend_manager.py)
+
 * **Sprint UX-005.1 (Model Manager Card Appearance Restore):**
   * **Wiederherstellung des Phoenix-Card-Designs:** Flat-Styling für das `ttk.Treeview` und dessen Header durch Deaktivierung von Standard-3D-Rahmen (`borderwidth=0`, `relief="flat"`). Zusätzliche Farbkapselung über den `ThemeManager` und Zuweisung von Hover-Mapping auf den Spaltenüberschriften mit dem Phoenix-Akzentfarbton zur Gewährleistung eines harmonischen, integrierten Karten-Looks im Phoenix-Designsystem.
   * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py)
