@@ -220,7 +220,8 @@ class PhoenixModelManagerView(tk.Frame):
             ("Name:", 1), ("Beschreibung:", 2), ("Kategorie:", 3),
             ("Version:", 4), ("Autor:", 5), ("Lizenz:", 6),
             ("Backend:", 7), ("Min. RAM:", 8), ("Empf. RAM:", 9),
-            ("Installiert:", 10), ("Downloadstatus:", 11), ("Status:", 12)
+            ("Installiert:", 10), ("Downloadstatus:", 11), ("Status:", 12),
+            ("Pfad:", 13)
         ]
         for name, r in selected_props:
             tk.Label(
@@ -245,12 +246,13 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspect_installed = self._create_value_label(self.inspector_scroll_content, 10, 1)
         self.inspect_download = self._create_value_label(self.inspector_scroll_content, 11, 1)
         self.inspect_status = self._create_value_label(self.inspector_scroll_content, 12, 1)
+        self.inspect_path = self._create_value_label(self.inspector_scroll_content, 13, 1, wrap=True)
 
         # ==========================================
         # FUTURE ACTION BUTTONS (PLACEHOLDERS)
         # ==========================================
         self.buttons_frame = tk.Frame(self.inspector_scroll_content, bg=PHOENIX_THEME.card_bg)
-        self.buttons_frame.grid(row=13, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 12))
+        self.buttons_frame.grid(row=14, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 12))
         self.buttons_frame.columnconfigure((0, 1), weight=1)
 
         button_style = {
@@ -287,11 +289,11 @@ class PhoenixModelManagerView(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).grid(row=14, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
+        ).grid(row=15, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
 
         env_props = [
-            ("Betriebssystem:", 15), ("Architektur:", 16), ("Python:", 17),
-            ("CPU:", 18), ("ONNX Runtime:", 19), ("QNN SDK:", 20), ("QNN Tools:", 21)
+            ("Betriebssystem:", 16), ("Architektur:", 17), ("Python:", 18),
+            ("CPU:", 19), ("ONNX Runtime:", 20), ("QNN SDK:", 21), ("QNN Tools:", 22)
         ]
         for name, r in env_props:
             tk.Label(
@@ -303,13 +305,13 @@ class PhoenixModelManagerView(tk.Frame):
                 anchor="w"
             ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
 
-        self.env_os = self._create_value_label(self.inspector_scroll_content, 15, 1)
-        self.env_arch = self._create_value_label(self.inspector_scroll_content, 16, 1)
-        self.env_python = self._create_value_label(self.inspector_scroll_content, 17, 1)
-        self.env_cpu = self._create_value_label(self.inspector_scroll_content, 18, 1)
-        self.env_onnx = self._create_value_label(self.inspector_scroll_content, 19, 1)
-        self.env_qnn_sdk = self._create_value_label(self.inspector_scroll_content, 20, 1)
-        self.env_qnn_tools = self._create_value_label(self.inspector_scroll_content, 21, 1)
+        self.env_os = self._create_value_label(self.inspector_scroll_content, 16, 1)
+        self.env_arch = self._create_value_label(self.inspector_scroll_content, 17, 1)
+        self.env_python = self._create_value_label(self.inspector_scroll_content, 18, 1)
+        self.env_cpu = self._create_value_label(self.inspector_scroll_content, 19, 1)
+        self.env_onnx = self._create_value_label(self.inspector_scroll_content, 20, 1)
+        self.env_qnn_sdk = self._create_value_label(self.inspector_scroll_content, 21, 1)
+        self.env_qnn_tools = self._create_value_label(self.inspector_scroll_content, 22, 1)
 
         # ==========================================
         # BOTTOM STATUS BAR
@@ -354,13 +356,7 @@ class PhoenixModelManagerView(tk.Frame):
         selected_id = None
         selected = self.tree.selection()
         if selected:
-            try:
-                idx = self.tree.index(selected[0])
-                models = self.controller.get_all_models()
-                if idx < len(models):
-                    selected_id = models[idx]["id"]
-            except Exception:
-                pass
+            selected_id = selected[0]  # iid is the model ID!
 
         # 2. Reload repository data
         self.controller.refresh_repository()
@@ -376,6 +372,7 @@ class PhoenixModelManagerView(tk.Frame):
             self.tree.insert(
                 "",
                 "end",
+                iid=model["id"],
                 values=(
                     is_active,
                     model.get("display_name", ""),
@@ -388,16 +385,11 @@ class PhoenixModelManagerView(tk.Frame):
         # 4. Restore selection state or fallback to first item
         children = self.tree.get_children()
         if children:
-            select_idx = 0  # Default to first item
-            if selected_id is not None:
-                # Find matching model index in refreshed data
-                for i, m in enumerate(models):
-                    if m["id"] == selected_id:
-                        select_idx = i
-                        break
+            target_item = children[0]  # Default to first item
+            if selected_id is not None and selected_id in children:
+                target_item = selected_id
             
             # Apply selection
-            target_item = children[select_idx]
             self.tree.selection_set(target_item)
             self.tree.focus(target_item)
             
@@ -408,7 +400,8 @@ class PhoenixModelManagerView(tk.Frame):
             for lbl in (self.inspect_name, self.inspect_desc, self.inspect_category,
                         self.inspect_version, self.inspect_author, self.inspect_license,
                         self.inspect_backend, self.inspect_min_ram, self.inspect_rec_ram,
-                        self.inspect_installed, self.inspect_download, self.inspect_status):
+                        self.inspect_installed, self.inspect_download, self.inspect_status,
+                        self.inspect_path):
                 lbl.configure(text="-")
 
         # 5. Update System Environment discovery details
@@ -434,17 +427,10 @@ class PhoenixModelManagerView(tk.Frame):
         if not selected:
             return
 
-        try:
-            # Query index dynamically from Tkinter tree hierarchy
-            idx = self.tree.index(selected[0])
-        except Exception:
+        model_id = selected[0]
+        model = self.controller.get_model_details(model_id)
+        if not model:
             return
-
-        models = self.controller.get_all_models()
-        if idx >= len(models):
-            return
-
-        model = models[idx]
 
         # Update Grid value labels cleanly
         self.inspect_name.configure(text=model.get("display_name", "-"))
@@ -459,6 +445,7 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspect_installed.configure(text="Ja" if model.get("installed") else "Nein")
         self.inspect_download.configure(text="Heruntergeladen" if model.get("downloaded") else "Ausstehend")
         self.inspect_status.configure(text=model.get("status", "-"))
+        self.inspect_path.configure(text=model.get("path", "-") if model.get("path") else "-")
 
         # Update status bar feedback: "Modell ausgewählt: <Modellname>"
         self.status_lbl.configure(text=f"Modell ausgewählt: {model.get('display_name', '-')}")
@@ -467,15 +454,15 @@ class PhoenixModelManagerView(tk.Frame):
         is_installed = model.get("installed", False)
         if is_installed:
             self.btn_install.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
-            self.btn_uninstall.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda: self._on_uninstall(model["id"]))
+            self.btn_uninstall.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda m_id=model["id"]: self._on_uninstall(m_id))
             
             model_path_str = model.get("path")
             if model_path_str and os.path.exists(model_path_str):
-                self.btn_open_folder.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda: self._on_open_folder(model_path_str))
+                self.btn_open_folder.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda path=model_path_str: self._on_open_folder(path))
             else:
                 self.btn_open_folder.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
         else:
-            self.btn_install.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda: self._on_install(model["id"]))
+            self.btn_install.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda m_id=model["id"]: self._on_install(m_id))
             self.btn_uninstall.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
             self.btn_open_folder.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
 
@@ -489,17 +476,11 @@ class PhoenixModelManagerView(tk.Frame):
         if not selected:
             return
 
-        try:
-            idx = self.tree.index(selected[0])
-        except Exception:
+        model_id = selected[0]
+        model = self.controller.get_model_details(model_id)
+        if not model:
             return
 
-        models = self.controller.get_all_models()
-        if idx >= len(models):
-            return
-
-        model = models[idx]
-        model_id = model["id"]
         display_name = model["display_name"]
 
         # Set as active model in ModelRepository

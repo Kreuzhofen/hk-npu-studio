@@ -4,7 +4,7 @@ import os
 import shutil
 import logging
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Any
 
 from config import MODELS_DIR
 from controllers.model_repository import ModelRepository
@@ -21,28 +21,94 @@ class ModelInstallService:
     def __init__(self, repository: ModelRepository | None = None) -> None:
         self.repository = repository or ModelRepository()
 
-    def validate_model(self, source_path: str) -> bool:
+    def validate_model(self, source_path: str) -> dict[str, Any]:
         """
-        Validate if the source path exists, is readable, and contains files of non-zero size.
-        For directories, it verifies that at least one file exists.
+        Validates the source path for installation.
+        Checks:
+        - existence, type (file or folder), read access.
+        - file extension or presence of at least one model file in folders.
+        - non-zero size.
+        Returns a dictionary:
+        {
+            "success": bool,
+            "message": str,
+            "warnings": list[str],
+            "size_bytes": int
+        }
         """
-        p = Path(source_path)
-        if not p.exists():
-            logger.error(f"Validation failed: Path '{source_path}' does not exist.")
-            return False
-
-        if p.is_file():
-            return p.stat().st_size > 0
-        elif p.is_dir():
-            # Ensure it's not an empty directory
-            files = [f for f in p.rglob("*") if f.is_file()]
-            if not files:
-                logger.error(f"Validation failed: Directory '{source_path}' contains no files.")
-                return False
-            # Ensure at least some file has non-zero size
-            return any(f.stat().st_size > 0 for f in files)
+        allowed_extensions = {".onnx", ".bin", ".safetensors", ".gguf", ".json", ".pb", ".pt", ".pth"}
+        result = {
+            "success": False,
+            "message": "Validierung gestartet.",
+            "warnings": [],
+            "size_bytes": 0
+        }
         
-        return False
+        p = Path(source_path)
+        
+        # 1. Check exists
+        if not p.exists():
+            result["message"] = f"Pfad '{source_path}' existiert nicht."
+            return result
+
+        # 2. Check type (file or folder)
+        if not p.is_file() and not p.is_dir():
+            result["message"] = f"Pfad '{source_path}' ist weder eine reguläre Datei noch ein Verzeichnis."
+            return result
+
+        # 3. Check readable
+        if not os.access(source_path, os.R_OK):
+            result["message"] = f"Pfad '{source_path}' ist nicht lesbar (keine Leserechte)."
+            return result
+
+        # 4. Check contents and extensions
+        if p.is_file():
+            suffix = p.suffix.lower()
+            if suffix not in allowed_extensions:
+                result["message"] = f"Datei '{p.name}' hat keine gültige Modell-Dateiendung. Erlaubt sind: {', '.join(allowed_extensions)}"
+                return result
+            
+            size = p.stat().st_size
+            if size <= 0:
+                result["message"] = f"Datei '{p.name}' ist leer (Größe = 0 Bytes)."
+                return result
+                
+            result["size_bytes"] = size
+            if size > 10 * 1024 * 1024 * 1024:  # > 10 GB
+                result["warnings"].append(f"Sehr große Modelldatei ({size / (1024**3):.1f} GB) erkannt. Kopieren kann lange dauern.")
+
+        elif p.is_dir():
+            try:
+                all_files = [f for f in p.rglob("*") if f.is_file()]
+            except Exception as e:
+                result["message"] = f"Fehler beim Lesen des Verzeichnisses: {e}"
+                return result
+                
+            if not all_files:
+                result["message"] = f"Verzeichnis '{p.name}' ist leer."
+                return result
+                
+            model_files = [f for f in all_files if f.suffix.lower() in allowed_extensions]
+            if not model_files:
+                result["message"] = f"Verzeichnis '{p.name}' enthält keine der erlaubten Modelldateien ({', '.join(allowed_extensions)})."
+                return result
+                
+            total_size = sum(f.stat().st_size for f in all_files)
+            if total_size <= 0:
+                result["message"] = f"Die Dateien im Verzeichnis '{p.name}' sind alle leer."
+                return result
+                
+            result["size_bytes"] = total_size
+            
+            non_model_count = len(all_files) - len(model_files)
+            if non_model_count > 0:
+                result["warnings"].append(f"Verzeichnis enthält {non_model_count} Nicht-Modell-Dateien, die mitkopiert werden.")
+            if total_size > 10 * 1024 * 1024 * 1024:
+                result["warnings"].append(f"Sehr großes Modellverzeichnis ({total_size / (1024**3):.1f} GB) erkannt. Kopieren kann lange dauern.")
+                
+        result["success"] = True
+        result["message"] = "Validierung erfolgreich."
+        return result
 
     def get_model_size(self, path: str) -> int:
         """
@@ -82,15 +148,16 @@ class ModelInstallService:
             logger.error(f"Installation failed: Model '{model_id}' is not registered in the repository.")
             return False
 
-        if not self.validate_model(source_path):
-            logger.error(f"Installation failed: Source model validation failed at '{source_path}'.")
+        validation = self.validate_model(source_path)
+        if not validation["success"]:
+            logger.error(f"Installation failed: {validation['message']}")
             return False
 
         src_path = Path(source_path)
         dest_dir = Path(MODELS_DIR) / model_id
         
         # Calculate size and check disk space
-        model_size = self.get_model_size(source_path)
+        model_size = validation["size_bytes"]
         available_space = self.check_available_disk_space(str(dest_dir.parent))
 
         # Add a 50MB safety buffer

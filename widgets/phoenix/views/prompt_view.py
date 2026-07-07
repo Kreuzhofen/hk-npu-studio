@@ -582,6 +582,10 @@ class PhoenixPromptView(WorkspaceFrame):
     # ==================================================================
 
     def refresh(self) -> None:
+        # Reload repository data from disk so it stays in sync with Model Manager installs/uninstalls
+        if hasattr(self.controller, "repository") and self.controller.repository is not None:
+            self.controller.repository.load_repository()
+
         state = self.controller.get_state()
         self.status_label.configure(text=f"Status: {state.status}")
 

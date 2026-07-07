@@ -10,6 +10,19 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-073.1 (Refresh Model Manager after Install/Uninstall):**
+  * **Fehlerbehebung bei der UI-Aktualisierung:** Umstellung der Zeilenselektion und Detailanzeige im Model Manager von indexbasiertem auf iid-basierten Abruf (Verwendung der eindeutigen `model_id` als Element-ID in der Treeview). Dies behebt Synchronisationsprobleme durch willkürliche Listenanordnungen bei Dateisystemänderungen und sorgt für sofortiges Aktualisieren nach Installationen oder Deinstallationen.
+  * **Erweiterung des Model-Inspectors:** Hinzufügen einer sichtbaren Pfad-Zeile („Pfad:“) im Inspector-Panel. Diese wird nach der Installation mit dem absoluten Pfad des lokalen Modells befüllt (und nach Deinstallation zurückgesetzt).
+  * **Steuerung der Schaltflächen:** Installieren, Deinstallieren und Ordner-öffnen werden jetzt absolut synchron zu dem aktuellen Zustand und Pfad-Existenz gesperrt oder freigegeben.
+  * **workspaceübergreifende Synchronisation:** Einbindung automatischer Repository-Reloads bei jedem Refresh des Prompt-Workspaces (`prompt_view.py`), wodurch neu installierte oder deinstallierte Modelle in allen Workspaces konsistent geladen sind.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py)
+
+* **Sprint P-073 (Model Validation 2.0):**
+  * **Erweiterte Modellvalidierung:** Überarbeitung von `ModelInstallService.validate_model()` zur Durchführung eingehenderer Validierungsprüfungen vor der Modellinstallation. Der Service prüft nun Dateiexistenz, Dateityp (Datei oder Ordner), Leserechte (`os.access`) sowie erlaubte Modell-Dateiendungen (`.onnx`, `.bin`, `.safetensors`, `.gguf`, `.json`, `.pb`, `.pt`, `.pth`). Für Ordner wird verifiziert, ob mindestens eine gültige Modelldatei vorhanden ist, und es wird geprüft, ob die Gesamtgröße der Dateien größer als 0 ist.
+  * **Strukturierte Validierungsergebnisse:** Die Methode liefert nun ein strukturiertes Resultat (Dictionary mit `success`, `message`, `warnings` und `size_bytes`) zurück. Dies ermöglicht die Übergabe von detaillierten Statusmeldungen sowie Warnungen (z. B. bei sehr großen Dateien oder vorhandenen Nicht-Modell-Dateien wie `.txt`/`.md`).
+  * **Integration:** Anpassung von `ModelInstallService.install_model()` an das neue strukturierte Rückgabeformat, wodurch die ermittelte Modellgröße direkt weiterverwendet wird.
+  * **Dateien:** [model_install_service.py](file:///C:/SnapdragonAI/engine/model_install_service.py)
+
 * **Sprint P-072.2 (Connect QNN Availability to Backend Discovery):**
   * **Bereinigung der Debug-Ausgaben:** Sämtliche temporären `[DEBUG P-072.1]`-Konsolenausgaben wurden vollständig aus `backend_manager.py` entfernt.
   * **Dynamische NPU-Erkennung:** Die Methode `is_available()` im `QNNBackendAdapter` wurde an den `BackendDiscoveryService` angebunden. Das QNN-Backend meldet sich nun genau dann als verfügbar (`True`), wenn sowohl `qnn_sdk_found` als auch `qnn_tools_found` im Diagnoselauf als wahr erkannt werden (andernfalls `False`).

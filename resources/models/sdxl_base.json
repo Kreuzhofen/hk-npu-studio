@@ -10,7 +10,10 @@
   "recommended_backend": "ONNX Runtime (Stub)",
   "minimum_ram_gb": 12,
   "recommended_ram_gb": 16,
-  "supports": ["txt2img", "img2img"],
+  "supports": [
+    "txt2img",
+    "img2img"
+  ],
   "installed": false,
   "downloaded": false,
   "path": "",

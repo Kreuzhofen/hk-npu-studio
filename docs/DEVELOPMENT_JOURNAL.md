@@ -610,3 +610,44 @@ Status: Completed
 ### Notes
 
 Durch die Anbindung an den Discovery-Service schaltet die Anwendung nun auf Windows-ARM64-Systemen mit installiertem Qualcomm AI Stack (HTP Driver + qnn-net-run.exe vorhanden) automatisch auf Qualcomm QNN NPU um, wenn ein Modell dieses bevorzugt. Der Klassen-Cache stellt sicher, dass die Dateisystemdiagnosen nur einmalig beim ersten Abruf durchgeführt werden, was die UI-Performance im Idle-Zustand maximiert.
+
+## 07.07.2026 – Sprint P-073 – Model Validation 2.0
+
+Status: Completed
+
+### Goals
+
+- Vertiefung und Härtung der lokalen Modellvalidierung vor der Installation im `ModelInstallService`.
+- Implementierung von detaillierten Prüfungen: Dateiexistenz, Dateityp (reguläre Datei oder Ordner), Leserechte (`os.access`) sowie gültige Modell-Dateiendungen (`.onnx`, `.bin`, `.safetensors`, `.gguf`, `.json`, `.pb`, `.pt`, `.pth`).
+- Rückgabe strukturierter Validierungsergebnisse (Dictionary mit `success`, `message`, `warnings`, `size_bytes`).
+- Ausgeben von Dateigrößen- und Dateitypwarnungen zur Information des Nutzers.
+- Vollständige Integration des neuen Validierungsformats in den Kopiervorgang (`install_model`).
+
+### Modified / Added
+
+- `engine/model_install_service.py` (modifiziert)
+
+### Notes
+
+Die Validierungslogik führt nun dedizierte Prüfungen auf erlaubte Endungen und Lesbarkeit durch, ohne zeitintensive KI-Modell-Ladevorgänge oder externe ML-Abhängigkeiten einzubringen. Durch das strukturierte Rückgabeformat erhält der Installationsdienst direkt die Dateigröße und kann Warnungen (z.B. über beigefügte Begleitdateien im Verzeichnis) an die Log-Ebene melden.
+
+## 07.07.2026 – Sprint P-073.1 – Refresh Model Manager after Install/Uninstall
+
+Status: Completed
+
+### Goals
+
+- Fehlerbehebung bei der visuellen Aktualisierung des Model Managers nach Installation/Deinstallation.
+- Umstellung der Treeview-Referenzierung von Zeilenindizes auf eindeutige Element-IDs (iid über `model_id`), um willkürliche Listensortierungen bei Dateiänderungen abzufangen.
+- Hinzufügen einer sichtbaren Pfad-Eigenschaft („Pfad:“) im Inspector-Panel zur Nachverfolgung der Installationen.
+- Korrekte Steuerung und Deaktivierung der Schaltflächen (Installieren, Deinstallieren, Ordner öffnen) basierend auf dem Modellzustand.
+- Automatischer Repository-Reload bei Workspace-Wechseln im Prompt-Workspace zur Vermeidung veralteter In-Memory-Stände.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+
+### Notes
+
+Die UI arbeitet nun vollständig robust. Da die Treeview-Einträge die `model_id` als `iid` tragen, ist der Abruf der Modelldetails unbeeinflusst von Dateisystem- und Reihungsänderungen. Der Inspector visualisiert den absoluten Pfad des installierten Modells und alle Aktionen werden unmittelbar nach der Installation oder Deinstallation passend freigegeben oder gesperrt. Switchen in den AI-Generate-Workspace lädt die Modelldatenbank automatisch frisch von der Platte, womit die Datenbanksynchronität über alle Workspace-Ebenen hinweg sichergestellt ist.
