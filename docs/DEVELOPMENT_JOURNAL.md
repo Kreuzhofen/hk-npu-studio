@@ -403,4 +403,29 @@ Status: Completed
 
 Durch die saubere Schichten-Trennung über die `ImageGenerationPipeline` und das `GenerationResult` sind wir bereit für die physische NPU-Integration. Die Parameter-Zugriffe wurden vollumfänglich von dem redundanten `parameters`-Entwurf auf die native `session`-Eigenschaft umgestellt.
 
+## 07.07.2026 – Sprint P-061 – Backend Discovery & Environment Detection
+
+Status: Completed
+
+### Goals
+
+- Implementierung des `BackendDiscoveryService` und `DiscoveryResult` zur automatischen Analyse der Host-Plattform und SDKs.
+- Verknüpfung des Discovery Service mit dem `BackendManager` und Exponierung via `ModelManagerController`.
+- Integration einer System-Umgebungskarte im rechten Inspector-Bereich des AI Model Managers.
+- Hinzufügen von `Environment`- und `QNN`-Feldern in der Generierungs-Statusleiste im AI Generate Workspace.
+
+### Modified / Added
+
+- `engine/backends/backend_discovery_service.py` (neu)
+- `engine/backends/discovery_result.py` (neu)
+- `engine/backends/backend_manager.py` (modifiziert)
+- `controllers/model_manager_controller.py` (modifiziert)
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+
+### Notes
+
+Der `BackendDiscoveryService` führt eine saubere, nicht-blockierende Erkennung der Systemparameter durch. Er scannt Windows ARM64, Python-Versionen, das Vorhandensein von ONNX Runtime und das Qualcomm QNN SDK (einschließlich `qnn-net-run.exe`), ohne externe SDK-Runtimes direkt laden zu müssen.
+
 

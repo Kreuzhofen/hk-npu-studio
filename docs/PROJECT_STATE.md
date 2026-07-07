@@ -10,6 +10,13 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-061 (Backend Discovery & Environment Detection):**
+  * **Umgebungs- & SDK-Erkennung:** Implementierung des `BackendDiscoveryService` und der Datenklasse `DiscoveryResult` zur automatischen, fehlerfreien Erkennung von CPU-Verfügbarkeit, Windows ARM64, Python-Version, ONNX-Runtime und Qualcomm QNN SDK / Tools (`qnn-net-run.exe`).
+  * **Exponierung im BackendManager:** Erweiterung des `BackendManager` um `run_discovery()`, `get_discovery_result()` und `get_backend_status_summary()`. Exponierung über den `ModelManagerController`.
+  * **UI-Umgebungskarte:** Integration einer dedizierten "System-Umgebung" Gruppe im rechten Inspector des AI Model Managers und des Legacy-Dialogs zur Anzeige der erkannten Parameter.
+  * **Segmentierte Generierungs-Leiste:** Erweiterung der Statusleiste im AI Generate Workspace um die dynamischen Abschnitte `Environment` und `QNN` direkt aus dem Discovery Service.
+  * **Dateien:** [backend_discovery_service.py](file:///C:/SnapdragonAI/engine/backends/backend_discovery_service.py), [discovery_result.py](file:///C:/SnapdragonAI/engine/backends/discovery_result.py), [backend_manager.py](file:///C:/SnapdragonAI/engine/backends/backend_manager.py), [model_manager_controller.py](file:///C:/SnapdragonAI/controllers/model_manager_controller.py), [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py), [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py)
+
 * **Sprint P-060 & P-060.1 (AI Engine Pipeline Foundation & Bugfix):**
   * **Inferenz-Pipeline & Resultatklasse:** Einführung der Standardklassen `ImageGenerationPipeline` und `GenerationResult` (datenbasiert, ohne Pillow- oder Backend-Abhängigkeiten) als einheitlicher Rahmen für die Inferenzläufe.
   * **Session-Integration:** Anpassung der Parameterzugriffe von `self.job.parameters` auf die strukturierte `self.job.session` Property in allen Phasen der Pipeline und in allen Backend-Adaptern (CPU, QNN, ONNX, Remote).

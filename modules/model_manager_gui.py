@@ -127,6 +127,28 @@ class ModelManagerWindow(tk.Toplevel):
         self.active_installed = self._create_value_label(self.inspector_panel, 7, 1)
         self.active_download = self._create_value_label(self.inspector_panel, 8, 1)
 
+        # Environment Section Header
+        self._label(self.inspector_panel, "System-Umgebung", 10, True, TEXT).grid(
+            row=9, column=0, columnspan=2, sticky="w", padx=16, pady=(20, 6)
+        )
+
+        # Environment Properties Grid
+        env_props = [
+            ("Betriebssystem:", 10), ("Architektur:", 11), ("Python:", 12),
+            ("CPU:", 13), ("ONNX Runtime:", 14), ("QNN SDK:", 15), ("QNN Tools:", 16)
+        ]
+        for name, r in env_props:
+            self._label(self.inspector_panel, name, 9, False, MUTED).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
+
+        # Environment Value Labels
+        self.env_os = self._create_value_label(self.inspector_panel, 10, 1)
+        self.env_arch = self._create_value_label(self.inspector_panel, 11, 1)
+        self.env_python = self._create_value_label(self.inspector_panel, 12, 1)
+        self.env_cpu = self._create_value_label(self.inspector_panel, 13, 1)
+        self.env_onnx = self._create_value_label(self.inspector_panel, 14, 1)
+        self.env_qnn_sdk = self._create_value_label(self.inspector_panel, 15, 1)
+        self.env_qnn_tools = self._create_value_label(self.inspector_panel, 16, 1)
+
         # Bottom Status Bar
         self.status_bar = tk.Frame(self, bg=PANEL_2, height=24)
         self.status_bar.grid(row=2, column=0, columnspan=2, sticky="ew")
@@ -219,6 +241,23 @@ class ModelManagerWindow(tk.Toplevel):
                         self.prop_category, self.prop_backend, self.prop_ram, self.prop_status):
                 lbl.configure(text="-")
 
+        # 7. Update System Environment discovery details
+        res = self.controller.get_discovery_result()
+        if res:
+            self.env_os.configure(text=res.os_name)
+            self.env_arch.configure(text=res.architecture)
+            self.env_python.configure(text=res.python_version)
+            self.env_cpu.configure(text="Verfügbar" if res.cpu_available else "Nicht verfügbar")
+            
+            onnx_txt = f"Verfügbar ({res.onnx_version})" if res.onnx_available else "Nicht installiert"
+            self.env_onnx.configure(text=onnx_txt)
+            
+            qnn_sdk_txt = "Gefunden" if res.qnn_sdk_found else "Nicht gefunden"
+            self.env_qnn_sdk.configure(text=qnn_sdk_txt)
+            
+            qnn_tools_txt = "Gefunden" if res.qnn_tools_found else "Nicht gefunden"
+            self.env_qnn_tools.configure(text=qnn_tools_txt)
+
     def show_details(self):
         selected = self.tree.selection()
         if not selected:
@@ -252,8 +291,8 @@ class ModelManagerWindow(tk.Toplevel):
     def _on_double_click(self, event):
         """
         Handler for double-click event on a model row.
-        Sets the clicked model as active, updates the checkmarks and inspector,
-        and switches workspace to AI Generate automatically via WorkflowController.
+        Sets the clicked model as active, updates the checkmarks and inspector.
+        Does NOT switch the workspace automatically to remain user-friendly.
         """
         selected = self.tree.selection()
         if not selected:
@@ -281,6 +320,5 @@ class ModelManagerWindow(tk.Toplevel):
         # Update status bar feedback
         self.status_lbl.configure(text=f"Aktives Modell geändert: {display_name}")
 
-        # Automatically switch to AI Generate workspace (Sprint UX-002)
-        from controllers.workflow_controller import WorkflowController
-        WorkflowController.get_instance().open_generate()
+        # TODO (UX-003): Add context menu item "Mit diesem Modell generieren" 
+        # which will explicitly trigger open_generate() on the WorkflowController.

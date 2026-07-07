@@ -220,6 +220,40 @@ class PhoenixModelManagerView(tk.Frame):
         self.active_installed = self._create_value_label(self.inspector_panel, 7, 1)
         self.active_download = self._create_value_label(self.inspector_panel, 8, 1)
 
+        # Environment Section Header
+        tk.Label(
+            self.inspector_panel,
+            text="System-Umgebung",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        ).grid(row=9, column=0, columnspan=2, sticky="ew", padx=16, pady=(20, 8))
+
+        # Environment Properties Grid
+        env_props = [
+            ("Betriebssystem:", 10), ("Architektur:", 11), ("Python:", 12),
+            ("CPU:", 13), ("ONNX Runtime:", 14), ("QNN SDK:", 15), ("QNN Tools:", 16)
+        ]
+        for name, r in env_props:
+            tk.Label(
+                self.inspector_panel,
+                text=name,
+                bg=PHOENIX_THEME.card_bg,
+                fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_body,
+                anchor="w"
+            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
+
+        # Environment Value Labels
+        self.env_os = self._create_value_label(self.inspector_panel, 10, 1)
+        self.env_arch = self._create_value_label(self.inspector_panel, 11, 1)
+        self.env_python = self._create_value_label(self.inspector_panel, 12, 1)
+        self.env_cpu = self._create_value_label(self.inspector_panel, 13, 1)
+        self.env_onnx = self._create_value_label(self.inspector_panel, 14, 1)
+        self.env_qnn_sdk = self._create_value_label(self.inspector_panel, 15, 1)
+        self.env_qnn_tools = self._create_value_label(self.inspector_panel, 16, 1)
+
         # ==========================================
         # BOTTOM STATUS BAR
         # ==========================================
@@ -344,6 +378,23 @@ class PhoenixModelManagerView(tk.Frame):
                         self.prop_category, self.prop_backend, self.prop_ram, self.prop_status):
                 lbl.configure(text="-")
 
+        # 6. Update System Environment discovery details
+        res = self.controller.get_discovery_result()
+        if res:
+            self.env_os.configure(text=res.os_name)
+            self.env_arch.configure(text=res.architecture)
+            self.env_python.configure(text=res.python_version)
+            self.env_cpu.configure(text="Verfügbar" if res.cpu_available else "Nicht verfügbar")
+            
+            onnx_txt = f"Verfügbar ({res.onnx_version})" if res.onnx_available else "Nicht installiert"
+            self.env_onnx.configure(text=onnx_txt)
+            
+            qnn_sdk_txt = "Gefunden" if res.qnn_sdk_found else "Nicht gefunden"
+            self.env_qnn_sdk.configure(text=qnn_sdk_txt)
+            
+            qnn_tools_txt = "Gefunden" if res.qnn_tools_found else "Nicht gefunden"
+            self.env_qnn_tools.configure(text=qnn_tools_txt)
+
     def show_details(self) -> None:
         """Display comprehensive metadata properties for the selected model."""
         selected = self.tree.selection()
@@ -378,8 +429,8 @@ class PhoenixModelManagerView(tk.Frame):
     def _on_double_click(self, event: tk.Event) -> None:
         """
         Handler for double-click event on a model row.
-        Sets the clicked model as the active model, updates checkmarks and inspector,
-        and switches workspace to AI Generate automatically via WorkflowController.
+        Sets the clicked model as the active model, updates checkmarks and inspector.
+        Does NOT switch the workspace automatically to remain user-friendly.
         """
         selected = self.tree.selection()
         if not selected:
@@ -407,6 +458,5 @@ class PhoenixModelManagerView(tk.Frame):
         # Update status bar feedback
         self.status_lbl.configure(text=f"Aktives Modell geändert: {display_name}")
 
-        # Automatically switch to AI Generate workspace (Sprint UX-002)
-        from controllers.workflow_controller import WorkflowController
-        WorkflowController.get_instance().open_generate()
+        # TODO (UX-003): Add context menu item "Mit diesem Modell generieren" 
+        # which will explicitly trigger open_generate() on the WorkflowController.

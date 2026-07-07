@@ -5,6 +5,7 @@ from engine.backends.cpu_backend_adapter import CPUBackendAdapter
 from engine.backends.qnn_backend_adapter import QNNBackendAdapter
 from engine.backends.onnx_backend_adapter import ONNXBackendAdapter
 from engine.backends.remote_backend_adapter import RemoteBackendAdapter
+from engine.backends.discovery_result import DiscoveryResult
 
 
 class BackendManager:
@@ -16,6 +17,7 @@ class BackendManager:
     def __init__(self) -> None:
         self._backends: dict[str, BackendAdapter] = {}
         self._active_backend_name: str | None = None
+        self._discovery_result: DiscoveryResult | None = None
 
         # Auto-register default pipeline adapters
         self.register_backend(CPUBackendAdapter())
@@ -66,3 +68,23 @@ class BackendManager:
     def get_all_backend_names(self) -> list[str]:
         """List names of all registered backends regardless of availability."""
         return list(self._backends.keys())
+
+    def run_discovery(self) -> DiscoveryResult:
+        """Run system diagnostics to scan system hardware, OS, Python runtime and QNN paths."""
+        from engine.backends.backend_discovery_service import BackendDiscoveryService
+        self._discovery_result = BackendDiscoveryService.discover()
+        return self._discovery_result
+
+    def get_discovery_result(self) -> DiscoveryResult:
+        """Retrieve the last cached discovery run result, or run discovery dynamically if empty."""
+        if self._discovery_result is None:
+            self.run_discovery()
+        assert self._discovery_result is not None
+        return self._discovery_result
+
+    def get_backend_status_summary(self) -> str:
+        """Returns a high-level summary string detailing QNN and ONNX availability status."""
+        res = self.get_discovery_result()
+        qnn_status = "Gefunden" if res.qnn_sdk_found else "Nicht gefunden"
+        onnx_status = f"Installiert ({res.onnx_version})" if res.onnx_available else "Nicht installiert"
+        return f"QNN NPU: {qnn_status} | ONNX: {onnx_status}"

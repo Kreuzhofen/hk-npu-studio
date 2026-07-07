@@ -414,6 +414,30 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.backend_status_label.pack(side="left")
 
+        self.env_status_label = tk.Label(
+            self.status_bar_frame,
+            text="Environment: -",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            padx=16,
+            pady=8
+        )
+        self.env_status_label.pack(side="left")
+
+        self.qnn_status_label = tk.Label(
+            self.status_bar_frame,
+            text="QNN: -",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            padx=16,
+            pady=8
+        )
+        self.qnn_status_label.pack(side="left")
+
         self.queue_status_label = tk.Label(
             self.status_bar_frame,
             text="Queue: 0 Job(s)",
@@ -508,6 +532,18 @@ class PhoenixPromptView(WorkspaceFrame):
         self.model_status_label.configure(text=f"Modell: {state.selected_model if state.selected_model else '-'}")
         self.backend_status_label.configure(text=f"Backend: {active_backend_name}")
         self.queue_status_label.configure(text=f"Queue: {queued_count} Job(s)")
+
+        # Update environment diagnostics status labels (Sprint P-061)
+        env_text = "Environment: -"
+        qnn_text = "QNN: -"
+        if gen_ctrl is not None and getattr(gen_ctrl, "backend_manager", None) is not None:
+            res = gen_ctrl.backend_manager.get_discovery_result()
+            if res:
+                env_text = f"Environment: {res.os_name} {res.architecture}"
+                qnn_text = f"QNN: {'Gefunden' if res.qnn_sdk_found else 'Nicht gefunden'}"
+        
+        self.env_status_label.configure(text=env_text)
+        self.qnn_status_label.configure(text=qnn_text)
 
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""

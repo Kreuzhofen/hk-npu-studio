@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from controllers.model_manager_model import ModelManagerModel
 from engine.backends.backend_manager import BackendManager
+from engine.backends.discovery_result import DiscoveryResult
 
 
 class ModelManagerController:
@@ -49,5 +50,9 @@ class ModelManagerController:
     def set_active_model_id(self, model_id: str | None) -> None:
         """Set the active model ID in the single source of truth."""
         self.model.repository.set_active_model_id(model_id)
+
+    def get_discovery_result(self) -> DiscoveryResult:
+        """Run or query system environment discovery diagnostics."""
+        return self.backend_manager.get_discovery_result()
 
 Class = ModelManagerController
