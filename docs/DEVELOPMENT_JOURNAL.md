@@ -515,3 +515,39 @@ Status: Completed
 ### Notes
 
 Der neue Dienst ermöglicht das vollständige Verwalten lokaler Modellsätze inklusive robustem Datei-Kopieren, Speicherplatzvalidierung und GUI-Rückmeldung via MessageBoxes. Im Zusammenspiel mit dem Repository werden Änderungen auf der Festplatte persistiert.
+
+## 07.07.2026 – Sprint UX-005 – Model Manager Table Polish
+
+Status: Completed
+
+### Goals
+
+- Optimierung des Tabellenlayouts im Model Manager zur Vermeidung von Textkürzungen (insbesondere in der Spalte „Kategorie“).
+- Ausgleich der Spaltenbreiten und Deaktivierung der Streckung für die Spalte „Aktiv“.
+- Gewährleistung eines harmonischen, lesbaren und professionellen Gesamteindrucks.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+
+### Notes
+
+Die Breiten wurden so austariert, dass Texte wie „Text-to-Image“ oder „Available for Download“ vollflächig lesbar sind. Die erste Spalte („Aktiv“) behält nun eine feste Breite von 45px und dehnt sich bei Skalierung des Programmfensters nicht weiter aus.
+
+## 07.07.2026 – Sprint UX-005.1 – Model Manager Card Appearance Restore
+
+Status: Completed
+
+### Goals
+
+- Beseitigung störender 3D-Tkinter/TTK-Standardrahmungen aus der Modell-Tabelle.
+- Verfeinerung des Treeview-Stylings auf flat/borderless-Ebene, um sich nahtlos in das umgebende Phoenix-Card-Design einzufügen.
+- Einführung von dynamischen Hover-Effekten (Phoenix-Akzentfarbe) für Spaltenüberschriften.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+
+### Notes
+
+Durch Setzen von `borderwidth=0` und `relief="flat"` auf der Treeview- und Heading-Klasse wird der doppelte Rahmen entfernt. Die Tabelle verschmilzt optisch mit dem Kartenhintergrund und wirkt dank der Hover-Indikatoren auf den Header-Schaltflächen hochgradig interaktiv und professionell.

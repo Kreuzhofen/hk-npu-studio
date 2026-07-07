@@ -74,6 +74,8 @@ class PhoenixModelManagerView(tk.Frame):
             darkcolor=PHOENIX_THEME.border,
             rowheight=30,
             font=PHOENIX_THEME.font_body,
+            borderwidth=0,
+            relief="flat",
         )
         style.configure(
             "Phoenix.Treeview.Heading",
@@ -83,11 +85,18 @@ class PhoenixModelManagerView(tk.Frame):
             lightcolor=PHOENIX_THEME.border,
             darkcolor=PHOENIX_THEME.border,
             font=PHOENIX_THEME.font_button,
+            borderwidth=0,
+            relief="flat",
         )
         style.map(
             "Phoenix.Treeview",
             background=[("selected", PHOENIX_THEME.accent)],
             foreground=[("selected", PHOENIX_THEME.text_on_accent)],
+        )
+        style.map(
+            "Phoenix.Treeview.Heading",
+            background=[("active", PHOENIX_THEME.accent), ("!active", PHOENIX_THEME.elevated_bg)],
+            foreground=[("active", PHOENIX_THEME.text_on_accent), ("!active", PHOENIX_THEME.text_primary)],
         )
 
         # Table container card
@@ -113,11 +122,11 @@ class PhoenixModelManagerView(tk.Frame):
         self.tree.heading("backend", text="Ziel-Backend")
         self.tree.heading("status", text="Status")
 
-        self.tree.column("active", width=50, anchor="center")
-        self.tree.column("name", width=260, anchor="w")
-        self.tree.column("category", width=120, anchor="w")
-        self.tree.column("backend", width=160, anchor="w")
-        self.tree.column("status", width=200, anchor="center")
+        self.tree.column("active", width=45, anchor="center", stretch=False)
+        self.tree.column("name", width=240, anchor="w", stretch=True)
+        self.tree.column("category", width=160, anchor="w", stretch=True)
+        self.tree.column("backend", width=130, anchor="w", stretch=True)
+        self.tree.column("status", width=180, anchor="center", stretch=True)
         self.tree.pack(fill="both", expand=True, padx=8, pady=8)
 
         # Bindings for selection display and double-click

@@ -10,6 +10,14 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint UX-005.1 (Model Manager Card Appearance Restore):**
+  * **Wiederherstellung des Phoenix-Card-Designs:** Flat-Styling für das `ttk.Treeview` und dessen Header durch Deaktivierung von Standard-3D-Rahmen (`borderwidth=0`, `relief="flat"`). Zusätzliche Farbkapselung über den `ThemeManager` und Zuweisung von Hover-Mapping auf den Spaltenüberschriften mit dem Phoenix-Akzentfarbton zur Gewährleistung eines harmonischen, integrierten Karten-Looks im Phoenix-Designsystem.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py)
+
+* **Sprint UX-005 (Model Manager Table Polish):**
+  * **Optimierte Tabellenspalten:** Anpassung der Spaltenbreiten im Model Manager Treeview zur Vermeidung von Textkürzungen (z. B. in Kategorie). Die Spalte „Aktiv“ wurde auf eine feste Breite von 45px (ohne Streckung) fixiert, während „Modellname“ (240px), „Kategorie“ (160px), „Ziel-Backend“ (130px) und „Status“ (180px) dynamisch mitgestreckt werden. Dies gewährleistet eine balancierte, lesbare und professionelle Darstellung.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py)
+
 * **Sprint P-070 (Local AI Model Installation Foundation):**
   * **ModelInstallService:** Implementierung des neuen Service `ModelInstallService` zur Verwaltung lokaler Modell-Installationen. Bietet Funktionen zur Validierung von Modelldateien, Bestimmung der Modellgröße, Überprüfung des freien Festplattenspeichers (inkl. Sicherheits-Puffer), Kopieren lokaler Modelldateien in das Standardverzeichnis und sicheren Deinstallation (Löschen von Dateien im Workspace).
   * **Integration in ModelRepository:** Der Service nutzt das `ModelRepository` zur Aktualisierung von Installationsstatustexten (`status`), Installationsflags (`installed`) und des Pfads (`path`) direkt auf der Festplatte.
