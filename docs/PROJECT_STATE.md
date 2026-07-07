@@ -10,6 +10,18 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-072.2 (Connect QNN Availability to Backend Discovery):**
+  * **Bereinigung der Debug-Ausgaben:** Sämtliche temporären `[DEBUG P-072.1]`-Konsolenausgaben wurden vollständig aus `backend_manager.py` entfernt.
+  * **Dynamische NPU-Erkennung:** Die Methode `is_available()` im `QNNBackendAdapter` wurde an den `BackendDiscoveryService` angebunden. Das QNN-Backend meldet sich nun genau dann als verfügbar (`True`), wenn sowohl `qnn_sdk_found` als auch `qnn_tools_found` im Diagnoselauf als wahr erkannt werden (andernfalls `False`).
+  * **Performance-Optimierung via Caching:** Einführung eines Klassen-Caches (`_cached_is_available`) im `QNNBackendAdapter` zur Vermeidung wiederholter Filesystem-Scans bei UI-Refreshes.
+  * **Dateien:** [backend_manager.py](file:///C:/SnapdragonAI/engine/backends/backend_manager.py), [qnn_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/qnn_backend_adapter.py)
+
+* **Sprint P-072 (Backend Routing in GenerationController):**
+  * **Dynamic Backend Selection during Generation:** Integration des automatischen Backend-Routings in `GenerationController.queue_generation`. Der Controller löst die `model_name` der Generierungssitzung über das `ModelRepository` zu den Modell-Metadaten auf und ermittelt via `BackendManager.get_best_backend` den optimalen, verfügbaren Backend-Adapter.
+  * **Synchronisation mit UI & Pipeline:** Übergabe des gewählten Backend-Adapters an die `ImageGenerationPipeline`. Aktualisierung des aktiven Backends im `BackendManager`, sodass die UI (z. B. der Inspector und die Statusleiste im AI Generate Workspace) während und nach der Generierung das tatsächlich genutzte Backend anzeigt. Der Fallback auf den CPU (Stub) bleibt vollständig erhalten.
+  * **Ergebnismetadaten:** Der Name des gerouteten Backends wird im zurückgelieferten `GenerationResult` (`backend_name` und `metadata["routed_backend"]`) zur Nachverfolgung persistiert.
+  * **Dateien:** [generation_controller.py](file:///C:/SnapdragonAI/controllers/generation_controller.py)
+
 * **Sprint P-071 (Backend Manager Routing Foundation):**
   * **Backend-Auswahl-Infrastruktur:** Implementierung des automatischen Backend-Auswahlmechanismus in `BackendManager` via `get_best_backend(model)`.
   * **Routing-Priorisierung:** Nutzt das bevorzugte Backend des Modells aus der Konfigurationsdatei (z.B. `"recommended_backend"` wie `Qualcomm QNN NPU (Stub)`) als erste Präferenz. Ist dieses nicht verfügbar, erfolgt ein geordneter Fallback auf verfügbare Backends: `QNN` -> `ONNX` -> `CPU (Stub)`.

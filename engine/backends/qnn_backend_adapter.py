@@ -23,9 +23,17 @@ class QNNBackendAdapter(BackendAdapter):
     def shutdown(self) -> None:
         print("[QNNBackendAdapter] Releasing Qualcomm NPU contexts...")
 
+    _cached_is_available: bool | None = None
+
     def is_available(self) -> bool:
-        # TODO: Detect Windows on ARM64 platform and Hexagon NPU capability via OS checks
-        return False  # Stub defaults to False if NPU stack is not fully configured
+        if QNNBackendAdapter._cached_is_available is None:
+            try:
+                from engine.backends.backend_discovery_service import BackendDiscoveryService
+                res = BackendDiscoveryService.discover()
+                QNNBackendAdapter._cached_is_available = bool(res.qnn_sdk_found and res.qnn_tools_found)
+            except Exception:
+                QNNBackendAdapter._cached_is_available = False
+        return QNNBackendAdapter._cached_is_available
 
     def get_backend_name(self) -> str:
         return "Qualcomm QNN NPU (Stub)"

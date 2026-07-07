@@ -570,3 +570,43 @@ Status: Completed
 ### Notes
 
 Das Routing arbeitet robust und greift auf die `is_available()` Schnittstelle der Backend-Adapter zurück. Falls ein Modell ein bevorzugtes Backend definiert und dieses auf dem Host-System lauffähig ist, wird es bevorzugt. Andernfalls wird kaskadierend nach der allgemeinen Priorität (NPU -> ONNX -> CPU) ausgewählt. Die Methode `get_best_backend` ist vollständig rückwärtskompatibel.
+
+## 07.07.2026 – Sprint P-072 – Backend Routing in GenerationController
+
+Status: Completed
+
+### Goals
+
+- Nutzung des automatischen Routings in `GenerationController.queue_generation` via `BackendManager.get_best_backend`.
+- Auflösung der Modell-Metadaten aus dem `ModelRepository` anhand der in der Sitzung aktiven `model_name` (Model-ID).
+- Weiterleitung des optimalen, lokal verfügbaren Backend-Adapters an die `ImageGenerationPipeline`.
+- Aktive Statusleisten- und Inspector-Aktualisierungen im AI Generate Workspace, um das tatsächlich geroutete Backend anzuzeigen.
+- Anreicherung des Generierungsergebnisses (`GenerationResult`) mit Routing-Metadaten.
+
+### Modified / Added
+
+- `controllers/generation_controller.py` (modifiziert)
+
+### Notes
+
+Der Generierungs-Workflow verbindet nun automatisch Systemumgebungs-Erkennungen mit Modellspezifikationen. Bei der Generierung wird das bevorzugte Backend der JSON geladen, auf Verfügbarkeit geprüft und dynamisch im System umgeschaltet. Das Ergebnis spiegelt das genutzte Backend korrekt wider. Der CPU-Stub verbleibt als voll funktionsfähiger Fallback.
+
+## 07.07.2026 – Sprint P-072.2 – Connect QNN Availability to Backend Discovery
+
+Status: Completed
+
+### Goals
+
+- Anbindung der Verfügbarkeit des `QNNBackendAdapter` an die Diagnoseergebnisse des `BackendDiscoveryService`.
+- Dynamische Aktivierung des QNN-Backends (`is_available` liefert `True`), wenn `qnn_sdk_found` und `qnn_tools_found` im System als wahr erkannt wurden.
+- Einführung eines Klassen-Caches (`_cached_is_available`), um wiederholte Festplatten-Scans bei UI-Refreshes zu vermeiden.
+- Entfernung aller temporären `[DEBUG P-072.1]` print-Anweisungen aus `backend_manager.py`.
+
+### Modified / Added
+
+- `engine/backends/backend_manager.py` (modifiziert)
+- `engine/backends/qnn_backend_adapter.py` (modifiziert)
+
+### Notes
+
+Durch die Anbindung an den Discovery-Service schaltet die Anwendung nun auf Windows-ARM64-Systemen mit installiertem Qualcomm AI Stack (HTP Driver + qnn-net-run.exe vorhanden) automatisch auf Qualcomm QNN NPU um, wenn ein Modell dieses bevorzugt. Der Klassen-Cache stellt sicher, dass die Dateisystemdiagnosen nur einmalig beim ersten Abruf durchgeführt werden, was die UI-Performance im Idle-Zustand maximiert.

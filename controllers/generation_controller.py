@@ -74,12 +74,28 @@ class GenerationController:
             print(f"  {key}: {val}")
         print("--------------------------------------------")
 
-        # Route job through the pipeline to the active backend adapter
-        active_backend = self.backend_manager.get_active_backend()
-        
+        # Resolve model metadata
+        from controllers.model_repository import ModelRepository
+        repo = ModelRepository()
+        model_metadata = repo.get_model(job_session.model_name)
+
+        # Route job through the pipeline to the best backend adapter
+        selected_backend = self.backend_manager.get_best_backend(model_metadata or job_session.model_name)
+        if selected_backend is None:
+            selected_backend = self.backend_manager.get_active_backend()
+
+        # Update active backend on manager so UI status/refresh reflects the routed selection
+        if selected_backend:
+            self.backend_manager.set_active_backend(selected_backend.get_backend_name())
+
         from controllers.generation_pipeline import ImageGenerationPipeline
-        pipeline = ImageGenerationPipeline(job=job, backend_adapter=active_backend)
+        pipeline = ImageGenerationPipeline(job=job, backend_adapter=selected_backend)
         result = pipeline.run()
+
+        # Update result metadata so AI Generate can show the routed backend
+        if selected_backend:
+            result.backend_name = selected_backend.get_backend_name()
+            result.metadata["routed_backend"] = selected_backend.get_backend_name()
 
         # Dequeue since execution finished
         self.queue.dequeue()
