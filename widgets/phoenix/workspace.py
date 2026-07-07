@@ -115,9 +115,10 @@ class PhoenixWorkspace(tk.Frame):
         for view in self._views.values():
             view.grid_forget()
 
-        # Hide or show global right panel (inspector) per workspace (Sprint P-061.4)
+        # Hide global right panel for workspaces with their own inspector (UX-004.1)
+        _VIEWS_WITH_OWN_INSPECTOR = {"models", "prompt"}
         if self.right_panel is not None:
-            if view_name == "models":
+            if view_name in _VIEWS_WITH_OWN_INSPECTOR:
                 self.right_panel.grid_forget()
             else:
                 self.right_panel.grid(row=1, column=2, sticky="nse", padx=(0, 16), pady=16)

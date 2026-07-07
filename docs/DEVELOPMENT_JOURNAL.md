@@ -432,4 +432,45 @@ Status: Completed
 
 Durch das dynamische Ausblenden des globalen Inspectors erhält der Model Manager die volle verfügbare App-Breite. Dadurch konnten wir die Spaltenbreiten weiter optimieren, so dass alle Modellnamen und Statusangaben vollständig sichtbar sind. Der globale Inspector wird bei allen anderen Workspaces weiterhin unverändert gerendert.
 
+## 07.07.2026 – Sprint UX-003 – AI Model Manager Workspace Redesign
+
+Status: Completed
+
+### Goals
+
+- Vollständiges Redesign der Model Manager Oberfläche zu einem sauberen zweispaltigen Layout (Tabelle links, Inspector rechts).
+- Entfernung des redundanten unteren Eigenschafts-Gitterpanels.
+- Konsolidierung aller Modell- und Umgebungsdetails des selektierten Modells im scrollbaren rechten Inspector.
+- Integration deaktivierter Platzhalter-Buttons (Installieren, Deinstallieren, Aktualisieren, Benchmark, Ordner öffnen).
+- Verfeinerung des Klick-Verhaltens (Einfacher Klick aktualisiert Inspector und Status; Doppelklick ändert das aktive Modell).
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+
+### Notes
+
+Das neue Layout verleiht dem Model Manager ein unaufgeregtes, professionelles Erscheinungsbild (Commercial Polish). Die Tabelle profitiert von der gewonnenen vertikalen Höhe, während der Inspector alle Details des gewählten Modells strukturiert zusammenfasst.
+
+## 07.07.2026 – Sprint UX-004 – AI Generate Workspace Redesign
+
+Status: Completed
+
+### Goals
+
+- Vollständiges Redesign des AI Generate Workspace zu einer professionellen AI Creative Oberfläche.
+- Strukturierung der linken Parametereingabe in fünf klar getrennte Gruppen: Model, Prompt, Image Size, Sampling und Output.
+- Vergrößerung der Prompt-Felder (6 Zeilen für Prompt, 3 Zeilen für Negativen Prompt).
+- Einführung eines einheitlichen, scrollbaren AI Generation Inspectors rechts mit drei Bereichen: Generation Status, Generation Information und Preview-Platzhalter.
+- Integration von drei deaktivierten Platzhalter-Buttons (Open in Library, Open in Review, Save As).
+- Neues Sampler- und Scheduler-Dropdown für zukünftige Sampling-Konfiguration.
+- Beibehaltung der segmentierten Statusleiste (Status, Modell, Backend, Environment, QNN, Queue).
+
+### Modified / Added
+
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+
+### Notes
+
+Das neue Layout verleiht dem AI Generate Workspace eine ruhige, übersichtliche Struktur auf Commercial-Quality-Niveau. Keine Geschäftslogik wurde verändert – das Refactoring betrifft ausschließlich die UI-Schicht. Die `_on_model_changed`-Methode wurde bereinigt, um direkt auf die Slider- und Entry-Widgets zuzugreifen statt auf nicht existierende StringVar-Referenzen.
 

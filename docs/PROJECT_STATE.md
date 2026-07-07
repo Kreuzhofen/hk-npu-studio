@@ -10,6 +10,28 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint UX-004.3 (AI Generate No-Scroll Layout Fix):**
+  * **No-Scroll Design auf 1080p:** Optimierung aller Widgets und Ränder im AI Generate Workspace, sodass alle Eingabegruppen (Model, Prompt, Negative Prompt, Image Size, Sampling, Output), der rechte Inspector samt Preview und die Statusleiste ohne vertikales Scrollen sichtbar sind.
+  * **Kompakte Eingabeelemente:** Das Prompt-Feld wurde auf 3 Zeilen, das Negative-Prompt-Feld auf 1 Zeile verkleinert. Breite/Höhe, CFG/Steps, Sampler/Scheduler und Seed/Batch Count wurden platzsparend in horizontalen Rastern nebeneinander gruppiert.
+  * **Optimierter Inspector:** Der rechte Canvas samt Scrollbar wurde durch ein kompaktes, 4-spaltiges Layout-Raster ersetzt, welches alle Informationen übersichtlich darstellt und das Scrollen im AI Generate Workspace vollständig überflüssig macht.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py)
+
+* **Sprint UX-004 (AI Generate Workspace Redesign):**
+  * **Neues zweispaltiges Design:** Professionelles Layout mit gruppierter Parametereingabe links (70 %) und einem scrollbaren AI Generation Inspector rechts (30 %).
+  * **Parametergruppen:** Die Eingabefläche ist in fünf klar getrennte Gruppen unterteilt: Model, Prompt, Image Size, Sampling (CFG, Steps, Sampler, Scheduler) und Output (Seed, Batch Count).
+  * **Prompt-Vergrößerung:** Die Prompt- und Negativ-Prompt-Felder sind deutlich mehrzeilig (6 bzw. 3 Zeilen) und damit professionell nutzbar.
+  * **AI Generation Inspector:** Vereinigt drei Bereiche: Generation Status (Model, Backend, Status, Queue), Generation Information (Image Size, Steps, CFG, Seed, Sampler, Scheduler) und Preview-Platzhalter.
+  * **Platzhalter-Buttons:** Drei deaktivierte Buttons (Open in Library, Open in Review, Save As) unterhalb der Preview.
+  * **Segmentierte Statusleiste:** Segmente für Status, Modell, Backend, Environment, QNN und Queue.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py)
+
+* **Sprint UX-003 (AI Model Manager Workspace Redesign):**
+  * **Neues zweispaltiges Design:** Der gesamte untere Eigenschafts-Bereich wurde entfernt. Der linke Bereich besteht nun ausschließlich aus der vergrößerten Modellliste.
+  * **Einheitlicher rechter Inspector:** Die Modellinformationen des *aktuell ausgewählten* Modells und die Systemumgebung wurden in einem einzigen, übersichtlichen und scrollbaren rechten Inspector vereint.
+  * **Vorbereitete Aktions-Buttons:** Integration von fünf deaktivierten Platzhalter-Buttons (Installieren, Deinstallieren, Aktualisieren, Benchmark, Ordner öffnen) zur Vorbereitung künftiger Model-Management-Funktionen.
+  * **UX-Politur:** Der einfache Klick aktualisiert den Inspector und meldet `"Modell ausgewählt: <Modellname>"` in der Statusleiste. Der Doppelklick markiert das Modell als aktiv (✓) und meldet `"Aktives Modell geändert: <Modellname>"`, ohne den Workspace zu wechseln.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py)
+
 * **Sprint P-061 & P-061.1 & P-061.2 & P-061.3 & P-061.4 (Backend Discovery, UX Polish, Scrollable Inspector, Table Columns Polish & Hide Global Inspector):**
   * **Umgebungs- & SDK-Erkennung:** Implementierung des `BackendDiscoveryService` und der Datenklasse `DiscoveryResult` zur automatischen, fehlerfreien Erkennung von CPU-Verfügbarkeit, Windows ARM64, Python-Version, ONNX-Runtime und Qualcomm QNN SDK / Tools (`qnn-net-run.exe`).
   * **Exponierung im BackendManager:** Erweiterung des `BackendManager` um `run_discovery()`, `get_discovery_result()` und `get_backend_status_summary()`. Exponierung über den `ModelManagerController`.
