@@ -182,6 +182,7 @@ class GalleryThumbnailArea(tk.Frame):
                 selected=selected,
                 command=self._select_image,
                 double_command=self.on_double_click,
+                right_click_command=self._right_click_image,
             )
             widget.grid(
                 row=row,
@@ -215,6 +216,31 @@ class GalleryThumbnailArea(tk.Frame):
     def _select_image(self, image: GalleryImage, event: tk.Event) -> None:
         self.focus_gallery()
         self.on_select(image, event)
+
+    def _right_click_image(self, image: GalleryImage, event: tk.Event) -> None:
+        self.focus_gallery()
+        if image.path not in self.selected_paths:
+            self.on_select(image, event)
+        self._show_context_menu(image, event)
+
+    def _show_context_menu(self, image: GalleryImage, event: tk.Event) -> None:
+        menu = tk.Menu(
+            self,
+            tearoff=False,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_body,
+        )
+        menu.add_command(
+            label="In Compare öffnen",
+            command=lambda img=image: self.on_double_click(img),
+        )
+        self._context_menu = menu
+        menu.post(event.x_root, event.y_root)
 
     def _on_free_space_click(self, event: tk.Event) -> None:
         if event.widget in {self.canvas, self.grid_frame}:

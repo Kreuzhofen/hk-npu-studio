@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image, ImageOps
+Image.MAX_IMAGE_PIXELS = None
 
 from controllers.compare_workspace_model import (
     CompareImageMetadata,
@@ -109,7 +110,15 @@ class CompareWorkspaceController:
             image_format = source_image.format or path.suffix.lstrip(".").upper() or "Unbekannt"
             image = ImageOps.exif_transpose(source_image)
             color_mode = image.mode
-            resolution = f"{image.size[0]} x {image.size[1]}"
+            orig_w, orig_h = image.size
+            resolution = f"{orig_w} x {orig_h}"
+
+            # Safe resize for large images to prevent UI lags and OOMs
+            if orig_w * orig_h > 50_000_000:
+                scale_factor = min(4096 / orig_w, 4096 / orig_h)
+                if scale_factor < 1.0:
+                    image = image.resize((int(orig_w * scale_factor), int(orig_h * scale_factor)), resample=Image.Resampling.BILINEAR)
+
             display_image = image.convert("RGB")
 
         metadata = CompareImageMetadata(

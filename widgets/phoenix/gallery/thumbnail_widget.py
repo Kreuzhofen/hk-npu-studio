@@ -27,6 +27,7 @@ class ThumbnailWidget(tk.Frame):
         selected: bool,
         command: Callable[[GalleryImage, tk.Event], None],
         double_command: Callable[[GalleryImage], None],
+        right_click_command: Callable[[GalleryImage, tk.Event], None] | None = None,
     ) -> None:
         super().__init__(
             master,
@@ -38,6 +39,7 @@ class ThumbnailWidget(tk.Frame):
         self.thumbnail_image = thumbnail_image
         self.command = command
         self.double_command = double_command
+        self.right_click_command = right_click_command
         self.size = size
         self.selected = selected
         self._build()
@@ -147,6 +149,7 @@ class ThumbnailWidget(tk.Frame):
     def _bind_events(self, widget: tk.Widget) -> None:
         widget.bind("<Button-1>", self._on_click)
         widget.bind("<Double-Button-1>", self._on_double_click)
+        widget.bind("<Button-3>", self._on_right_click)
         widget.bind("<Enter>", self._on_enter)
         widget.bind("<Leave>", self._on_leave)
 
@@ -156,6 +159,11 @@ class ThumbnailWidget(tk.Frame):
 
     def _on_double_click(self, _event: tk.Event) -> str:
         self.double_command(self.image)
+        return "break"
+
+    def _on_right_click(self, event: tk.Event) -> str:
+        if self.right_click_command is not None:
+            self.right_click_command(self.image, event)
         return "break"
 
     def _on_enter(self, _event: tk.Event) -> None:

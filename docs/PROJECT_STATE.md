@@ -1,6 +1,6 @@
 # Projektstatus – Snapdragon AI Studio
 
-**Stand:** 06.07.2026
+**Stand:** 07.07.2026
 **Zweig:** `feature/phoenix-rebuild`
 **Zielplattform:** Windows 11 ARM64 (Qualcomm Snapdragon X NPU via QNN)
 
@@ -8,7 +8,12 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
-Am **06.07.2026** wurden zwei wichtige Bugfix-Korrekturen durchgeführt:
+Am **07.07.2026** wurde der Sprint **P-050 (Gallery → Compare Workflow Completion)** abgeschlossen:
+* **Doppelklick & Kontextmenü:** Doppelklick auf ein Galerie-Thumbnail oder Auswahl von „In Compare öffnen“ im neuen, passend gestylten Kontextmenü (Rechtsklick) öffnet das Bild stabil in der Vergleichsansicht. Die Übergabe erfolgt sauber über die MVC-Controller/Adapter-Struktur.
+* **Robuste Großbild-Vergleichsansicht:** `CompareWorkspaceController` wurde so erweitert, dass er sehr große Bilder (> 50 MP) beim Laden für die Anzeige proportional auf eine Kantenbreite von max. 4096 Pixeln herunterskaliert, während die vollständige Metadaten-Auflösung beibehalten wird. Zudem wurde `Image.MAX_IMAGE_PIXELS = None` gesetzt, um Abstürze durch Decompression Bomb Checks zu verhindern.
+* **Dateien:** [thumbnail_widget.py](file:///C:/SnapdragonAI/widgets/phoenix/gallery/thumbnail_widget.py), [thumbnail_area.py](file:///C:/SnapdragonAI/widgets/phoenix/gallery/thumbnail_area.py), [compare_workspace_controller.py](file:///C:/SnapdragonAI/controllers/compare_workspace_controller.py)
+
+Am **06.07.2026** wurden wichtige Bugfix-Korrekturen durchgeführt:
 
 1. **Gallery Thumbnail-Rendering nach Resize (Bugfix):**
    * **Problem:** Gallery-Thumbnails wurden nach dem Ändern der Fensterbreite (Resize / Spaltenwechsel) permanent durch Platzhalter ersetzt.
