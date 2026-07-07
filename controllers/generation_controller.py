@@ -4,37 +4,20 @@ from typing import Any
 from controllers.generation_session import GenerationSessionModel
 from controllers.generation_job import GenerationJob
 from controllers.generation_queue import GenerationQueue
-
-
-# Geplante Backend Adapter (Zukünftige Integration):
-#
-# class QNNBackendAdapter:
-#     """NPU-beschleunigte Inferenz über das Qualcomm QNN SDK."""
-#     pass
-#
-# class ONNXBackendAdapter:
-#     """Lokaler Fallback über ONNX Runtime."""
-#     pass
-#
-# class CPUBackendAdapter:
-#     """Reine CPU-Referenzimplementierung über NumPy / PyTorch CPU."""
-#     pass
-#
-# class RemoteBackendAdapter:
-#     """Cloud-Generierung über REST-API-Schnittstellen."""
-#     pass
+from engine.backends.backend_manager import BackendManager
 
 
 class GenerationController:
     """
     Central controller responsible for validating, scheduling and orchestrating AI generations.
     Decoupled from GUI views and direct backend implementations.
-    Now leverages a FIFO GenerationQueue for pipeline scheduling.
+    Now leverages a FIFO GenerationQueue for pipeline scheduling and BackendManager for adapter routing.
     """
 
     def __init__(self, session: GenerationSessionModel | None = None) -> None:
         self.session = session or GenerationSessionModel()
         self.queue = GenerationQueue()
+        self.backend_manager = BackendManager()
         self.is_generating = False
 
     def update_session(self, **kwargs: Any) -> None:
@@ -64,6 +47,7 @@ class GenerationController:
         """
         Queue the generation based on the active session parameters.
         Validates parameters first, creates a GenerationJob and adds it to the queue.
+        Routes execution through BackendManager to the active BackendAdapter.
         """
         is_valid, msg = self.validate_session()
         if not is_valid:
@@ -84,6 +68,12 @@ class GenerationController:
             print(f"  {key}: {val}")
         print("--------------------------------------------")
 
+        # Route job to the active backend adapter
+        active_backend = self.backend_manager.get_active_backend()
+        if active_backend is not None:
+            backend_msg = active_backend.generate(job)
+            print(f"[GenerationController] Active Backend ({active_backend.get_backend_name()}) returned: {backend_msg}")
+
         queued_count = self.queue.get_queued_count()
         if queued_count == 1:
             return "1 Job in Warteschlange"
@@ -102,6 +92,11 @@ class GenerationController:
         for job in self.queue.get_all_jobs():
             if job.status == "QUEUED":
                 self.queue.cancel(job.job_id)
+
+        # Notify active backend of cancel
+        active_backend = self.backend_manager.get_active_backend()
+        if active_backend is not None and current is not None:
+            active_backend.cancel(current)
 
         self.is_generating = False
         print("--- [GenerationController: Cancel Generation] ---")

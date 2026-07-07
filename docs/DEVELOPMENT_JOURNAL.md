@@ -144,3 +144,30 @@ Status: Completed
 
 Die Generierungs-Pipeline steht nun als stabiles Architekturgerüst. Die Übergabe erfolgt sauber von GUI -> PromptWorkspaceController -> GenerationController -> GenerationQueue -> GenerationJob. Alle veralteten RealESRGAN-Bezüge wurden erfolgreich neutralisiert und durch neutrale Engine-Platzhalter ersetzt.
 
+## 07.07.2026 – Sprint P-054 – AI Backend Adapter Architecture Foundation
+
+Status: Completed
+
+### Goals
+
+- Entwicklung einer Backend-Abstraktionsschicht (ABC `BackendAdapter`).
+- Erstellung eines `BackendManager` zur Registrierung und Aktivierung von Adaptern.
+- Implementation von vier Adaptern (CPU, QNN, ONNX, Remote) als Stubs mit Kommentaren für FLUX/SDXL.
+- Integration der Backend-Ausführung im `GenerationController`.
+- Erweiterung des Inspectors im Prompt Workspace zur Anzeige der Engine, des aktiven Modells und des aktuellen Status.
+
+### Modified / Added
+
+- `engine/backends/backend_adapter.py` (neu)
+- `engine/backends/backend_manager.py` (neu)
+- `engine/backends/cpu_backend_adapter.py` (neu)
+- `engine/backends/qnn_backend_adapter.py` (neu)
+- `engine/backends/onnx_backend_adapter.py` (neu)
+- `engine/backends/remote_backend_adapter.py` (neu)
+- `controllers/generation_controller.py` (modifiziert)
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+
+### Notes
+
+Das Backend-Abstraktionsgerüst ist nun vollständig implementiert und mit dem UI-Inspector verdrahtet. Der `GenerationController` leitet die eingereihten Jobs direkt an das im `BackendManager` ausgewählte aktive Backend (standardmäßig `CPU (Stub)`) weiter.
+

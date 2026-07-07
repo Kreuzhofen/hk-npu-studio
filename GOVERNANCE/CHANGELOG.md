@@ -7,6 +7,9 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 ## [2.0 Preview] – 2026-07-07 (Laufende Phoenix-Entwicklung)
 
 ### Hinzugefügt
+* **Backend-Adapter-Architektur (P-054):** Einführung der abstrakten Basisklasse `BackendAdapter` (ABC) und des `BackendManager` zur Abstraktion und Steuerung von Generierungsprozessen.
+* **Stub-Inferenz-Adapter (P-054):** Implementation der vier Adapter `CPUBackendAdapter`, `QNNBackendAdapter`, `ONNXBackendAdapter` und `RemoteBackendAdapter` als erweiterbare Stubs zur Vorbereitung künftiger NPU- und CPU-Pipelines.
+* **Prompt-Workspace-Details (P-054):** Erweiterung des Preview-Inspectors im Generierungs-Workspace um eine Infobox zur Anzeige von Engine, aktivem Backend, Version und Modell.
 * **Generierungssitzung & GenerationController (P-052):** Implementierung der Generierungsarchitektur durch Einführung von `GenerationSessionModel` (zentraler Parameterzustand) und `GenerationController` (Validierung, Abbrechen und Einreihen von Generierungsaufträgen).
 * **Workspace-Generierungsintegration (P-052):** Umleitung aller Generierungsaufrufe im `PromptWorkspaceController` über den neuen `GenerationController`. Parameter werden in der `GenerationSession` synchron gehalten.
 * **Prompt Workspace Foundation (P-051):** Neuer Workspace „AI Generate“ zur Text-zu-Bild-Generierung. Bietet Eingabefelder für Prompt und Negativ-Prompt sowie Einstellregler für Seed, Schritte, CFG, Breite und Höhe und ein Modell-Dropdown.

@@ -21,6 +21,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self._build_input_area()
         self._build_preview_area()
+        self._build_details_area()
         self._build_status_bar()
         self.refresh()
 
@@ -304,6 +305,67 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.queue_info_label.grid(row=2, column=0, sticky="ew", padx=16, pady=(8, 16))
 
+    def _build_details_area(self) -> None:
+        if self.inspector_slot is None:
+            return
+
+        self.inspector_slot.grid_rowconfigure(0, weight=1)
+        self.inspector_slot.grid_rowconfigure(1, weight=0)
+
+        # Details Card
+        self.details_card = tk.Frame(
+            self.inspector_slot,
+            bg=PHOENIX_THEME.card_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1
+        )
+        self.details_card.grid(row=1, column=0, sticky="ew", padx=PHOENIX_THEME.space_sm, pady=(0, PHOENIX_THEME.space_sm))
+        self.details_card.grid_columnconfigure(0, weight=0)
+        self.details_card.grid_columnconfigure(1, weight=1)
+
+        # Title
+        tk.Label(
+            self.details_card,
+            text="Generierungsinformationen",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w"
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
+
+        labels = [
+            ("Generation Engine:", 1),
+            ("Backend:", 2),
+            ("Version:", 3),
+            ("Status:", 4),
+            ("Model:", 5)
+        ]
+
+        for text, r_idx in labels:
+            tk.Label(
+                self.details_card,
+                text=text,
+                bg=PHOENIX_THEME.card_bg,
+                fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_small,
+                anchor="w"
+            ).grid(row=r_idx, column=0, sticky="w", padx=(16, 8), pady=4)
+
+        self.engine_val = tk.Label(self.details_card, text="Stub Backend", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_body, anchor="w")
+        self.engine_val.grid(row=1, column=1, sticky="w", padx=(0, 16), pady=4)
+
+        self.backend_val = tk.Label(self.details_card, text="CPU (Stub)", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_body, anchor="w")
+        self.backend_val.grid(row=2, column=1, sticky="w", padx=(0, 16), pady=4)
+
+        self.version_val = tk.Label(self.details_card, text="0.1", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_body, anchor="w")
+        self.version_val.grid(row=3, column=1, sticky="w", padx=(0, 16), pady=4)
+
+        self.status_val = tk.Label(self.details_card, text="Ready", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_body, anchor="w")
+        self.status_val.grid(row=4, column=1, sticky="w", padx=(0, 16), pady=4)
+
+        self.model_val_lbl = tk.Label(self.details_card, text="None", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_body, anchor="w")
+        self.model_val_lbl.grid(row=5, column=1, sticky="w", padx=(0, 16), pady=(4, 16))
+
     def _build_status_bar(self) -> None:
         self.status_bar_frame = tk.Frame(
             self.status_slot,
@@ -374,5 +436,21 @@ class PhoenixPromptView(WorkspaceFrame):
                 self.queue_info_label.configure(text="Queue: 1 Job")
             else:
                 self.queue_info_label.configure(text=f"Queue: {queued_count} Jobs")
+
+            active_backend = gen_ctrl.backend_manager.get_active_backend()
+            if active_backend is not None:
+                self.engine_val.configure(text="Stub Backend")
+                self.backend_val.configure(text=active_backend.get_backend_name())
+                self.version_val.configure(text=active_backend.get_backend_version())
+            else:
+                self.engine_val.configure(text="Keine Engine")
+                self.backend_val.configure(text="None")
+                self.version_val.configure(text="-")
         else:
             self.queue_info_label.configure(text="Queue: 0 Jobs")
+            self.engine_val.configure(text="Keine Engine")
+            self.backend_val.configure(text="None")
+            self.version_val.configure(text="-")
+
+        self.status_val.configure(text=state.status)
+        self.model_val_lbl.configure(text=state.selected_model if state.selected_model else "None")

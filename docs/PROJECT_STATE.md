@@ -10,6 +10,13 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-054 (AI Backend Adapter Architecture Foundation):**
+  * **Backend-Abstraktionsschicht:** Definition der abstrakten Basisklasse `BackendAdapter` (ABC) mit Schnittstellenmethoden zur Initialisierung, Herunterfahren, Progress-Tracking, Job-Erzeugung und Stopp-Signalisierung.
+  * **Registrierung & Steuerung:** Implementierung des `BackendManager` zur Registrierung, Abfrage und Aktivierung von Adaptern. Standardmäßig werden vier Stubs registriert: `CPUBackendAdapter`, `QNNBackendAdapter`, `ONNXBackendAdapter` und `RemoteBackendAdapter`.
+  * **Pipeline-Integration:** `GenerationController` leitet `queue_generation()`-Aufträge nun über die `GenerationQueue` an den `BackendManager` und somit an das aktive Inferenz-Backend weiter, das den Job ausführt (Stub-generiert).
+  * **UI-Inspector-Erweiterung:** Der Preview-Inspector im Prompt-Workspace wurde um eine detaillierte Infobox ("Generierungsinformationen") erweitert, die live Engine (Stub Backend), Backend (z.B. CPU (Stub)), Version, Generierungsstatus und das aktive Modell anzeigt. Alles ist komplett neutral ohne RealESRGAN-Hartcodierungen gehalten.
+  * **Dateien:** [backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/backend_adapter.py), [backend_manager.py](file:///C:/SnapdragonAI/engine/backends/backend_manager.py), [cpu_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/cpu_backend_adapter.py), [qnn_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/qnn_backend_adapter.py), [onnx_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/onnx_backend_adapter.py), [remote_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/remote_backend_adapter.py), [generation_controller.py](file:///C:/SnapdragonAI/controllers/generation_controller.py), [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py)
+
 * **Sprint P-053 (Generation Pipeline Foundation):**
   * **Generierungs-Pipeline:** Einführung der Klassen `GenerationJob` (Datenobjekt mit UUID, Status und Fortschritt) und `GenerationQueue` (lokale FIFO-Warteschlange für anstehende Generierungsaufträge).
   * **Controller-Erweiterung:** `GenerationController` erzeugt nun bei Klick auf "BILD GENERIEREN" einen neuen `GenerationJob` (Snapshot der Session-Parameter) und schiebt diesen in die `GenerationQueue`.
