@@ -10,7 +10,9 @@
   "recommended_backend": "ONNX Runtime (Stub)",
   "minimum_ram_gb": 16,
   "recommended_ram_gb": 24,
-  "supports": ["txt2vid"],
+  "supports": [
+    "txt2vid"
+  ],
   "installed": false,
   "downloaded": false,
   "path": "",

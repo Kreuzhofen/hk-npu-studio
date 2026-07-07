@@ -4,21 +4,24 @@ from typing import Any
 from controllers.model_manager_model import ModelManagerModel
 from engine.backends.backend_manager import BackendManager
 from engine.backends.discovery_result import DiscoveryResult
+from engine.model_install_service import ModelInstallService
 
 
 class ModelManagerController:
     """
     Controller coordinating interactions between the Model Manager View,
-    the ModelManagerModel, and the BackendManager.
+    the ModelManagerModel, the BackendManager, and the ModelInstallService.
     """
 
     def __init__(
         self,
         model: ModelManagerModel | None = None,
-        backend_manager: BackendManager | None = None
+        backend_manager: BackendManager | None = None,
+        install_service: ModelInstallService | None = None
     ) -> None:
         self.model = model or ModelManagerModel()
         self.backend_manager = backend_manager or BackendManager()
+        self.install_service = install_service or ModelInstallService(self.model.repository)
 
     def get_all_models(self) -> list[dict[str, Any]]:
         """Get all model definitions from the repository."""
@@ -54,5 +57,13 @@ class ModelManagerController:
     def get_discovery_result(self) -> DiscoveryResult:
         """Run or query system environment discovery diagnostics."""
         return self.backend_manager.get_discovery_result()
+
+    def install_model(self, model_id: str, source_path: str) -> bool:
+        """Install a model locally from source_path."""
+        return self.install_service.install_model(model_id, source_path)
+
+    def uninstall_model(self, model_id: str) -> bool:
+        """Uninstall a model and delete files."""
+        return self.install_service.uninstall_model(model_id)
 
 Class = ModelManagerController

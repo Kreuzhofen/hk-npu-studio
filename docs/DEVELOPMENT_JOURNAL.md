@@ -474,3 +474,44 @@ Status: Completed
 
 Das neue Layout verleiht dem AI Generate Workspace eine ruhige, übersichtliche Struktur auf Commercial-Quality-Niveau. Keine Geschäftslogik wurde verändert – das Refactoring betrifft ausschließlich die UI-Schicht. Die `_on_model_changed`-Methode wurde bereinigt, um direkt auf die Slider- und Entry-Widgets zuzugreifen statt auf nicht existierende StringVar-Referenzen.
 
+## 07.07.2026 – Sprint UX-004.3 – AI Generate No-Scroll Layout Fix
+
+Status: Completed
+
+### Goals
+
+- Verdichtung des AI Generate Workspace Layouts zur vollständigen, scrollfreien Anzeige auf 1080p-Monitoren.
+- Platzsparende horizontale Ausrichtung der Steuerungselemente in Model, Image Size, Sampling und Output.
+- Reduzierung der Textfeldhöhen (Prompt auf 3 Zeilen, Negativer Prompt auf 1 Zeile).
+- Entfernung der Scrollbar im rechten Inspector und Ersatz durch ein kompaktes, 4-spaltiges Grid.
+
+### Modified / Added
+
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+
+### Notes
+
+Durch die Optimierung der Paddings und das Zusammenlegen von Steuerungselementen in Inline-Zeilen konnten ca. 170-190px Vertikalhöhe eingespart werden. Der Workspace wirkt dadurch aufgeräumter und ist ohne Scrollen vollständig lesbar.
+
+
+## 07.07.2026 – Sprint P-070 – Local AI Model Installation Foundation
+
+Status: Completed
+
+### Goals
+
+- Implementierung des neuen Service `ModelInstallService` zur Verwaltung lokaler Modell-Installationen.
+- Validierung lokaler Modelldateien, Bestimmung der Modellgröße, freier Speicherplatz-Check mit Sicherheits-Puffer.
+- Integration mit dem `ModelRepository` zum Persistieren von Status, Installationsflags und Dateipfaden.
+- UI-Integration im Model Manager (Buttons „Installieren“, „Deinstallieren“, „Ordner öffnen“ voll funktionsfähig angebunden).
+- Vorbereitung zukunftssicherer Download- und Stornierungs-Hooks für HF/API-Anbindungen.
+
+### Modified / Added
+
+- `engine/model_install_service.py` (neu)
+- `controllers/model_manager_controller.py` (modifiziert)
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+
+### Notes
+
+Der neue Dienst ermöglicht das vollständige Verwalten lokaler Modellsätze inklusive robustem Datei-Kopieren, Speicherplatzvalidierung und GUI-Rückmeldung via MessageBoxes. Im Zusammenspiel mit dem Repository werden Änderungen auf der Festplatte persistiert.

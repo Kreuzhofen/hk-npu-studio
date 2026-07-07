@@ -10,6 +10,13 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-070 (Local AI Model Installation Foundation):**
+  * **ModelInstallService:** Implementierung des neuen Service `ModelInstallService` zur Verwaltung lokaler Modell-Installationen. Bietet Funktionen zur Validierung von Modelldateien, Bestimmung der Modellgröße, Überprüfung des freien Festplattenspeichers (inkl. Sicherheits-Puffer), Kopieren lokaler Modelldateien in das Standardverzeichnis und sicheren Deinstallation (Löschen von Dateien im Workspace).
+  * **Integration in ModelRepository:** Der Service nutzt das `ModelRepository` zur Aktualisierung von Installationsstatustexten (`status`), Installationsflags (`installed`) und des Pfads (`path`) direkt auf der Festplatte.
+  * **UI-Integration im Model Manager:** Aktivierung der Inspector-Buttons „Installieren“, „Deinstallieren“ und „Ordner öffnen“ im Model Manager. Beim Klick auf „Installieren“ öffnet sich ein Dateidialog zur Auswahl lokaler Dateien. „Deinstallieren“ löscht die Dateien nach Rückfrage, und „Ordner öffnen“ öffnet den Installationsordner nativ im Explorer.
+  * **Zukunftssichere Download-Hooks:** Vorbereitung von leeren und dokumentierten Download-Methoden (`start_download`, `cancel_download`) für Hugging Face/API-Anbindungen.
+  * **Dateien:** [model_install_service.py](file:///C:/SnapdragonAI/engine/model_install_service.py), [model_manager_controller.py](file:///C:/SnapdragonAI/controllers/model_manager_controller.py), [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py)
+
 * **Sprint UX-004.3 (AI Generate No-Scroll Layout Fix):**
   * **No-Scroll Design auf 1080p:** Optimierung aller Widgets und Ränder im AI Generate Workspace, sodass alle Eingabegruppen (Model, Prompt, Negative Prompt, Image Size, Sampling, Output), der rechte Inspector samt Preview und die Statusleiste ohne vertikales Scrollen sichtbar sind.
   * **Kompakte Eingabeelemente:** Das Prompt-Feld wurde auf 3 Zeilen, das Negative-Prompt-Feld auf 1 Zeile verkleinert. Breite/Höhe, CFG/Steps, Sampler/Scheduler und Seed/Batch Count wurden platzsparend in horizontalen Rastern nebeneinander gruppiert.

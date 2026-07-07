@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import os
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog, messagebox
 from controllers.model_manager_controller import ModelManagerController
 from widgets.phoenix.theme import PHOENIX_THEME
 
@@ -255,17 +256,17 @@ class PhoenixModelManagerView(tk.Frame):
             "height": 1,
         }
 
-        btn_install = tk.Button(self.buttons_frame, text="Installieren", **button_style)
-        btn_uninstall = tk.Button(self.buttons_frame, text="Deinstallieren", **button_style)
-        btn_update = tk.Button(self.buttons_frame, text="Aktualisieren", **button_style)
-        btn_benchmark = tk.Button(self.buttons_frame, text="Benchmark", **button_style)
-        btn_open_folder = tk.Button(self.buttons_frame, text="Ordner öffnen", **button_style)
+        self.btn_install = tk.Button(self.buttons_frame, text="Installieren", **button_style)
+        self.btn_uninstall = tk.Button(self.buttons_frame, text="Deinstallieren", **button_style)
+        self.btn_update = tk.Button(self.buttons_frame, text="Aktualisieren", **button_style)
+        self.btn_benchmark = tk.Button(self.buttons_frame, text="Benchmark", **button_style)
+        self.btn_open_folder = tk.Button(self.buttons_frame, text="Ordner öffnen", **button_style)
 
-        btn_install.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
-        btn_uninstall.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
-        btn_update.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
-        btn_benchmark.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
-        btn_open_folder.grid(row=2, column=0, columnspan=2, sticky="ew", padx=2, pady=2)
+        self.btn_install.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        self.btn_uninstall.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
+        self.btn_update.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
+        self.btn_benchmark.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
+        self.btn_open_folder.grid(row=2, column=0, columnspan=2, sticky="ew", padx=2, pady=2)
 
         # ==========================================
         # SYSTEM ENVIRONMENT CARD
@@ -453,6 +454,22 @@ class PhoenixModelManagerView(tk.Frame):
         # Update status bar feedback: "Modell ausgewählt: <Modellname>"
         self.status_lbl.configure(text=f"Modell ausgewählt: {model.get('display_name', '-')}")
 
+        # Update button states based on installation status
+        is_installed = model.get("installed", False)
+        if is_installed:
+            self.btn_install.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
+            self.btn_uninstall.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda: self._on_uninstall(model["id"]))
+            
+            model_path_str = model.get("path")
+            if model_path_str and os.path.exists(model_path_str):
+                self.btn_open_folder.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda: self._on_open_folder(model_path_str))
+            else:
+                self.btn_open_folder.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
+        else:
+            self.btn_install.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda: self._on_install(model["id"]))
+            self.btn_uninstall.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
+            self.btn_open_folder.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
+
     def _on_double_click(self, event: tk.Event) -> None:
         """
         Handler for double-click event on a model row.
@@ -487,3 +504,72 @@ class PhoenixModelManagerView(tk.Frame):
 
         # TODO (UX-003): Add context menu item "Mit diesem Modell generieren" 
         # which will explicitly trigger open_generate() on the WorkflowController.
+
+    def _on_install(self, model_id: str) -> None:
+        """Prompt user for a local model file/folder and trigger installation."""
+        source_path = filedialog.askopenfilename(
+            title="Lokale Modelldatei auswählen",
+            filetypes=[
+                ("Modelldateien", "*.bin *.safetensors *.onnx *.json *.pth"),
+                ("Alle Dateien", "*.*")
+            ]
+        )
+        if not source_path:
+            return  # User cancelled
+
+        # Inform user we are installing
+        self.status_lbl.configure(text=f"Installiere Modell '{model_id}'...")
+        self.update_idletasks()
+
+        success = self.controller.install_model(model_id, source_path)
+        if success:
+            messagebox.showinfo(
+                "Erfolg",
+                f"Modell '{model_id}' wurde erfolgreich installiert."
+            )
+        else:
+            messagebox.showerror(
+                "Fehler",
+                f"Installation des Modells '{model_id}' fehlgeschlagen. Überprüfen Sie den Speicherplatz und die Gültigkeit der Datei."
+            )
+        self.refresh()
+
+    def _on_uninstall(self, model_id: str) -> None:
+        """Confirm and uninstall the selected model."""
+        confirm = messagebox.askyesno(
+            "Modell deinstallieren",
+            f"Möchten Sie das Modell '{model_id}' wirklich deinstallieren und alle zugehörigen lokalen Dateien löschen?"
+        )
+        if not confirm:
+            return
+
+        self.status_lbl.configure(text=f"Deinstalliere Modell '{model_id}'...")
+        self.update_idletasks()
+
+        success = self.controller.uninstall_model(model_id)
+        if success:
+            messagebox.showinfo(
+                "Erfolg",
+                f"Modell '{model_id}' wurde erfolgreich deinstalliert."
+            )
+        else:
+            messagebox.showerror(
+                "Fehler",
+                f"Deinstallation des Modells '{model_id}' fehlgeschlagen."
+            )
+        self.refresh()
+
+    def _on_open_folder(self, path: str) -> None:
+        """Open the containing folder of the installed model in Windows Explorer."""
+        if os.path.isfile(path):
+            folder_path = os.path.dirname(path)
+        else:
+            folder_path = path
+
+        if os.path.exists(folder_path):
+            try:
+                os.startfile(folder_path)
+            except Exception as e:
+                messagebox.showerror("Fehler", f"Ordner konnte nicht geöffnet werden: {e}")
+        else:
+            messagebox.showerror("Fehler", f"Der Pfad '{folder_path}' existiert nicht.")
