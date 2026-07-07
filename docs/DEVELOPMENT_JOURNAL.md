@@ -651,3 +651,24 @@ Status: Completed
 ### Notes
 
 Die UI arbeitet nun vollständig robust. Da die Treeview-Einträge die `model_id` als `iid` tragen, ist der Abruf der Modelldetails unbeeinflusst von Dateisystem- und Reihungsänderungen. Der Inspector visualisiert den absoluten Pfad des installierten Modells und alle Aktionen werden unmittelbar nach der Installation oder Deinstallation passend freigegeben oder gesperrt. Switchen in den AI-Generate-Workspace lädt die Modelldatenbank automatisch frisch von der Platte, womit die Datenbanksynchronität über alle Workspace-Ebenen hinweg sichergestellt ist.
+
+## 07.07.2026 – Sprint P-074 – Model Loader Foundation
+
+Status: Completed
+
+### Goals
+
+- Schaffung einer sicheren und performanten Schnittstelle zur Modellauflösung vor Generierungsdurchläufen.
+- Bereitstellung von `ModelLoaderService` mit Funktionen zur Prüfung von Installationen, Pfadermittlungen, Dateiscans und Ladeplanerstellung.
+- Unterstützung strukturierter Ladepläne mit Schrittfolgen für QNN-, ONNX- und CPU-Hardware.
+- Rückgabe detaillierter Ergebnisse via `ModelResolveResult` ohne ressourcenintensive Ladevorgänge.
+- Frühe Validierung des Modell-Installationszustands in `GenerationController.queue_generation()` zur Verhinderung fehlerhafter Pipeline-Durchläufe.
+
+### Modified / Added
+
+- `engine/model_loader_service.py` (neu)
+- `controllers/generation_controller.py` (modifiziert)
+
+### Notes
+
+Die Modelllade-Infrastruktur nutzt das `ModelRepository` als einzige Datenquelle. Nicht installierte Modelle werden vor dem Pipeline-Start sicher abgefangen und führen zu einer sauberen und informativen Benachrichtigung des Nutzers über ein fehlerhaftes `GenerationResult` (Status "LoadError", Fehlermeldung "Model is not installed."). Der Ladeplan erlaubt eine spätere Integration der tatsächlichen Bibliotheksbindungen auf der NPU.

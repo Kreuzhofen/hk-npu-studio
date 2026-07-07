@@ -10,9 +10,12 @@
   "recommended_backend": "Qualcomm QNN NPU (Stub)",
   "minimum_ram_gb": 16,
   "recommended_ram_gb": 32,
-  "supports": ["txt2img", "img2img"],
-  "installed": false,
-  "downloaded": false,
-  "path": "",
-  "status": "Available for Download"
+  "supports": [
+    "txt2img",
+    "img2img"
+  ],
+  "installed": true,
+  "downloaded": true,
+  "path": "C:\\SnapdragonAI\\models\\flux_dev\\model.onnx",
+  "status": "Installed"
 }

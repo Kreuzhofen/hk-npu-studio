@@ -79,6 +79,20 @@ class GenerationController:
         repo = ModelRepository()
         model_metadata = repo.get_model(job_session.model_name)
 
+        # Verify model installation prior to execution
+        from engine.model_loader_service import ModelLoaderService
+        loader = ModelLoaderService(repo)
+        resolve_result = loader.resolve_model(job_session.model_name)
+        if not resolve_result.success:
+            self.queue.dequeue()
+            self.is_generating = False
+            return GenerationResult(
+                success=False,
+                status="LoadError",
+                message=resolve_result.message,
+                model_name=job_session.model_name
+            )
+
         # Route job through the pipeline to the best backend adapter
         selected_backend = self.backend_manager.get_best_backend(model_metadata or job_session.model_name)
         if selected_backend is None:

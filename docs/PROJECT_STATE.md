@@ -10,6 +10,18 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-074 (Model Loader Foundation):**
+  * **Einführung des Model Loader Dienstes:** Implementierung des `ModelLoaderService` in `engine/model_loader_service.py` zur sicheren und strukturierten Auflösung installierter KI-Modelle.
+  * **Verantwortlichkeiten des Loaders:**
+    - `resolve_model(model_id)`: Führt vollständige Pfadprüfungen durch und liefert ein strukturiertes Ergebnis zurück.
+    - `check_model_installed(model_id)`: Prüft die Registrierung und den Installationsstatus.
+    - `get_model_path(model_id)`: Holt den lokalen Verzeichnispfad des Modells.
+    - `get_model_files(model_id)`: Scannt rekursiv die Modelldateien im Zielverzeichnis.
+    - `build_model_load_plan(model_id)`: Generiert einen detaillierten, schrittweisen Ladeplan für das jeweilige Ziel-Backend (QNN, ONNX, CPU), ohne die Gewichte tatsächlich in den Speicher zu laden.
+  * **Strukturierte Ergebnisse:** Einführung von `ModelResolveResult` zur Rückgabe von Erfolg (`success`), Fehlermeldung (`message`), Warnungen (`warnings`), aufgelöstem Pfad (`model_path`), Dateilisten (`files`) und Backend-Namen (`backend`).
+  * **Pipeline-Integration:** Integration in `GenerationController.queue_generation()`. Vor Ausführung der Generierungspipeline wird das Modell über den Loader aufgelöst. Ist das Modell nicht installiert, bricht der Vorgang sofort ab und liefert ein `GenerationResult` mit `success=False` und der Meldung `"Model is not installed."` (bzw. dem Fehlergrund) zurück.
+  * **Dateien:** [model_loader_service.py](file:///C:/SnapdragonAI/engine/model_loader_service.py), [generation_controller.py](file:///C:/SnapdragonAI/controllers/generation_controller.py)
+
 * **Sprint P-073.1 (Refresh Model Manager after Install/Uninstall):**
   * **Fehlerbehebung bei der UI-Aktualisierung:** Umstellung der Zeilenselektion und Detailanzeige im Model Manager von indexbasiertem auf iid-basierten Abruf (Verwendung der eindeutigen `model_id` als Element-ID in der Treeview). Dies behebt Synchronisationsprobleme durch willkürliche Listenanordnungen bei Dateisystemänderungen und sorgt für sofortiges Aktualisieren nach Installationen oder Deinstallationen.
   * **Erweiterung des Model-Inspectors:** Hinzufügen einer sichtbaren Pfad-Zeile („Pfad:“) im Inspector-Panel. Diese wird nach der Installation mit dem absoluten Pfad des lokalen Modells befüllt (und nach Deinstallation zurückgesetzt).
