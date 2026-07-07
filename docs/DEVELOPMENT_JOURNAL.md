@@ -403,7 +403,7 @@ Status: Completed
 
 Durch die saubere Schichten-Trennung über die `ImageGenerationPipeline` und das `GenerationResult` sind wir bereit für die physische NPU-Integration. Die Parameter-Zugriffe wurden vollumfänglich von dem redundanten `parameters`-Entwurf auf die native `session`-Eigenschaft umgestellt.
 
-## 07.07.2026 – Sprint P-061 & P-061.1 & P-061.2 – Backend Discovery, UX Polish & Scrollable Inspector
+## 07.07.2026 – Sprint P-061 & P-061.1 & P-061.2 & P-061.3 – Backend Discovery, UX Polish, Scrollable Inspector & Table Columns Polish
 
 Status: Completed
 
@@ -414,6 +414,7 @@ Status: Completed
 - Hinzufügen von `Environment`- und `QNN`-Feldern in der Generierungs-Statusleiste im AI Generate Workspace.
 - Umgestaltung des Model-Inspectors in ein scrollbares Panel (`Canvas` + `Scrollbar`) zur Vermeidung von Layout-Clipping.
 - Behebung des UX-Verhaltens bei Doppelklick (keine automatische Navigation mehr) und Entfernung redundanter Statusanzeigen.
+- Anpassung und Optimierung der Spaltenbreiten im Model Manager Treeview, um Abschneiden von Statuswerten ("Available for Download") zu verhindern.
 
 ### Modified / Added
 
@@ -427,6 +428,6 @@ Status: Completed
 
 ### Notes
 
-Der `BackendDiscoveryService` führt eine saubere Erkennung der Systemparameter durch. Durch die Umwandlung des Model Inspectors in einen scrollbaren Canvas sind alle erfassten Umgebungsinformationen (OS, Architektur, SDKs) auch bei kleineren Fenstergrößen vollständig sichtbar.
+Durch die Erhöhung der Status-Spaltenbreite im Treeview auf 180 Pixel und Optimierung der Nachbarspalten werden alle Statusbeschreibungen sauber dargestellt. Die Stabilität der Ansicht und des scrollbaren Inspectors bleibt vollumfänglich gewahrt.
 
 

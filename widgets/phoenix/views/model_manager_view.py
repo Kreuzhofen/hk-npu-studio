@@ -113,11 +113,11 @@ class PhoenixModelManagerView(tk.Frame):
         self.tree.heading("backend", text="Ziel-Backend")
         self.tree.heading("status", text="Status")
 
-        self.tree.column("active", width=60, anchor="center")
-        self.tree.column("name", width=230, anchor="w")
-        self.tree.column("category", width=140, anchor="w")
-        self.tree.column("backend", width=190, anchor="w")
-        self.tree.column("status", width=100, anchor="center")
+        self.tree.column("active", width=50, anchor="center")
+        self.tree.column("name", width=220, anchor="w")
+        self.tree.column("category", width=120, anchor="w")
+        self.tree.column("backend", width=160, anchor="w")
+        self.tree.column("status", width=180, anchor="center")
         self.tree.pack(fill="both", expand=True, padx=8, pady=8)
 
         # Selected Model Property Details Card
