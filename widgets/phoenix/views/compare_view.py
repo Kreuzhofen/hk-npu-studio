@@ -96,6 +96,45 @@ class PhoenixCompareView(WorkspaceFrame):
             padx=(PHOENIX_THEME.space_sm, 0),
         )
 
+        # Bind right-click context menu (Sprint UX-002 Hooks)
+        for w in (self.split_container, self.original_panel, self.result_panel,
+                  self.original_panel.image_canvas, self.result_panel.image_canvas,
+                  self.original_panel.placeholder, self.result_panel.placeholder):
+            w.bind("<Button-3>", self._show_context_menu)
+
+    def _show_context_menu(self, event: tk.Event) -> None:
+        """Displays the right-click context menu with generation hooks."""
+        menu = tk.Menu(
+            self,
+            tearoff=False,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_body,
+        )
+        menu.add_command(
+            label="Erneut generieren (TODO)",
+            command=self._on_regenerate_todo,
+            state="disabled"
+        )
+        menu.add_command(
+            label="Mit aktuellem Modell generieren (TODO)",
+            command=self._on_generate_current_model_todo,
+            state="disabled"
+        )
+        menu.post(event.x_root, event.y_root)
+
+    def _on_regenerate_todo(self) -> None:
+        """Hook/TODO: Triggers regeneration of the selected output."""
+        pass
+
+    def _on_generate_current_model_todo(self) -> None:
+        """Hook/TODO: Triggers generation of the original source using the current active model."""
+        pass
+
     def _build_status_bar(self) -> None:
         self.status_bar = CompareStatusBar(self.status_slot, self.controller.status_items())
         self.status_bar.grid(row=0, column=0, sticky="ew")

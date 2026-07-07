@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from controllers.generation_job import GenerationJob
+from controllers.generation_result import GenerationResult
 
 
 class BackendAdapter(ABC):
@@ -41,10 +42,10 @@ class BackendAdapter(ABC):
         pass
 
     @abstractmethod
-    def generate(self, job: GenerationJob) -> str:
+    def generate(self, job: GenerationJob) -> GenerationResult:
         """
         Execute an image/video generation job.
-        Returns a status string.
+        Returns a GenerationResult instance.
         """
         pass
 

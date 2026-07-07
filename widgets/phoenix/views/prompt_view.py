@@ -388,7 +388,43 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=16,
             pady=8
         )
-        self.status_label.pack(fill="x")
+        self.status_label.pack(side="left")
+
+        self.model_status_label = tk.Label(
+            self.status_bar_frame,
+            text="Modell: -",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            padx=16,
+            pady=8
+        )
+        self.model_status_label.pack(side="left")
+
+        self.backend_status_label = tk.Label(
+            self.status_bar_frame,
+            text="Backend: -",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            padx=16,
+            pady=8
+        )
+        self.backend_status_label.pack(side="left")
+
+        self.queue_status_label = tk.Label(
+            self.status_bar_frame,
+            text="Queue: 0 Job(s)",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            padx=16,
+            pady=8
+        )
+        self.queue_status_label.pack(side="right")
 
     def _on_generate(self) -> None:
         prompt = self.prompt_text.get("1.0", "end-1c").strip()
@@ -432,6 +468,9 @@ class PhoenixPromptView(WorkspaceFrame):
         state = self.controller.get_state()
         self.status_label.configure(text=f"Status: {state.status}")
 
+        active_backend_name = "None"
+        queued_count = 0
+
         gen_ctrl = getattr(self.controller, "generation_controller", None)
         if gen_ctrl is not None:
             queued_count = gen_ctrl.queue.get_queued_count()
@@ -442,8 +481,9 @@ class PhoenixPromptView(WorkspaceFrame):
 
             active_backend = gen_ctrl.backend_manager.get_active_backend()
             if active_backend is not None:
+                active_backend_name = active_backend.get_backend_name()
                 self.engine_val.configure(text="Stub Backend")
-                self.backend_val.configure(text=active_backend.get_backend_name())
+                self.backend_val.configure(text=active_backend_name)
                 self.version_val.configure(text=active_backend.get_backend_version())
             else:
                 self.engine_val.configure(text="Keine Engine")
@@ -463,6 +503,11 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.status_val.configure(text=state.status)
         self.model_val_lbl.configure(text=state.selected_model if state.selected_model else "None")
+
+        # Update the extended status bar labels (Sprint UX-002)
+        self.model_status_label.configure(text=f"Modell: {state.selected_model if state.selected_model else '-'}")
+        self.backend_status_label.configure(text=f"Backend: {active_backend_name}")
+        self.queue_status_label.configure(text=f"Queue: {queued_count} Job(s)")
 
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""

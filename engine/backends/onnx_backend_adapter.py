@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from engine.backends.backend_adapter import BackendAdapter
 from controllers.generation_job import GenerationJob
+from controllers.generation_result import GenerationResult
 
 
 class ONNXBackendAdapter(BackendAdapter):
@@ -35,11 +36,21 @@ class ONNXBackendAdapter(BackendAdapter):
     def get_supported_models(self) -> list[str]:
         return ["sd_xl_base_1.0_onnx", "sd_1.5_onnx"]
 
-    def generate(self, job: GenerationJob) -> str:
+    def generate(self, job: GenerationJob) -> GenerationResult:
         print(f"[ONNXBackendAdapter] Executing ONNX pipeline for job {job.job_id}...")
         job.status = "RUNNING"
         # TODO: Execute ORT session.run loop over UNet/VAE models
-        return "Generation running on ORT (stub)"
+        job.status = "FINISHED"
+        job.progress = 1.0
+        return GenerationResult(
+            success=True,
+            status="FINISHED",
+            message="Bildgenerierung über ONNX Runtime erfolgreich (Stub).",
+            image_path=None,
+            thumbnail_path=None,
+            backend_name=self.get_backend_name(),
+            model_name=job.session.model_name if (job and job.session) else "Unknown",
+        )
 
     def cancel(self, job: GenerationJob) -> str:
         print(f"[ONNXBackendAdapter] Signalling cancellation to ONNX session for job {job.job_id}...")

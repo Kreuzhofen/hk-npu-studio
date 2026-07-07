@@ -3,6 +3,7 @@ from __future__ import annotations
 from controllers.prompt_workspace_model import PromptWorkspaceModel, PromptWorkspaceState
 from controllers.generation_controller import GenerationController
 from controllers.model_repository import ModelRepository
+from controllers.generation_result import GenerationResult
 
 
 class PromptWorkspaceController:
@@ -63,7 +64,9 @@ class PromptWorkspaceController:
             model_name=selected_model,
         )
 
-    def generate_image(self) -> None:
+    def generate_image(self) -> GenerationResult:
         # Delegate to GenerationController and update status
-        status_msg = self.generation_controller.queue_generation()
+        result = self.generation_controller.queue_generation()
+        status_msg = result.status if result.success else f"Error: {result.message}"
         self.model.update_state(status=status_msg)
+        return result

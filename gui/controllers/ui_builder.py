@@ -49,12 +49,18 @@ class UIBuilder:
 
     def _build_phoenix_ui(self):
         from widgets.phoenix.workspace import PhoenixWorkspace
+        from controllers.workflow_controller import WorkflowController
 
         self.app.phoenix_workspace = PhoenixWorkspace(
             self.app,
             controller=getattr(self.app, "batch_controller", None),
         )
         self.app.phoenix_workspace.pack(fill="both", expand=True)
+
+        self.app.workflow_controller = WorkflowController(
+            app=self.app,
+            workspace=self.app.phoenix_workspace
+        )
 
     def _build_menu_bar(self):
         self.app.menu_bar = MenuBar(

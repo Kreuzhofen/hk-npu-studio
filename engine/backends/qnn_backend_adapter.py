@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from engine.backends.backend_adapter import BackendAdapter
 from controllers.generation_job import GenerationJob
+from controllers.generation_result import GenerationResult
 
 
 class QNNBackendAdapter(BackendAdapter):
@@ -35,14 +36,24 @@ class QNNBackendAdapter(BackendAdapter):
     def get_supported_models(self) -> list[str]:
         return ["sd_xl_base_1.0_qnn_int8", "flux_dev_qnn_int4"]
 
-    def generate(self, job: GenerationJob) -> str:
+    def generate(self, job: GenerationJob) -> GenerationResult:
         print(f"[QNNBackendAdapter] Enqueuing job {job.job_id} onto Snapdragon HTP...")
-        job.status = "QUEUED"
+        job.status = "RUNNING"
         # TODO: Execute qnn-net-run.exe or native QNN C API:
         # 1. Feed input tensors (prompt embeddings + seed latents) into QNN network graph
         # 2. Extract processed output tensors (denoised latent tiles)
         # 3. Apply postprocessing and save final image
-        return "Generation queued on NPU (stub)"
+        job.status = "FINISHED"
+        job.progress = 1.0
+        return GenerationResult(
+            success=True,
+            status="FINISHED",
+            message="Bildgenerierung auf Snapdragon NPU (QNN) abgeschlossen (Stub).",
+            image_path=None,
+            thumbnail_path=None,
+            backend_name=self.get_backend_name(),
+            model_name=job.session.model_name if (job and job.session) else "Unknown",
+        )
 
     def cancel(self, job: GenerationJob) -> str:
         print(f"[QNNBackendAdapter] Terminating QNN NPU context for job {job.job_id}...")

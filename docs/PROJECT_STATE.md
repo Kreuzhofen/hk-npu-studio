@@ -10,6 +10,19 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-060 & P-060.1 (AI Engine Pipeline Foundation & Bugfix):**
+  * **Inferenz-Pipeline & Resultatklasse:** Einführung der Standardklassen `ImageGenerationPipeline` und `GenerationResult` (datenbasiert, ohne Pillow- oder Backend-Abhängigkeiten) als einheitlicher Rahmen für die Inferenzläufe.
+  * **Session-Integration:** Anpassung der Parameterzugriffe von `self.job.parameters` auf die strukturierte `self.job.session` Property in allen Phasen der Pipeline und in allen Backend-Adaptern (CPU, QNN, ONNX, Remote).
+  * **Fehlerbehandlung:** Vollständige Beseitigung von `AttributeError` bei ungültigen Eingaben oder Pipeline-Fehlern. Das Generierungsmodell wird sicher über die `session` referenziert.
+  * **Dateien:** [generation_pipeline.py](file:///C:/SnapdragonAI/controllers/generation_pipeline.py), [generation_result.py](file:///C:/SnapdragonAI/controllers/generation_result.py), [generation_controller.py](file:///C:/SnapdragonAI/controllers/generation_controller.py), [prompt_workspace_controller.py](file:///C:/SnapdragonAI/controllers/prompt_workspace_controller.py), [cpu_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/cpu_backend_adapter.py), [onnx_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/onnx_backend_adapter.py), [qnn_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/qnn_backend_adapter.py), [remote_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/remote_backend_adapter.py)
+
+* **Sprint UX-002 (Cross Workspace Workflow Foundation):**
+  * **Zentraler WorkflowController:** Einführung einer Workspace-übergreifenden Steuerungsschicht mit `WorkflowController` (Singleton) und einem transienten `WorkflowState` für Laufzeit-Parameter (z. B. `active_model`, `last_generated_image`).
+  * **Auto-Navigation:** Ein Doppelklick auf ein Modell im AI Model Manager setzt das Modell nicht nur aktiv, sondern navigiert den Anwender über den `WorkflowController` automatisch in das Generierungs-Fenster (AI Generate).
+  * **Segmentierte Statusleiste:** In der Generierungs-Ansicht (`prompt_view.py`) wurde die Statusleiste am unteren Bildschirmrand in vier strukturierte Segmente aufgeteilt (Status, Aktives Modell, Backend, Queue), die dynamisch direkt aus den zentralen Controllern gespeist werden (keine Hardcodierungen).
+  * **Integrierte Workflow-Hooks:** Vorbereitung von ausgegrauten Platzhalter-Befehlen im Kontextmenü der Galerie („Mit aktivem Modell generieren“) und der Compare-Ansicht („Erneut generieren“ / „Mit aktuellem Modell“), um spätere Workflow-Ausbaustufen zu strukturieren.
+  * **Dateien:** [workflow_controller.py](file:///C:/SnapdragonAI/controllers/workflow_controller.py), [ui_builder.py](file:///C:/SnapdragonAI/gui/controllers/ui_builder.py), [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py), [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [thumbnail_area.py](file:///C:/SnapdragonAI/widgets/phoenix/gallery/thumbnail_area.py), [compare_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/compare_view.py)
+
 * **Sprint UX-001 (AI Model Manager Professional UX):**
   * **Professional Layout:** Umwandlung des Model Managers in ein strukturiertes zweispaltiges Design (Links: Liste + Property Grid für die getroffene Auswahl; Rechts: Vertikaler Model Inspector für das aktuell aktive System-Modell).
   * **Auswahl- vs. Aktivitäts-Zustand:** Trennung der temporären Tabellenauswahl (blaue Zeile) von der systemweit aktiven Generierungsmodell-Auswahl (✓-Haken in der ersten Spalte).

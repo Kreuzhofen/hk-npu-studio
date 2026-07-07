@@ -379,11 +379,7 @@ class PhoenixModelManagerView(tk.Frame):
         """
         Handler for double-click event on a model row.
         Sets the clicked model as the active model, updates checkmarks and inspector,
-        and flashes status confirmation message.
-
-        Future Navigation Hook:
-        - TODO (UX-002+): When double-clicked, switch view workspace directly to "AI Generate"
-          and auto-select the model in the parameters dropdown list.
+        and switches workspace to AI Generate automatically via WorkflowController.
         """
         selected = self.tree.selection()
         if not selected:
@@ -410,3 +406,7 @@ class PhoenixModelManagerView(tk.Frame):
 
         # Update status bar feedback
         self.status_lbl.configure(text=f"Aktives Modell geändert: {display_name}")
+
+        # Automatically switch to AI Generate workspace (Sprint UX-002)
+        from controllers.workflow_controller import WorkflowController
+        WorkflowController.get_instance().open_generate()

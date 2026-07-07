@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from engine.backends.backend_adapter import BackendAdapter
 from controllers.generation_job import GenerationJob
+from controllers.generation_result import GenerationResult
 
 
 class CPUBackendAdapter(BackendAdapter):
@@ -34,7 +35,7 @@ class CPUBackendAdapter(BackendAdapter):
     def get_supported_models(self) -> list[str]:
         return ["sd_xl_base_1.0", "sd_1.5_resnet"]
 
-    def generate(self, job: GenerationJob) -> str:
+    def generate(self, job: GenerationJob) -> GenerationResult:
         print(f"[CPUBackendAdapter] Starting generation stub for job {job.job_id}...")
         job.status = "RUNNING"
         job.progress = 0.1
@@ -45,7 +46,15 @@ class CPUBackendAdapter(BackendAdapter):
         # 4. Save result image and update job.result_path
         job.status = "FINISHED"
         job.progress = 1.0
-        return "Generation finished (stub)"
+        return GenerationResult(
+            success=True,
+            status="FINISHED",
+            message="Bildgenerierung auf CPU erfolgreich abgeschlossen (Stub).",
+            image_path=None,
+            thumbnail_path=None,
+            backend_name=self.get_backend_name(),
+            model_name=job.session.model_name if (job and job.session) else "Unknown",
+        )
 
     def cancel(self, job: GenerationJob) -> str:
         print(f"[CPUBackendAdapter] Cancelling job {job.job_id}...")

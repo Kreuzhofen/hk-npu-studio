@@ -4,6 +4,7 @@ from typing import Any
 from controllers.generation_session import GenerationSessionModel
 from controllers.generation_job import GenerationJob
 from controllers.generation_queue import GenerationQueue
+from controllers.generation_result import GenerationResult
 from engine.backends.backend_manager import BackendManager
 
 
@@ -43,16 +44,21 @@ class GenerationController:
 
         return True, "Validierung erfolgreich."
 
-    def queue_generation(self) -> str:
+    def queue_generation(self) -> GenerationResult:
         """
         Queue the generation based on the active session parameters.
         Validates parameters first, creates a GenerationJob and adds it to the queue.
-        Routes execution through BackendManager to the active BackendAdapter.
+        Executes the job using the ImageGenerationPipeline and returns a GenerationResult.
         """
         is_valid, msg = self.validate_session()
         if not is_valid:
             print(f"Validation failed: {msg}")
-            return f"Fehler: {msg}"
+            return GenerationResult(
+                success=False,
+                status="ValidationError",
+                message=msg,
+                model_name=self.session.model_name
+            )
 
         # Create a parameter snapshot for this job
         job_session = GenerationSessionModel(**self.session.to_dict())
@@ -68,17 +74,22 @@ class GenerationController:
             print(f"  {key}: {val}")
         print("--------------------------------------------")
 
-        # Route job to the active backend adapter
+        # Route job through the pipeline to the active backend adapter
         active_backend = self.backend_manager.get_active_backend()
-        if active_backend is not None:
-            backend_msg = active_backend.generate(job)
-            print(f"[GenerationController] Active Backend ({active_backend.get_backend_name()}) returned: {backend_msg}")
+        
+        from controllers.generation_pipeline import ImageGenerationPipeline
+        pipeline = ImageGenerationPipeline(job=job, backend_adapter=active_backend)
+        result = pipeline.run()
 
-        queued_count = self.queue.get_queued_count()
-        if queued_count == 1:
-            return "1 Job in Warteschlange"
-        else:
-            return f"{queued_count} Jobs in Warteschlange"
+        # Dequeue since execution finished
+        self.queue.dequeue()
+        self.is_generating = False
+
+        # Notify the WorkflowController that the generation finished
+        from controllers.workflow_controller import WorkflowController
+        WorkflowController.get_instance().on_generation_finished(result)
+
+        return result
 
     def cancel_generation(self) -> str:
         """

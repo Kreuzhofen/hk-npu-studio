@@ -239,8 +239,17 @@ class GalleryThumbnailArea(tk.Frame):
             label="In Compare öffnen",
             command=lambda img=image: self.on_double_click(img),
         )
+        menu.add_command(
+            label="Mit aktivem Modell generieren (TODO)",
+            command=self._on_generate_with_active_model_todo,
+            state="disabled",
+        )
         self._context_menu = menu
         menu.post(event.x_root, event.y_root)
+
+    def _on_generate_with_active_model_todo(self) -> None:
+        """Hook/TODO: Generates a new asset using the active model as a guide."""
+        pass
 
     def _on_free_space_click(self, event: tk.Event) -> None:
         if event.widget in {self.canvas, self.grid_frame}:

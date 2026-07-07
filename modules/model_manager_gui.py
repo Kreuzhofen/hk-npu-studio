@@ -253,11 +253,7 @@ class ModelManagerWindow(tk.Toplevel):
         """
         Handler for double-click event on a model row.
         Sets the clicked model as active, updates the checkmarks and inspector,
-        and flashes status bar confirmation message.
-
-        Future Navigation Hook:
-        - TODO (UX-002+): Switch view workspace directly to "AI Generate"
-          and auto-select the model in the parameters dropdown list.
+        and switches workspace to AI Generate automatically via WorkflowController.
         """
         selected = self.tree.selection()
         if not selected:
@@ -284,3 +280,7 @@ class ModelManagerWindow(tk.Toplevel):
 
         # Update status bar feedback
         self.status_lbl.configure(text=f"Aktives Modell geändert: {display_name}")
+
+        # Automatically switch to AI Generate workspace (Sprint UX-002)
+        from controllers.workflow_controller import WorkflowController
+        WorkflowController.get_instance().open_generate()

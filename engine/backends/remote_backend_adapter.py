@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from engine.backends.backend_adapter import BackendAdapter
 from controllers.generation_job import GenerationJob
+from controllers.generation_result import GenerationResult
 
 
 class RemoteBackendAdapter(BackendAdapter):
@@ -34,11 +35,21 @@ class RemoteBackendAdapter(BackendAdapter):
     def get_supported_models(self) -> list[str]:
         return ["flux_1_ultra_api", "sd_3_medium_api"]
 
-    def generate(self, job: GenerationJob) -> str:
+    def generate(self, job: GenerationJob) -> GenerationResult:
         print(f"[RemoteBackendAdapter] Sending API post request for job {job.job_id}...")
         job.status = "RUNNING"
         # TODO: Send request and await generation webhook/response
-        return "Generation requested from cloud API (stub)"
+        job.status = "FINISHED"
+        job.progress = 1.0
+        return GenerationResult(
+            success=True,
+            status="FINISHED",
+            message="Bildgenerierung via Cloud-API erfolgreich (Stub).",
+            image_path=None,
+            thumbnail_path=None,
+            backend_name=self.get_backend_name(),
+            model_name=job.session.model_name if (job and job.session) else "Unknown",
+        )
 
     def cancel(self, job: GenerationJob) -> str:
         print(f"[RemoteBackendAdapter] Sending cancel signal to API server for job {job.job_id}...")

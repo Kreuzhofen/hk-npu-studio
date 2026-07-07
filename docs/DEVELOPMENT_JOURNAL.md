@@ -351,4 +351,56 @@ Status: Completed
 
 Mit diesem Sprint wurde die Benutzeroberfläche des Model Managers auf kommerzielles Desktop-Niveau (Commercial Quality) gehoben. Alle Dumps und JSON-Fragmente wurden durch ein sauberes, strukturiertes Grid-System ersetzt, das dem Anwender klare Informationen bietet, ohne ihn zu überfordern.
 
+## 07.07.2026 – Sprint UX-002 – Cross Workspace Workflow Foundation
+
+Status: Completed
+
+### Goals
+
+- Einführung eines zentralen `WorkflowController` (Singleton) und eines transienten `WorkflowState` zur workspaceübergreifenden Koordination.
+- Implementierung der automatischen Workspace-Umschaltung zu AI Generate nach Doppelklick im Model Manager.
+- Erweiterung des AI Generate Statusbereichs in eine segmentierte Statusleiste (Status, Modell, Backend, Queue) ohne Hartcodierungen.
+- Integration von Vorbereitungs-Hooks (Kontextmenüs) im Compare- und Gallery-Workspace.
+
+### Modified / Added
+
+- `controllers/workflow_controller.py` (neu)
+- `gui/controllers/ui_builder.py` (modifiziert)
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+- `widgets/phoenix/gallery/thumbnail_area.py` (modifiziert)
+- `widgets/phoenix/views/compare_view.py` (modifiziert)
+
+### Notes
+
+Die Anwendung verhält sich nun wie eine integrierte Suite. Durch den `WorkflowController` entfällt die direkte View-zu-View-Kopplung, und Aktionen in einem Workspace (wie das Auswählen eines Modells) steuern den Anwender direkt und nahtlos zum nächsten logischen Workflow-Schritt.
+
+## 07.07.2026 – Sprint P-060 & P-060.1 – AI Engine Pipeline Foundation & Bugfix
+
+Status: Completed
+
+### Goals
+
+- Einführung der Standardklassen `ImageGenerationPipeline` und `GenerationResult` zur Vereinheitlichung der Inferenz.
+- Integration der `ImageGenerationPipeline` in den `GenerationController`.
+- Behebung des AttributeErrors durch Anpassung aller Parameterzugriffe von `job.parameters` auf `job.session`.
+- Robustes Auslesen des Modells über `job.session.model_name` auch im Fehlerfall.
+
+### Modified / Added
+
+- `controllers/generation_pipeline.py` (neu)
+- `controllers/generation_result.py` (neu)
+- `controllers/generation_controller.py` (modifiziert)
+- `controllers/prompt_workspace_controller.py` (modifiziert)
+- `engine/backends/backend_adapter.py` (modifiziert)
+- `engine/backends/cpu_backend_adapter.py` (modifiziert)
+- `engine/backends/onnx_backend_adapter.py` (modifiziert)
+- `engine/backends/qnn_backend_adapter.py` (modifiziert)
+- `engine/backends/remote_backend_adapter.py` (modifiziert)
+
+### Notes
+
+Durch die saubere Schichten-Trennung über die `ImageGenerationPipeline` und das `GenerationResult` sind wir bereit für die physische NPU-Integration. Die Parameter-Zugriffe wurden vollumfänglich von dem redundanten `parameters`-Entwurf auf die native `session`-Eigenschaft umgestellt.
+
 
