@@ -403,16 +403,17 @@ Status: Completed
 
 Durch die saubere Schichten-Trennung über die `ImageGenerationPipeline` und das `GenerationResult` sind wir bereit für die physische NPU-Integration. Die Parameter-Zugriffe wurden vollumfänglich von dem redundanten `parameters`-Entwurf auf die native `session`-Eigenschaft umgestellt.
 
-## 07.07.2026 – Sprint P-061 – Backend Discovery & Environment Detection
+## 07.07.2026 – Sprint P-061 & P-061.1 & P-061.2 – Backend Discovery, UX Polish & Scrollable Inspector
 
 Status: Completed
 
 ### Goals
 
 - Implementierung des `BackendDiscoveryService` und `DiscoveryResult` zur automatischen Analyse der Host-Plattform und SDKs.
-- Verknüpfung des Discovery Service mit dem `BackendManager` und Exponierung via `ModelManagerController`.
 - Integration einer System-Umgebungskarte im rechten Inspector-Bereich des AI Model Managers.
 - Hinzufügen von `Environment`- und `QNN`-Feldern in der Generierungs-Statusleiste im AI Generate Workspace.
+- Umgestaltung des Model-Inspectors in ein scrollbares Panel (`Canvas` + `Scrollbar`) zur Vermeidung von Layout-Clipping.
+- Behebung des UX-Verhaltens bei Doppelklick (keine automatische Navigation mehr) und Entfernung redundanter Statusanzeigen.
 
 ### Modified / Added
 
@@ -426,6 +427,6 @@ Status: Completed
 
 ### Notes
 
-Der `BackendDiscoveryService` führt eine saubere, nicht-blockierende Erkennung der Systemparameter durch. Er scannt Windows ARM64, Python-Versionen, das Vorhandensein von ONNX Runtime und das Qualcomm QNN SDK (einschließlich `qnn-net-run.exe`), ohne externe SDK-Runtimes direkt laden zu müssen.
+Der `BackendDiscoveryService` führt eine saubere Erkennung der Systemparameter durch. Durch die Umwandlung des Model Inspectors in einen scrollbaren Canvas sind alle erfassten Umgebungsinformationen (OS, Architektur, SDKs) auch bei kleineren Fenstergrößen vollständig sichtbar.
 
 

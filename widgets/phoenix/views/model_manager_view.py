@@ -172,7 +172,7 @@ class PhoenixModelManagerView(tk.Frame):
         self.tree.bind("<Double-1>", self._on_double_click)
 
         # ==========================================
-        # RIGHT COLUMN (Inspector Card)
+        # RIGHT COLUMN (Inspector Card - Scrollable)
         # ==========================================
         self.inspector_panel = tk.Frame(
             self,
@@ -181,18 +181,77 @@ class PhoenixModelManagerView(tk.Frame):
             highlightthickness=1,
         )
         self.inspector_panel.grid(row=1, column=1, sticky="nsew", padx=(12, 24), pady=(8, 16))
-        self.inspector_panel.columnconfigure(0, weight=1)
-        self.inspector_panel.columnconfigure(1, weight=1)
+
+        # Canvas & Scrollbar for vertical scrolling
+        self.inspector_canvas = tk.Canvas(
+            self.inspector_panel,
+            bg=PHOENIX_THEME.card_bg,
+            bd=0,
+            highlightthickness=0,
+        )
+        self.inspector_scrollbar = ttk.Scrollbar(
+            self.inspector_panel,
+            orient="vertical",
+            command=self.inspector_canvas.yview
+        )
+        self.inspector_canvas.configure(yscrollcommand=self.inspector_scrollbar.set)
+
+        self.inspector_scrollbar.pack(side="right", fill="y")
+        self.inspector_canvas.pack(side="left", fill="both", expand=True)
+
+        # Scroll content frame inside Canvas
+        self.inspector_scroll_content = tk.Frame(
+            self.inspector_canvas,
+            bg=PHOENIX_THEME.card_bg,
+        )
+        self.canvas_window_id = self.inspector_canvas.create_window(
+            (0, 0),
+            window=self.inspector_scroll_content,
+            anchor="nw"
+        )
+
+        # Configure columns inside scroll content
+        self.inspector_scroll_content.columnconfigure(0, weight=1)
+        self.inspector_scroll_content.columnconfigure(1, weight=1)
+
+        # Update scrollregion on configure
+        self.inspector_scroll_content.bind(
+            "<Configure>",
+            lambda e: self.inspector_canvas.configure(
+                scrollregion=self.inspector_canvas.bbox("all")
+            )
+        )
+        # Keep width of inner frame matched to canvas width
+        self.inspector_canvas.bind(
+            "<Configure>",
+            lambda e: self.inspector_canvas.itemconfig(
+                self.canvas_window_id,
+                width=e.width
+            )
+        )
+
+        # Bind MouseWheel locally when mouse enters the inspector panel
+        def _on_mousewheel(event: tk.Event) -> None:
+            self.inspector_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _bind_mousewheel(event: tk.Event) -> None:
+            self.inspector_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        def _unbind_mousewheel(event: tk.Event) -> None:
+            self.inspector_canvas.unbind_all("<MouseWheel>")
+
+        self.inspector_panel.bind("<Enter>", _bind_mousewheel)
+        self.inspector_panel.bind("<Leave>", _unbind_mousewheel)
 
         # Title
         tk.Label(
-            self.inspector_panel,
+            self.inspector_scroll_content,
             text="Model Inspector (Aktives Modell)",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(12, 16))
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(12, 8))
 
         # Vertical Property Sheet for active model
         active_props = [
@@ -202,33 +261,33 @@ class PhoenixModelManagerView(tk.Frame):
         ]
         for name, r in active_props:
             tk.Label(
-                self.inspector_panel,
+                self.inspector_scroll_content,
                 text=name,
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_body,
                 anchor="w"
-            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=8)
+            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
 
         # Active Value Labels
-        self.active_name = self._create_value_label(self.inspector_panel, 1, 1)
-        self.active_version = self._create_value_label(self.inspector_panel, 2, 1)
-        self.active_backend = self._create_value_label(self.inspector_panel, 3, 1)
-        self.active_category = self._create_value_label(self.inspector_panel, 4, 1)
-        self.active_ram = self._create_value_label(self.inspector_panel, 5, 1)
-        self.active_status = self._create_value_label(self.inspector_panel, 6, 1)
-        self.active_installed = self._create_value_label(self.inspector_panel, 7, 1)
-        self.active_download = self._create_value_label(self.inspector_panel, 8, 1)
+        self.active_name = self._create_value_label(self.inspector_scroll_content, 1, 1)
+        self.active_version = self._create_value_label(self.inspector_scroll_content, 2, 1)
+        self.active_backend = self._create_value_label(self.inspector_scroll_content, 3, 1)
+        self.active_category = self._create_value_label(self.inspector_scroll_content, 4, 1)
+        self.active_ram = self._create_value_label(self.inspector_scroll_content, 5, 1)
+        self.active_status = self._create_value_label(self.inspector_scroll_content, 6, 1)
+        self.active_installed = self._create_value_label(self.inspector_scroll_content, 7, 1)
+        self.active_download = self._create_value_label(self.inspector_scroll_content, 8, 1)
 
         # Environment Section Header
         tk.Label(
-            self.inspector_panel,
+            self.inspector_scroll_content,
             text="System-Umgebung",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).grid(row=9, column=0, columnspan=2, sticky="ew", padx=16, pady=(20, 8))
+        ).grid(row=9, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
 
         # Environment Properties Grid
         env_props = [
@@ -237,7 +296,7 @@ class PhoenixModelManagerView(tk.Frame):
         ]
         for name, r in env_props:
             tk.Label(
-                self.inspector_panel,
+                self.inspector_scroll_content,
                 text=name,
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_muted,
@@ -246,13 +305,13 @@ class PhoenixModelManagerView(tk.Frame):
             ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
 
         # Environment Value Labels
-        self.env_os = self._create_value_label(self.inspector_panel, 10, 1)
-        self.env_arch = self._create_value_label(self.inspector_panel, 11, 1)
-        self.env_python = self._create_value_label(self.inspector_panel, 12, 1)
-        self.env_cpu = self._create_value_label(self.inspector_panel, 13, 1)
-        self.env_onnx = self._create_value_label(self.inspector_panel, 14, 1)
-        self.env_qnn_sdk = self._create_value_label(self.inspector_panel, 15, 1)
-        self.env_qnn_tools = self._create_value_label(self.inspector_panel, 16, 1)
+        self.env_os = self._create_value_label(self.inspector_scroll_content, 10, 1)
+        self.env_arch = self._create_value_label(self.inspector_scroll_content, 11, 1)
+        self.env_python = self._create_value_label(self.inspector_scroll_content, 12, 1)
+        self.env_cpu = self._create_value_label(self.inspector_scroll_content, 13, 1)
+        self.env_onnx = self._create_value_label(self.inspector_scroll_content, 14, 1)
+        self.env_qnn_sdk = self._create_value_label(self.inspector_scroll_content, 15, 1)
+        self.env_qnn_tools = self._create_value_label(self.inspector_scroll_content, 16, 1)
 
         # ==========================================
         # BOTTOM STATUS BAR
@@ -424,7 +483,7 @@ class PhoenixModelManagerView(tk.Frame):
         self.prop_category.configure(text=model.get("category", "-"))
         self.prop_backend.configure(text=model.get("backend", "-"))
         self.prop_ram.configure(text=f"{model.get('recommended_ram_gb', '-')} GB")
-        self.prop_status.configure(text="Aktiv ausgewählt" if is_active else model.get("status", "-"))
+        self.prop_status.configure(text=model.get("status", "-"))
 
     def _on_double_click(self, event: tk.Event) -> None:
         """
