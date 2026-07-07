@@ -46,7 +46,7 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("home", "Home")
         self._nav_button("prompt", "AI Generate")
         self._nav_button("models", "AI Model Manager")
-        self._nav_button("image", "Image")
+        # self._nav_button("image", "Image")
         self._nav_button("gallery", "Gallery")
         self._nav_button("compare", "Compare")
         self._nav_button("plugins", "Plugins")

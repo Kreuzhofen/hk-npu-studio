@@ -8,7 +8,7 @@ from PIL import ImageTk
 from engine.brand_manager import BrandManager
 
 
-class StartupOverlay(tk.Frame):
+class StartupOverlay(tk.Toplevel):
     def __init__(self, master: tk.Misc, brand: BrandManager) -> None:
         super().__init__(
             master,
@@ -17,6 +17,11 @@ class StartupOverlay(tk.Frame):
             bd=0,
         )
 
+        # Intercept master deiconify to keep main window hidden during splash screen
+        self._orig_deiconify = master.deiconify
+        master.deiconify = lambda: None
+
+        self.overrideredirect(True)
         self.brand = brand
         self._progress = 0
         self._fade_step = 0
@@ -42,7 +47,7 @@ class StartupOverlay(tk.Frame):
             bg=self.brand.color("COLOR_BACKGROUND"),
             bd=0,
         )
-        self.logo_label.pack(pady=(0, 20))
+        self.logo_label.pack(pady=(16, 12))
 
         self.title_label = tk.Label(
             container,
@@ -51,7 +56,7 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.title_label.pack()
+        self.title_label.pack(pady=(0, 4))
 
         self.slogan_label = tk.Label(
             container,
@@ -60,7 +65,7 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.slogan_label.pack(pady=(8, 8))
+        self.slogan_label.pack(pady=(4, 4))
 
         self.copyright_label = tk.Label(
             container,
@@ -69,7 +74,7 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.copyright_label.pack(pady=(0, 32))
+        self.copyright_label.pack(pady=(0, 16))
 
         self.status_label = tk.Label(
             container,
@@ -78,7 +83,7 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.status_label.pack(pady=(0, 12))
+        self.status_label.pack(pady=(8, 6))
 
         self.progress_canvas = tk.Canvas(
             container,
@@ -88,7 +93,7 @@ class StartupOverlay(tk.Frame):
             highlightthickness=0,
             bd=0,
         )
-        self.progress_canvas.pack()
+        self.progress_canvas.pack(pady=(0, 12))
 
         self.progress_bg = self.progress_canvas.create_rectangle(
             0,
@@ -115,11 +120,20 @@ class StartupOverlay(tk.Frame):
             fg=self.brand.color("COLOR_TEXT_SECONDARY"),
             bg=self.brand.color("COLOR_BACKGROUND"),
         )
-        self.version_label.pack(pady=(24, 0))
+        self.version_label.pack(pady=(12, 16))
 
     def show(self) -> None:
-        self.place(relx=0, rely=0, relwidth=1, relheight=1)
+        # Define reasonable splash size and center it on screen
+        width = 600
+        height = 420
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        x = int((screen_w - width) / 2)
+        y = int((screen_h - height) / 2)
+        self.geometry(f"{width}x{height}+{x}+{y}")
+
         self.lift()
+        self.focus_force()
         self._progress = 0
         self._animate_progress()
 
@@ -152,7 +166,18 @@ class StartupOverlay(tk.Frame):
         self._fade_step += 1
 
         if self._fade_step >= 8:
+            # Restore original deiconify and show the main window
+            if hasattr(self.master, "deiconify"):
+                self.master.deiconify = self._orig_deiconify
+                self.master.deiconify()
             self.destroy()
             return
+
+        try:
+            # Apply smooth alpha transparency fading on supported platforms
+            alpha = 1.0 - (self._fade_step / 8.0)
+            self.attributes("-alpha", alpha)
+        except Exception:
+            pass
 
         self.after(35, self._fade)

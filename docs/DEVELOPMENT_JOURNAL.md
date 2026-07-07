@@ -672,3 +672,24 @@ Status: Completed
 ### Notes
 
 Die Modelllade-Infrastruktur nutzt das `ModelRepository` als einzige Datenquelle. Nicht installierte Modelle werden vor dem Pipeline-Start sicher abgefangen und führen zu einer sauberen und informativen Benachrichtigung des Nutzers über ein fehlerhaftes `GenerationResult` (Status "LoadError", Fehlermeldung "Model is not installed."). Der Ladeplan erlaubt eine spätere Integration der tatsächlichen Bibliotheksbindungen auf der NPU.
+
+## 07.07.2026 – Sprint UX-006 – Navigation Preparation & Splash Size Fix
+
+Status: Completed
+
+### Goals
+
+- Bereinigung der Workspace-Navigation in der Phoenix Seitenleiste zur Ausrichtung an zukünftigen Produktversionen.
+- Ausblenden des "Image"-Eintrags aus der Navigations-Schaltflächenliste, ohne den eigentlichen Code oder die Quelldateien des Image-Workspaces anzutasten.
+- Sicherstellung der vollen Funktionalität aller verbleibenden Seitenleisten-Links (Home, AI Generate, AI Model Manager, Gallery, Compare, Plugins, Settings).
+- Behebung des überdimensionierten Splash-Screens beim Anwendungsstart durch Ersetzen der alten Vollbild-Frame-Logik.
+- Reduzierung des Splash-Screens auf eine feste Desktop-Größe von 600x420 Pixeln, Zentrierung auf dem Bildschirm, Nutzung von rahmenlosem Toplevel (`overrideredirect(True)`) und Implementierung eines sanften Ausblend-Transparenzeffekts (Alpha-Fading).
+
+### Modified / Added
+
+- `widgets/phoenix/sidebar.py` (modifiziert)
+- `widgets/startup_overlay.py` (modifiziert)
+
+### Notes
+
+Der Eintrag "Image" wurde in der Seitenleiste auskommentiert, bleibt aber im Code voll einsatzbereit. Der Splash-Screen arbeitet nun als eigenständiges Toplevel-Fenster anstatt als raumgreifendes Overlay-Frame auf dem Hauptfenster, was für einen erheblich professionelleren Startvorgang der Desktop-App sorgt. Durch das Alpha-Fading blendet sich das Fenster über Windows-Attribute elegant aus, ehe es sich schließt.

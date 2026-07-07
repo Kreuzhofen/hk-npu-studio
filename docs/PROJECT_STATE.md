@@ -10,6 +10,13 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint UX-006 (Navigation Preparation & Splash Size Fix):**
+  * **Bereinigung der Workspace-Navigation:** Ausblendung des "Image"-Workspace aus der linken Seitenleisten-Navigation ([sidebar.py](file:///C:/SnapdragonAI/widgets/phoenix/sidebar.py)).
+  * **Erhaltsgarantie:** Der eigentliche Image-Workspace und dessen Quelldateien wurden nicht gelöscht und verbleiben voll funktionsfähig im Code, um bei Bedarf reaktiviert werden zu können. Alle übrigen Navigationseinträge (Home, AI Generate, AI Model Manager, Gallery, Compare, Plugins, Settings) funktionieren wie gewohnt.
+  * **Behebung der Splash-Screen-Größe:** Umstellung von `StartupOverlay` von einer überdimensionierten `tk.Frame` (die sich über die vollen 1400x900 Pixel des Hauptfensters erstreckte) auf ein eigenständiges `tk.Toplevel`-Fenster.
+  * **Layout & Zentrierung:** Das neue Fenster hat eine feste, augenfreundliche Desktop-Größe von 600x420 Pixeln, wird zentriert auf dem Bildschirm platziert, ist rahmenlos (`overrideredirect(True)`) und blendet sich dank Unterstützung für Fenster-Transparenz (`-alpha`) weich per Einblendungs-Effekt aus, bevor es sich zerstört. Alle Marken-Assets (Logo, Schriftarten, Farben des gewählten Themes) wurden vollständig beibehalten und skaliert.
+  * **Dateien:** [sidebar.py](file:///C:/SnapdragonAI/widgets/phoenix/sidebar.py), [startup_overlay.py](file:///C:/SnapdragonAI/widgets/startup_overlay.py)
+
 * **Sprint P-074 (Model Loader Foundation):**
   * **Einführung des Model Loader Dienstes:** Implementierung des `ModelLoaderService` in `engine/model_loader_service.py` zur sicheren und strukturierten Auflösung installierter KI-Modelle.
   * **Verantwortlichkeiten des Loaders:**
