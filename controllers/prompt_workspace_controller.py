@@ -2,28 +2,29 @@ from __future__ import annotations
 
 from controllers.prompt_workspace_model import PromptWorkspaceModel, PromptWorkspaceState
 from controllers.generation_controller import GenerationController
+from controllers.model_repository import ModelRepository
 
 
 class PromptWorkspaceController:
     """
     Controller for AI Image Generation Workspace.
-    Acts as a mediator between UI state and the central GenerationController.
+    Acts as a mediator between UI state, the central GenerationController, and ModelRepository.
     """
-
-    AVAILABLE_MODELS = [
-        "sd_xl_base_1.0",
-        "sd_xl_refiner_1.0",
-        "sd_1.5_resnet",
-        "flux_dev_quantized",
-    ]
 
     def __init__(
         self,
         model: PromptWorkspaceModel | None = None,
         generation_controller: GenerationController | None = None,
+        repository: ModelRepository | None = None,
     ) -> None:
         self.model = model or PromptWorkspaceModel()
         self.generation_controller = generation_controller or GenerationController()
+        self.repository = repository or ModelRepository()
+        
+        # Dynamically populate model names from the data-driven repository
+        self.AVAILABLE_MODELS = [m["id"] for m in self.repository.get_all_models()]
+        if not self.AVAILABLE_MODELS:
+            self.AVAILABLE_MODELS = ["None"]
 
     def get_state(self) -> PromptWorkspaceState:
         return self.model.state

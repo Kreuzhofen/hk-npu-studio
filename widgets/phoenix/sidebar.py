@@ -44,12 +44,13 @@ class PhoenixSidebar(tk.Frame):
         ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_xl))
 
         self._nav_button("home", "Home")
-        self._nav_button("plugins", "Plugins")
-        self._nav_button("settings", "Settings")
+        self._nav_button("prompt", "AI Generate")
+        self._nav_button("models", "AI Model Manager")
         self._nav_button("image", "Image")
         self._nav_button("gallery", "Gallery")
         self._nav_button("compare", "Compare")
-        self._nav_button("prompt", "AI Generate")
+        self._nav_button("plugins", "Plugins")
+        self._nav_button("settings", "Settings")
 
     def _nav_button(self, view_name: str, text: str) -> None:
         button = tk.Button(

@@ -379,6 +379,11 @@ Bewertung: Das ist ein sinnvoller erster Check. Fuer einen robusteren Produktion
 5. ONNX Runtime QNN separat untersuchen, ohne bestehende Python-Umgebungen zu veraendern.
 6. Stable Diffusion WebUI, InvokeAI, ComfyUI und Open WebUI zunaechst unangetastet lassen.
 
-## Zusammenfassung
-
 Das Projekt hat bereits eine starke Basis fuer eine lokale Snapdragon-X-KI-Umgebung. Die wichtigste funktionierende NPU-nahe Komponente ist die RealESRGAN-QNN-Pipeline. Die groesste technische Aufgabe ist nicht die Grundinstallation, sondern die saubere Vereinheitlichung, Dokumentation und spaetere robuste Erkennung von QNN, ONNX Runtime und lokalen KI-Backends.
+
+---
+
+## Nachtrag vom 07.07.2026: Produktvision 2.0
+
+Am 07.07.2026 wurde das Projekt offiziell von einer allgemeinen lokalen NPU-Umgebung zu einer **AI Creative Suite (Vision 2.0)** neu ausgerichtet. Die Inferenz-Architektur wurde über den `GenerationController`, die `GenerationQueue` und ein generisches `BackendAdapter`-Framework abstrahiert. Die Ausrichtung fokussiert sich auf die Säulen **C.O.R.E.** (Create, Organize, Review, Evolve). RealESRGAN verbleibt im System als wertvoller technischer Proof of Concept für NPU-Kachelung, während generative Bild- und Videoverfahren die funktionale Zukunft des Produkts darstellen.
+

@@ -1,0 +1,18 @@
+{
+  "id": "wan22",
+  "display_name": "Wan 2.1 Video",
+  "author": "Wan-Video Team",
+  "version": "2.1",
+  "license": "Apache 2.0",
+  "description": "State-of-the-art open-source local video generation model supporting high definition.",
+  "category": "Text-to-Video",
+  "backend": "QNN NPU",
+  "recommended_backend": "Qualcomm QNN NPU (Stub)",
+  "minimum_ram_gb": 24,
+  "recommended_ram_gb": 32,
+  "supports": ["txt2vid", "img2vid"],
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Available for Download"
+}

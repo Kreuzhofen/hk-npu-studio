@@ -7,6 +7,14 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 ## [2.0 Preview] – 2026-07-07 (Laufende Phoenix-Entwicklung)
 
 ### Hinzugefügt
+* **Model Manager Professional UX (UX-001):** Umwandlung der Model Manager Ansicht in ein zweispaltiges Design mit einem integrierten Selected Property Grid und einem dedizierten vertical Model Inspector für das aktive Systemmodell. Implementierung einer systemweiten Statusbar und Trennung von tabellarischer Zeilenselektion (blau) und aktivem Modellzustand (✓).
+* **Active Model Selection Feedback (P-055.5):** Einführung einer klassenweiten `_active_model_id` in `ModelRepository` als Single Source of Truth. Etablierung einer „Aktiv“-Spalte im Treeview mit Haken-Symbol („✓“) sowie Doppelklick-Gestenbindung zur Aktivierung eines Modells. Bidirektionaler Parameterabgleich mit dem „AI Generate“-Workspace über `StringVar`-Traces und Ansichtsaktualisierungen.
+* **Remove Model Manager Refresh Button (P-055.4):** Vollständige Entfernung des manuellen "Aktualisieren"-Buttons aus der UI. Das Repository lädt automatisch, während die interne Refresh-Funktion für künftige Watcher-Anbindungen bereitgehalten wird.
+* **Model Manager UX Cleanup (P-055.3):** Entfernung des redundanten "Details anzeigen"-Buttons. Modelldetails werden nun rein eventbasiert bei Auswahl aktualisiert. Die Benutzerauswahl bleibt über Hintergrundaktualisierungen hinweg stabil.
+* **Model Manager Selection Fix (P-055.2):** Behebung des Selection-Bugs im Model Manager Treeview mittels hierarchieunabhängiger dynamischer Indexsuche, Event-Binding für Live-Details und Auto-Selection.
+* **Model Manager Workspace Integration (P-055.1):** Native Integration des AI Model Managers als vollwertiger Phoenix Workspace (`PhoenixModelManagerView`) mit angepasstem Treeview-Theming.
+* **Model Repository & Model Manager (P-055):** Entwicklung des datengetriebenen Modellkatalogs (`resources/models/`) und der Klassen `ModelRepository`, `ModelManagerModel` und `ModelManagerController`.
+* **Dynamisches Model-Rendering (P-055):** Vollständig dynamische Benutzeroberfläche des Repository-Managers (`model_manager_gui.py`) und der Modellauswahl im Prompt-Workspace, befreit von hardcodierten Modellnamen.
 * **Backend-Adapter-Architektur (P-054):** Einführung der abstrakten Basisklasse `BackendAdapter` (ABC) und des `BackendManager` zur Abstraktion und Steuerung von Generierungsprozessen.
 * **Stub-Inferenz-Adapter (P-054):** Implementation der vier Adapter `CPUBackendAdapter`, `QNNBackendAdapter`, `ONNXBackendAdapter` und `RemoteBackendAdapter` als erweiterbare Stubs zur Vorbereitung künftiger NPU- und CPU-Pipelines.
 * **Prompt-Workspace-Details (P-054):** Erweiterung des Preview-Inspectors im Generierungs-Workspace um eine Infobox zur Anzeige von Engine, aktivem Backend, Version und Modell.

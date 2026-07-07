@@ -1,0 +1,18 @@
+{
+  "id": "sdxl_refiner",
+  "display_name": "Stable Diffusion XL Refiner",
+  "author": "Stability AI",
+  "version": "1.0",
+  "license": "CreativeML Open RAIL++-M",
+  "description": "Secondary denoising model specialized in enhancing structural details of SDXL base outputs.",
+  "category": "Image-to-Image",
+  "backend": "ONNX Runtime",
+  "recommended_backend": "ONNX Runtime (Stub)",
+  "minimum_ram_gb": 12,
+  "recommended_ram_gb": 16,
+  "supports": ["img2img", "refiner"],
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Available for Download"
+}

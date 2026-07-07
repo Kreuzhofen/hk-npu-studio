@@ -31,24 +31,28 @@ Diese Roadmap dokumentiert die offiziell beschlossenen Meilensteine und Entwickl
 ## 2. Zukünftige Entwicklungsphasen
 
 ### Meilenstein v2.0 – Phoenix Foundation (Aktuelle Phase)
-Fokus liegt auf der Plattformstabilisierung und der Bereinigung technischer Schulden.
-* **Phoenix-GUI:** Etablierung des neuen, einheitlichen Hauptfensters mit Seitenarchitektur (Pages) und Kapselung der Legacy-Oberflächen.
-* **Backend Registry:** Spezifikation eines einheitlichen Schnittstellenvertrags für alle Backends (QNN, ONNX Runtime, CPU, Externe APIs).
-* **Modellregistry V2:** Entwurf eines strukturierten Schemas zur Speicherung von Modellmetadaten (Auflösungen, Formate, NPU-Kompatibilität).
-* **Zentralisierung der Konfiguration:** Migration verstreuter Pfade (z. B. Qualcomm AI Stack, RealESRGAN-Dateipfade) in eine konfigurierbare Systemschicht.
-* **Bereinigung der Inferenz-Pfade:** Konsolidierung der doppelten QNN-Ausführungswege nach Etablierung robuster Komponententests.
+Fokus liegt auf dem Software-Fundament und der Entkopplung der Inferenz-Pipeline.
+* **AI Generate (Prompt) Workspace:** Erstversion des Prompt- und Parameter-Panels.
+* **Pipeline-Kapselung:** Steuerung über `GenerationSessionModel`, `GenerationQueue` und `GenerationController` zur vollständigen MVC-Entkopplung.
+* **Inferenz-Adapter:** Abstrakte Schnittstelle `BackendAdapter` und `BackendManager` mit Stubs für CPU, QNN, ONNX und Remote APIs.
+* **Namens-Alignment (Langfristige UI-Zielbezeichnungen):**
+  * **Gallery** → **AI Asset Library**
+  * **Compare Workspace** → **Review Workspace**
+  * **Image Workspace** → **Asset Inspector**
+* **Branding & Quality:** Dark/Light-Theming über den `ThemeManager` und Neutralisierung veralteter Modellschnittstellen.
 
-### Meilenstein v3.0 – Multi-Backend Platform (Geplant)
-Fokus liegt auf der nahtlosen Umschaltung verschiedener Inferenz-Backends.
-* **QNN Backend:** Vollwertige Produktivnutzung der Snapdragon-NPU für kompatible Modelle.
-* **ONNX Runtime Backend:** Integration von ONNX Runtime (CPU und Evaluierung des QNN Providers).
-* **CPU Fallback:** Saubere, sichtbare Kennzeichnung von CPU-Inferenz-Läufen als Ausweichoption.
-* **Workflow Registry:** Kapselung lokaler und externer Arbeitsabläufe (z. B. ComfyUI API-Integration über definierte JSON-Workflows).
-* **Benchmarking & Monitoring:** Erste Implementierung eines Benchmark-Service zum Geschwindigkeitsvergleich von QNN vs. CPU sowie Hardware-Auslastungsanzeigen im Dashboard.
+### Meilenstein v3.0 – AI Platform Integration (Geplant)
+Fokus liegt auf der Anbindung echter lokaler Modelle und Metadaten-Katalogisierung.
+* **Model Manager:** Lokale Modell-Registry für Gewichte und Quantisierungsprofile (INT4/INT8).
+* **QNN Backend:** NPU-Generierung über das Qualcomm QNN SDK (z. B. Stable Diffusion 1.5).
+* **ONNX Runtime Backend:** Lokaler Fallback via ONNX (CPU und DirectML/GPU).
+* **AI Asset Library:** SQLite-Metadatenbank zur persistenten Indizierung generierter Assets, Suchfunktion und Prompt-Tagging.
+* **Review Workspace:** Synchronisierter Zoom- und Pan-Vergleich von Generierungsläufen.
 
-### Meilenstein v4.0 – Professional Local AI Platform (Geplant)
-Fokus liegt auf der Erweiterbarkeit, Automatisierung und lokalen Dienstbereitstellung.
-* **Plugin-Management:** Etablierung eines lokalen Paket- und Plugin-Verwaltungssystems.
-* **Multimodale Pipelines:** Vollwertige Unterstützung für Text, Bild, Audio (Whisper OCR/TTS) und Vision-Modelle (YOLO).
-* **Lokale API / CLI:** Bereitstellung von Steuerungsschnittstellen für externe Programme und Automatisierungsskripte.
-* **Diagnose & Support:** Automatische Generierung von Support-Bundles (System-Konfiguration, Treibermatrizen, Logdateien) bei Ausführungsfehlern.
+### Meilenstein v4.0 – Professional AI Creative Suite (Geplant)
+Fokus liegt auf fortgeschrittenen Modellen, Workflow-Automatisierung und Erweiterungen.
+* **Creative Models:** Native HPU/NPU-Ausführung von **FLUX.1**, **SDXL**, **Stable Diffusion 3** und Videogenerierungsmodellen (**Wan2.1**, **CogVideo**, **LTX Video**).
+* **Workflow Automation:** Verkettung von Generierungs- und Postprocessing-Modulen (z. B. Generate → Upscale).
+* **Asset Inspector:** Einzelansicht mit detaillierter Extraktion historischer Parameter zur prompt-basierten Re-Generierung.
+* **Plugin Ecosystem:** Paket- und Plugin-Verwaltungssystem für Drittentwickler.
+

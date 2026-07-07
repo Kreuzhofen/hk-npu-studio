@@ -1,0 +1,18 @@
+{
+  "id": "sd35_large",
+  "display_name": "Stable Diffusion 3.5 Large",
+  "author": "Stability AI",
+  "version": "1.0",
+  "license": "Stability Community License",
+  "description": "Advanced Multimodal Diffusion Transformer (MMDiT) text-to-image model with 8B parameters.",
+  "category": "Text-to-Image",
+  "backend": "ONNX Runtime",
+  "recommended_backend": "ONNX Runtime (Stub)",
+  "minimum_ram_gb": 16,
+  "recommended_ram_gb": 32,
+  "supports": ["txt2img", "img2img"],
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Available for Download"
+}

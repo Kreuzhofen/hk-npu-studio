@@ -21,6 +21,7 @@ class PhoenixWorkspace(tk.Frame):
         "gallery": "Gallery",
         "compare": "Compare",
         "prompt": "AI Generate",
+        "models": "AI Model Manager",
     }
 
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
@@ -60,6 +61,7 @@ class PhoenixWorkspace(tk.Frame):
         from widgets.phoenix.views.plugin_view import PhoenixPluginView
         from widgets.phoenix.views.settings_view import PhoenixSettingsView
         from widgets.phoenix.views.prompt_view import PhoenixPromptView
+        from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
 
         self._view_factories = {
             "home": lambda master: PhoenixHomeView(master, controller=self.controller),
@@ -73,6 +75,7 @@ class PhoenixWorkspace(tk.Frame):
             "gallery": PhoenixGalleryView,
             "compare": PhoenixCompareView,
             "prompt": PhoenixPromptView,
+            "models": PhoenixModelManagerView,
         }
 
     def _build_layout(self) -> None:
@@ -187,6 +190,9 @@ class PhoenixWorkspace(tk.Frame):
 
     def open_prompt(self) -> None:
         self.show_view("prompt")
+
+    def open_models(self) -> None:
+        self.show_view("models")
 
     def refresh_dashboard(self) -> None:
         dashboard = self._views.get("dashboard")

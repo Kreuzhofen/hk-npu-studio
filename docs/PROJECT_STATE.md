@@ -10,6 +10,59 @@
 
 Am **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint UX-001 (AI Model Manager Professional UX):**
+  * **Professional Layout:** Umwandlung des Model Managers in ein strukturiertes zweispaltiges Design (Links: Liste + Property Grid für die getroffene Auswahl; Rechts: Vertikaler Model Inspector für das aktuell aktive System-Modell).
+  * **Auswahl- vs. Aktivitäts-Zustand:** Trennung der temporären Tabellenauswahl (blaue Zeile) von der systemweit aktiven Generierungsmodell-Auswahl (✓-Haken in der ersten Spalte).
+  * **Status-Feedback & Navigation:** Etablierung einer Statusleiste am unteren Bildschirmrand, die Änderungen wie „Aktives Modell geändert: <Modellname>“ anzeigt.
+  * **Property View:** Kompletter Verzicht auf Debug-Textfelder oder JSON-Dumps. Alle Modell-Metadaten werden übersichtlich formatiert in strukturierten Label-Wert-Paaren ausgegeben.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py)
+
+* **Sprint P-055.5 (Active Model Selection Feedback):**
+  * **Zentraler Auswahlstatus:** Einführung einer Single Source of Truth (`_active_model_id`) als klassenweites Attribut in `ModelRepository`, inklusive Standard-Fallback auf das erste geladene Modell.
+  * **Visuelles Feedback:** Hinzufügen einer Spalte „Aktiv“ an erster Stelle der Modellliste. Das aktuell aktive Modell wird mit einem Haken-Symbol („✓“) markiert.
+  * **Doppelklick-Aktivierung:** Doppelklicken auf eine Tabellenzeile setzt das Modell als aktiv, erneuert die Tabellenhaken und zeigt die Status-Bestätigung: „*** Aktives Modell: <name> ***“ an.
+  * **Nahtlose AI Generate Synchronisation:** Der Workspace „AI Generate“ (`prompt_view.py`) synchronisiert seine Dropdown-Modellauswahl (`model_var`) und die zugrundeliegenden Inferenzparameter automatisch in beide Richtungen über die Single Source of Truth.
+  * **Dateien:** [model_repository.py](file:///C:/SnapdragonAI/controllers/model_repository.py), [model_manager_controller.py](file:///C:/SnapdragonAI/controllers/model_manager_controller.py), [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py), [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py)
+
+* **Sprint P-055.4 (Remove Model Manager Refresh Button):**
+  * **Redundanter Refresh-Button entfernt:** Vollständige Entfernung des manuellen "Aktualisieren"-Buttons aus der Workspace-View und dem Legacy-Dialog für eine modernere, buttonfreie Interaktion.
+  * **Automatisches Laden:** Die Modellliste lädt sich beim Öffnen des Workspaces vollautomatisch aus dem Repository. Die interne Refresh-Logik bleibt erhalten, um über künftige Dateisystemüberwachungen angestoßen zu werden.
+  * **Stabile Selektion:** Die Benutzerauswahl bleibt permanent stabil und springt nicht zurück.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py)
+
+* **Sprint P-055.3 (Model Manager UX Cleanup):**
+  * **UX-Bereinigung:** Der redundante Button "Details anzeigen" wurde aus der Workspace-View und dem Legacy-Dialog vollständig entfernt, da die Details ohnehin live beim Zeilenklick angezeigt werden.
+  * **Optimierte Selektions-Logik:** Sicherstellung, dass das automatische Auswählen des ersten Modelleintrags nur initial aufgerufen wird und die Benutzerauswahl danach über alle Refresh-Zyklen (500ms Loop) hinweg stabil bleibt.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py)
+
+* **Sprint P-055.3 (Model Manager Selection Persistence Fix):**
+  * **Behebung des Auswahl-Resets:** Speichern des `selected_model_id`-Status vor jedem Refresh, um die Zeilenauswahl nach dem Neuaufbau der Tabelle im 500ms-Loop stabil wiederherzustellen.
+  * **Erhalts des Detailbereichs:** Verhindern, dass die Modellbeschreibung bei jedem automatischen Refresh gelöscht und durch die Standardsumme ersetzt wird, sofern ein Element aktiv ausgewählt ist.
+  * **Unterbrechungsfreie Interaktion:** Sowohl Klicks als auch der "Details anzeigen"-Button und Doppelklicks lesen nun den persistenten Auswahlstatus aus, ohne dass die Selektion zurückspringt.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py)
+
+* **Sprint P-055.2 (Model Manager Selection Fix):**
+  * **Fehlerursache behoben:** Behebung des Auswahlfehlers im Treeview, der durch fehlerhafte iid-Konvertierungen und Fokusverluste beim Klicken auf Details verursacht wurde.
+  * **Dynamische Indexsuche:** Umstellung des Modellauslesens auf das native, hierarchieunabhängige `tree.index()`-Verfahren zur sicheren Ermittlung der selektierten Reihe.
+  * **Live-Details & Interaktion:** Hinzufügen von automatischen Selektions-Event-Bindings (`<<TreeviewSelect>>`) zur Echtzeit-Anzeige der Details sowie Doppelklick-Bindings (`<Double-1>`).
+  * **Auto-Select auf Start:** Der Model Manager wählt beim Laden oder Aktualisieren der Seite automatisch das erste Modell in der Tabelle aus.
+  * **Aufräumarbeiten:** Verifikation, dass keine ungenutzten Testdateien (wie `custom_test_model.json`) im Repository verbleiben.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py)
+
+* **Sprint P-055.1 (AI Model Manager Workspace Integration):**
+  * **Workspace-Integration:** Umwandlung und Registrierung des AI Model Managers als nativer Phoenix Workspace. Der Umschalt- und Anzeigemechanismus ist voll in den `WorkspaceManager` integriert.
+  * **Sidebar-Navigation:** Hinzufügen des Menüpunktes "AI Model Manager" in der Sidebar unterhalb von "AI Generate" und oberhalb von "Image".
+  * **UI-Styling & Theme-Parität:** Implementierung von `PhoenixModelManagerView` unter Verwendung von `PHOENIX_THEME`. Die Darstellung der Modellliste verwendet ein angepasstes Treeview-Design, das HSL Dark- und Light-Theming unterstützt.
+  * **Erhalt des MVC-Musters:** Die Modell-Datenzugriffe laufen weiterhin unverändert über `ModelManagerController` und `ModelRepository`, ohne Eingriffe in die Datenlogik selbst.
+  * **Dateien:** [model_manager_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/model_manager_view.py), [workspace.py](file:///C:/SnapdragonAI/widgets/phoenix/workspace.py), [sidebar.py](file:///C:/SnapdragonAI/widgets/phoenix/sidebar.py)
+
+* **Sprint P-055 (AI Model Repository & Model Manager Foundation):**
+  * **Modell-Repository:** Erstellung einer datengetriebenen Modellstruktur unter `resources/models/` mit JSON-Metadatendokumenten für `flux_dev.json`, `sdxl_base.json`, `sdxl_refiner.json`, `sd35_large.json`, `wan22.json`, `cogvideox.json` und `ltx_video.json`.
+  * **ModelRepository-Klasse:** Einführung von `ModelRepository` zum automatischen Einlesen, Validieren und Aktualisieren von JSON-Modellmetadaten von der Festplatte.
+  * **ModelManagerModel & Controller:** Implementierung von `ModelManagerModel` (nutzt ModelRepository als Single Source of Truth) und `ModelManagerController` (kommuniziert mit ModelRepository und BackendManager).
+  * **Dynamisches UI-Alignment:** Der Model Repository Manager (`model_manager_gui.py`) baut die Modellliste und Detailbeschreibungen vollständig dynamisch aus den Repository-Dateien auf, ohne hardcodierte Modellnamen. Zudem lädt der Prompt-Workspace (`prompt_view.py` über `PromptWorkspaceController`) die Liste der verfügbaren Modelle ebenfalls dynamisch aus der Metadatendatenbank.
+  * **Dateien:** [model_repository.py](file:///C:/SnapdragonAI/controllers/model_repository.py), [model_manager_model.py](file:///C:/SnapdragonAI/controllers/model_manager_model.py), [model_manager_controller.py](file:///C:/SnapdragonAI/controllers/model_manager_controller.py), [model_manager_gui.py](file:///C:/SnapdragonAI/modules/model_manager_gui.py), [prompt_workspace_controller.py](file:///C:/SnapdragonAI/controllers/prompt_workspace_controller.py)
+
 * **Sprint P-054 (AI Backend Adapter Architecture Foundation):**
   * **Backend-Abstraktionsschicht:** Definition der abstrakten Basisklasse `BackendAdapter` (ABC) mit Schnittstellenmethoden zur Initialisierung, Herunterfahren, Progress-Tracking, Job-Erzeugung und Stopp-Signalisierung.
   * **Registrierung & Steuerung:** Implementierung des `BackendManager` zur Registrierung, Abfrage und Aktivierung von Adaptern. Standardmäßig werden vier Stubs registriert: `CPUBackendAdapter`, `QNNBackendAdapter`, `ONNXBackendAdapter` und `RemoteBackendAdapter`.
@@ -76,3 +129,16 @@ Das Projekt nutzt lokale NPU-Beschleunigung:
 *Ältere Projektberichte siehe:*
 * [CURRENT_PROJECT_STATE_2026-07-01.md](file:///C:/SnapdragonAI/docs/CURRENT_PROJECT_STATE_2026-07-01.md)
 * [NEXT_STEPS_2026-07-01.md](file:///C:/SnapdragonAI/docs/NEXT_STEPS_2026-07-01.md)
+
+---
+
+## 4. Produktvision 2.0 & Namens-Alignment (Sprint S-001)
+
+Mit Sprint S-001 wurde die offizielle Neuausrichtung zur **AI Creative Suite (Product Vision 2.0)** festgeschrieben. Für die bestehenden Workspaces gelten im Code vorerst noch die alten technischen Implementierungsnamen, während langfristig folgende Zielbezeichnungen im Produkt verankert werden:
+* **Gallery** → **AI Asset Library** (langfristige Zielbezeichnung)
+* **Compare Workspace** → **Review Workspace** (langfristige Zielbezeichnung)
+* **Image Workspace** → **Asset Inspector** (langfristige Zielbezeichnung)
+* **Prompt / AI Generate** → **AI Generate**
+
+Detaillierte Vision siehe [PRODUCT_VISION_2.0.md](file:///C:/SnapdragonAI/docs/PRODUCT_VISION_2.0.md).
+

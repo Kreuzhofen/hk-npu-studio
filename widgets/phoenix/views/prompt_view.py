@@ -50,7 +50,10 @@ class PhoenixPromptView(WorkspaceFrame):
         ).grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 4))
         r += 1
 
-        self.model_var = tk.StringVar(value=self.controller.AVAILABLE_MODELS[0])
+        active_model_id = self.controller.repository.get_active_model_id()
+        default_model = active_model_id if active_model_id in self.controller.AVAILABLE_MODELS else self.controller.AVAILABLE_MODELS[0]
+        self.model_var = tk.StringVar(value=default_model)
+        self.model_var.trace_add("write", self._on_model_changed)
         model_dropdown = tk.OptionMenu(
             self.input_card,
             self.model_var,
@@ -452,5 +455,40 @@ class PhoenixPromptView(WorkspaceFrame):
             self.backend_val.configure(text="None")
             self.version_val.configure(text="-")
 
+        # Check if the active model in the single source of truth changed
+        active_model_id = self.controller.repository.get_active_model_id()
+        if active_model_id and self.model_var.get() != active_model_id:
+            self.model_var.set(active_model_id)
+            state = self.controller.get_state()
+
         self.status_val.configure(text=state.status)
         self.model_val_lbl.configure(text=state.selected_model if state.selected_model else "None")
+
+    def _on_model_changed(self, *args) -> None:
+        """Trace callback when the model variable is updated in the UI."""
+        new_model = self.model_var.get()
+        self.controller.repository.set_active_model_id(new_model)
+        
+        # Pull parameters from UI to update controller/session state
+        try:
+            prompt = self.prompt_text.get("1.0", "end-1c")
+            neg_prompt = self.neg_prompt_text.get("1.0", "end-1c")
+            seed = int(self.seed_var.get() or 0)
+            steps = int(self.steps_var.get() or 20)
+            cfg = float(self.cfg_var.get() or 7.0)
+            width = int(self.width_var.get() or 512)
+            height = int(self.height_var.get() or 512)
+        except Exception:
+            prompt, neg_prompt = "", ""
+            seed, steps, cfg, width, height = 0, 20, 7.0, 512, 512
+
+        self.controller.update_parameters(
+            prompt=prompt,
+            negative_prompt=neg_prompt,
+            seed=seed,
+            steps=steps,
+            cfg=cfg,
+            width=width,
+            height=height,
+            selected_model=new_model,
+        )

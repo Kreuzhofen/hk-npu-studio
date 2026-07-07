@@ -1,0 +1,18 @@
+{
+  "id": "cogvideox",
+  "display_name": "CogVideoX 5B",
+  "author": "THUDM Group",
+  "version": "1.0",
+  "license": "CogVideoX License",
+  "description": "Large-scale local 3D-VAE video generation model with 5B parameters.",
+  "category": "Text-to-Video",
+  "backend": "ONNX Runtime",
+  "recommended_backend": "ONNX Runtime (Stub)",
+  "minimum_ram_gb": 16,
+  "recommended_ram_gb": 24,
+  "supports": ["txt2vid"],
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Available for Download"
+}

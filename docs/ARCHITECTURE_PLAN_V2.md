@@ -27,7 +27,7 @@ Es wurden fuer dieses Dokument keine Quellcode-Dateien und keine Konfigurationen
 
 ## Aktueller Gesamtzustand
 
-Das Projekt ist bereits mehr als eine Sammlung einzelner Skripte. Es besitzt eine beginnende Phoenix-Architektur mit GUI, Engine, Plugins, Modulen, Ressourcen, Modellen und Dokumentation. Der staerkste funktionale Anker ist RealESRGAN-Upscaling ueber Qualcomm QNN.
+Das Projekt entwickelt sich zu einer professionellen lokalen AI Creative Suite (Vision 2.0). Es besitzt eine beginnende Phoenix-Architektur mit GUI, Engine, Plugins, Modulen, Ressourcen, Modellen und Dokumentation. RealESRGAN-Upscaling ueber Qualcomm QNN dient dabei als wertvoller technischer Proof of Concept, waehrend die Generierung (Text-to-Image / Video) die eigentliche Produktausrichtung bildet.
 
 Gleichzeitig befinden sich mehrere Architekturteile noch im Uebergang:
 
@@ -186,18 +186,21 @@ Ziel: keine verstreuten hart codierten Pfade fuer `C:\SnapdragonAI`, `C:\Qualcom
 
 ## Zielarchitektur Version 2.0
 
-Version 2.0 soll die Phoenix-Basis stabilisieren. Der Fokus liegt nicht auf moeglichst vielen Features, sondern auf einer tragfaehigen Plattformstruktur.
+Version 2.0 etabliert die Phoenix-Basis als AI Creative Suite (Mission: Create. Organize. Review. Evolve.). Der Fokus liegt auf einer tragfaehigen Plattformstruktur und einer sauberen MVC-Entkopplung. Klassische Bildbearbeitungswerkzeuge (Filter, Pinsel, Gradationskurven) sind bewusst nicht Teil des Produkts.
 
 Ziele:
-
 - Phoenix-GUI als primäre Oberflaeche stabilisieren.
-- Legacy-GUI nicht abrupt entfernen, sondern kontrolliert einfrieren.
+- Etablierung des neuen Prompt-Workspaces ("AI Generate") und der neuen Backend-Adapter-Abstraktion (CPU, QNN, ONNX, Remote).
+- Einführung des GenerationController und der GenerationQueue.
+- Uebergang der Namenskonzepte (langfristige Zielbezeichnungen):
+  * Gallery -> AI Asset Library
+  * Compare -> Review Workspace
+  * Image Workspace -> Asset Inspector
+- Legacy-GUI einfrieren.
 - QNN-Konfiguration zentralisieren.
-- Einen offiziellen QNN-Ausfuehrungsweg definieren.
 - Modellregistry V2 entwerfen und dokumentieren.
-- Backend Registry als Architekturvertrag einfuehren.
-- Hardware-Erkennung erweitern, ohne Installationen zu veraendern.
-- Dokumentation vervollstaendigen.
+- Backend Registry / BackendManager als Architekturvertrag einfuehren.
+- Dokumentation auf die Creative Suite Vision 2.0 ausrichten.
 
 Empfohlene V2-Schichten:
 

@@ -171,3 +171,184 @@ Status: Completed
 
 Das Backend-Abstraktionsgerüst ist nun vollständig implementiert und mit dem UI-Inspector verdrahtet. Der `GenerationController` leitet die eingereihten Jobs direkt an das im `BackendManager` ausgewählte aktive Backend (standardmäßig `CPU (Stub)`) weiter.
 
+## 07.07.2026 – Sprint P-055 – AI Model Repository & Model Manager Foundation
+
+Status: Completed
+
+### Goals
+
+- Etablierung des Model Repositories unter `resources/models/` mit JSON-Metadaten.
+- Implementierung der Klasse `ModelRepository` zum Laden und Validieren von JSON-Modelldaten.
+- Erstellung von `ModelManagerModel` und `ModelManagerController` (MVC).
+- Dynamischer Aufbau des Model Repository Managers (`model_manager_gui.py`) aus der Datenquelle ohne Hardcodierungen.
+- Dynamische Anpassung des OptionMenus für Modelle im Prompt-Workspace.
+- Vorbereitung von Kommentaren für Downloads, Installationen und Signaturen.
+
+### Modified / Added
+
+- `resources/models/flux_dev.json` (neu)
+- `resources/models/sdxl_base.json` (neu)
+- `resources/models/sdxl_refiner.json` (neu)
+- `resources/models/sd35_large.json` (neu)
+- `resources/models/wan22.json` (neu)
+- `resources/models/cogvideox.json` (neu)
+- `resources/models/ltx_video.json` (neu)
+- `resources/backends/README.md` (neu)
+- `resources/capabilities/README.md` (neu)
+- `resources/licenses/README.md` (neu)
+- `controllers/model_repository.py` (neu)
+- `controllers/model_manager_model.py` (neu)
+- `controllers/model_manager_controller.py` (neu)
+- `controllers/prompt_workspace_controller.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+
+### Notes
+
+Die gesamte Modellauflistung und Parameteranzeige arbeitet nun rein datengetrieben. Es gibt keinerlei Modellnamen mehr hartcodiert im UI-Code. Wenn künftig neue JSON-Metadaten im Repository-Ordner abgelegt werden, werden diese sofort automatisch in der Suite erkannt.
+
+## 07.07.2026 – Sprint P-055.1 – AI Model Manager Workspace Integration
+
+Status: Completed
+
+### Goals
+
+- Integration des AI Model Managers als vollwertigen Phoenix Workspace (kein Popup/Dialog mehr).
+- Hinzufügen des Navigationspunktes "AI Model Manager" in die Phoenix-Seitenleiste (Sidebar).
+- Implementierung der View `PhoenixModelManagerView` mitsamt `PHOENIX_THEME`-konformem Styling und anpassbarem Treeview-Design.
+- Einhalten des strikten MVC-Musters und Beibehaltung der bestehenden Datenstrukturen.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (neu)
+- `widgets/phoenix/workspace.py` (modifiziert)
+- `widgets/phoenix/sidebar.py` (modifiziert)
+
+### Notes
+
+Der Model Manager ist nun voll in die Anwendungsstruktur als Workspace integriert. Die Navigation und das Theming greifen perfekt ineinander, während die Datenanbindung über das `ModelRepository` unberührt und stabil bleibt.
+
+## 07.07.2026 – Sprint P-055.2 – Model Manager Selection Fix
+
+Status: Completed
+
+### Goals
+
+- Beheben des Auswahlfehlers im Treeview des Model Managers.
+- Implementierung einer robusten, dynamischen Zeilenindexsuche via `tree.index()`.
+- Hinzufügen von automatischen Updates des Detailbereichs bei Klick/Selektion (`<<TreeviewSelect>>`) und Doppelklick.
+- Automatisches Auswählen des ersten Tabelleneintrags beim ersten Laden.
+- Löschen/Bereinigen ungenutzter Test-Modell-JSONs im Repository.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+
+### Notes
+
+Durch den Verzicht auf feste, eventuell inkompatible iid-Konvertierungen und den Einsatz von `tree.index()` ist die Zeilenauflösung 100% stabil. Die Selektion bleibt auch bei Fokusverlust sichtbar, und durch Event-Bindings werden Details jetzt komfortabel sofort bei Klick auf eine Reihe geladen.
+
+## 07.07.2026 – Sprint P-055.3 – Model Manager Selection Persistence Fix
+
+Status: Completed
+
+### Goals
+
+- Beheben des automatischen Resets der Zeilenauswahl im Model Manager Workspace.
+- Speicherung und Wiederherstellung der `selected_model_id` über Refresh-Zyklen.
+- Schutz des Detailbereichs vor unerwünschtem Überschreiben durch Statusberichte während der Hintergrundaktualisierung.
+- Sicherstellen einer stabilen Interaktion für Klicks, Doppelklicks und Detail-Schaltflächen.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+
+### Notes
+
+Die Ursache lag im globalen 500ms-Hintergrund-Workspace-Refresh (`_refresh_views`), der bei jedem Durchlauf die Treeview-Elemente neu aufbaute und die Benutzerauswahl verwarf. Durch das Caching der ausgewählten Modell-ID und die gezielte Wiederherstellung nach dem Neuaufbau bleibt die Selektion nun dauerhaft und stabil auf der vom Benutzer gewünschten Zeile.
+
+## 07.07.2026 – Sprint P-055.3 – Model Manager UX Cleanup
+
+Status: Completed
+
+### Goals
+
+- Entfernung des redundanten "Details anzeigen"-Buttons aus der Workspace-View und der Legacy-View.
+- Sicherstellen, dass die Details rein ereignisbasiert geladen werden.
+- Stabilität der Selektion und Vermeidung des automatischen Resets auf Zeile 0 während der periodischen Widget-Aktualisierung.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+
+### Notes
+
+Der Button wurde aus beiden Ansichten entfernt, da die Auslesung vollautomatisch und live beim Selektions-Event (`<<TreeviewSelect>>`) erfolgt. Die Auto-Selektion wurde so korrigiert, dass sie nur initial oder beim Fehlen einer gültigen Auswahl eingreift und die Benutzerauswahl ansonsten absolut stabil bestehen bleibt.
+
+## 07.07.2026 – Sprint P-055.4 – Remove Model Manager Refresh Button
+
+Status: Completed
+
+### Goals
+
+- Vollständige Entfernung des manuellen "Aktualisieren"-Buttons aus der Workspace-View und der Legacy-View.
+- Sicherstellen, dass die Modellliste automatisch beim Laden oder Initialisieren geladen wird.
+- Beibehalten der internen Refresh-Logik zur Vorbereitung automatischer Dateisystemüberwachungen.
+- Erhalt der stabilen Selektion und Interaktion.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+
+### Notes
+
+Der "Aktualisieren"-Button wurde aus den Oberflächen entfernt, da die Suite durch den periodischen Refresh-Loop (500ms) ohnehin vollautomatisch im Hintergrund aktualisiert wird und die Benutzerauswahl dabei stabil bleibt. Die Benutzeroberfläche des Model Managers ist nun vollständig buttonfrei und arbeitet rein interaktiv.
+
+## 07.07.2026 – Sprint P-055.5 – Active Model Selection Feedback
+
+Status: Completed
+
+### Goals
+
+- Einführung einer Single Source of Truth (`_active_model_id` / Klasse `ModelRepository`) zur Verwaltung des aktiven Modells.
+- Visuelles Feedback über eine Tabellenspalte "Aktiv" mit einem Haken-Symbol ("✓") für das aktive Modell.
+- Doppelklick-Gestenbindung zur Aktivierung des ausgewählten Modells.
+- Automatischer Parameterabgleich im Workspace "AI Generate" und Aktualisierung der Modellauswahl-Dropdowns.
+
+### Modified / Added
+
+- `controllers/model_repository.py` (modifiziert)
+- `controllers/model_manager_controller.py` (modifiziert)
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modmodified)
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+
+### Notes
+
+Durch die klassenübergreifende Speicherung der `_active_model_id` in `ModelRepository` konnte eine saubere Single Source of Truth etabliert werden. Die Synchronisation zwischen Model Manager und AI Generate läuft vollautomatisch über die bidirektional verkabelten `refresh()`-Methoden und den `StringVar`-Trace.
+
+## 07.07.2026 – Sprint UX-001 – AI Model Manager Professional UX
+
+Status: Completed
+
+### Goals
+
+- Etablierung eines professionellen zweispaltigen Layouts (Links: Liste & Properties; Rechts: Model Inspector).
+- Visuelle und logische Trennung der temporären Tabellenauswahl (blau) von der systemweit aktiven Modell-Auswahl (✓).
+- Implementierung eines Property Grids aus formatierten Label-Wert-Paaren anstelle von Debug-Textausgaben.
+- Einführung einer Statusleiste am unteren Bildschirmrand für System-Feedback wie "Aktives Modell geändert".
+- Hinzufügen von Code-Kommentaren und Hooks für künftige automatische Navigation nach Doppelklick.
+
+### Modified / Added
+
+- `widgets/phoenix/views/model_manager_view.py` (modifiziert)
+- `modules/model_manager_gui.py` (modifiziert)
+
+### Notes
+
+Mit diesem Sprint wurde die Benutzeroberfläche des Model Managers auf kommerzielles Desktop-Niveau (Commercial Quality) gehoben. Alle Dumps und JSON-Fragmente wurden durch ein sauberes, strukturiertes Grid-System ersetzt, das dem Anwender klare Informationen bietet, ohne ihn zu überfordern.
+
+

@@ -1,0 +1,18 @@
+{
+  "id": "ltx_video",
+  "display_name": "LTX Video",
+  "author": "Lightricks",
+  "version": "0.9.0",
+  "license": "LTX-Video License",
+  "description": "Real-time local text-to-video and image-to-video generative transformer model.",
+  "category": "Text-to-Video",
+  "backend": "QNN NPU",
+  "recommended_backend": "Qualcomm QNN NPU (Stub)",
+  "minimum_ram_gb": 16,
+  "recommended_ram_gb": 24,
+  "supports": ["txt2vid", "img2vid"],
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Available for Download"
+}

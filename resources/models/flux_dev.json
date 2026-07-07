@@ -1,0 +1,18 @@
+{
+  "id": "flux_dev",
+  "display_name": "Flux.1 Dev",
+  "author": "Black Forest Labs",
+  "version": "1.0.0",
+  "license": "FLUX.1-dev Non-Commercial License",
+  "description": "State-of-the-art 12B parameter rectified flow transformer local text-to-image model.",
+  "category": "Text-to-Image",
+  "backend": "QNN NPU",
+  "recommended_backend": "Qualcomm QNN NPU (Stub)",
+  "minimum_ram_gb": 16,
+  "recommended_ram_gb": 32,
+  "supports": ["txt2img", "img2img"],
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Available for Download"
+}
