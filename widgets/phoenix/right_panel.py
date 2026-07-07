@@ -18,8 +18,8 @@ class PhoenixRightPanel(tk.Frame):
         self.output_button: tk.Button | None = None
 
         self._status_value: tk.StringVar = tk.StringVar(value="Ready")
-        self._plugin_value: tk.StringVar = tk.StringVar(value="RealESRGAN")
-        self._backend_value: tk.StringVar = tk.StringVar(value="QNN / Snapdragon NPU")
+        self._plugin_value: tk.StringVar = tk.StringVar(value="Nicht verbunden")
+        self._backend_value: tk.StringVar = tk.StringVar(value="Noch keine Engine aktiv")
         self._file_value: tk.StringVar = tk.StringVar(value="Keine Auswahl")
 
         self.grid_propagate(False)
@@ -71,7 +71,7 @@ class PhoenixRightPanel(tk.Frame):
         section.pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_md))
 
         self._info_row(section, "Runtime", self._status_value)
-        self._info_row(section, "Plugin", self._plugin_value)
+        self._info_row(section, "Engine", self._plugin_value)
         self._info_row(section, "Backend", self._backend_value)
 
     def _build_info_section(self) -> None:

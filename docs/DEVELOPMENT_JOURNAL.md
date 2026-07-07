@@ -68,3 +68,79 @@ Status: Completed
 
 Der Gallery → Compare-Workflow ist nun vollständig abgeschlossen. Kontextmenü-Rechtsklicks rufen dieselbe Steuerung auf wie Doppelklicks. Große Bilder werden beim Laden im Compare-Workspace zur Vermeidung von Verzögerungen und OOMs automatisch auf maximal 4096px Kantenlänge herunterskaliert, während die vollen Auflösungsmetadaten intakt bleiben.
 
+## 07.07.2026 – Sprint P-051 – Prompt Workspace Foundation
+
+Status: Completed
+
+### Goals
+
+- Neuen Prompt Workspace als stabile UI-/Architektur-Foundation erstellen (ohne echte Bildgenerierung).
+- Workspace in Navigation/Sidebar einbinden.
+- Parameter-UI bauen (Modell-Auswahl, Prompt, Negative Prompt, Seed, Steps, CFG, Breite, Höhe).
+- Generierungs-Vorschau und Statuszeile einrichten.
+- MVC-Controller und Generate-Stub implementieren.
+
+### Modified / Added
+
+- `controllers/prompt_workspace_model.py` (neu)
+- `controllers/prompt_workspace_controller.py` (neu)
+- `widgets/phoenix/views/prompt_view.py` (neu)
+- `widgets/phoenix/sidebar.py` (modifiziert)
+- `widgets/phoenix/workspace.py` (modifiziert)
+
+### Notes
+
+Der „AI Generate“ / Prompt Workspace ist nun als sauberes MVC-Fundament in der Phoenix-Architektur integriert. Der Generate-Button sammelt alle eingegebenen Parameter, gibt sie zu Diagnosezwecken im Standard-Output aus und setzt den Workspace-Status auf „Generation queued (stub)“. Die gesamte Oberfläche nutzt den ThemeManager und ist voll kompatibel zum Light- und Dark-Theme.
+
+## 07.07.2026 – Sprint P-052 – Generation Session & Generation Controller Foundation
+
+Status: Completed
+
+### Goals
+
+- Zentrale Daten- und Controllerstruktur für die Generierung schaffen (ohne AI-Backend).
+- GenerationSessionModel als Single Source of Truth erstellen.
+- GenerationController zur Steuerung, Validierung und Stubbierung von queue/cancel einrichten.
+- PromptWorkspaceController als Vermittler umgestalten, der Aufrufe über den GenerationController an GenerationSession weiterreicht.
+- Kommentare und Vorbereitungen für künftige NPU/CPU/Remote Backends einfügen.
+
+### Modified / Added
+
+- `controllers/generation_session.py` (neu)
+- `controllers/generation_controller.py` (neu)
+- `controllers/prompt_workspace_controller.py` (modifiziert)
+
+### Notes
+
+Das Generierungs-Fundament ist nun sauber entkoppelt von der GUI-Ebene. Der PromptWorkspaceController fungiert nur noch als Vermittler, der Eingaben an den zentralen GenerationController weiterreicht. Die Generierungsparameter werden im GenerationSessionModel als Single Source of Truth verwaltet. Validierung für Pflichtfelder und Wertebereiche ist implementiert.
+
+## 07.07.2026 – Sprint P-053 – Generation Pipeline Foundation
+
+Status: Completed
+
+### Goals
+
+- Die Generierungs-Pipeline-Architektur vorbereiten (ohne Threads/Worker/AI).
+- GenerationJob-Klasse als Datenobjekt anlegen.
+- GenerationQueue-Klasse als FIFO-Jobverwaltung erstellen.
+- GenerationController erweitern, um Jobs per queue_generation() einzustellen.
+- Prompt Workspace anpassen, um Queue-Größe und Status "X Jobs in Warteschlange" zu integrieren.
+- Veraltete Bezüge auf RealESRGAN/QNN im UI und BatchController neutralisieren.
+- Platzhalter für künftige Backend-Adapter vorbereiten.
+
+### Modified / Added
+
+- `controllers/generation_job.py` (neu)
+- `controllers/generation_queue.py` (neu)
+- `controllers/generation_controller.py` (modifiziert)
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+- `widgets/phoenix/views/image_view.py` (modifiziert)
+- `widgets/phoenix/views/home_view.py` (modifiziert)
+- `widgets/phoenix/right_panel.py` (modifiziert)
+- `widgets/phoenix/cards/job_card.py` (modifiziert)
+- `gui/controllers/batch_controller.py` (modifiziert)
+
+### Notes
+
+Die Generierungs-Pipeline steht nun als stabiles Architekturgerüst. Die Übergabe erfolgt sauber von GUI -> PromptWorkspaceController -> GenerationController -> GenerationQueue -> GenerationJob. Alle veralteten RealESRGAN-Bezüge wurden erfolgreich neutralisiert und durch neutrale Engine-Platzhalter ersetzt.
+

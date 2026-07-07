@@ -7,6 +7,10 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 ## [2.0 Preview] – 2026-07-07 (Laufende Phoenix-Entwicklung)
 
 ### Hinzugefügt
+* **Generierungssitzung & GenerationController (P-052):** Implementierung der Generierungsarchitektur durch Einführung von `GenerationSessionModel` (zentraler Parameterzustand) und `GenerationController` (Validierung, Abbrechen und Einreihen von Generierungsaufträgen).
+* **Workspace-Generierungsintegration (P-052):** Umleitung aller Generierungsaufrufe im `PromptWorkspaceController` über den neuen `GenerationController`. Parameter werden in der `GenerationSession` synchron gehalten.
+* **Prompt Workspace Foundation (P-051):** Neuer Workspace „AI Generate“ zur Text-zu-Bild-Generierung. Bietet Eingabefelder für Prompt und Negativ-Prompt sowie Einstellregler für Seed, Schritte, CFG, Breite und Höhe und ein Modell-Dropdown.
+* **MVC-Generate-Stub (P-051):** Einführung von `PromptWorkspaceModel` und `PromptWorkspaceController`. Der Generierungsknopf sammelt die Daten, loggt die Parameter im Terminal und aktualisiert den Workspace-Status.
 * **Gallery → Compare-Workflow (P-050):** Vollständige Integration des Workflows. Doppelklick auf Galerie-Bilder oder das Rechtsklick-Kontextmenü („In Compare öffnen“) öffnet das Bild sauber über Controller/Adapter in der Vergleichsansicht.
 * **Robuste Großbild-Vergleichsansicht (P-050):** `CompareWorkspaceController` lädt Bilder >50MP als Vorschau in max. 4096px Kantenlänge zur RAM-Schonung unter Deaktivierung des Decompression Bomb Limits, während Metadaten-Auflösungen voll erhalten bleiben.
 * **Phoenix Gallery Thumbnail Grid Foundation (P-049.0B):** Erweiterung des Galerie-Workspace um ein responsives Thumbnail-Grid mit Platzhalterkarten zur Anzeige von Vorschausymbol, Dateiname, Auflösung und Format.

@@ -20,6 +20,7 @@ class PhoenixWorkspace(tk.Frame):
         "image": "Image",
         "gallery": "Gallery",
         "compare": "Compare",
+        "prompt": "AI Generate",
     }
 
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
@@ -58,6 +59,7 @@ class PhoenixWorkspace(tk.Frame):
         from widgets.phoenix.views.image_view import PhoenixImageView
         from widgets.phoenix.views.plugin_view import PhoenixPluginView
         from widgets.phoenix.views.settings_view import PhoenixSettingsView
+        from widgets.phoenix.views.prompt_view import PhoenixPromptView
 
         self._view_factories = {
             "home": lambda master: PhoenixHomeView(master, controller=self.controller),
@@ -70,6 +72,7 @@ class PhoenixWorkspace(tk.Frame):
             ),
             "gallery": PhoenixGalleryView,
             "compare": PhoenixCompareView,
+            "prompt": PhoenixPromptView,
         }
 
     def _build_layout(self) -> None:
@@ -181,6 +184,9 @@ class PhoenixWorkspace(tk.Frame):
 
     def open_compare(self) -> None:
         self.show_view("compare")
+
+    def open_prompt(self) -> None:
+        self.show_view("prompt")
 
     def refresh_dashboard(self) -> None:
         dashboard = self._views.get("dashboard")

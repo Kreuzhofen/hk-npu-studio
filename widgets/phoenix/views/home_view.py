@@ -25,8 +25,8 @@ class PhoenixHomeSnapshot:
     percent: int = 0
     current_job: str = "Kein aktiver Job"
     last_output: str = "Kein Output vorhanden"
-    plugin: str = "RealESRGAN"
-    backend: str = "QNN / Snapdragon NPU"
+    plugin: str = "Nicht verbunden"
+    backend: str = "Noch keine Engine aktiv"
     worker_status: str = "Worker idle"
     waiting_jobs: int = 0
     activity: tuple[str, ...] = ()

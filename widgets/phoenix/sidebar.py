@@ -49,6 +49,7 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("image", "Image")
         self._nav_button("gallery", "Gallery")
         self._nav_button("compare", "Compare")
+        self._nav_button("prompt", "AI Generate")
 
     def _nav_button(self, view_name: str, text: str) -> None:
         button = tk.Button(

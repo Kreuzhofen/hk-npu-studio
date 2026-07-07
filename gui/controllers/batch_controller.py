@@ -21,9 +21,9 @@ from engine.batch_state_machine import BatchStateMachine
 class BatchController:
     """Controls batch processing and runtime UI updates for the GUI."""
 
-    PLUGIN_NAME = "RealESRGAN"
-    BACKEND_NAME = "QNN / Snapdragon NPU"
-    STATUS_BACKEND_NAME = "QNN"
+    PLUGIN_NAME = "Nicht verbunden"
+    BACKEND_NAME = "Noch keine Engine aktiv"
+    STATUS_BACKEND_NAME = "Stub"
 
     def __init__(self, app):
         self.application = create_application_adapter(app)

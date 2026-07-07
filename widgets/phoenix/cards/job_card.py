@@ -13,8 +13,8 @@ class PhoenixJobCard(tk.Frame):
         master: tk.Misc,
         title: str = "Aktueller Job",
         filename: str = "Kein aktiver Job",
-        plugin: str = "RealESRGAN",
-        backend: str = "QNN / Snapdragon NPU",
+        plugin: str = "Nicht verbunden",
+        backend: str = "Noch keine Engine aktiv",
         detail: str = "Noch kein Batch gestartet.",
     ) -> None:
         super().__init__(

@@ -499,8 +499,8 @@ class PhoenixImageView(tk.Frame):
             self.output_info_value.configure(
                 text=(
                     "Output: Noch nicht erzeugt\n"
-                    "Plugin: RealESRGAN\n"
-                    "Backend: QNN / Snapdragon NPU"
+                    "Generation Engine: Nicht verbunden\n"
+                    "Backend: Noch keine Engine aktiv"
                 )
             )
             self._apply_compare_view_state()
