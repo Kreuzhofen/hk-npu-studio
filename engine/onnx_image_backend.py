@@ -23,9 +23,41 @@ class OnnxImageBackend(InferenceBackend):
     def __init__(self, runtime_model: RuntimeModel | None = None) -> None:
         self.runtime_model = runtime_model
 
+    def is_available(self) -> tuple[bool, str]:
+        """
+        Check if onnxruntime library is importable and log its metadata.
+        Returns a tuple of (is_available, status_message).
+        """
+        try:
+            import onnxruntime
+            version = getattr(onnxruntime, "__version__", "unknown")
+            try:
+                providers = onnxruntime.get_available_providers()
+            except Exception:
+                providers = []
+            msg = f"ONNX Runtime v{version} available. Providers: {providers}"
+            return True, msg
+        except ImportError as e:
+            return False, f"ONNX Runtime is not installed on this system: {e}"
+
     def generate(self, job: GenerationJob) -> GenerationResponse:
         model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
         backend_name = "ONNX Runtime (Stub)"
+
+        # Check ONNX Runtime availability
+        available, check_msg = self.is_available()
+        if not available:
+            logger.error(f"[OnnxImageBackend] {check_msg}")
+            print(f"[OnnxImageBackend] {check_msg}")
+            return GenerationResponse(
+                success=False,
+                status="unavailable",
+                message=check_msg,
+                model_name=model_name
+            )
+
+        logger.info(f"[OnnxImageBackend] {check_msg}")
+        print(f"[OnnxImageBackend] {check_msg}")
         
         # Setup unique image path using prefix, timestamp and job ID
         output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
