@@ -8,7 +8,16 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
-Am **07.07.2026** wurden folgende Sprints abgeschlossen:
+Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
+
+* **Sprint P-076 (Local Image Generator Adapter Foundation):**
+  * **Einführung der Adapter-Stufe:** Implementierung von `LocalImageGeneratorAdapter` in `engine/local_image_generator_adapter.py` zur Kapselung lokaler Bildgenerierungsschritte.
+  * **Einführung des GenerationExecutor:** Implementierung von `GenerationExecutor` in `engine/generation_executor.py` zur Orchestrierung der Modellvalidierung und Generierungssteuerung.
+  * **Strukturierte Ergebnisse:** Rückgabe des Generierungsresultats über `GenerationResponse` (in `engine/generation_response.py`), die von `GenerationResult` erbt und somit abwärtskompatibel bleibt.
+  * **Dummy-Bild-Generierung:** Der Adapter erzeugt bei erfolgreicher Generierung ein valides 1x1-Pixel PNG-Bild in `output/` zur Vorschau in der GUI-Galerie.
+  * **Ablauf-Protokollierung:** Strukturierte Logs zeigen den Inferenz-Fluss präzise auf: `Executor` -> `Adapter` -> `Result`.
+  * **Modellvalidierung:** Überprüfung über `ModelLoaderService`, ob das gewählte Modell installiert ist. Falls nicht, erfolgt ein sicherer Abbruch mit Fehlermeldung statt eines Crashs.
+  * **Dateien:** [local_image_generator_adapter.py](file:///C:/SnapdragonAI/engine/local_image_generator_adapter.py), [generation_executor.py](file:///C:/SnapdragonAI/engine/generation_executor.py), [generation_response.py](file:///C:/SnapdragonAI/engine/generation_response.py), [generation_pipeline.py](file:///C:/SnapdragonAI/controllers/generation_pipeline.py)
 
 * **Sprint UX-006 (Navigation Preparation & Splash Size Fix):**
   * **Bereinigung der Workspace-Navigation:** Ausblendung des "Image"-Workspace aus der linken Seitenleisten-Navigation ([sidebar.py](file:///C:/SnapdragonAI/widgets/phoenix/sidebar.py)).

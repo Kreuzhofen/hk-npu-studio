@@ -693,3 +693,27 @@ Status: Completed
 ### Notes
 
 Der Eintrag "Image" wurde in der Seitenleiste auskommentiert, bleibt aber im Code voll einsatzbereit. Der Splash-Screen arbeitet nun als eigenständiges Toplevel-Fenster anstatt als raumgreifendes Overlay-Frame auf dem Hauptfenster, was für einen erheblich professionelleren Startvorgang der Desktop-App sorgt. Durch das Alpha-Fading blendet sich das Fenster über Windows-Attribute elegant aus, ehe es sich schließt.
+
+## 08.07.2026 – Sprint P-076 – Local Image Generator Adapter Foundation
+
+Status: Completed
+
+### Goals
+
+- Vorbereitung der ersten echten lokalen Bildgenerierung über einen austauschbaren Generator-Adapter.
+- Implementierung von `LocalImageGeneratorAdapter` zur Kapselung lokaler Inferenzschritte (Stub-Generierung eines 1x1 PNG-Dummybildes für die GUI-Galerie).
+- Einführung von `GenerationExecutor` zur Validierung des Modellinstallationszustands und Dispatching an die Adapter-Stufe.
+- Integration von `GenerationResponse` (Unterklasse von `GenerationResult`) zur Gewährleistung abwärtskompatibler Rückgabewerte.
+- Einführung strukturierter Protokolle zur Visualisierung des Inferenz-Flusses: `Executor` -> `Adapter` -> `Result`.
+- Sicherer Abbruch bei fehlender Modellinstallation anstelle eines Anwendungsabsturzes.
+
+### Modified / Added
+
+- `engine/local_image_generator_adapter.py` (neu)
+- `engine/generation_executor.py` (neu)
+- `engine/generation_response.py` (neu)
+- `controllers/generation_pipeline.py` (modifiziert)
+
+### Notes
+
+Die Architektur ist nun optimal auf künftige physische Inferenzpakete (Qualcomm QNN NPU, ONNX Runtime, CPU etc.) vorbereitet. Der Inferenzlauf erzeugt ein echtes Mini-PNG in `output/`, wodurch die GUI-Vorschau und die Galerie das Resultat ohne Fehlverhalten laden und anzeigen können. Der Fluss ist durchgehend protokolliert.

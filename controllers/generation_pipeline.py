@@ -39,16 +39,9 @@ class ImageGenerationPipeline:
 
     def execute(self) -> GenerationResult:
         """Runs the active BackendAdapter to synthesize the image output."""
-        if not self.backend_adapter:
-            return GenerationResult(
-                success=False,
-                status="Error",
-                message="Kein Backend-Adapter konfiguriert.",
-                model_name=self.job.session.model_name if (self.job and self.job.session) else "Unknown"
-            )
-
-        # Call adapter generation returning GenerationResult
-        return self.backend_adapter.generate(self.job)
+        from engine.generation_executor import GenerationExecutor
+        executor = GenerationExecutor()
+        return executor.execute(self.job, self.backend_adapter)
 
     def finish(self, result: GenerationResult) -> GenerationResult:
         """Appends generation performance metrics, saves metadata files, and triggers workflow callbacks."""
