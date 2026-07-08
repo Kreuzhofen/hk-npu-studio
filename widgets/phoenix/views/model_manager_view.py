@@ -7,6 +7,42 @@ from controllers.model_manager_controller import ModelManagerController
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
+class _Tooltip:
+    """Small Tk tooltip helper for existing package action buttons."""
+
+    def __init__(self, widget: tk.Widget, text: str) -> None:
+        self.widget = widget
+        self.text = text
+        self.window: tk.Toplevel | None = None
+        widget.bind("<Enter>", self.show)
+        widget.bind("<Leave>", self.hide)
+
+    def show(self, event: tk.Event | None = None) -> None:
+        if self.window or not self.text:
+            return
+        x = self.widget.winfo_rootx() + 12
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 6
+        self.window = tk.Toplevel(self.widget)
+        self.window.wm_overrideredirect(True)
+        self.window.wm_geometry(f"+{x}+{y}")
+        tk.Label(
+            self.window,
+            text=self.text,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_caption,
+            bd=1,
+            relief="solid",
+            padx=8,
+            pady=4,
+        ).pack()
+
+    def hide(self, event: tk.Event | None = None) -> None:
+        if self.window:
+            self.window.destroy()
+            self.window = None
+
+
 class PhoenixModelManagerView(tk.Frame):
     """
     Phoenix Workspace View for the AI Model Manager.
@@ -290,7 +326,7 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspect_capabilities = self._create_value_label(self.inspector_scroll_content, 26, 1, wrap=True)
 
         # ==========================================
-        # FUTURE ACTION BUTTONS (PLACEHOLDERS)
+        # PACKAGE ACTION BUTTONS (UX PREPARATION)
         # ==========================================
         self.buttons_frame = tk.Frame(self.inspector_scroll_content, bg=PHOENIX_THEME.card_bg)
         self.buttons_frame.grid(row=27, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 12))
@@ -308,17 +344,40 @@ class PhoenixModelManagerView(tk.Frame):
             "height": 1,
         }
 
-        self.btn_install = tk.Button(self.buttons_frame, text="Installieren", **button_style)
-        self.btn_uninstall = tk.Button(self.buttons_frame, text="Deinstallieren", **button_style)
-        self.btn_update = tk.Button(self.buttons_frame, text="Aktualisieren", **button_style)
-        self.btn_benchmark = tk.Button(self.buttons_frame, text="Benchmark", **button_style)
-        self.btn_open_folder = tk.Button(self.buttons_frame, text="Ordner öffnen", **button_style)
+        self.btn_install = tk.Button(
+            self.buttons_frame,
+            text="Install",
+            command=lambda: self._on_package_action("install"),
+            **button_style,
+        )
+        self.btn_validate = tk.Button(
+            self.buttons_frame,
+            text="Validate",
+            command=lambda: self._on_package_action("validate"),
+            **button_style,
+        )
+        self.btn_update = tk.Button(
+            self.buttons_frame,
+            text="Update",
+            command=lambda: self._on_package_action("update"),
+            **button_style,
+        )
+        self.btn_remove = tk.Button(
+            self.buttons_frame,
+            text="Remove",
+            command=lambda: self._on_package_action("remove"),
+            **button_style,
+        )
 
         self.btn_install.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
-        self.btn_uninstall.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
+        self.btn_validate.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
         self.btn_update.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
-        self.btn_benchmark.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
-        self.btn_open_folder.grid(row=2, column=0, columnspan=2, sticky="ew", padx=2, pady=2)
+        self.btn_remove.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
+
+        _Tooltip(self.btn_install, "Prepare package installation workflow.")
+        _Tooltip(self.btn_validate, "Prepare package validation workflow.")
+        _Tooltip(self.btn_update, "Prepare package update workflow.")
+        _Tooltip(self.btn_remove, "Prepare package removal workflow.")
 
         # ==========================================
         # SYSTEM ENVIRONMENT CARD
@@ -500,6 +559,29 @@ class PhoenixModelManagerView(tk.Frame):
             pady=2,
         )
 
+    def _set_action_button_state(self, button: tk.Button, enabled: bool) -> None:
+        button.configure(
+            state="normal" if enabled else "disabled",
+            fg=PHOENIX_THEME.text_primary if enabled else PHOENIX_THEME.text_disabled,
+            bg=PHOENIX_THEME.elevated_bg,
+            activebackground=PHOENIX_THEME.elevated_bg,
+            activeforeground=PHOENIX_THEME.text_primary if enabled else PHOENIX_THEME.text_disabled,
+        )
+
+    def _set_package_action_states(self, status: object | None) -> None:
+        normalized = self._format_status(status) if status else ""
+        states = {
+            "NOT_INSTALLED": {"install"},
+            "READY": {"validate", "remove"},
+            "INSTALLED": {"validate", "remove"},
+            "UPDATE_AVAILABLE": {"validate", "update", "remove"},
+            "INVALID": {"validate", "remove"},
+        }.get(normalized, set())
+        self._set_action_button_state(self.btn_install, "install" in states)
+        self._set_action_button_state(self.btn_validate, "validate" in states)
+        self._set_action_button_state(self.btn_update, "update" in states)
+        self._set_action_button_state(self.btn_remove, "remove" in states)
+
     @staticmethod
     def _format_capabilities(capabilities: object) -> str:
         if not isinstance(capabilities, dict) or not capabilities:
@@ -637,6 +719,7 @@ class PhoenixModelManagerView(tk.Frame):
                         self.inspect_download_url, self.inspect_checksum,
                         self.inspect_capabilities):
                 lbl.configure(text="—")
+            self._set_package_action_states(None)
 
         # 5. Update System Environment discovery details
         res = self.controller.get_discovery_result()
@@ -659,12 +742,15 @@ class PhoenixModelManagerView(tk.Frame):
         """Display comprehensive metadata properties for the selected model."""
         selected = self.tree.selection()
         if not selected:
+            self._set_package_action_states(None)
             return
 
         model_id = selected[0]
         model = self.controller.get_model_details(model_id)
         if not model:
+            self._set_package_action_states(None)
             return
+        package_status = self._resolved_package_status(model_id)
 
         # Update Grid value labels cleanly
         self.inspect_name.configure(text=self._safe_text(model.get("display_name")))
@@ -678,28 +764,30 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspect_rec_ram.configure(text=self._format_ram(model.get("recommended_ram_gb")))
         self.inspect_installed.configure(text=self._format_bool(model.get("installed")))
         self.inspect_download.configure(text="Heruntergeladen" if model.get("downloaded") else "Ausstehend")
-        self._configure_status_badge(self.inspect_status, self._resolved_package_status(model_id))
+        self._configure_status_badge(self.inspect_status, package_status)
         self.inspect_path.configure(text=self._safe_text(model.get("path"), "Nicht verfügbar"))
         self._set_package_detail_values(model)
+        self._set_package_action_states(package_status)
 
         # Update status bar feedback: "Modell ausgewählt: <Modellname>"
         self.status_lbl.configure(text=f"Modell ausgewählt: {self._safe_text(model.get('display_name'))}")
 
-        # Update button states based on installation status
-        is_installed = model.get("installed", False)
-        if is_installed:
-            self.btn_install.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
-            self.btn_uninstall.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda m_id=model["id"]: self._on_uninstall(m_id))
-            
-            model_path_str = model.get("path")
-            if model_path_str and os.path.exists(model_path_str):
-                self.btn_open_folder.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda path=model_path_str: self._on_open_folder(path))
-            else:
-                self.btn_open_folder.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
+    def _on_package_action(self, action: str) -> None:
+        messages = {
+            "install": "Package installation workflow is not implemented yet.",
+            "validate": "Package validation workflow is not implemented yet.",
+            "update": "Package update workflow is not implemented yet.",
+            "remove": "Package removal workflow is not implemented yet.",
+        }
+        message = messages.get(action, "Package workflow is not implemented yet.")
+        selected = self.tree.selection()
+        if selected:
+            model = self.controller.get_model_details(selected[0])
+            package_name = self._safe_text(model.get("display_name") if model else selected[0])
+            self.status_lbl.configure(text=f"{package_name}: {message}")
         else:
-            self.btn_install.configure(state="normal", fg=PHOENIX_THEME.text_primary, command=lambda m_id=model["id"]: self._on_install(m_id))
-            self.btn_uninstall.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
-            self.btn_open_folder.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
+            self.status_lbl.configure(text=message)
+        messagebox.showinfo("Package Action", message)
 
     def _on_double_click(self, event: tk.Event) -> None:
         """
