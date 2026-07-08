@@ -117,6 +117,11 @@ class PhoenixGalleryView(WorkspaceFrame):
         """Aktualisiert die Galerie beim Wechseln/Periodisch."""
         self._refresh_ui()
 
+    def show_generated_image(self, image_path: str) -> None:
+        """Load the generated image into the Asset Library and select it."""
+        self.controller.show_image(image_path)
+        self._refresh_ui()
+
     def _refresh_ui(self) -> None:
         """Aktualisiert die Galerie-Ansicht."""
         self.thumbnail_area.set_images(

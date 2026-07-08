@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from controllers.prompt_workspace_model import PromptWorkspaceModel, PromptWorkspaceState
 from controllers.generation_controller import GenerationController
 from controllers.model_repository import ModelRepository
@@ -22,7 +24,7 @@ class PromptWorkspaceController:
         self.generation_controller = generation_controller or GenerationController()
         self.repository = repository or ModelRepository()
         self.last_response: Any = None
-        
+
         # Dynamically populate model names from the data-driven repository
         self.AVAILABLE_MODELS = [m["id"] for m in self.repository.get_all_models()]
         if not self.AVAILABLE_MODELS:
@@ -75,9 +77,10 @@ class PromptWorkspaceController:
         )
 
     def generate_image(self) -> GenerationResult:
-        # Delegate to GenerationController and update status
+        # Delegate to GenerationController and update status.
+        self.model.update_state(status="Generierung läuft")
         result = self.generation_controller.queue_generation()
-        status_msg = result.status if result.success else f"Error: {result.message}"
+        status_msg = "Abgeschlossen" if result.success else f"Fehler: {result.message}"
         self.model.update_state(status=status_msg)
         self.last_response = result
         return result

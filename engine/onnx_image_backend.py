@@ -239,6 +239,10 @@ class OnnxImageBackend(InferenceBackend):
         embedder = TextEmbeddingService(pkg)
         embed_res = embedder.embed_prompt(job.session.prompt)
 
+        negative_embed_res = None
+        if job.session.negative_prompt.strip():
+            negative_embed_res = embedder.embed_prompt(job.session.negative_prompt)
+
         # 4.5. Integrate UNetService for Latent Preparation & Noise Prediction
         from engine.unet_service import UNetService
         unet_service = UNetService(pkg)
@@ -246,7 +250,15 @@ class OnnxImageBackend(InferenceBackend):
         h = job.session.height if job.session.height > 0 else 512
         
         init_latents = unet_service.generate_initial_latents(w, h, seed=job.session.seed)
-        unet_res = unet_service.predict_noise(init_latents, timestep=999, encoder_hidden_states=embed_res["embeddings"])
+        additional_inputs = {}
+        if negative_embed_res is not None:
+            additional_inputs["negative_embeddings"] = negative_embed_res["embeddings"]
+        unet_res = unet_service.predict_noise(
+            init_latents,
+            timestep=999,
+            encoder_hidden_states=embed_res["embeddings"],
+            additional_inputs=additional_inputs or None,
+        )
 
         # 4.7. Integrate VAEDecoderService for VAE Latent Decoding
         from engine.vae_decoder_service import VAEDecoderService
@@ -330,6 +342,8 @@ class OnnxImageBackend(InferenceBackend):
             "prompt_tokens": embed_res["tokens"],
             "embedding_shape": embed_res["embedding_shape"],
             "is_mock_embedding": embed_res["is_mock"],
+            "negative_embedding_shape": negative_embed_res["embedding_shape"] if negative_embed_res else None,
+            "is_mock_negative_embedding": negative_embed_res["is_mock"] if negative_embed_res else None,
             "latent_shape": unet_res["latent_shape"],
             "is_mock_unet": unet_res["is_mock"],
             "decoder_backend": vae_res["backend"],

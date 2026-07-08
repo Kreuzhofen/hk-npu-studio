@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from pathlib import Path
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
+
+
+logger = logging.getLogger("PhoenixPromptView")
 
 
 class PhoenixPromptView(WorkspaceFrame):
@@ -589,29 +593,56 @@ class PhoenixPromptView(WorkspaceFrame):
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
         )
 
-        self.controller.generate_image()
-        self.refresh()
+        self._set_generation_busy(True)
+        try:
+            result = self.controller.generate_image()
+            if result.success:
+                self._show_generated_output_in_library(result.image_path)
+            else:
+                messagebox.showerror("AI Generate", result.message)
+        except Exception as error:
+            logger.exception("Prompt-to-image generation failed")
+            self.controller.model.update_state(status=f"Fehler: {error}")
+            messagebox.showerror("AI Generate", str(error))
+        finally:
+            self._set_generation_busy(False)
+            self.refresh()
+
+    def _set_generation_busy(self, busy: bool) -> None:
+        state = "disabled" if busy else "normal"
+        self.gen_btn.configure(state=state)
+        status_text = "Generierung läuft" if busy else self.controller.get_state().status
+        self.status_label.configure(text=f"Status: {status_text}")
+        self.insp_gen_status.configure(text=status_text)
+        self.update_idletasks()
+
+    def _show_generated_output_in_library(self, image_path: str | None) -> None:
+        if not image_path:
+            return
+
+        app = self.winfo_toplevel()
+        application_controller = getattr(app, "application_controller", None)
+        open_library = getattr(application_controller, "open_gallery_with_image", None)
+        if callable(open_library):
+            open_library(image_path)
 
     def _on_open_library(self) -> None:
         response = getattr(self.controller, "last_response", None)
         if response and response.image_path:
-            import subprocess
-            import os
-            folder = Path(response.image_path).parent
-            try:
-                os.startfile(folder)
-            except Exception:
-                subprocess.Popen(["explorer", str(folder)])
+            app = self.winfo_toplevel()
+            application_controller = getattr(app, "application_controller", None)
+            open_library = getattr(application_controller, "open_gallery_with_image", None)
+            if callable(open_library):
+                open_library(response.image_path)
 
     def _on_open_review(self) -> None:
         response = getattr(self.controller, "last_response", None)
         if response and response.image_path:
-            import subprocess
-            import os
-            try:
-                os.startfile(response.image_path)
-            except Exception:
-                subprocess.Popen(["explorer", str(response.image_path)])
+            app = self.winfo_toplevel()
+            application_controller = getattr(app, "application_controller", None)
+            open_review = getattr(application_controller, "open_compare_with_output", None)
+            if callable(open_review):
+                open_review(response.image_path)
 
     def _on_save_as(self) -> None:
         response = getattr(self.controller, "last_response", None)

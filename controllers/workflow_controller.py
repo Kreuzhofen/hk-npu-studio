@@ -79,21 +79,19 @@ class WorkflowController:
         return self.state
 
     def on_generation_finished(self, result: GenerationResult) -> None:
-        """
-        Callback handler invoked by the GenerationController upon completion of a pipeline run.
-        Orchestrates cross-workspace updates via TODO hooks.
-        """
+        """Register successful generation outputs for Gallery and Review workspaces."""
         if result.success and result.image_path:
             self.state.last_generated_image = result.image_path
-            
-            # TODO (Gallery Hook): Automatically register the new image file path
-            # inside the GalleryController / repository to update the thumbnail grid.
-            
-            # TODO (Compare Hook): Auto-load original source vs new generated image
-            # inside the CompareWorkspaceController, priming the Compare workspace.
-            
-            # TODO (Preview Hook): Notify the prompt view's preview card to display
-            # the newly synthesized image file.
-            pass
+            self.state.selected_gallery_image = result.image_path
+            self.state.selected_compare_image = result.image_path
+
+            if self.workspace is not None:
+                try:
+                    gallery_view = self.workspace._get_or_create_view("gallery")
+                    show_generated = getattr(gallery_view, "show_generated_image", None)
+                    if callable(show_generated):
+                        show_generated(result.image_path)
+                except Exception as error:
+                    print(f"[WorkflowController] Gallery update skipped: {error}")
 
         print(f"[WorkflowController] Generation Finished Callback. Success={result.success}, Status={result.status}")

@@ -113,6 +113,25 @@ class GalleryController:
             return image.path
         return None
 
+    def show_image(self, image_path: str | Path) -> bool:
+        """Load the image folder and select the provided image if it is supported."""
+        path = Path(image_path)
+        if not path.exists() or not path.is_file():
+            self.status = "Fehler"
+            return False
+
+        self.current_folder = path.parent
+        self.refresh()
+
+        for image in self.visible_images:
+            if image.path == path:
+                self.model.select_single(image)
+                self.status = f"Bereit: {image.filename}"
+                return True
+
+        self.status = "Bild nicht in der Galerie gefunden"
+        return False
+
     def get_thumbnail_size(self) -> int:
         return self.THUMBNAIL_SIZES[self.thumbnail_size_label]
 

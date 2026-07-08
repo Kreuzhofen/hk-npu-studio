@@ -99,6 +99,25 @@ class ApplicationController:
     def _start_runtime_polling(self):
         self.app.batch_controller.start_polling()
 
+    def register_generated_asset(self, path) -> None:
+        """Register a generated image in the existing AI Asset Library view."""
+        if not hasattr(self.app, "phoenix_workspace"):
+            return
+
+        workspace = self.app.phoenix_workspace
+        gallery_view = workspace._get_or_create_view("gallery")
+        show_generated = getattr(gallery_view, "show_generated_image", None)
+        if callable(show_generated):
+            show_generated(str(path))
+
+    def open_gallery_with_image(self, path) -> None:
+        """Switch to the AI Asset Library and select the generated image."""
+        if not hasattr(self.app, "phoenix_workspace"):
+            return
+
+        self.register_generated_asset(path)
+        self.app.phoenix_workspace.show_view("gallery")
+
     def open_compare_with_image(self, path) -> None:
         """Switches to the Compare Workspace and loads the given path as the original image, clearing the output."""
         if not hasattr(self.app, "phoenix_workspace"):
@@ -110,5 +129,18 @@ class ApplicationController:
         if hasattr(compare_view, "controller") and compare_view.controller is not None:
             compare_view.controller.load_original(path)
             compare_view.controller.clear_output()
+
+        workspace.show_view("compare")
+
+    def open_compare_with_output(self, path) -> None:
+        """Switch to the Compare Workspace and load a generated image as output."""
+        if not hasattr(self.app, "phoenix_workspace"):
+            return
+
+        workspace = self.app.phoenix_workspace
+        compare_view = workspace._get_or_create_view("compare")
+
+        if hasattr(compare_view, "controller") and compare_view.controller is not None:
+            compare_view.controller.load_output(path)
 
         workspace.show_view("compare")
