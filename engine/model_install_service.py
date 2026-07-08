@@ -5,6 +5,7 @@ import json
 import shutil
 import logging
 import urllib.parse
+import zipfile
 from pathlib import Path
 from typing import Callable, Any
 
@@ -41,6 +42,7 @@ class ModelInstallService:
         downloaded: bool | None = None,
         path: str | None = None,
         status: str | None = None,
+        version: str | None = None,
     ) -> None:
         updates: dict[str, Any] = {}
         if installed is not None:
@@ -66,6 +68,177 @@ class ModelInstallService:
             return parts
 
         return normalize(installed_version) < normalize(catalog_version)
+    @staticmethod
+    def _manifest_model_id(manifest: dict[str, Any]) -> str:
+        return str(manifest.get("model_id") or manifest.get("package_id") or manifest.get("id") or "").strip()
+
+    @staticmethod
+    def _manifest_version(manifest: dict[str, Any]) -> str:
+        return str(manifest.get("package_version") or manifest.get("version") or "").strip()
+
+    def _read_local_package_manifest(self, source_path: str) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "success": False,
+            "message": "Package-Quelle ist ungültig.",
+            "manifest": None,
+            "source_type": "",
+            "manifest_prefix": "",
+        }
+        source = Path(source_path)
+        if not source.exists():
+            result["message"] = "Lokale Package-Quelle existiert nicht."
+            return result
+
+        try:
+            if source.is_dir():
+                manifest_path = source / "package.json"
+                if not manifest_path.is_file():
+                    result["message"] = "Manifest package.json fehlt im Package-Verzeichnis."
+                    return result
+                with open(manifest_path, "r", encoding="utf-8") as manifest_file:
+                    manifest = json.load(manifest_file)
+                result.update({"success": isinstance(manifest, dict), "manifest": manifest, "source_type": "directory"})
+                if not isinstance(manifest, dict):
+                    result["message"] = "Manifest muss ein JSON-Objekt sein."
+                return result
+
+            if source.is_file() and zipfile.is_zipfile(source):
+                with zipfile.ZipFile(source, "r") as package_zip:
+                    names = [name for name in package_zip.namelist() if not name.endswith("/")]
+                    manifest_name = "package.json" if "package.json" in names else ""
+                    if not manifest_name:
+                        candidates = [name for name in names if name.endswith("/package.json")]
+                        manifest_name = candidates[0] if candidates else ""
+                    if not manifest_name:
+                        result["message"] = "Manifest package.json fehlt im Package-Archiv."
+                        return result
+                    with package_zip.open(manifest_name) as manifest_file:
+                        manifest = json.load(manifest_file)
+                    prefix = manifest_name[:-len("package.json")]
+                result.update({
+                    "success": isinstance(manifest, dict),
+                    "manifest": manifest,
+                    "source_type": "archive",
+                    "manifest_prefix": prefix,
+                })
+                if not isinstance(manifest, dict):
+                    result["message"] = "Manifest muss ein JSON-Objekt sein."
+                return result
+        except (OSError, json.JSONDecodeError, zipfile.BadZipFile) as exc:
+            result["message"] = f"Manifest konnte nicht gelesen werden: {exc}"
+            return result
+
+        result["message"] = "Package-Quelle muss ein lokaler Ordner oder ein lokales ZIP/SMP-Archiv sein."
+        return result
+
+    def _validate_local_package_source(self, model_id: str, source_path: str) -> dict[str, Any]:
+        result = self._read_local_package_manifest(source_path)
+        if not result.get("success"):
+            return result
+
+        manifest = result.get("manifest")
+        if not isinstance(manifest, dict):
+            result.update({"success": False, "message": "Manifest-Struktur ist ungültig."})
+            return result
+
+        issues: list[str] = []
+        manifest_id = self._manifest_model_id(manifest)
+        if not manifest_id:
+            issues.append("Package-ID fehlt im Manifest.")
+        elif manifest_id != model_id:
+            issues.append(f"Package-ID stimmt nicht überein: Manifest '{manifest_id}', Auswahl '{model_id}'.")
+
+        if not self._manifest_version(manifest):
+            issues.append("Version fehlt im Manifest.")
+        if not isinstance(manifest.get("capabilities"), dict) or not manifest.get("capabilities"):
+            issues.append("Capabilities fehlen im Manifest.")
+
+        components = manifest.get("components")
+        if not isinstance(components, dict) or not components:
+            issues.append("Runtime-/Model-Komponenten fehlen im Manifest.")
+        else:
+            source = Path(source_path)
+            if result.get("source_type") == "directory":
+                for name, config in components.items():
+                    rel_path = str(config.get("path") if isinstance(config, dict) else "").strip()
+                    if not rel_path:
+                        issues.append(f"Dateipfad fehlt für Komponente '{name}'.")
+                        continue
+                    component_path = source / rel_path
+                    if component_path.is_dir():
+                        try:
+                            exists = any(component_path.iterdir())
+                        except OSError:
+                            exists = False
+                    else:
+                        exists = component_path.is_file()
+                    if not exists:
+                        issues.append(f"Erwartete Datei fehlt: {rel_path}")
+            elif result.get("source_type") == "archive":
+                prefix = str(result.get("manifest_prefix") or "")
+                with zipfile.ZipFile(source, "r") as package_zip:
+                    names = set(package_zip.namelist())
+                    for name, config in components.items():
+                        rel_path = str(config.get("path") if isinstance(config, dict) else "").strip().replace("\\", "/")
+                        if not rel_path:
+                            issues.append(f"Dateipfad fehlt für Komponente '{name}'.")
+                            continue
+                        archive_path = f"{prefix}{rel_path}"
+                        has_file = archive_path in names
+                        has_dir_content = any(member.startswith(archive_path.rstrip("/") + "/") for member in names)
+                        if not has_file and not has_dir_content:
+                            issues.append(f"Erwartete Datei fehlt: {rel_path}")
+
+        if issues:
+            result.update({"success": False, "message": "Package-Quelle ist ungültig.", "issues": issues})
+            return result
+
+        result.update({"success": True, "message": "Package-Quelle ist lokal gültig.", "issues": []})
+        return result
+
+    @staticmethod
+    def _ensure_safe_extract_path(destination: Path, target: Path) -> bool:
+        destination_resolved = destination.resolve()
+        target_resolved = target.resolve()
+        return target_resolved == destination_resolved or destination_resolved in target_resolved.parents
+
+    def _copy_local_package_source(self, source_path: str, destination: Path, source_info: dict[str, Any]) -> None:
+        source = Path(source_path)
+        if destination.exists():
+            if destination.is_dir():
+                shutil.rmtree(destination)
+            else:
+                destination.unlink()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+
+        if source_info.get("source_type") == "directory":
+            shutil.copytree(source, destination)
+            return
+
+        if source_info.get("source_type") == "archive":
+            destination.mkdir(parents=True, exist_ok=True)
+            prefix = str(source_info.get("manifest_prefix") or "")
+            with zipfile.ZipFile(source, "r") as package_zip:
+                for member in package_zip.infolist():
+                    member_name = member.filename
+                    if prefix and not member_name.startswith(prefix):
+                        continue
+                    relative_name = member_name[len(prefix):] if prefix else member_name
+                    if not relative_name:
+                        continue
+                    target_path = destination / relative_name
+                    if not self._ensure_safe_extract_path(destination, target_path):
+                        raise ValueError(f"Unsicherer Archivpfad erkannt: {member.filename}")
+                    if member.is_dir():
+                        target_path.mkdir(parents=True, exist_ok=True)
+                    else:
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+                        with package_zip.open(member, "r") as source_file, open(target_path, "wb") as target_file:
+                            shutil.copyfileobj(source_file, target_file)
+            return
+
+        raise ValueError("Unbekannter Package-Quellentyp.")
+
 
     def get_catalog_status(self, model_id: str) -> PackageStatus:
         catalog_entry = self.catalog_service.get_entry(model_id)
@@ -599,18 +772,46 @@ class ModelInstallService:
 
     def update_package(self, model_id: str, new_source_path: str) -> bool:
         """
-        Update an existing package by copying the new source path components over the old ones.
+        Replace an installed package with a newer local SMP package source.
+        No network access or downloads are performed.
         """
-        logger.info(f"Triggering package update for '{model_id}' from '{new_source_path}'")
-        return self.install_model(model_id, new_source_path)
+        logger.info(f"Triggering local package update for '{model_id}' from '{new_source_path}'")
+        return self.install_package(model_id, new_source_path)
 
     def remove_package(self, model_id: str) -> bool:
         """
-        Remove/Uninstall the model package.
+        Remove only the package-owned directory under MODELS_DIR / model_id.
         """
-        logger.info(f"Triggering package removal for '{model_id}'")
-        return self.uninstall_model(model_id)
-        
+        logger.info(f"Triggering safe package removal for '{model_id}'")
+        model = self.repository.get_model(model_id)
+        if not model:
+            logger.error("Package removal failed: Model '%s' not found.", model_id)
+            return False
+
+        package_dir = MODELS_DIR / model_id
+        try:
+            package_dir_resolved = package_dir.resolve()
+            models_dir_resolved = MODELS_DIR.resolve()
+            if package_dir.exists():
+                if models_dir_resolved not in package_dir_resolved.parents:
+                    logger.error("Package removal blocked outside models directory: %s", package_dir)
+                    return False
+                if package_dir.is_dir():
+                    shutil.rmtree(package_dir)
+                else:
+                    package_dir.unlink()
+
+            return self.repository.update_model(
+                model_id,
+                installed=False,
+                downloaded=False,
+                path="",
+                status="Available for Download",
+            )
+        except Exception as exc:
+            logger.error("Package removal failed for '%s': %s", model_id, exc)
+            return False
+
     def install_package(
         self,
         model_id: str,
@@ -618,67 +819,65 @@ class ModelInstallService:
         progress_callback: Callable[[float], None] | None = None,
     ) -> bool:
         """
-        Install an SMP package from a local path or a future remote download URL.
+        Install an SMP package from a local directory or local ZIP/SMP archive only.
         """
-        logger.info(f"Triggering package installation for '{model_id}' from '{source_path}'")
-        install_source = source_path
-        downloaded_source = False
+        del progress_callback
+        logger.info(f"Triggering local package installation for '{model_id}' from '{source_path}'")
 
         if self._is_download_url(source_path):
-            self._set_package_status(model_id, status="Downloading")
-            download_result = self.download_service.download(
-                source_path,
-                progress_callback=progress_callback,
-            )
-            if not download_result.success or not download_result.path:
-                status = "Download Failed"
-                if download_result.error_code == DownloadErrorCode.FILE_EXISTS:
-                    status = "Download Failed: File Exists"
-                elif download_result.error_code == DownloadErrorCode.TIMEOUT:
-                    status = "Download Failed: Timeout"
-                elif download_result.error_code == DownloadErrorCode.INCOMPLETE_DOWNLOAD:
-                    status = "Download Failed: Incomplete"
-                elif download_result.error_code == DownloadErrorCode.INVALID_FILE:
-                    status = "Download Failed: Invalid File"
-                elif download_result.error_code == DownloadErrorCode.NETWORK_ERROR:
-                    status = "Download Failed: Network Error"
-                elif download_result.error_code == DownloadErrorCode.CANCELLED:
-                    status = "Download Cancelled"
-                self._set_package_status(model_id, downloaded=False, status=status)
-                logger.error(
-                    "Package download failed for '%s': %s",
-                    model_id,
-                    download_result.message,
-                )
-                return False
-
-            install_source = str(download_result.path)
-            downloaded_source = True
-            self._set_package_status(
-                model_id,
-                downloaded=True,
-                path=install_source,
-                status="Downloaded",
-            )
-
-        self._set_package_status(model_id, status="Installing")
-        if not self.install_model(model_id, install_source):
-            self._set_package_status(model_id, installed=False, status="Install Failed")
+            logger.error("Package installation rejected remote URL for '%s'.", model_id)
+            self._set_package_status(model_id, status="Install Failed")
             return False
 
-        if not downloaded_source:
-            return True
+        source_info = self._validate_local_package_source(model_id, source_path)
+        if not source_info.get("success"):
+            logger.error("Package source validation failed for '%s': %s", model_id, source_info.get("message"))
+            self._set_package_status(model_id, status="Install Failed")
+            return False
 
-        validation = self.validate_package(model_id)
-        if validation.get("success"):
-            self._set_package_status(model_id, installed=True, downloaded=True, status="Ready")
-            return True
+        manifest = source_info.get("manifest")
+        if not isinstance(manifest, dict):
+            self._set_package_status(model_id, status="Install Failed")
+            return False
 
-        self._set_package_status(model_id, installed=True, downloaded=True, status="Invalid")
-        logger.error(
-            "Package validation failed for '%s' after installation: %s",
-            model_id,
-            validation.get("message", "Unknown validation error"),
-        )
-        return False
+        package_dir = MODELS_DIR / model_id
+        try:
+            self._set_package_status(model_id, status="Installing")
+            self._copy_local_package_source(source_path, package_dir, source_info)
+            package_version = self._manifest_version(manifest)
+            self.repository.update_model(
+                model_id,
+                installed=True,
+                downloaded=True,
+                path=str(package_dir.resolve()),
+                status="Installed",
+                version=package_version or None,
+            )
+
+            validation = self.validate_package(model_id)
+            if validation.get("success"):
+                self._set_package_status(model_id, installed=True, downloaded=True, status="Ready")
+                return True
+
+            self._set_package_status(model_id, installed=True, downloaded=True, status="Invalid")
+            logger.error(
+                "Package validation failed for '%s' after local installation: %s",
+                model_id,
+                validation.get("message", "Unknown validation error"),
+            )
+            return False
+        except Exception as exc:
+            logger.error("Package installation failed for '%s': %s", model_id, exc)
+            if package_dir.exists():
+                try:
+                    if package_dir.is_dir():
+                        shutil.rmtree(package_dir)
+                    else:
+                        package_dir.unlink()
+                except Exception:
+                    logger.warning("Failed to clean incomplete package directory: %s", package_dir)
+            self._set_package_status(model_id, installed=False, downloaded=False, path="", status="Install Failed")
+            return False
+
+
 

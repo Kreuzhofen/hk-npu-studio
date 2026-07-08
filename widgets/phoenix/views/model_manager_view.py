@@ -374,10 +374,10 @@ class PhoenixModelManagerView(tk.Frame):
         self.btn_update.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
         self.btn_remove.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
 
-        _Tooltip(self.btn_install, "Prepare package installation workflow.")
+        _Tooltip(self.btn_install, "Install local SMP package.")
         _Tooltip(self.btn_validate, "Validate installed package locally.")
-        _Tooltip(self.btn_update, "Prepare package update workflow.")
-        _Tooltip(self.btn_remove, "Prepare package removal workflow.")
+        _Tooltip(self.btn_update, "Update from local SMP package.")
+        _Tooltip(self.btn_remove, "Remove local package files safely.")
 
         # ==========================================
         # SYSTEM ENVIRONMENT CARD
@@ -835,24 +835,119 @@ class PhoenixModelManagerView(tk.Frame):
         else:
             messagebox.showwarning("Package Validation", summary)
 
+    def _get_selected_package_context(self) -> tuple[str, dict[str, object] | None, str] | None:
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showinfo("Package Action", "Kein Package ausgewählt.")
+            self.status_lbl.configure(text="Kein Package ausgewählt.")
+            return None
+        model_id = selected[0]
+        model = self.controller.get_model_details(model_id)
+        package_name = self._safe_text(model.get("display_name") if model else model_id)
+        return model_id, model, package_name
+
+    def _select_local_package_source(self, title: str) -> str:
+        source_path = filedialog.askdirectory(title=title)
+        if source_path:
+            return source_path
+        archive_path = filedialog.askopenfilename(
+            title=title,
+            filetypes=[
+                ("SMP Packages", "*.smp *.zip"),
+                ("ZIP Packages", "*.zip"),
+                ("Alle Dateien", "*.*"),
+            ],
+        )
+        return archive_path or ""
+
+    def _install_selected_package(self) -> None:
+        context = self._get_selected_package_context()
+        if not context:
+            return
+        model_id, _model, package_name = context
+        source_path = self._select_local_package_source("Lokales SMP-Package auswählen")
+        if not source_path:
+            self.status_lbl.configure(text="Installation abgebrochen.")
+            return
+
+        self.status_lbl.configure(text=f"{package_name}: Installiere lokales Package...")
+        self.update_idletasks()
+        success = self.controller.install_package(model_id, source_path)
+        self.refresh()
+        if success:
+            self.status_lbl.configure(text=f"{package_name}: Package installiert.")
+            messagebox.showinfo("Package Installation", f"{package_name} wurde lokal installiert.")
+        else:
+            self.status_lbl.configure(text=f"{package_name}: Installation fehlgeschlagen.")
+            messagebox.showerror(
+                "Package Installation",
+                "Installation fehlgeschlagen. Bitte Package-Verzeichnis, Manifest und Package-ID prüfen.",
+            )
+
+    def _update_selected_package(self) -> None:
+        context = self._get_selected_package_context()
+        if not context:
+            return
+        model_id, _model, package_name = context
+        source_path = self._select_local_package_source("Lokales Update-Package auswählen")
+        if not source_path:
+            self.status_lbl.configure(text="Update abgebrochen.")
+            return
+
+        self.status_lbl.configure(text=f"{package_name}: Aktualisiere lokales Package...")
+        self.update_idletasks()
+        success = self.controller.update_package(model_id, source_path)
+        self.refresh()
+        if success:
+            self.status_lbl.configure(text=f"{package_name}: Package aktualisiert.")
+            messagebox.showinfo("Package Update", f"{package_name} wurde lokal aktualisiert.")
+        else:
+            self.status_lbl.configure(text=f"{package_name}: Update fehlgeschlagen.")
+            messagebox.showerror(
+                "Package Update",
+                "Update fehlgeschlagen. Bitte lokales Package, Manifest und Version prüfen.",
+            )
+
+    def _remove_selected_package(self) -> None:
+        context = self._get_selected_package_context()
+        if not context:
+            return
+        model_id, _model, package_name = context
+        confirmed = messagebox.askyesno(
+            "Package entfernen",
+            f"Soll das lokale Package '{package_name}' wirklich entfernt werden?\n\nEs werden nur Package-eigene Dateien unter C:\\SnapdragonAI\\models\\{model_id} entfernt.",
+        )
+        if not confirmed:
+            self.status_lbl.configure(text="Entfernen abgebrochen.")
+            return
+
+        self.status_lbl.configure(text=f"{package_name}: Entferne lokales Package...")
+        self.update_idletasks()
+        success = self.controller.remove_package(model_id)
+        self.refresh()
+        if success:
+            self.status_lbl.configure(text=f"{package_name}: Package entfernt.")
+            messagebox.showinfo("Package entfernen", f"{package_name} wurde lokal entfernt.")
+        else:
+            self.status_lbl.configure(text=f"{package_name}: Entfernen fehlgeschlagen.")
+            messagebox.showerror("Package entfernen", "Package konnte nicht sicher entfernt werden.")
+
     def _on_package_action(self, action: str) -> None:
+        if action == "install":
+            self._install_selected_package()
+            return
         if action == "validate":
             self._validate_selected_package()
             return
+        if action == "update":
+            self._update_selected_package()
+            return
+        if action == "remove":
+            self._remove_selected_package()
+            return
 
-        messages = {
-            "install": "Package installation workflow is not implemented yet.",
-            "update": "Package update workflow is not implemented yet.",
-            "remove": "Package removal workflow is not implemented yet.",
-        }
-        message = messages.get(action, "Package workflow is not implemented yet.")
-        selected = self.tree.selection()
-        if selected:
-            model = self.controller.get_model_details(selected[0])
-            package_name = self._safe_text(model.get("display_name") if model else selected[0])
-            self.status_lbl.configure(text=f"{package_name}: {message}")
-        else:
-            self.status_lbl.configure(text=message)
+        message = "Package workflow is not implemented yet."
+        self.status_lbl.configure(text=message)
         messagebox.showinfo("Package Action", message)
 
     def _on_double_click(self, event: tk.Event) -> None:
@@ -952,4 +1047,5 @@ class PhoenixModelManagerView(tk.Frame):
                 messagebox.showerror("Fehler", f"Ordner konnte nicht geöffnet werden: {e}")
         else:
             messagebox.showerror("Fehler", f"Der Pfad '{folder_path}' existiert nicht.")
+
 
