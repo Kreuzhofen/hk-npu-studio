@@ -113,17 +113,26 @@ class OnnxImageBackend(InferenceBackend):
                 model_name=model_name
             )
 
-        # 3. Verify ONNX model paths and check if they are fundamentally loadable
+        # 3. Verify ONNX model paths and check if they are fundamentally loadable by instantiating InferenceSession
         logger.info(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX model files: {onnx_files}")
         print(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX model files: {onnx_files}")
 
         onnx_model_path = onnx_files[0]
-        p = Path(onnx_model_path)
-        if p.exists() and p.is_file() and p.stat().st_size > 0:
-            logger.info(f"[OnnxImageBackend] Model file '{onnx_model_path}' exists and is not empty. Fundamentally loadable. Skipping InferenceSession instantiation as requested.")
-            print(f"[OnnxImageBackend] Model file '{onnx_model_path}' exists and is not empty. Fundamentally loadable. Skipping InferenceSession instantiation as requested.")
-        else:
-            msg = f"ONNX model file '{onnx_model_path}' is missing or empty."
+        logger.info(f"[OnnxImageBackend] Attempting to create InferenceSession for: '{onnx_model_path}'")
+        print(f"[OnnxImageBackend] Attempting to create InferenceSession for: '{onnx_model_path}'")
+
+        try:
+            import onnxruntime as ort
+            session = ort.InferenceSession(onnx_model_path)
+            inputs = [x.name for x in session.get_inputs()]
+            outputs = [x.name for x in session.get_outputs()]
+            logger.info(f"[OnnxImageBackend] InferenceSession instantiated successfully. Inputs: {inputs}, Outputs: {outputs}")
+            print(f"[OnnxImageBackend] InferenceSession instantiated successfully. Inputs: {inputs}, Outputs: {outputs}")
+            
+            # Cleanly close/release session resources
+            del session
+        except Exception as e:
+            msg = f"Failed to instantiate ONNX InferenceSession for '{onnx_model_path}': {e}"
             logger.error(f"[OnnxImageBackend] {msg}")
             print(f"[OnnxImageBackend] {msg}")
             return GenerationResponse(

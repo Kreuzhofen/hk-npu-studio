@@ -877,3 +877,23 @@ Status: Completed
 ### Notes
 
 Das ONNX-Backend meldet nun detailliert alle verfügbaren Execution Provider. Falls der QNN Execution Provider auf dem System fehlt (weil kein QNN SDK installiert ist), wird dies ordnungsgemäß als Info/Warnung protokolliert und führt nicht zu einem Systemfehler. Alle Testfälle laufen erfolgreich.
+
+## 08.07.2026 – Sprint P-089 – First ONNX Inference Session
+
+Status: Completed
+
+### Goals
+
+- Erzeugung der ersten echten `onnxruntime.InferenceSession`.
+- Laden von `.onnx`-Modellen bei Vorhandensein im Modellverzeichnis.
+- Auslesen und Protokollieren der Input- und Output-Namen direkt aus dem Modell-Graph.
+- Saubere Freigabe der System-Ressourcen (`del session`) nach der Modell-Initialisierung.
+- Strukturierte Fehlerbehandlung bei Nichtvorhandensein der Runtime oder fehlerhaften Modellen.
+
+### Modified / Added
+
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Das ONNX-Backend initialisiert nun erfolgreich die `InferenceSession` zur Vorbereitung des realen Inferenzpfades. Es extrahiert Metadaten (Eingangs- und Ausgangsvariablen) zur Verifizierung der Graphstruktur. Nach dem Ladeschritt wird die Session wieder freigegeben. Fehlerhafte protobuf-Dateien werden ordnungsgemäß abgefangen, geloggt und mit `success=False` gemeldet. Alle Funktionstests laufen erfolgreich.

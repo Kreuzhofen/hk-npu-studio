@@ -10,6 +10,12 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-089 (First ONNX Inference Session):**
+  * **Erste echte InferenceSession:** Integration der Instanziierung von `onnxruntime.InferenceSession` zur echten Modellladung im `OnnxImageBackend`.
+  * **Metadaten-Extraktion:** Automatisches Auslesen und Protokollieren der Modell-Input- und Output-Namen direkt aus dem geladenen Modell-Graph.
+  * **Ressourcen-Cleanup:** Saubere Freigabe der Session-Ressourcen (`del session`) nach dem Ladevorgang, um Speicherlecks zu verhindern.
+  * **Dateien:** [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
 * **Sprint P-088 (First ONNX Runtime Detection):**
   * **Erweiterte Runtime-Erkennung:** Das `OnnxImageBackend` erkennt nun aktiv das Vorhandensein von `onnxruntime`, liest die Version sowie die verfügbaren Hardware-Ausführungs-Provider aus.
   * **Provider-Validierung:** Die Existenz des `CPUExecutionProvider` wird explizit validiert. Das Fehlen des optionalen `QNNExecutionProvider` wird strukturiert als Warnung/Info-Nachricht im Log protokolliert und blockiert nicht den Inferenz-Bereitschaftslauf.
