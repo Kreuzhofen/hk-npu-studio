@@ -3,11 +3,13 @@ from __future__ import annotations
 import os
 import shutil
 import logging
+import urllib.parse
 from pathlib import Path
 from typing import Callable, Any
 
 from config import MODELS_DIR
 from controllers.model_repository import ModelRepository
+from engine.download_service import DownloadService, DownloadErrorCode
 
 logger = logging.getLogger("ModelInstallService")
 
@@ -20,6 +22,33 @@ class ModelInstallService:
 
     def __init__(self, repository: ModelRepository | None = None) -> None:
         self.repository = repository or ModelRepository()
+        self.download_service = DownloadService()
+
+    @staticmethod
+    def _is_download_url(source_path: str) -> bool:
+        parsed = urllib.parse.urlparse(source_path)
+        return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+    def _set_package_status(
+        self,
+        model_id: str,
+        *,
+        installed: bool | None = None,
+        downloaded: bool | None = None,
+        path: str | None = None,
+        status: str | None = None,
+    ) -> None:
+        updates: dict[str, Any] = {}
+        if installed is not None:
+            updates["installed"] = installed
+        if downloaded is not None:
+            updates["downloaded"] = downloaded
+        if path is not None:
+            updates["path"] = path
+        if status is not None:
+            updates["status"] = status
+        if updates:
+            self.repository.update_model(model_id, **updates)
 
     def validate_model(self, source_path: str) -> dict[str, Any]:
         """
@@ -288,18 +317,30 @@ class ModelInstallService:
         progress_callback: Callable[[float], None] | None = None
     ) -> bool:
         """
-        Placeholder hook for future Hugging Face or remote API model download.
-        Will trigger downloading files chunk-by-chunk and call progress_callback(percentage).
+        Download a package into temp/downloads and keep it staged for installation.
         """
-        logger.info(f"Future download hook triggered for model '{model_id}' from URL '{url}'.")
-        return False
+        logger.info(f"Download triggered for model '{model_id}' from URL '{url}'.")
+        self._set_package_status(model_id, status="Downloading")
+        result = self.download_service.download(url, progress_callback=progress_callback)
+        if not result.success:
+            self._set_package_status(model_id, status=f"Download Failed: {result.error_code}")
+            return False
+        self._set_package_status(
+            model_id,
+            downloaded=True,
+            path=str(result.path.resolve()) if result.path else None,
+            status="Downloaded"
+        )
+        return True
 
     def cancel_download(self, model_id: str) -> bool:
         """
-        Placeholder hook to cancel a running download job.
+        Cancel a running package download.
         """
-        logger.info(f"Future download cancellation hook triggered for model '{model_id}'.")
-        return False
+        logger.info(f"Download cancellation triggered for model '{model_id}'.")
+        self.download_service.cancel()
+        self._set_package_status(model_id, status="Download Cancelled")
+        return True
 
     def validate_package(self, model_id: str) -> dict[str, Any]:
         """
@@ -357,9 +398,73 @@ class ModelInstallService:
         logger.info(f"Triggering package removal for '{model_id}'")
         return self.uninstall_model(model_id)
         
-    def install_package(self, model_id: str, source_path: str) -> bool:
+    def install_package(
+        self,
+        model_id: str,
+        source_path: str,
+        progress_callback: Callable[[float], None] | None = None,
+    ) -> bool:
         """
-        Install the model package.
+        Install an SMP package from a local path or a future remote download URL.
         """
         logger.info(f"Triggering package installation for '{model_id}' from '{source_path}'")
-        return self.install_model(model_id, source_path)
+        install_source = source_path
+        downloaded_source = False
+
+        if self._is_download_url(source_path):
+            self._set_package_status(model_id, status="Downloading")
+            download_result = self.download_service.download(
+                source_path,
+                progress_callback=progress_callback,
+            )
+            if not download_result.success or not download_result.path:
+                status = "Download Failed"
+                if download_result.error_code == DownloadErrorCode.FILE_EXISTS:
+                    status = "Download Failed: File Exists"
+                elif download_result.error_code == DownloadErrorCode.TIMEOUT:
+                    status = "Download Failed: Timeout"
+                elif download_result.error_code == DownloadErrorCode.INCOMPLETE_DOWNLOAD:
+                    status = "Download Failed: Incomplete"
+                elif download_result.error_code == DownloadErrorCode.INVALID_FILE:
+                    status = "Download Failed: Invalid File"
+                elif download_result.error_code == DownloadErrorCode.NETWORK_ERROR:
+                    status = "Download Failed: Network Error"
+                elif download_result.error_code == DownloadErrorCode.CANCELLED:
+                    status = "Download Cancelled"
+                self._set_package_status(model_id, downloaded=False, status=status)
+                logger.error(
+                    "Package download failed for '%s': %s",
+                    model_id,
+                    download_result.message,
+                )
+                return False
+
+            install_source = str(download_result.path)
+            downloaded_source = True
+            self._set_package_status(
+                model_id,
+                downloaded=True,
+                path=install_source,
+                status="Downloaded",
+            )
+
+        self._set_package_status(model_id, status="Installing")
+        if not self.install_model(model_id, install_source):
+            self._set_package_status(model_id, installed=False, status="Install Failed")
+            return False
+
+        if not downloaded_source:
+            return True
+
+        validation = self.validate_package(model_id)
+        if validation.get("success"):
+            self._set_package_status(model_id, installed=True, downloaded=True, status="Ready")
+            return True
+
+        self._set_package_status(model_id, installed=True, downloaded=True, status="Invalid")
+        logger.error(
+            "Package validation failed for '%s' after installation: %s",
+            model_id,
+            validation.get("message", "Unknown validation error"),
+        )
+        return False
