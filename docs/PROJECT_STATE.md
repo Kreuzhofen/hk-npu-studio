@@ -10,6 +10,12 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-092 (SDXL Runtime Architecture):**
+  * **ModelRuntimePackage:** Einführung der Klasse `ModelRuntimePackage` zur modellunabhängigen Repräsentation der Dateipfade und Ziel-Runtimes der 6 Kern-Modellkomponenten (`tokenizer`, `text_encoder`, `text_encoder_2`, `unet`, `vae_decoder`, `scheduler`).
+  * **Repository-Anbindung:** Ergänzung des `ModelRepository` um die Methode `build_runtime_package(model_id)`, welche die absoluten Pfade und Komponenten-Laufzeitumgebungen (z. B. ONNX vs. QNN) auflöst.
+  * **Validierung:** Paketinterne Validierung (`is_valid_package()`), die das Vorhandensein aller konfigurierten Gewichts- und Metadatendateien auf der Festplatte sicherstellt.
+  * **Dateien:** [model_runtime_package.py](file:///C:/SnapdragonAI/engine/model_runtime_package.py), [model_repository.py](file:///C:/SnapdragonAI/controllers/model_repository.py)
+
 * **Sprint P-091 (AI Model Capability System):**
   * **Modellunabhängiges Capability-System:** Implementierung der Klasse `ModelCapabilities` zur Kapselung von Fähigkeiten-Flags (`txt2img`, `img2img`, `inpainting`, `outpainting`, `lora`, `controlnet`, `image_to_video`, `batch_generation`, `onnx_runtime`, `qnn_runtime`) zur Vermeidung hardcodierter Modellunterscheidungen.
   * **Repository-Erweiterung:** Aktualisierung der Schema-Validierung im `ModelRepository` zur Erzwingung des `"capabilities"`-Keys in allen Modellbeschreibungen.

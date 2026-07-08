@@ -917,3 +917,23 @@ Status: Completed
 ### Notes
 
 Das neue Capability-System ist komplett datengesteuert. Jedes Modell beschreibt seine individuellen Fähigkeiten in seiner zugeordneten JSON-Datei. Das `ModelRepository` validiert diese Struktur und stellt die Fähigkeiten als strukturiertes `ModelCapabilities`-Objekt bereit. Alle Regressionstests und Kompilierungsprüfungen wurden erfolgreich absolviert.
+
+## 08.07.2026 – Sprint P-092 – SDXL Runtime Architecture
+
+Status: Completed
+
+### Goals
+
+- Vorbereitung der Architektur für die erste echte lokale SDXL-ONNX-Bildgenerierung.
+- Implementierung der Klasse `ModelRuntimePackage` zur modellunabhängigen Verwaltung von Pfaden, Runtimes und Fähigkeiten der 6 Modellkomponenten (`tokenizer`, `text_encoder`, `text_encoder_2`, `unet`, `vae_decoder`, `scheduler`).
+- Integration der Fabrikmethode `build_runtime_package(model_id)` in `ModelRepository`.
+- Implementierung der dateibasierter Validierung (`is_valid_package()`) zur Gewährleistung der Inferenz-Bereitschaft auf der Festplatte.
+
+### Modified / Added
+
+- `engine/model_runtime_package.py` (neu)
+- `controllers/model_repository.py` (modifiziert)
+
+### Notes
+
+Mit `ModelRuntimePackage` ist die Datenstruktur für komplexe Multi-Komponenten-Modelle wie SDXL vollständig etabliert. Die Dateiverzeichnisse werden zur Laufzeit aufgelöst und vor dem Inferenzstart auf Vollständigkeit geprüft. Es wurden planmäßig keine InferenceSessions erzeugt oder Gewichtsdaten heruntergeladen. Alle Tests liefen sauber durch.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+from pathlib import Path
 from typing import Any
 
 
@@ -174,3 +175,53 @@ class ModelRepository:
             return None
         capabilities_data = model.get("capabilities", {})
         return ModelCapabilities(capabilities_data)
+
+    def build_runtime_package(self, model_id: str) -> ModelRuntimePackage | None:
+        """
+        Build and resolve the ModelRuntimePackage for a given model ID.
+        Locates the model path, loads capabilities, and resolves component paths/runtimes.
+        """
+        model = self.get_model(model_id)
+        if not model:
+            print(f"[ModelRepository] Error: Model {model_id} not found.")
+            return None
+            
+        capabilities = self.get_model_capabilities(model_id)
+        if not capabilities:
+            capabilities = ModelCapabilities()
+            
+        model_path = model.get("path") or ""
+        base_dir = Path(model_path) if model_path else Path("")
+        
+        # Define component filenames/folders under the model base path
+        component_paths = {
+            "tokenizer": str((base_dir / "tokenizer").as_posix()) if model_path else "",
+            "text_encoder": str((base_dir / "text_encoder" / "model.onnx").as_posix()) if model_path else "",
+            "text_encoder_2": str((base_dir / "text_encoder_2" / "model.onnx").as_posix()) if model_path else "",
+            "unet": str((base_dir / "unet" / "model.onnx").as_posix()) if model_path else "",
+            "vae_decoder": str((base_dir / "vae_decoder" / "model.onnx").as_posix()) if model_path else "",
+            "scheduler": str((base_dir / "scheduler").as_posix()) if model_path else ""
+        }
+        
+        # Resolve runtime types based on model config
+        backend_type = model.get("backend", "ONNX Runtime")
+        runtime_type = "ONNX" if "ONNX" in backend_type else "QNN"
+        
+        component_runtimes = {
+            "tokenizer": "CPU",
+            "text_encoder": runtime_type,
+            "text_encoder_2": runtime_type,
+            "unet": runtime_type,
+            "vae_decoder": runtime_type,
+            "scheduler": "CPU"
+        }
+        
+        from engine.model_runtime_package import ModelRuntimePackage
+        
+        return ModelRuntimePackage(
+            model_id=model_id,
+            base_path=base_dir,
+            capabilities=capabilities,
+            component_paths=component_paths,
+            component_runtimes=component_runtimes
+        )
