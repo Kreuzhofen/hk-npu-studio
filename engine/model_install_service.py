@@ -9,7 +9,9 @@ from typing import Callable, Any
 
 from config import MODELS_DIR
 from controllers.model_repository import ModelRepository
+from controllers.package_status import PackageStatus
 from engine.download_service import DownloadService, DownloadErrorCode
+from engine.package_catalog_service import PackageCatalogService
 
 logger = logging.getLogger("ModelInstallService")
 
@@ -23,6 +25,7 @@ class ModelInstallService:
     def __init__(self, repository: ModelRepository | None = None) -> None:
         self.repository = repository or ModelRepository()
         self.download_service = DownloadService()
+        self.catalog_service = PackageCatalogService()
 
     @staticmethod
     def _is_download_url(source_path: str) -> bool:
@@ -49,6 +52,77 @@ class ModelInstallService:
             updates["status"] = status
         if updates:
             self.repository.update_model(model_id, **updates)
+
+    @staticmethod
+    def _is_version_older(installed_version: str, catalog_version: str) -> bool:
+        def normalize(version: str) -> list[str]:
+            parts: list[str] = []
+            for part in version.replace("-", ".").split("."):
+                if part.isdigit():
+                    parts.append(part.zfill(8))
+                elif part:
+                    parts.append(part)
+            return parts
+
+        return normalize(installed_version) < normalize(catalog_version)
+
+    def get_catalog_status(self, model_id: str) -> PackageStatus:
+        catalog_entry = self.catalog_service.get_entry(model_id)
+        model = self.repository.get_model(model_id)
+
+        if not catalog_entry:
+            return self.repository.get_package_status(model_id)
+
+        if not model or not model.get("installed", False):
+            return PackageStatus.NOT_INSTALLED
+
+        repository_status = self.repository.get_package_status(model_id)
+        if repository_status == PackageStatus.INVALID:
+            return PackageStatus.INVALID
+
+        if repository_status in {PackageStatus.INSTALLED, PackageStatus.READY}:
+            installed_version = str(model.get("version", ""))
+            if installed_version and self._is_version_older(installed_version, catalog_entry.version):
+                return PackageStatus.UPDATE_AVAILABLE
+            return repository_status
+
+        return repository_status
+
+    def list_available_packages(self) -> list[dict[str, Any]]:
+        packages = []
+        for package in self.catalog_service.list_packages():
+            model_id = str(package["model_id"])
+            enriched = dict(package)
+            enriched["status"] = str(self.get_catalog_status(model_id))
+            model = self.repository.get_model(model_id)
+            if model:
+                enriched["installed_version"] = model.get("version", "")
+                enriched["installed_path"] = model.get("path", "")
+            else:
+                enriched["installed_version"] = ""
+                enriched["installed_path"] = ""
+            packages.append(enriched)
+        return packages
+
+    def reconcile_installed_packages(self) -> list[dict[str, Any]]:
+        reconciled = []
+        for model in self.repository.get_all_models():
+            model_id = str(model.get("id", ""))
+            if not model_id:
+                continue
+            catalog_entry = self.catalog_service.get_package(model_id)
+            status = self.get_catalog_status(model_id)
+            reconciled.append({
+                "model_id": model_id,
+                "display_name": model.get("display_name", model_id),
+                "installed": bool(model.get("installed", False)),
+                "installed_version": model.get("version", ""),
+                "installed_path": model.get("path", ""),
+                "catalog_version": catalog_entry.get("version", "") if catalog_entry else "",
+                "catalog_available": catalog_entry is not None,
+                "status": str(status),
+            })
+        return reconciled
 
     def validate_model(self, source_path: str) -> dict[str, Any]:
         """

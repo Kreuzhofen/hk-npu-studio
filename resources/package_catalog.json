@@ -1,0 +1,165 @@
+{
+  "packages": [
+    {
+      "model_id": "cogvideox",
+      "display_name": "CogVideoX",
+      "version": "1.0.0",
+      "description": "Local text-to-video package entry for future SMP installation.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": false,
+        "img2img": false,
+        "inpainting": false,
+        "outpainting": false,
+        "lora": false,
+        "controlnet": false,
+        "image_to_video": true,
+        "batch_generation": true,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "ONNX Runtime (Stub)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Not Installed"
+    },
+    {
+      "model_id": "flux_dev",
+      "display_name": "Flux.1 Dev",
+      "version": "1.0.0",
+      "description": "State-of-the-art 12B parameter rectified flow transformer local text-to-image model.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": true,
+        "img2img": true,
+        "inpainting": false,
+        "outpainting": false,
+        "lora": true,
+        "controlnet": true,
+        "image_to_video": false,
+        "batch_generation": true,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "Qualcomm QNN NPU (Stub)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Installed"
+    },
+    {
+      "model_id": "ltx_video",
+      "display_name": "LTX Video",
+      "version": "1.0.0",
+      "description": "Local video generation package entry for future SMP installation.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": false,
+        "img2img": false,
+        "inpainting": false,
+        "outpainting": false,
+        "lora": false,
+        "controlnet": false,
+        "image_to_video": true,
+        "batch_generation": true,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "ONNX Runtime (Stub)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Not Installed"
+    },
+    {
+      "model_id": "sd35_large",
+      "display_name": "Stable Diffusion 3.5 Large",
+      "version": "1.0.0",
+      "description": "Large local text-to-image generation package entry for future SMP installation.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": true,
+        "img2img": true,
+        "inpainting": true,
+        "outpainting": true,
+        "lora": true,
+        "controlnet": true,
+        "image_to_video": false,
+        "batch_generation": true,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "ONNX Runtime (Stub)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Not Installed"
+    },
+    {
+      "model_id": "sdxl_base",
+      "display_name": "Stable Diffusion XL Base",
+      "version": "1.0",
+      "description": "High-resolution local text-to-image generation model utilizing two text encoders.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": true,
+        "img2img": true,
+        "inpainting": true,
+        "outpainting": true,
+        "lora": true,
+        "controlnet": true,
+        "image_to_video": false,
+        "batch_generation": true,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "ONNX Runtime (Stub)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Not Installed"
+    },
+    {
+      "model_id": "sdxl_refiner",
+      "display_name": "Stable Diffusion XL Refiner",
+      "version": "1.0.0",
+      "description": "Local image refinement package entry for future SMP installation.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": true,
+        "img2img": true,
+        "inpainting": false,
+        "outpainting": false,
+        "lora": true,
+        "controlnet": false,
+        "image_to_video": false,
+        "batch_generation": true,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "ONNX Runtime (Stub)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Not Installed"
+    },
+    {
+      "model_id": "wan22",
+      "display_name": "WAN 2.2",
+      "version": "1.0.0",
+      "description": "Local video generation package entry for future SMP installation.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": false,
+        "img2img": false,
+        "inpainting": false,
+        "outpainting": false,
+        "lora": false,
+        "controlnet": false,
+        "image_to_video": true,
+        "batch_generation": true,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "ONNX Runtime (Stub)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Not Installed"
+    }
+  ]
+}

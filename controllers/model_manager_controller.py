@@ -82,6 +82,14 @@ class ModelManagerController:
         """Install a new SMP package from source path."""
         return self.install_service.install_package(model_id, source_path)
 
+    def list_available_packages(self) -> list[dict[str, Any]]:
+        """List package catalog entries with locally derived PackageStatus."""
+        return self.install_service.list_available_packages()
+
+    def reconcile_installed_packages(self) -> list[dict[str, Any]]:
+        """Compare installed packages with the local package catalog."""
+        return self.install_service.reconcile_installed_packages()
+
     def get_package_status(self, model_id: str) -> str:
         """Retrieve the detailed PackageStatus string for a model."""
         return str(self.model.repository.get_package_status(model_id))
