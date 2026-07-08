@@ -17,5 +17,17 @@
   "installed": true,
   "downloaded": true,
   "path": "C:\\SnapdragonAI\\models\\flux_dev\\model.onnx",
-  "status": "Installed"
+  "status": "Installed",
+  "capabilities": {
+    "txt2img": true,
+    "img2img": true,
+    "inpainting": false,
+    "outpainting": false,
+    "lora": true,
+    "controlnet": true,
+    "image_to_video": false,
+    "batch_generation": true,
+    "onnx_runtime": true,
+    "qnn_runtime": true
+  }
 }

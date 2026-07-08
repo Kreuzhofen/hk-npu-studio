@@ -23,6 +23,62 @@ class OnnxImageBackend(InferenceBackend):
     def __init__(self, runtime_model: RuntimeModel | None = None) -> None:
         self.runtime_model = runtime_model
 
+    @staticmethod
+    def discover_onnx_models(project_root: Path | str = "C:/SnapdragonAI") -> list[dict[str, any]]:
+        """
+        Discover ONNX models project-wide, prioritizing specific model folders.
+        Returns a list of dicts with keys: path, filename, size_mb, modified_at.
+        """
+        root = Path(project_root)
+        priorities = [
+            root / "resources" / "models",
+            root / "models",
+            root / "assets" / "models"
+        ]
+        
+        discovered_paths: set[Path] = set()
+        
+        # 1. Scan prioritized directories first
+        for folder in priorities:
+            if folder.exists() and folder.is_dir():
+                try:
+                    for f in folder.rglob("*.onnx"):
+                        if f.is_file():
+                            discovered_paths.add(f.resolve())
+                except Exception as e:
+                    logger.debug(f"[OnnxImageBackend] Error scanning prioritised folder '{folder}': {e}")
+                    
+        # 2. If nothing is found, search project-wide (excluding standard heavy/system folders)
+        if not discovered_paths:
+            logger.info("[OnnxImageBackend] No ONNX models found in prioritized folders. Scanning project-wide...")
+            exclude_folders = {".git", "temp", "venv", ".venv", "__pycache__", "build", "dist", ".gemini"}
+            try:
+                for path in root.rglob("*.onnx"):
+                    if path.is_file():
+                        parts = path.parts
+                        if not any(x in exclude_folders for x in parts):
+                            discovered_paths.add(path.resolve())
+            except Exception as e:
+                logger.debug(f"[OnnxImageBackend] Error scanning project-wide: {e}")
+                
+        # 3. Compile metadata for found files
+        results = []
+        for p in sorted(list(discovered_paths)):
+            try:
+                stat = p.stat()
+                size_mb = round(stat.st_size / (1024 * 1024), 2)
+                modified_at = datetime.datetime.fromtimestamp(stat.st_mtime).isoformat()
+                results.append({
+                    "path": str(p.as_posix()),
+                    "filename": p.name,
+                    "size_mb": size_mb,
+                    "modified_at": modified_at
+                })
+            except Exception as e:
+                logger.warning(f"[OnnxImageBackend] Failed to read metadata for '{p}': {e}")
+                
+        return results
+
     def is_available(self) -> tuple[bool, str]:
         """
         Check if onnxruntime library is importable and log its metadata.
@@ -80,6 +136,14 @@ class OnnxImageBackend(InferenceBackend):
 
         logger.info(f"[OnnxImageBackend] {check_msg}")
         print(f"[OnnxImageBackend] {check_msg}")
+
+        # 1.5. Discover ONNX models project-wide and log their details
+        discovered_models = self.discover_onnx_models()
+        logger.info(f"[OnnxImageBackend] Discovered {len(discovered_models)} ONNX models:")
+        print(f"[OnnxImageBackend] Discovered {len(discovered_models)} ONNX models:")
+        for m in discovered_models:
+            logger.info(f"  - Model: {m['filename']} (Size: {m['size_mb']} MB, Path: {m['path']}, Modified: {m['modified_at']})")
+            print(f"  - Model: {m['filename']} (Size: {m['size_mb']} MB, Path: {m['path']}, Modified: {m['modified_at']})")
 
         # 2. Check if compatible ONNX model path and files exist
         if not self.runtime_model or not self.runtime_model.model_path:

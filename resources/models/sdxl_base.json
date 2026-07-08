@@ -17,5 +17,17 @@
   "installed": false,
   "downloaded": false,
   "path": "",
-  "status": "Available for Download"
+  "status": "Available for Download",
+  "capabilities": {
+    "txt2img": true,
+    "img2img": true,
+    "inpainting": true,
+    "outpainting": true,
+    "lora": true,
+    "controlnet": true,
+    "image_to_video": false,
+    "batch_generation": true,
+    "onnx_runtime": true,
+    "qnn_runtime": true
+  }
 }

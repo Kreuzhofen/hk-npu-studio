@@ -5,6 +5,45 @@ import json
 from typing import Any
 
 
+class ModelCapabilities:
+    """
+    Encapsulates capability metadata for a model.
+    Provides structured boolean flags for txt2img, img2img, inpainting,
+    outpainting, LoRA, ControlNet, Image-to-Video, Batch Generation,
+    ONNX Runtime, and QNN Runtime.
+    """
+    def __init__(self, data: dict[str, Any] | None = None) -> None:
+        data = data or {}
+        self.txt2img = bool(data.get("txt2img", False))
+        self.img2img = bool(data.get("img2img", False))
+        self.inpainting = bool(data.get("inpainting", False))
+        self.outpainting = bool(data.get("outpainting", False))
+        self.lora = bool(data.get("lora", False))
+        self.controlnet = bool(data.get("controlnet", False))
+        self.image_to_video = bool(data.get("image_to_video", False))
+        self.batch_generation = bool(data.get("batch_generation", False))
+        self.onnx_runtime = bool(data.get("onnx_runtime", False))
+        self.qnn_runtime = bool(data.get("qnn_runtime", False))
+
+    def has_capability(self, capability: str) -> bool:
+        normalized = capability.lower().replace("-", "_").replace(" ", "_")
+        return getattr(self, normalized, False)
+
+    def to_dict(self) -> dict[str, bool]:
+        return {
+            "txt2img": self.txt2img,
+            "img2img": self.img2img,
+            "inpainting": self.inpainting,
+            "outpainting": self.outpainting,
+            "lora": self.lora,
+            "controlnet": self.controlnet,
+            "image_to_video": self.image_to_video,
+            "batch_generation": self.batch_generation,
+            "onnx_runtime": self.onnx_runtime,
+            "qnn_runtime": self.qnn_runtime
+        }
+
+
 class ModelRepository:
     """
     Data-driven repository that scans resources/models/*.json files.
@@ -80,7 +119,7 @@ class ModelRepository:
             "id", "display_name", "author", "version", "license",
             "description", "category", "backend", "recommended_backend",
             "minimum_ram_gb", "recommended_ram_gb", "supports",
-            "installed", "downloaded", "path", "status"
+            "installed", "downloaded", "path", "status", "capabilities"
         }
         return required_fields.issubset(data.keys())
 
@@ -125,3 +164,13 @@ class ModelRepository:
         except Exception as e:
             print(f"[ModelRepository] Error saving updates to {filepath}: {e}")
             return False
+
+    def get_model_capabilities(self, model_id: str) -> ModelCapabilities | None:
+        """
+        Retrieve the structured capabilities of a model.
+        """
+        model = self.get_model(model_id)
+        if not model:
+            return None
+        capabilities_data = model.get("capabilities", {})
+        return ModelCapabilities(capabilities_data)

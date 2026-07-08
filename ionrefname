@@ -1,0 +1,30 @@
+[33ma960622[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/phoenix-rebuild[m[33m, [m[1;33mtag: [m[1;33mv2.0.0-dev78[m[33m)[m Add ONNX InferenceSession foundation (P-089)
+[33m6b9dd5c[m[33m ([m[1;33mtag: [m[1;33mv2.0.0-dev77[m[33m)[m Add ONNX runtime detection foundation (P-088)
+[33m14f563d[m Prepare ONNX runtime foundation (P-083)
+[33m3b019a1[m Prepare ONNX runtime foundation (P-083)
+[33m9d54300[m Implement generation parameter contract (P-082)
+[33m4bf0241[m[33m ([m[1;33mtag: [m[1;33mv2.0.0-dev75[m[33m)[m Add live preview integration workflow (P-081)
+[33m537bf90[m[33m ([m[1;33mtag: [m[1;33mv2.0.0-dev71[m[33m)[m Add local image generator adapter foundation
+[33m39b6082[m ui: simplify navigation and polish splash screen (UX-006)
+[33m291f501[m feat: implement Model Loader foundation and integrate installation validation (P-074)
+[33m8de92da[m fix: refresh Model Manager after local model install and uninstall (P-073.1)
+[33m18f47ef[m feat: connect QNN backend availability to discovery diagnostics (P-072.2)
+[33m6c41fb1[m feat: implement automatic backend selection routing logic in BackendManager (P-071)
+[33m2489d0a[m ui: adjust Model Manager Treeview column widths to prevent text truncation (UX-005)
+[33m7c474ae[m feat: implement local AI model installation foundation and integrate into Model Manager (P-070)
+[33m35db556[m UI: Polish AI Generate workspace for 1080p layout without scrolling (UX-004.3)
+[33mdedce75[m Hide global inspector right panel inside the AI Model Manager workspace to maximize space (P-061.4)
+[33mc3b31ee[m Polish Model Manager table column widths to prevent text clipping (P-061.3)
+[33m1b5db4a[m Fix Model Inspector layout clipping by implementing a scrollable inspector card panel (P-061.2)
+[33me0ddeb9[m Implement Backend Discovery Service and environment detection UI widgets (P-061 & P-061.1)
+[33m75b1631[m Implement image generation pipeline foundation and result callbacks
+[33mde0a2bd[m Polish AI Model Manager into professional workspace UX (UX-001)
+[33meb1c1d0[m Implement AI BackendAdapter and BackendManager abstraction layer
+[33m7c2b602[m Implement GenerationJob and GenerationQueue pipeline foundation
+[33m4c0ce74[m Complete Phoenix Gallery to Compare workflow
+[33mb3d64b4[m Update About dialog product ownership branding
+[33m2f9a90a[m Connect Phoenix Gallery selection to Compare workspace
+[33m346c599[m Improve Phoenix Compare toolbar layout and zoom state
+[33m8087eff[m Fix RealESRGAN output scaling and large image previews
+[33m804ef5e[m Stabilize Phoenix Gallery thumbnail rendering
+[33m12e58da[m Support theme selection via environment variable

@@ -897,3 +897,23 @@ Status: Completed
 ### Notes
 
 Das ONNX-Backend initialisiert nun erfolgreich die `InferenceSession` zur Vorbereitung des realen Inferenzpfades. Es extrahiert Metadaten (Eingangs- und Ausgangsvariablen) zur Verifizierung der Graphstruktur. Nach dem Ladeschritt wird die Session wieder freigegeben. Fehlerhafte protobuf-Dateien werden ordnungsgemäß abgefangen, geloggt und mit `success=False` gemeldet. Alle Funktionstests laufen erfolgreich.
+
+## 08.07.2026 – Sprint P-091 – AI Model Capability System
+
+Status: Completed
+
+### Goals
+
+- Einführung eines modellunabhängigen Capability-Systems zur Vermeidung harter Codierungen im Inferenzfluss.
+- Repräsentation der Fähigkeiten über eine dedizierte Python-Klasse `ModelCapabilities`.
+- Vorbereitung der strukturierten Fähigkeiten für: `txt2img`, `img2img`, `inpainting`, `outpainting`, `LoRA`, `ControlNet`, `Image-to-Video`, `Batch Generation`, `ONNX Runtime` und `QNN Runtime`.
+- Erweiterung der Schema-Validierung im `ModelRepository` und Aktualisierung aller 7 Modell-JSON-Metadatendateien (`flux_dev`, `sdxl_base`, `sdxl_refiner`, `sd35_large`, `cogvideox`, `ltx_video`, `wan22`).
+
+### Modified / Added
+
+- `controllers/model_repository.py` (modifiziert)
+- `resources/models/*.json` (alle 7 modifiziert)
+
+### Notes
+
+Das neue Capability-System ist komplett datengesteuert. Jedes Modell beschreibt seine individuellen Fähigkeiten in seiner zugeordneten JSON-Datei. Das `ModelRepository` validiert diese Struktur und stellt die Fähigkeiten als strukturiertes `ModelCapabilities`-Objekt bereit. Alle Regressionstests und Kompilierungsprüfungen wurden erfolgreich absolviert.

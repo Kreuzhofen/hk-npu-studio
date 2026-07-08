@@ -10,9 +10,24 @@
   "recommended_backend": "ONNX Runtime (Stub)",
   "minimum_ram_gb": 12,
   "recommended_ram_gb": 16,
-  "supports": ["img2img", "refiner"],
+  "supports": [
+    "img2img",
+    "refiner"
+  ],
   "installed": false,
   "downloaded": false,
   "path": "",
-  "status": "Available for Download"
+  "status": "Available for Download",
+  "capabilities": {
+    "txt2img": false,
+    "img2img": true,
+    "inpainting": false,
+    "outpainting": false,
+    "lora": false,
+    "controlnet": false,
+    "image_to_video": false,
+    "batch_generation": false,
+    "onnx_runtime": true,
+    "qnn_runtime": false
+  }
 }

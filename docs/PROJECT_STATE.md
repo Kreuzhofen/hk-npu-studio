@@ -10,6 +10,12 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-091 (AI Model Capability System):**
+  * **Modellunabhängiges Capability-System:** Implementierung der Klasse `ModelCapabilities` zur Kapselung von Fähigkeiten-Flags (`txt2img`, `img2img`, `inpainting`, `outpainting`, `lora`, `controlnet`, `image_to_video`, `batch_generation`, `onnx_runtime`, `qnn_runtime`) zur Vermeidung hardcodierter Modellunterscheidungen.
+  * **Repository-Erweiterung:** Aktualisierung der Schema-Validierung im `ModelRepository` zur Erzwingung des `"capabilities"`-Keys in allen Modellbeschreibungen.
+  * **Data-driven Metadaten:** Ergänzung aller 7 Modellbeschreibungen (`flux_dev`, `sdxl_base`, `sdxl_refiner`, `sd35_large`, `cogvideox`, `ltx_video`, `wan22`) um detaillierte Capability-Profile.
+  * **Dateien:** [model_repository.py](file:///C:/SnapdragonAI/controllers/model_repository.py), Model-JSONs in [models](file:///C:/SnapdragonAI/resources/models)
+
 * **Sprint P-089 (First ONNX Inference Session):**
   * **Erste echte InferenceSession:** Integration der Instanziierung von `onnxruntime.InferenceSession` zur echten Modellladung im `OnnxImageBackend`.
   * **Metadaten-Extraktion:** Automatisches Auslesen und Protokollieren der Modell-Input- und Output-Namen direkt aus dem geladenen Modell-Graph.
