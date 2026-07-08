@@ -41,6 +41,9 @@ class PromptWorkspaceController:
         width: int,
         height: int,
         selected_model: str,
+        sampler: str = "Euler a",
+        scheduler: str = "Normal",
+        batch_size: int = 1,
     ) -> None:
         # Update local UI state model
         self.model.update_state(
@@ -52,6 +55,9 @@ class PromptWorkspaceController:
             width=width,
             height=height,
             selected_model=selected_model,
+            sampler=sampler,
+            scheduler=scheduler,
+            batch_count=batch_size,
         )
         # Update central generation session parameters
         self.generation_controller.update_session(
@@ -63,6 +69,9 @@ class PromptWorkspaceController:
             width=width,
             height=height,
             model_name=selected_model,
+            sampler=sampler,
+            scheduler=scheduler,
+            batch_size=batch_size,
         )
 
     def generate_image(self) -> GenerationResult:

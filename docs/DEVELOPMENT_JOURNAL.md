@@ -815,3 +815,26 @@ Status: Completed
 ### Notes
 
 Die Anwendung aktualisiert nun nach jedem Generierungslauf in Echtzeit das Vorschau-Bild und schaltet die dazugehörigen System-Schaltflächen frei. Wenn keine Datei vorhanden ist oder die Generierung fehlschlägt, wird der Platzhalter wiederhergestellt und die Schaltflächen werden deaktiviert. Alle Tests verliefen stabil.
+
+## 08.07.2026 – Sprint P-082 – Generation Parameter Contract
+
+Status: Completed
+
+### Goals
+
+- Etablierung eines einheitlichen Parametervertrags für alle 12 Generierungsparameter.
+- Durchgängiges Transportieren der Parameter von der GUI (`prompt_view.py`) über den Workspace-Controller, den GenerationController, GenerationJob bis hin zu den Inferenz-Backends.
+- Zeichnen erweiterter Parameter (`Seed`, `Steps`, `CFG`) auf der Diagnosekarte in `StubImageBackend` und `OnnxImageBackend`.
+- Vollständige Aufzählung aller 12 Parameter (inkl. `negative_prompt`, `sampler`, `scheduler`, `batch_count`) im Sidecar-JSON des Ausgabeassets.
+
+### Modified / Added
+
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+- `controllers/prompt_workspace_controller.py` (modifiziert)
+- `controllers/prompt_workspace_model.py` (modifiziert)
+- `engine/stub_image_backend.py` (modifiziert)
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Die Parameter-Durchreichung ist jetzt vollständig standardisiert. Alle Parameter werden lückenlos im Asset-Ausgabeordner dokumentiert (sowohl visuell im PNG als auch strukturell im JSON). Alle Unit- und Integrationstests wurden aktualisiert und laufen erfolgreich durch.

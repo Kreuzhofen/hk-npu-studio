@@ -10,6 +10,12 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-082 (Generation Parameter Contract):**
+  * **Konsistente Parameter-Durchreichung:** Umfassende Transportierung aller 12 Generierungsparameter (`prompt`, `negative_prompt`, `model`, `backend`, `seed`, `width`, `height`, `steps`, `cfg`, `sampler`, `scheduler`, `batch_count`) von der GUI bis ins Backend.
+  * **Erweiterung der Metadaten:** Die Parameter `negative_prompt`, `sampler`, `scheduler` und `batch_count` werden vollständig in die Sidecar-JSON geschrieben.
+  * **Verbessertes Stub-Vorschaubild:** Das erzeugte PNG-Diagnosebild zeichnet nun neben Modell und Hardware-Backend auch eine kompakte Parameterzeile mit `Seed`, `Steps` und `CFG` auf der Karte.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [prompt_workspace_controller.py](file:///C:/SnapdragonAI/controllers/prompt_workspace_controller.py), [prompt_workspace_model.py](file:///C:/SnapdragonAI/controllers/prompt_workspace_model.py), [stub_image_backend.py](file:///C:/SnapdragonAI/engine/stub_image_backend.py), [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
 * **Sprint P-081 (Live Preview Integration):**
   * **Automatische GUI-Vorschau:** Nach erfolgreicher Bildgenerierung wird das erzeugte PNG-Bild automatisch geladen, per Pillow herunterskaliert (max. 250px unter Beibehaltung des Seitenverhältnisses) und im Vorschau-Label des AI Generate Workspace Inspectors anstelle des Standardplatzhalters *"No image generated"* angezeigt.
   * **Interaktionsschaltflächen:** Aktivierung der Buttons *"Open in Library"*, *"Open in Review"* und *"Save As"*, sobald ein Bild existiert. Die Buttons nutzen die `GenerationResponse` als einzige Datenquelle.

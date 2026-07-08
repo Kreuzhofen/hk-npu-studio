@@ -75,13 +75,14 @@ class StubImageBackend(InferenceBackend):
             draw.text((40, 115), "Stub Generation", fill="#e8edf2", font=font_subtitle)
 
             # Draw metadata values
-            draw.text((40, 170), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 205), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 165), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 195), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 225), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
 
             # Draw truncated prompt preview
             prompt_str = job.session.prompt
             truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
-            draw.text((40, 260), "Prompt Preview:", fill="#e8edf2", font=font_body)
+            draw.text((40, 265), "Prompt Preview:", fill="#e8edf2", font=font_body)
             draw.text((40, 290), f'"{truncated_prompt}"', fill="#3b82f6", font=font_prompt)
 
             # Draw footer timestamp
@@ -95,6 +96,7 @@ class StubImageBackend(InferenceBackend):
         # Prepare sidecar metadata dictionary
         response_metadata = {
             "prompt": job.session.prompt,
+            "negative_prompt": job.session.negative_prompt,
             "model": model_name,
             "backend": backend_name,
             "seed": job.session.seed,
@@ -102,6 +104,9 @@ class StubImageBackend(InferenceBackend):
             "height": job.session.height,
             "steps": job.session.steps,
             "cfg": job.session.cfg_scale,
+            "sampler": job.session.sampler,
+            "scheduler": job.session.scheduler,
+            "batch_count": job.session.batch_size,
             "created_at": datetime.datetime.now().isoformat()
         }
 

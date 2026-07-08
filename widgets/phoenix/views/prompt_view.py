@@ -574,10 +574,19 @@ class PhoenixPromptView(WorkspaceFrame):
 
         selected_model = self.model_var.get()
 
+        try:
+            batch_size = int(self.batch_var.get())
+        except ValueError:
+            batch_size = 1
+
+        sampler = self.sampler_var.get()
+        scheduler = self.scheduler_var.get()
+
         self.controller.update_parameters(
             prompt=prompt, negative_prompt=neg_prompt,
             seed=seed, steps=steps, cfg=cfg,
             width=width, height=height, selected_model=selected_model,
+            sampler=sampler, scheduler=scheduler, batch_size=batch_size,
         )
 
         self.controller.generate_image()
@@ -742,12 +751,17 @@ class PhoenixPromptView(WorkspaceFrame):
             cfg = float(self.cfg_scale.get())
             width = int(self.width_var.get() or 512)
             height = int(self.height_var.get() or 512)
+            sampler = self.sampler_var.get()
+            scheduler = self.scheduler_var.get()
+            batch_size = int(self.batch_var.get() or 1)
         except Exception:
             prompt, neg_prompt = "", ""
             seed, steps, cfg, width, height = -1, 20, 7.0, 512, 512
+            sampler, scheduler, batch_size = "Euler a", "Normal", 1
 
         self.controller.update_parameters(
             prompt=prompt, negative_prompt=neg_prompt,
             seed=seed, steps=steps, cfg=cfg,
             width=width, height=height, selected_model=new_model,
+            sampler=sampler, scheduler=scheduler, batch_size=batch_size,
         )

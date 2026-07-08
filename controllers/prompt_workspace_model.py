@@ -13,6 +13,9 @@ class PromptWorkspaceState:
     width: int = 512
     height: int = 512
     selected_model: str = "sd_xl_base_1.0"
+    sampler: str = "Euler a"
+    scheduler: str = "Normal"
+    batch_count: int = 1
     status: str = "Bereit"
 
 
@@ -32,6 +35,9 @@ class PromptWorkspaceModel:
             "width": kwargs.get("width", self.state.width),
             "height": kwargs.get("height", self.state.height),
             "selected_model": kwargs.get("selected_model", self.state.selected_model),
+            "sampler": kwargs.get("sampler", self.state.sampler),
+            "scheduler": kwargs.get("scheduler", self.state.scheduler),
+            "batch_count": kwargs.get("batch_count", self.state.batch_count),
             "status": kwargs.get("status", self.state.status),
         }
         self.state = PromptWorkspaceState(**fields)
