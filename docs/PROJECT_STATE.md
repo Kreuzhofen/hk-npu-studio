@@ -10,6 +10,12 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-093 (First Real AI Execution):**
+  * **TextEmbeddingService:** Implementierung eines modellunabhängigen Text-Embedding-Service zur Tokenisierung von Prompts (mit CLIP-Struktur: 77 Token, SOS/EOS, Zero-Padding) und Übertragung an den Text-Encoder.
+  * **Inferenz-Laufzeit-Pfad:** Versuch des echten ONNX-Text-Encoder-Laufs mittels `InferenceSession` bei Vorhandensein der `.onnx`-Datei und sauberer Fallback zu stochastisch-deterministischen Dummy-Embeddings (`(1, 77, 768)` für SDXL CLIP) bei Fehlen der Datei oder Bibliotheken.
+  * **Generierungs-Integration:** Einbindung von Tokenizer/Embedding in den Generierungsablauf des `OnnxImageBackend`. Darstellung der extrahierten Token-Sequenz und der Einbettungsform auf dem Diagnose-PNG-Ausgabebild sowie Abspeicherung in den JSON-Sidecars.
+  * **Dateien:** [text_embedding_service.py](file:///C:/SnapdragonAI/engine/text_embedding_service.py), [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
 * **Sprint P-092 (SDXL Runtime Architecture):**
   * **ModelRuntimePackage:** Einführung der Klasse `ModelRuntimePackage` zur modellunabhängigen Repräsentation der Dateipfade und Ziel-Runtimes der 6 Kern-Modellkomponenten (`tokenizer`, `text_encoder`, `text_encoder_2`, `unet`, `vae_decoder`, `scheduler`).
   * **Repository-Anbindung:** Ergänzung des `ModelRepository` um die Methode `build_runtime_package(model_id)`, welche die absoluten Pfade und Komponenten-Laufzeitumgebungen (z. B. ONNX vs. QNN) auflöst.

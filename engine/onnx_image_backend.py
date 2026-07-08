@@ -206,7 +206,27 @@ class OnnxImageBackend(InferenceBackend):
                 model_name=model_name
             )
 
-        # 4. Generate visual PNG and JSON output using the session and job parameters
+        # 4. Integrate ModelRuntimePackage & TextEmbeddingService for Prompt Processing
+        from controllers.model_repository import ModelRepository
+        from engine.text_embedding_service import TextEmbeddingService
+        
+        repo = ModelRepository()
+        pkg = repo.build_runtime_package(model_name)
+        if not pkg:
+            msg = f"Failed to build ModelRuntimePackage for model '{model_name}'."
+            logger.error(f"[OnnxImageBackend] {msg}")
+            print(f"[OnnxImageBackend] {msg}")
+            return GenerationResponse(
+                success=False,
+                status="Failed",
+                message=msg,
+                model_name=model_name
+            )
+            
+        embedder = TextEmbeddingService(pkg)
+        embed_res = embedder.embed_prompt(job.session.prompt)
+
+        # 5. Generate visual PNG and JSON output using the session and job parameters
         output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
         output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -244,14 +264,18 @@ class OnnxImageBackend(InferenceBackend):
             draw.text((40, 50), "Snapdragon AI Studio", fill="#10b981", font=font_title)
             draw.text((40, 115), "ONNX Real Image Generation (Active)", fill="#e8edf2", font=font_subtitle)
 
-            draw.text((40, 165), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 195), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 225), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 155), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 180), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 205), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
+
+            tokens_str = str(embed_res["tokens"][:8]) + "..." if len(embed_res["tokens"]) > 8 else str(embed_res["tokens"])
+            draw.text((40, 230), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 255), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
 
             prompt_str = job.session.prompt
             truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
-            draw.text((40, 265), "Prompt Preview:", fill="#e8edf2", font=font_body)
-            draw.text((40, 290), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
+            draw.text((40, 290), "Prompt Preview:", fill="#e8edf2", font=font_body)
+            draw.text((40, 315), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
 
             timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             draw.text((40, h - 50), f"Generated: {timestamp_str}", fill="#9aa7b2", font=font_body)
@@ -275,7 +299,10 @@ class OnnxImageBackend(InferenceBackend):
             "scheduler": job.session.scheduler,
             "batch_count": job.session.batch_size,
             "created_at": datetime.datetime.now().isoformat(),
-            "onnx_model_file": onnx_model_path
+            "onnx_model_file": onnx_model_path,
+            "prompt_tokens": embed_res["tokens"],
+            "embedding_shape": embed_res["embedding_shape"],
+            "is_mock_embedding": embed_res["is_mock"]
         }
 
         # Write sidecar JSON alongside the image

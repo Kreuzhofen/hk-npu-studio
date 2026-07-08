@@ -937,3 +937,24 @@ Status: Completed
 ### Notes
 
 Mit `ModelRuntimePackage` ist die Datenstruktur für komplexe Multi-Komponenten-Modelle wie SDXL vollständig etabliert. Die Dateiverzeichnisse werden zur Laufzeit aufgelöst und vor dem Inferenzstart auf Vollständigkeit geprüft. Es wurden planmäßig keine InferenceSessions erzeugt oder Gewichtsdaten heruntergeladen. Alle Tests liefen sauber durch.
+
+## 08.07.2026 – Sprint P-093 – First Real AI Execution
+
+Status: Completed
+
+### Goals
+
+- Vorbereitung der ersten echten SDXL-Modellausführung (Tokenisierung und Text-Embedding).
+- Implementierung des `TextEmbeddingService` zur Wandlung von Prompts in Token-Listen (CLIP-kompatible 77er-Länge, SOS/EOS, Zero-Padding).
+- Vorbereitung der echten Inferenz für den Text-Encoder mittels `onnxruntime.InferenceSession`.
+- Sicherstellung eines unkritischen Fallbacks zu stochastischen Dummy-Embeddings im Falle von ungültigen Modellstrukturen oder fehlenden Systembibliotheken.
+- Visualisierung der Token-IDs und Embedding-Dimmensionen auf der Diagnosekarte (PNG) und Ablage im JSON-Sidecar.
+
+### Modified / Added
+
+- `engine/text_embedding_service.py` (neu)
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Die erste echte Prompt-Tokenisierung und Embedding-Generierung läuft voll integriert über den `TextEmbeddingService` ab. Im Falle eines echten oder gemockten ONNX-Text-Encoder-Laufes werden die Token-IDs an die InferenceSession übergeben. Andernfalls fängt der Service jegliche Dateifehler ab und erzeugt die erforderlichen CLIP ViT-L Embeddings (Shape `[1, 77, 768]`). Alle Tests und Kompilierungsprüfungen waren erfolgreich.
