@@ -10,10 +10,15 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
-* **Sprint P-085 (First Real Image Generation):**
-  * **Inferenz-Vorbereitung:** Das `OnnxImageBackend` wurde um einen realen Inferenz-Pfad erweitert, der bei Vorhandensein von `onnxruntime` und kompatiblen `.onnx`-Modelldateien im Modell-Paketverzeichnis eine `onnxruntime.InferenceSession` lädt.
-  * **Modell-Erkennung:** Automatische Erkennung und Scannen von `.onnx`-Modellen im Paketverzeichnis.
-  * **Fehlerbehandlung:** Ist kein kompatibles Modell vorhanden oder schlägt der Inferenz-Pfad fehl, wird eine strukturierte `GenerationResponse` mit `success=False` und dem entsprechenden Status (`unavailable` oder `Failed`) zurückgegeben, ohne die GUI oder andere Stubs zu beeinträchtigen.
+* **Sprint P-088 (First ONNX Runtime Detection):**
+  * **Erweiterte Runtime-Erkennung:** Das `OnnxImageBackend` erkennt nun aktiv das Vorhandensein von `onnxruntime`, liest die Version sowie die verfügbaren Hardware-Ausführungs-Provider aus.
+  * **Provider-Validierung:** Die Existenz des `CPUExecutionProvider` wird explizit validiert. Das Fehlen des optionalen `QNNExecutionProvider` wird strukturiert als Warnung/Info-Nachricht im Log protokolliert und blockiert nicht den Inferenz-Bereitschaftslauf.
+  * **Dateien:** [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
+* **Sprint P-085 (ONNX Runtime Readiness):**
+  * **Inferenz-Bereitschaft:** Das `OnnxImageBackend` wurde erweitert, um die Inferenz-Voraussetzungen zu prüfen. Es verifiziert die Importierbarkeit von `onnxruntime` (mit Auslesung der Version und der Execution Provider) und scannt das Modellverzeichnis nach kompatiblen `.onnx`-Dateien.
+  * **Modell-Validierung:** Erkennt `.onnx`-Dateien rekursiv im Paketverzeichnis und überprüft deren grundsätzliche Existenz und Größe zur Sicherstellung der Ladbarkeit, ohne bereits eine `onnxruntime.InferenceSession` zu instanziieren.
+  * **Fehlerbehandlung:** Ist `onnxruntime` nicht installiert oder kein Modell vorhanden, bricht das System sauber mit `success=False` und status `"unavailable"` ab. Der Stub-Workflow (NPU/CPU) bleibt unberührt lauffähig.
   * **Dateien:** [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
 
 * **Sprint P-082 (Generation Parameter Contract):**

@@ -839,17 +839,16 @@ Status: Completed
 
 Die Parameter-Durchreichung ist jetzt vollständig standardisiert. Alle Parameter werden lückenlos im Asset-Ausgabeordner dokumentiert (sowohl visuell im PNG als auch strukturell im JSON). Alle Unit- und Integrationstests wurden aktualisiert und laufen erfolgreich durch.
 
-## 08.07.2026 – Sprint P-085 – First Real Image Generation
+## 08.07.2026 – Sprint P-085 – ONNX Runtime Readiness
 
 Status: Completed
 
 ### Goals
 
-- Erweiterung des `OnnxImageBackend` um den realen Inferenz-Pfad auf Basis der `onnxruntime`.
+- Erweiterung des `OnnxImageBackend` zur Prüfung der Inferenz-Bereitschaft auf Basis der `onnxruntime`.
 - Automatisches Scannen des Modell-Paketverzeichnisses nach `.onnx`-Dateien.
-- Instanziierung einer `onnxruntime.InferenceSession` zur Vorbereitung realer lokaler KI-Inferenz.
-- Protokollierung der Modell-Inputs und -Outputs im Erfolgsfall.
-- Robuste Fehlerbehandlung: Bei Fehlen der Runtime oder der `.onnx`-Datei wird eine ordentliche `GenerationResponse` mit `success=False` und Status `unavailable` oder `Failed` zurückgeliefert, ohne dass es zu Abstürzen kommt.
+- Überprüfung der Existenz und Größe gefundener `.onnx`-Dateien zur Validierung der prinzipiellen Ladbarkeit, ohne bereits eine `InferenceSession` zu instanziieren (wie im Sprint gefordert).
+- Robuste Fehlerbehandlung: Bei Fehlen der Runtime oder der `.onnx`-Datei wird eine ordentliche `GenerationResponse` mit `success=False` und Status `unavailable` zurückgeliefert, ohne dass es zu Abstürzen kommt.
 
 ### Modified / Added
 
@@ -857,4 +856,24 @@ Status: Completed
 
 ### Notes
 
-Der reale Inferenz-Pfad ist nun strukturell vorbereitet und voll integriert. Falls `onnxruntime` fehlt oder kein Modellpaket bereitgestellt wird, fängt das Backend dies ohne Absturz ab und meldet den entsprechenden Bereitschaftsstatus. Der CPU/NPU-Stub-Workflow bleibt voll lauffähig. Alle Funktionstests inklusive simulierter (gemockter) ONNX-Laufzeitumgebungen verliefen erfolgreich.
+Die Inferenz-Bereitschaftsprüfung ist nun strukturell vorbereitet und voll integriert. Falls `onnxruntime` fehlt oder kein Modellpaket bereitgestellt wird, fängt das Backend dies ohne Absturz ab und meldet den entsprechenden Bereitschaftsstatus, ohne eine `InferenceSession` zu erzwingen. Der CPU/NPU-Stub-Workflow bleibt voll lauffähig. Alle Funktionstests inklusive simulierter (gemockter) ONNX-Laufzeitumgebungen verliefen erfolgreich.
+
+## 08.07.2026 – Sprint P-088 – First ONNX Runtime Detection
+
+Status: Completed
+
+### Goals
+
+- Ausbau der Laufzeiterkennung von `onnxruntime`.
+- Auslesen und Protokollieren der Bibliotheksversion sowie der verfügbaren Execution Provider.
+- Sicherstellung, dass `CPUExecutionProvider` erkannt wird.
+- Nichtvorhandensein von `QNNExecutionProvider` (Qualcomm QNN NPU) als unkritische Warnung/Info behandeln, um die Bereitschaftsprüfung ohne Fehler abzuschließen.
+- Stub-Generierung (PNG + JSON) bleibt unberührt lauffähig.
+
+### Modified / Added
+
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Das ONNX-Backend meldet nun detailliert alle verfügbaren Execution Provider. Falls der QNN Execution Provider auf dem System fehlt (weil kein QNN SDK installiert ist), wird dies ordnungsgemäß als Info/Warnung protokolliert und führt nicht zu einem Systemfehler. Alle Testfälle laufen erfolgreich.
