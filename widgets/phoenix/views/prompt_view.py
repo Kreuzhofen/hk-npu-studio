@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from pathlib import Path
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
 from widgets.phoenix.layout.workspace import WorkspaceFrame
@@ -438,18 +439,18 @@ class PhoenixPromptView(WorkspaceFrame):
         preview_frame.grid(row=row, column=0, columnspan=4, sticky="ew", padx=16, pady=(0, 4))
         preview_frame.grid_columnconfigure(0, weight=1)
 
-        preview_center = tk.Frame(preview_frame, bg=PHOENIX_THEME.content_bg)
-        preview_center.grid(row=0, column=0, sticky="", pady=8)
+        self.preview_center = tk.Frame(preview_frame, bg=PHOENIX_THEME.content_bg)
+        self.preview_center.grid(row=0, column=0, sticky="", pady=8)
 
         from resources.icons import IconManager
         tk.Label(
-            preview_center, text=IconManager.get_symbol("image"),
+            self.preview_center, text=IconManager.get_symbol("image"),
             bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.accent,
             font=(PHOENIX_THEME.font_title[0], 20, "bold"),
         ).pack(anchor="center", pady=(0, 2))
 
         tk.Label(
-            preview_center, text="No image generated",
+            self.preview_center, text="No image generated",
             bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small, justify="center"
         ).pack(anchor="center")
@@ -467,9 +468,14 @@ class PhoenixPromptView(WorkspaceFrame):
             "state": "disabled", "height": 1,
         }
 
-        tk.Button(btn_frame, text="Open in Library", **btn_style).grid(row=0, column=0, sticky="ew", padx=1, pady=1)
-        tk.Button(btn_frame, text="Open in Review", **btn_style).grid(row=0, column=1, sticky="ew", padx=1, pady=1)
-        tk.Button(btn_frame, text="Save As", **btn_style).grid(row=0, column=2, sticky="ew", padx=1, pady=1)
+        self.btn_open_library = tk.Button(btn_frame, text="Open in Library", command=self._on_open_library, **btn_style)
+        self.btn_open_library.grid(row=0, column=0, sticky="ew", padx=1, pady=1)
+        
+        self.btn_open_review = tk.Button(btn_frame, text="Open in Review", command=self._on_open_review, **btn_style)
+        self.btn_open_review.grid(row=0, column=1, sticky="ew", padx=1, pady=1)
+        
+        self.btn_save_as = tk.Button(btn_frame, text="Save As", command=self._on_save_as, **btn_style)
+        self.btn_save_as.grid(row=0, column=2, sticky="ew", padx=1, pady=1)
 
     def _inspector_section_header(self, title: str, row: int) -> int:
         tk.Label(
@@ -577,6 +583,54 @@ class PhoenixPromptView(WorkspaceFrame):
         self.controller.generate_image()
         self.refresh()
 
+    def _on_open_library(self) -> None:
+        response = getattr(self.controller, "last_response", None)
+        if response and response.image_path:
+            import subprocess
+            import os
+            folder = Path(response.image_path).parent
+            try:
+                os.startfile(folder)
+            except Exception:
+                subprocess.Popen(["explorer", str(folder)])
+
+    def _on_open_review(self) -> None:
+        response = getattr(self.controller, "last_response", None)
+        if response and response.image_path:
+            import subprocess
+            import os
+            try:
+                os.startfile(response.image_path)
+            except Exception:
+                subprocess.Popen(["explorer", str(response.image_path)])
+
+    def _on_save_as(self) -> None:
+        response = getattr(self.controller, "last_response", None)
+        if response and response.image_path:
+            from tkinter import filedialog
+            import shutil
+            initial_name = Path(response.image_path).name
+            dest = filedialog.asksaveasfilename(
+                defaultextension=".png",
+                filetypes=[("PNG Image", "*.png")],
+                initialfile=initial_name
+            )
+            if dest:
+                try:
+                    shutil.copy(response.image_path, dest)
+                    print(f"Saved image to: {dest}")
+                except Exception as e:
+                    print(f"Failed to save image copy: {e}")
+
+    def _enable_action_buttons(self, enable: bool) -> None:
+        state = "normal" if enable else "disabled"
+        # Phoenix theme accent color for enabled buttons
+        fg_color = PHOENIX_THEME.accent if enable else PHOENIX_THEME.text_muted
+        
+        self.btn_open_library.configure(state=state, fg=fg_color)
+        self.btn_open_review.configure(state=state, fg=fg_color)
+        self.btn_save_as.configure(state=state, fg=fg_color)
+
     # ==================================================================
     # REFRESH
     # ==================================================================
@@ -635,6 +689,45 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.env_status_label.configure(text=env_text)
         self.qnn_status_label.configure(text=qnn_text)
+
+        # Update Preview Area based on last response
+        for widget in self.preview_center.winfo_children():
+            widget.destroy()
+
+        last_resp = getattr(self.controller, "last_response", None)
+        has_preview = False
+        if last_resp and last_resp.success and last_resp.image_path:
+            img_path = Path(last_resp.image_path)
+            if img_path.exists():
+                try:
+                    from PIL import Image, ImageTk
+                    with Image.open(img_path) as pil_img:
+                        pil_img.thumbnail((250, 250))
+                        self._preview_photo = ImageTk.PhotoImage(pil_img)
+                        
+                    img_label = tk.Label(self.preview_center, image=self._preview_photo, bg=PHOENIX_THEME.content_bg)
+                    img_label.pack(anchor="center")
+                    has_preview = True
+                except Exception as e:
+                    logger.error(f"Failed to load preview image: {e}")
+                    print(f"Failed to load preview image: {e}")
+
+        if not has_preview:
+            from resources.icons import IconManager
+            tk.Label(
+                self.preview_center, text=IconManager.get_symbol("image"),
+                bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.accent,
+                font=(PHOENIX_THEME.font_title[0], 20, "bold"),
+            ).pack(anchor="center", pady=(0, 2))
+
+            tk.Label(
+                self.preview_center, text="No image generated",
+                bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_small, justify="center"
+            ).pack(anchor="center")
+
+        # Enable/Disable Action Buttons
+        self._enable_action_buttons(has_preview)
 
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""

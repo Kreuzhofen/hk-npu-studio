@@ -10,6 +10,41 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-081 (Live Preview Integration):**
+  * **Automatische GUI-Vorschau:** Nach erfolgreicher Bildgenerierung wird das erzeugte PNG-Bild automatisch geladen, per Pillow herunterskaliert (max. 250px unter Beibehaltung des Seitenverhältnisses) und im Vorschau-Label des AI Generate Workspace Inspectors anstelle des Standardplatzhalters *"No image generated"* angezeigt.
+  * **Interaktionsschaltflächen:** Aktivierung der Buttons *"Open in Library"*, *"Open in Review"* und *"Save As"*, sobald ein Bild existiert. Die Buttons nutzen die `GenerationResponse` als einzige Datenquelle.
+  * **Dateisystemaktionen:**
+    * *Open in Library:* Öffnet den Ausgabeordner (`output/`) im Datei-Explorer.
+    * *Open in Review:* Öffnet das generierte Bild direkt in der Standard-Bildbetrachtung des Betriebssystems.
+    * *Save As:* Öffnet einen nativen Dateidialog (`asksaveasfilename`) zum Kopieren und Speichern des Bildes an einem beliebigen Ort.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [prompt_workspace_controller.py](file:///C:/SnapdragonAI/controllers/prompt_workspace_controller.py)
+
+* **Sprint P-081 (Model Runtime Integration):**
+  * **Einführung des Runtime-Modells:** Implementierung der Klasse `RuntimeModel` in `engine/runtime_model.py` zur Kapselung des aufgelösten Modell-Pfads, der Gewichtsdateien und des Ladeplans während des Inferenz-Laufs.
+  * **Modell-Integration in Pipeline:** Der `GenerationExecutor` bezieht das Modell nun dynamisch über den Loader-Dienst und erstellt ein `RuntimeModel`.
+  * **Dynamischer Transport:** Weiterleitung des `RuntimeModel` über den Generator-Adapter an die `InferenceBackendFactory`, welche das Backend mit dem real geladenen Modell instanziiert.
+  * **Dynamische Diagnosebilder:** Das `StubImageBackend` und das `OnnxImageBackend` zeichnen nun dynamisch die geladene Modell-ID (`runtime_model.model_id`) auf das Vorschau-Bild, wodurch fest codierte Modellnamen vollständig abgelöst wurden.
+  * **Erweitertes Logging:** Integration strukturierter Protokollierungen für `Selected Model`, `Runtime Model` und `Target Backend` im Executor.
+  * **Dateien:** [runtime_model.py](file:///C:/SnapdragonAI/engine/runtime_model.py), [generation_executor.py](file:///C:/SnapdragonAI/engine/generation_executor.py), [inference_backend_factory.py](file:///C:/SnapdragonAI/engine/inference_backend_factory.py), [local_image_generator_adapter.py](file:///C:/SnapdragonAI/engine/local_image_generator_adapter.py), [stub_image_backend.py](file:///C:/SnapdragonAI/engine/stub_image_backend.py), [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
+* **Sprint P-080 (Inference Backend Plugin Framework):**
+  * **Einführung der Backend-Factory:** Implementierung der `InferenceBackendFactory` in `engine/inference_backend_factory.py` zur dynamischen Registrierung und Auflösung von Backend-Plugins.
+  * **ONNX-Placeholder Backend:** Hinzufügen der Klasse `OnnxImageBackend` in `engine/onnx_image_backend.py` als ONNX-spezifischer Platzhalter.
+  * **Registrierung & Auflösung:** Automatische Registrierung von `StubImageBackend` (unter `"Local CPU (Stub)"`, `"Qualcomm QNN NPU (Stub)"`) und `OnnxImageBackend` (unter `"ONNX Runtime (Stub)"`). Der Adapter bezieht Backend-Instanzen nun ausschließlich über die Factory und ruft einheitlich `backend.generate(job)` auf.
+  * **Dateien:** [inference_backend_factory.py](file:///C:/SnapdragonAI/engine/inference_backend_factory.py), [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py), [local_image_generator_adapter.py](file:///C:/SnapdragonAI/engine/local_image_generator_adapter.py), [inference_backend.py](file:///C:/SnapdragonAI/engine/inference_backend.py)
+
+* **Sprint P-079 (Inference Backend Foundation):**
+  * **Einführung der Backend-Abstraktion:** Definition der abstrakten Basisklasse `InferenceBackend` in `engine/inference_backend.py` zur sauberen Entkopplung lokaler Generatoren von konkreten Inferenz-Laufzeiten.
+  * **Stub-Backend Implementierung:** Umsetzung des `StubImageBackend` in `engine/stub_image_backend.py`, welcher das Rendern und die Sidecar-Dateispeicherung für lokale Testläufe vollständig übernimmt.
+  * **Adapter-Entkopplung:** Der `LocalImageGeneratorAdapter` erzeugt das Bild nicht mehr selbst, sondern delegiert den Generierungsschritt vollständig an das zugrundeliegende Inferenz-Backend.
+  * **Dateien:** [inference_backend.py](file:///C:/SnapdragonAI/engine/inference_backend.py), [stub_image_backend.py](file:///C:/SnapdragonAI/engine/stub_image_backend.py), [local_image_generator_adapter.py](file:///C:/SnapdragonAI/engine/local_image_generator_adapter.py)
+
+* **Sprint P-078 & P-077 (Stub Preview Image & Output Integration):**
+  * **Sichtbares Diagnosebild:** Generierung eines 512x512-Pixel PNGs mit blauem Phoenix-Design, Branding, Status, Modell, Backend und einem Prompt-Ausschnitt, damit die Galerie ein echtes Vorschaubild statt einer schwarzen Fläche anzeigt.
+  * **Pillow Härtung (Bugfix P-077):** Ersetzung der binären Byte-Erzeugung durch Standard-Pillow-Bildspeicherung, um Fehler bezüglich beschädigter Bilddateien in Windows Fotos und Browsern zu beheben.
+  * **Asset-Metadaten & Sidecar:** Speicherung aller Inferenzparameter als Sidecar-JSON direkt neben der PNG-Ausgabedatei zur Erleichterung der Galerie-Auslesung.
+  * **Dateien:** [local_image_generator_adapter.py](file:///C:/SnapdragonAI/engine/local_image_generator_adapter.py), [generation_response.py](file:///C:/SnapdragonAI/engine/generation_response.py)
+
 * **Sprint P-076 (Local Image Generator Adapter Foundation):**
   * **Einführung der Adapter-Stufe:** Implementierung von `LocalImageGeneratorAdapter` in `engine/local_image_generator_adapter.py` zur Kapselung lokaler Bildgenerierungsschritte.
   * **Einführung des GenerationExecutor:** Implementierung von `GenerationExecutor` in `engine/generation_executor.py` zur Orchestrierung der Modellvalidierung und Generierungssteuerung.

@@ -717,3 +717,101 @@ Status: Completed
 ### Notes
 
 Die Architektur ist nun optimal auf künftige physische Inferenzpakete (Qualcomm QNN NPU, ONNX Runtime, CPU etc.) vorbereitet. Der Inferenzlauf erzeugt ein echtes Mini-PNG in `output/`, wodurch die GUI-Vorschau und die Galerie das Resultat ohne Fehlverhalten laden und anzeigen können. Der Fluss ist durchgehend protokolliert.
+
+## 08.07.2026 – Sprints P-077, P-078 & P-079 – Decoupled Inference Backend & Diagnostics Preview
+
+Status: Completed
+
+### Goals
+
+- Bereitstellung einer sauberen Backend-Abstraktion zur Entkopplung lokaler Generatoren von konkreten Laufzeitumgebungen.
+- Erstellung der Schnittstellen-Basisklasse `InferenceBackend` zur Definition einheitlicher Generierungs-Aufrufe.
+- Erstellung der konkreten Klasse `StubImageBackend` zur Kapselung des Pillow-basierten Diagnosebild-Generierungsschritts.
+- Härtung der PNG-Erstellung über Pillow (Behebung beschädigter Dateiformate) zur vollständigen Kompatibilität mit Windows Fotos und Galerie-Loadern.
+- Erzeugung eines optisch ansprechenden Phoenix-Vorschaubilds mit Markennamen, Modellname, aktivem Hardware-Backend und gekürztem Prompt.
+- Speicherung aller Parameterwerte in einer JSON-Sidecar-Metadatendatei neben dem PNG-Asset.
+- Umleitung des `LocalImageGeneratorAdapter` zur Inferenz-Delegation an das Backend.
+
+### Modified / Added
+
+- `engine/inference_backend.py` (neu)
+- `engine/stub_image_backend.py` (neu)
+- `engine/local_image_generator_adapter.py` (modifiziert)
+- `engine/generation_response.py` (modifiziert)
+
+### Notes
+
+Die Kette lautet nun: `GenerationExecutor` -> `LocalImageGeneratorAdapter` -> `InferenceBackend` -> `StubImageBackend`. Dadurch kann der Stub-Generator später ohne Änderungen am Adapter oder Executor gegen echte NPU-Bibliotheken (Qualcomm QNN, ONNX Runtime) ausgetauscht werden. Die Stabilität der PNG-Dateien wurde erfolgreich unter Windows Photos und in der Gallery verifiziert.
+
+## 08.07.2026 – Sprint P-080 – Inference Backend Plugin Framework
+
+Status: Completed
+
+### Goals
+
+- Einführung einer erweiterbaren Fabrikmethode (Factory Pattern) für lokale Inferenz-Backends.
+- Erstellung der Klasse `InferenceBackendFactory` zur Registrierung und Auflösung von Backend-Typen anhand ihres Anzeigenamens.
+- Erstellung des Placeholders `OnnxImageBackend` zur Vorbereitung künftiger ONNX Runtime-Einbindungen.
+- Registrierung des `StubImageBackend` für CPU- und NPU-Stub-Modi und des `OnnxImageBackend` für ONNX-Stub-Modi.
+- Strikte Kapselung: Der `LocalImageGeneratorAdapter` instanziiert keine Backends mehr direkt, sondern holt sie ausschließlich über `InferenceBackendFactory.get_backend(name)`.
+- Vereinfachung der Schnittstelle auf die klare Signatur: `backend.generate(job)`.
+
+### Modified / Added
+
+- `engine/inference_backend_factory.py` (neu)
+- `engine/onnx_image_backend.py` (neu)
+- `engine/local_image_generator_adapter.py` (modifiziert)
+- `engine/inference_backend.py` (modifiziert)
+- `engine/stub_image_backend.py` (modifiziert)
+
+### Notes
+
+Die Inferenzsteuerung ist durch die Factory vollkommen flexibel und erweiterbar. Plugins können einfach registriert und zur Laufzeit dynamisch über den Backend-Namen bezogen werden, ohne dass die Pipeline oder der Adapter angepasst werden müssen. Die vereinfachte Signatur `generate(job)` reduziert Kopplungen weiter.
+
+## 08.07.2026 – Sprint P-081 – Model Runtime Integration
+
+Status: Completed
+
+### Goals
+
+- Verbindung des Modell-Ladevorgangs mit der Inferenz-Factory.
+- Übergabe des ausgewählten Modells über den `ModelLoaderService` an den `GenerationExecutor`.
+- Konstruktion des `RuntimeModel` im Executor basierend auf Modellauflösung, Gewichtsdateien und Ladeplan.
+- Dynamische Durchleitung des `RuntimeModel` an die `InferenceBackendFactory` und die Backend-Instanzen.
+- Beseitigung hartcodierter Modellnamen in Inferenz-Klassen.
+- Erweiterung des Ablauf-Logs um die Felder: `Selected Model`, `Runtime Model` und `Backend`.
+
+### Modified / Added
+
+- `engine/runtime_model.py` (neu)
+- `engine/generation_executor.py` (modifiziert)
+- `engine/inference_backend_factory.py` (modifiziert)
+- `engine/local_image_generator_adapter.py` (modifiziert)
+- `engine/stub_image_backend.py` (modifiziert)
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Durch die Integration des `RuntimeModel` sind die Backends vollständig entkoppelt von hartcodierten Metadaten wie dem Modellnamen. Sie lesen die ID, Dateipfade und Ladepläne dynamisch zur Laufzeit aus. Die Protokollierung zeigt den vollständigen Modell- und Hardwareauflösungsfluss transparent im Log auf.
+
+## 08.07.2026 – Sprint P-081 – Live Preview Integration
+
+Status: Completed
+
+### Goals
+
+- Automatische Anzeige des erzeugten PNG-Bildes in der GUI nach erfolgreicher Inferenz.
+- Dynamische Anpassung des Vorschau-Labels des AI Generate Workspace Inspectors unter Verwendung von Pillow.
+- Entfernen des statischen Textplatzhalters *"No image generated"*, sobald ein Bild geladen wurde.
+- Aktivierung der interaktiven Buttons *"Open in Library"*, *"Open in Review"* und *"Save As"*, wenn ein valides Ausgabebild vorliegt.
+- Bindung der Schaltflächenfunktionen an OS-Aktionen (Explorer öffnen, Bild in Bildbetrachter öffnen, ask-save-as-Dialog).
+- Ausschließliche Verwendung der `GenerationResponse` als Datenquelle.
+
+### Modified / Added
+
+- `widgets/phoenix/views/prompt_view.py` (modifiziert)
+- `controllers/prompt_workspace_controller.py` (modifiziert)
+
+### Notes
+
+Die Anwendung aktualisiert nun nach jedem Generierungslauf in Echtzeit das Vorschau-Bild und schaltet die dazugehörigen System-Schaltflächen frei. Wenn keine Datei vorhanden ist oder die Generierung fehlschlägt, wird der Platzhalter wiederhergestellt und die Schaltflächen werden deaktiviert. Alle Tests verliefen stabil.

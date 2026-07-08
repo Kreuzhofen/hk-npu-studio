@@ -21,6 +21,7 @@ class PromptWorkspaceController:
         self.model = model or PromptWorkspaceModel()
         self.generation_controller = generation_controller or GenerationController()
         self.repository = repository or ModelRepository()
+        self.last_response: Any = None
         
         # Dynamically populate model names from the data-driven repository
         self.AVAILABLE_MODELS = [m["id"] for m in self.repository.get_all_models()]
@@ -69,4 +70,5 @@ class PromptWorkspaceController:
         result = self.generation_controller.queue_generation()
         status_msg = result.status if result.success else f"Error: {result.message}"
         self.model.update_state(status=status_msg)
+        self.last_response = result
         return result
