@@ -282,3 +282,50 @@ class ModelRepository:
             author=model.get("author", ""),
             display_name=model.get("display_name", "")
         )
+
+    def get_package_status(self, model_id: str) -> PackageStatus:
+        """
+        Determine the detailed PackageStatus of a model.
+        """
+        from controllers.package_status import PackageStatus
+        model = self.get_model(model_id)
+        if not model:
+            return PackageStatus.NOT_INSTALLED
+            
+        installed = model.get("installed", False)
+        if not installed:
+            return PackageStatus.NOT_INSTALLED
+            
+        model_path = model.get("path") or ""
+        if not model_path:
+            return PackageStatus.NOT_INSTALLED
+            
+        base_dir = Path(model_path)
+        if not base_dir.exists():
+            return PackageStatus.NOT_INSTALLED
+            
+        package_json_path = base_dir / "package.json"
+        if not package_json_path.exists():
+            # Legacy package installed on disk
+            return PackageStatus.INSTALLED
+            
+        # SMP package layout exists. Validate it.
+        try:
+            pkg = self.build_runtime_package(model_id)
+            if not pkg:
+                return PackageStatus.INVALID
+                
+            # Compare version for UPDATE_AVAILABLE
+            repo_version = model.get("version", "1.0.0")
+            pkg_version = pkg.package_version
+            
+            # Simple version comparison: if package version is less than repository version
+            if repo_version != pkg_version and pkg_version < repo_version:
+                return PackageStatus.UPDATE_AVAILABLE
+                
+            if pkg.is_fully_ready():
+                return PackageStatus.READY
+            else:
+                return PackageStatus.INVALID
+        except Exception:
+            return PackageStatus.INVALID

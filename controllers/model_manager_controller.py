@@ -66,4 +66,24 @@ class ModelManagerController:
         """Uninstall a model and delete files."""
         return self.install_service.uninstall_model(model_id)
 
+    def validate_package(self, model_id: str) -> dict[str, Any]:
+        """Validate package components and return verification results."""
+        return self.install_service.validate_package(model_id)
+
+    def update_package(self, model_id: str, new_source_path: str) -> bool:
+        """Update an existing package with new components."""
+        return self.install_service.update_package(model_id, new_source_path)
+
+    def remove_package(self, model_id: str) -> bool:
+        """Remove model package and delete files."""
+        return self.install_service.remove_package(model_id)
+
+    def install_package(self, model_id: str, source_path: str) -> bool:
+        """Install a new SMP package from source path."""
+        return self.install_service.install_package(model_id, source_path)
+
+    def get_package_status(self, model_id: str) -> str:
+        """Retrieve the detailed PackageStatus string for a model."""
+        return str(self.model.repository.get_package_status(model_id))
+
 Class = ModelManagerController

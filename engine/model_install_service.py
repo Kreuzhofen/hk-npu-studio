@@ -300,3 +300,66 @@ class ModelInstallService:
         """
         logger.info(f"Future download cancellation hook triggered for model '{model_id}'.")
         return False
+
+    def validate_package(self, model_id: str) -> dict[str, Any]:
+        """
+        Validate an installed SMP package by verifying all its components.
+        """
+        model = self.repository.get_model(model_id)
+        if not model or not model.get("installed", False):
+            return {
+                "success": False,
+                "message": f"Model '{model_id}' is not installed.",
+                "components": {}
+            }
+            
+        pkg = self.repository.build_runtime_package(model_id)
+        if not pkg:
+            return {
+                "success": False,
+                "message": f"Failed to build runtime package for '{model_id}'.",
+                "components": {}
+            }
+            
+        statuses = pkg.verify_components()
+        is_ready = pkg.is_fully_ready()
+        
+        # Collect component runtimes and paths for centralized display
+        components_info = {}
+        for name, status in statuses.items():
+            components_info[name] = {
+                "status": status,
+                "path": pkg.get_component_path(name),
+                "runtime": pkg.get_component_runtime(name) or "Unknown"
+            }
+            
+        return {
+            "success": is_ready,
+            "message": "SMP package is READY for real local inference." if is_ready else "SMP package validation failed (stubs/missing files).",
+            "components": components_info,
+            "is_fully_ready": is_ready,
+            "package_version": pkg.package_version,
+            "author": pkg.author,
+            "display_name": pkg.display_name
+        }
+
+    def update_package(self, model_id: str, new_source_path: str) -> bool:
+        """
+        Update an existing package by copying the new source path components over the old ones.
+        """
+        logger.info(f"Triggering package update for '{model_id}' from '{new_source_path}'")
+        return self.install_model(model_id, new_source_path)
+
+    def remove_package(self, model_id: str) -> bool:
+        """
+        Remove/Uninstall the model package.
+        """
+        logger.info(f"Triggering package removal for '{model_id}'")
+        return self.uninstall_model(model_id)
+        
+    def install_package(self, model_id: str, source_path: str) -> bool:
+        """
+        Install the model package.
+        """
+        logger.info(f"Triggering package installation for '{model_id}' from '{source_path}'")
+        return self.install_model(model_id, source_path)
