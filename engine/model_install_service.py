@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import shutil
 import logging
 import urllib.parse
@@ -418,45 +419,183 @@ class ModelInstallService:
 
     def validate_package(self, model_id: str) -> dict[str, Any]:
         """
-        Validate an installed SMP package by verifying all its components.
+        Validate an installed SMP package using local files only.
+        No downloads, updates, installations, or repository writes are performed.
         """
-        model = self.repository.get_model(model_id)
-        if not model or not model.get("installed", False):
-            return {
-                "success": False,
-                "message": f"Model '{model_id}' is not installed.",
-                "components": {}
-            }
-            
-        pkg = self.repository.build_runtime_package(model_id)
-        if not pkg:
-            return {
-                "success": False,
-                "message": f"Failed to build runtime package for '{model_id}'.",
-                "components": {}
-            }
-            
-        statuses = pkg.verify_components()
-        is_ready = pkg.is_fully_ready()
-        
-        # Collect component runtimes and paths for centralized display
-        components_info = {}
-        for name, status in statuses.items():
-            components_info[name] = {
-                "status": status,
-                "path": pkg.get_component_path(name),
-                "runtime": pkg.get_component_runtime(name) or "Unknown"
-            }
-            
-        return {
-            "success": is_ready,
-            "message": "SMP package is READY for real local inference." if is_ready else "SMP package validation failed (stubs/missing files).",
-            "components": components_info,
-            "is_fully_ready": is_ready,
-            "package_version": pkg.package_version,
-            "author": pkg.author,
-            "display_name": pkg.display_name
+        result: dict[str, Any] = {
+            "success": False,
+            "message": "Package validation failed.",
+            "components": {},
+            "issues": [],
+            "warnings": [],
+            "missing_files": [],
+            "manifest_found": False,
+            "manifest_readable": False,
+            "package_dir": "",
+            "manifest_path": "",
+            "package_version": "",
+            "catalog_version": "",
+            "version_hint": "Nicht verfügbar",
+            "runtime_hint": "Nicht verfügbar",
+            "capabilities_hint": "Nicht verfügbar",
+            "checksum_hint": "Nicht geprüft",
+            "is_fully_ready": False,
         }
+
+        def add_issue(message: str) -> None:
+            if message not in result["issues"]:
+                result["issues"].append(message)
+
+        model = self.repository.get_model(model_id)
+        catalog_package = self.catalog_service.get_package(model_id)
+        if catalog_package:
+            result["catalog_version"] = str(catalog_package.get("version", "") or "")
+        else:
+            add_issue("Kein Katalogeintrag für dieses Package gefunden.")
+
+        if not model:
+            add_issue(f"Model '{model_id}' ist nicht im lokalen Repository registriert.")
+            result["message"] = "Invalid: Repository-Eintrag fehlt."
+            return result
+
+        if not model.get("installed", False):
+            add_issue("Package ist nicht als installiert markiert.")
+            result["message"] = "Invalid: Package ist nicht installiert."
+            return result
+
+        model_path = str(model.get("path") or "").strip()
+        if not model_path:
+            add_issue("Package-Pfad fehlt im Repository-Eintrag.")
+            result["message"] = "Invalid: Package-Pfad fehlt."
+            return result
+
+        package_dir = Path(model_path)
+        result["package_dir"] = str(package_dir)
+        if not package_dir.exists():
+            add_issue("Package-Verzeichnis fehlt.")
+            result["message"] = "Invalid: Package-Verzeichnis fehlt."
+            return result
+        if not package_dir.is_dir():
+            add_issue("Package-Pfad ist kein Verzeichnis.")
+            result["message"] = "Invalid: Package-Pfad ist kein Verzeichnis."
+            return result
+
+        manifest_path = package_dir / "package.json"
+        result["manifest_path"] = str(manifest_path)
+        if not manifest_path.exists() or not manifest_path.is_file():
+            add_issue("Manifest package.json fehlt.")
+            result["message"] = "Invalid: Manifest fehlt."
+            return result
+        result["manifest_found"] = True
+
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as manifest_file:
+                manifest = json.load(manifest_file)
+        except (OSError, json.JSONDecodeError) as exc:
+            add_issue(f"Manifest ist nicht lesbar: {exc}")
+            result["message"] = "Invalid: Manifest ist nicht lesbar."
+            return result
+
+        if not isinstance(manifest, dict):
+            add_issue("Manifest muss ein JSON-Objekt sein.")
+            result["message"] = "Invalid: Manifest-Struktur ist ungültig."
+            return result
+        result["manifest_readable"] = True
+
+        manifest_id = str(
+            manifest.get("model_id") or manifest.get("package_id") or manifest.get("id") or ""
+        ).strip()
+        if not manifest_id:
+            add_issue("Package-ID fehlt im Manifest.")
+        elif manifest_id != model_id:
+            add_issue(f"Package-ID stimmt nicht überein: Manifest '{manifest_id}', Katalog '{model_id}'.")
+
+        package_version = str(manifest.get("package_version") or manifest.get("version") or "").strip()
+        result["package_version"] = package_version
+        catalog_version = str(result.get("catalog_version") or "").strip()
+        if not package_version:
+            add_issue("Version fehlt im Manifest.")
+            result["version_hint"] = "Version fehlt im Manifest."
+        elif catalog_version and package_version != catalog_version:
+            result["version_hint"] = f"Installiert: {package_version}; Katalog: {catalog_version}"
+            result["warnings"].append("Installierte Version weicht vom Katalog ab.")
+        else:
+            result["version_hint"] = f"Installiert: {package_version}"
+
+        capabilities = manifest.get("capabilities")
+        if not isinstance(capabilities, dict) or not capabilities:
+            add_issue("Capabilities fehlen im Manifest.")
+        else:
+            enabled = sorted(str(name) for name, active in capabilities.items() if bool(active))
+            result["capabilities_hint"] = ", ".join(enabled) if enabled else "Keine aktiven Capabilities"
+
+        components = manifest.get("components")
+        if not isinstance(components, dict) or not components:
+            add_issue("Runtime-/Model-Komponenten fehlen im Manifest.")
+        else:
+            runtimes: set[str] = set()
+            for component_name, component_config in components.items():
+                if not isinstance(component_config, dict):
+                    add_issue(f"Komponente '{component_name}' ist ungültig definiert.")
+                    result["components"][component_name] = {
+                        "status": "INVALID",
+                        "path": "",
+                        "runtime": "Unknown",
+                    }
+                    continue
+
+                rel_path = str(component_config.get("path") or "").strip()
+                runtime = str(component_config.get("runtime") or "").strip()
+                if runtime:
+                    runtimes.add(runtime)
+                else:
+                    add_issue(f"Runtime fehlt für Komponente '{component_name}'.")
+                    runtime = "Unknown"
+
+                if not rel_path:
+                    add_issue(f"Dateipfad fehlt für Komponente '{component_name}'.")
+                    result["components"][component_name] = {
+                        "status": "MISSING",
+                        "path": "",
+                        "runtime": runtime,
+                    }
+                    continue
+
+                component_path = package_dir / rel_path
+                component_exists = component_path.exists()
+                if component_exists and component_path.is_dir():
+                    try:
+                        component_exists = any(component_path.iterdir())
+                    except OSError:
+                        component_exists = False
+                if not component_exists:
+                    missing_path = str(component_path)
+                    result["missing_files"].append(missing_path)
+                    add_issue(f"Erwartete Datei fehlt: {rel_path}")
+
+                result["components"][component_name] = {
+                    "status": "READY" if component_exists else "MISSING",
+                    "path": str(component_path),
+                    "runtime": runtime,
+                }
+
+            result["runtime_hint"] = ", ".join(sorted(runtimes)) if runtimes else "Runtime fehlt"
+
+        checksum = catalog_package.get("checksum") if catalog_package else None
+        if checksum:
+            result["checksum_hint"] = "Checksumme definiert; keine lokale Prüfinfrastruktur aktiv."
+            result["warnings"].append("Checksumme wurde nicht geprüft, weil keine lokale Prüfinfrastruktur angebunden ist.")
+        else:
+            result["checksum_hint"] = "Keine Checksumme definiert"
+
+        result["success"] = not result["issues"]
+        result["is_fully_ready"] = bool(result["success"])
+        result["message"] = (
+            "Valid: Package-Dateien und Manifest sind lokal konsistent."
+            if result["success"]
+            else "Invalid: Lokale Package-Validierung hat Probleme gefunden."
+        )
+        return result
 
     def update_package(self, model_id: str, new_source_path: str) -> bool:
         """
@@ -542,3 +681,4 @@ class ModelInstallService:
             validation.get("message", "Unknown validation error"),
         )
         return False
+

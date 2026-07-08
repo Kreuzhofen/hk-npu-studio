@@ -375,7 +375,7 @@ class PhoenixModelManagerView(tk.Frame):
         self.btn_remove.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
 
         _Tooltip(self.btn_install, "Prepare package installation workflow.")
-        _Tooltip(self.btn_validate, "Prepare package validation workflow.")
+        _Tooltip(self.btn_validate, "Validate installed package locally.")
         _Tooltip(self.btn_update, "Prepare package update workflow.")
         _Tooltip(self.btn_remove, "Prepare package removal workflow.")
 
@@ -772,10 +772,76 @@ class PhoenixModelManagerView(tk.Frame):
         # Update status bar feedback: "Modell ausgewählt: <Modellname>"
         self.status_lbl.configure(text=f"Modell ausgewählt: {self._safe_text(model.get('display_name'))}")
 
+    def _format_validation_summary(self, validation: dict[str, object]) -> str:
+        issues = validation.get("issues") if isinstance(validation, dict) else []
+        warnings = validation.get("warnings") if isinstance(validation, dict) else []
+        missing_files = validation.get("missing_files") if isinstance(validation, dict) else []
+
+        lines = [self._safe_text(validation.get("message") if isinstance(validation, dict) else None)]
+        if issues:
+            lines.append("")
+            lines.append("Probleme:")
+            lines.extend(f"- {self._safe_text(issue)}" for issue in issues)
+        if missing_files:
+            lines.append("")
+            lines.append("Fehlende Dateien:")
+            lines.extend(f"- {self._safe_text(path)}" for path in missing_files[:8])
+            if len(missing_files) > 8:
+                lines.append(f"- ... {len(missing_files) - 8} weitere")
+        if warnings:
+            lines.append("")
+            lines.append("Hinweise:")
+            lines.extend(f"- {self._safe_text(warning)}" for warning in warnings)
+        return "\n".join(lines)
+
+    def _apply_validation_result(self, validation: dict[str, object]) -> None:
+        status = "READY" if validation.get("success") else "INVALID"
+        self._configure_status_badge(self.inspect_package_status, status)
+        self.inspect_package_version.configure(text=self._safe_text(validation.get("package_version"), "Nicht verfügbar"))
+        self.inspect_update_hint.configure(text=self._safe_text(validation.get("version_hint"), "Nicht verfügbar"))
+        self.inspect_runtime_available.configure(text=self._safe_text(validation.get("runtime_hint"), "Nicht verfügbar"))
+        self.inspect_checksum.configure(text=self._safe_text(validation.get("checksum_hint"), "Nicht geprüft"))
+        self.inspect_capabilities.configure(text=self._safe_text(validation.get("capabilities_hint"), "Nicht verfügbar"))
+
+    def _validate_selected_package(self) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            message = "Kein Package ausgewählt."
+            self.status_lbl.configure(text=message)
+            messagebox.showinfo("Package Validation", message)
+            return
+
+        model_id = selected[0]
+        model = self.controller.get_model_details(model_id)
+        package_name = self._safe_text(model.get("display_name") if model else model_id)
+
+        try:
+            validation = self.controller.validate_package(model_id)
+        except Exception as exc:
+            validation = {
+                "success": False,
+                "message": f"Invalid: Validierung konnte nicht abgeschlossen werden: {exc}",
+                "issues": [str(exc)],
+                "warnings": [],
+                "missing_files": [],
+            }
+
+        self._apply_validation_result(validation)
+        state_label = "Valid" if validation.get("success") else "Invalid"
+        self.status_lbl.configure(text=f"{package_name}: {state_label} - {self._safe_text(validation.get('message'))}")
+        summary = self._format_validation_summary(validation)
+        if validation.get("success"):
+            messagebox.showinfo("Package Validation", summary)
+        else:
+            messagebox.showwarning("Package Validation", summary)
+
     def _on_package_action(self, action: str) -> None:
+        if action == "validate":
+            self._validate_selected_package()
+            return
+
         messages = {
             "install": "Package installation workflow is not implemented yet.",
-            "validate": "Package validation workflow is not implemented yet.",
             "update": "Package update workflow is not implemented yet.",
             "remove": "Package removal workflow is not implemented yet.",
         }
@@ -886,3 +952,4 @@ class PhoenixModelManagerView(tk.Frame):
                 messagebox.showerror("Fehler", f"Ordner konnte nicht geöffnet werden: {e}")
         else:
             messagebox.showerror("Fehler", f"Der Pfad '{folder_path}' existiert nicht.")
+
