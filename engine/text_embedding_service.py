@@ -63,8 +63,8 @@ class TextEmbeddingService:
         logger.info(f"[TextEmbeddingService] Tokenized prompt to: {tokens[:10]}...")
         print(f"[TextEmbeddingService] Tokenized prompt to: {tokens[:10]}...")
         
-        # If ONNX is available and the text encoder exists, try to run real session
-        if text_encoder_path and Path(text_encoder_path).exists():
+        # If ONNX is available and the package is fully ready, try to run real session
+        if self.package.is_fully_ready() and text_encoder_path and Path(text_encoder_path).exists():
             try:
                 import onnxruntime as ort
                 logger.info(f"[TextEmbeddingService] Loading text encoder InferenceSession for: '{text_encoder_path}'")

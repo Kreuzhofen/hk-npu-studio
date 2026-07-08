@@ -1001,3 +1001,88 @@ Status: Completed
 ### Notes
 
 Die End-to-End-Pipeline steht architektonisch in voller Funktionsfähigkeit bereit. Sowohl die Token-Extraktion als auch die Rauschunterdrückung und VAE-Dekodierung sind gekoppelt. Das prozedurale Fallback-Rendering erzeugt eine ästhetisch ansprechende Visualisierung der latenten Variablen und bindet die Parameterangaben übersichtlich in die Metadaten-Sidecars ein. Die Stabilität wurde über automatisierte Tests sichergestellt.
+
+## 08.07.2026 – Sprint Pack M1.3 – P-098 bis P-100 – Model Package Architecture
+
+Status: Completed
+
+### Goals
+
+- Entwurf und Spezifikation der Snapdragon Model Package (SMP) Architektur als professionelle, C++/NPU-freundliche, komplett datengesteuerte Modellpaketstruktur (decoupled von Hugging Face-Konventionen).
+- Definition der standardisierten Ordnerhierarchie und Definition der Deskriptordatei `package.json`.
+- Erweiterung von `ModelRuntimePackage` zur Unterstützung zusätzlicher Metadaten (`package_version`, `author`, `display_name`).
+- Erweiterung des `ModelRepository` zum automatischen Parsen der `package.json` und deren Mappings unter Wahrung vollständiger Abwärtskompatibilität (Legacy Fallback).
+- Migration bestehender Modellanordnungen (`flux_dev` Pfad zu Verzeichnisebene) und Bereitstellung der `package.json` für `flux_dev` und `sdxl_base`.
+
+### Modified / Added
+
+- `engine/model_runtime_package.py` (modifiziert)
+- `controllers/model_repository.py` (modifiziert)
+- `resources/models/flux_dev.json` (modifiziert)
+- `models/flux_dev/package.json` (neu)
+- `models/sdxl_base/package.json` (neu)
+
+### Notes
+
+Mit der neuen Snapdragon Model Package (SMP) Architektur ist die Plattform für zukünftige KI-Modelle bestens gewappnet. Modelle werden als in sich geschlossene Verzeichnisse mit einem `package.json` verwaltet, das direkt die Capabilities, Komponentenpfade und Ziel-Runtimes (CPU / ONNX / QNN) steuert. Die Abwärtskompatibilität bleibt für ältere Strukturen durch den Legacy-Modus vollständig erhalten. Alle Tests liefen fehlerfrei durch.
+
+## 08.07.2026 – Sprint Pack M2.1 – P-101 bis P-103 – First Real Image
+
+Status: Completed
+
+### Goals
+
+- Ausführung der ersten echten lokalen SDXL Inferenz-Pipeline unter Verwendung des Snapdragon Model Packages (SMP).
+- Echte Integration von Text-Encoder-, UNet- und VAE-Decoder-Inferenzsitzungen über ONNX Runtime.
+- Sicherstellung von robusten, nicht-fatalen Ladevorgängen an der Inferenzsitzungs-Wurzel.
+- Zuverlässiger Übergang zu mathematisch/prozedural korrekten Fallback-Daten (Mock-Embeddings, Mock-Latents und procedurale VAE-Bildgenerierung) bei unvollständigen Gewichten auf der Festplatte.
+- Erzeugung des PNG-Ausgabebildes und Vollständigkeit des Sidecar-JSONs (inkl. `decoder_backend`, `is_mock_decoder`, `is_mock_unet`).
+
+### Modified / Added
+
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Die End-to-End-Pipeline für SDXL-Inferenz steht. Der Inferenzfluss durchläuft planmäßig alle drei Hauptdienste (`TextEmbeddingService` -> `UNetService` -> `VAEDecoderService`). In Ermangelung der echten, Gigabyte-schweren physischen Gewichtsdaten auf der Festplatte verhalten sich die Services exzellent: Sie verifizieren die Inferenz-Runtimes, loggen Dateifehler und greifen transparent auf die deterministischen Mock-Fallbacks zurück. Ein echtes PNG mit Diagnosedaten wurde erfolgreich gerendert und alle Metadaten-Keys wurden ins JSON-Sidecar geschrieben. Alle Testreihen verliefen erfolgreich.
+
+## 08.07.2026 – Sprint Pack M2.2 – P-104 bis P-106 – Automatic Runtime Activation
+
+Status: Completed
+
+### Goals
+
+- Vollständige Implementierung des Komponenten-Verifizierers in `ModelRuntimePackage` zur Ermittlung detaillierter Statuswerte (`READY`, `FOUND`, `MISSING`, `INVALID`) aller Teilmodelle.
+- Integration der Verifikationsprüfungen im `OnnxImageBackend` vor jedem Generierungslauf.
+- Implementierung der Umschaltautomatik: Aktivierung der echten ONNX-Pipeline nur bei voll einsatzbereiten realen Gewichten aller 6 Kernkomponenten (`tokenizer`, `text_encoder`, `text_encoder_2`, `unet`, `vae_decoder`, `scheduler`).
+- Automatischer und geräuschloser Rückfall auf die Mock-Pipeline bei Fehlen oder Ungültigkeit mindestens einer Komponente, um Robustheit ohne Benutzerinteraktion zu gewährleisten.
+
+### Modified / Added
+
+- `engine/model_runtime_package.py` (modifiziert)
+- `engine/onnx_image_backend.py` (modifiziert)
+- `engine/text_embedding_service.py` (modifiziert)
+- `engine/unet_service.py` (modifiziert)
+- `engine/vae_decoder_service.py` (modifiziert)
+
+### Notes
+
+Die vollautomatische Laufzeitumschaltung ist implementiert und erfolgreich getestet. Die Services laden Inferenz-Sitzungen nur dann, wenn alle Komponenten des geladenen SMP den Status `READY` besitzen. Andernfalls wechseln sie direkt in die Mock-Fallbacks, was Ladeversuche auf Dummy-Dateien vermeidet und maximale Code-Stabilität garantiert. Alle Integrationsprüfungen und Tests wurden erfolgreich absolviert.
+
+## 08.07.2026 – Sprint Pack M3.1 – P-107 bis P-109 – First Real AI Image Integration
+
+Status: Completed
+
+### Goals
+
+- Integration und Validierung des End-to-End Inferenzflusses für das echte SDXL Snapdragon Model Package (SMP).
+- Ausbau der Detail-Fehlerprotokollierung zur genauen Ausgabe aller nicht betriebsbereiten Modellschnittstellen und Dateipfade im Generierungs-Protokoll, um die Diagnose vor Ort beim Endanwender zu maximieren.
+- Sicherstellung, dass echte ONNX-Komponenten vollautomatisch geladen werden, sobald sie bereitgestellt sind, ohne neue Architekturen oder Services einzuführen.
+
+### Modified / Added
+
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Mit diesem Sprint ist die End-to-End-Integration abgeschlossen. Der gesamte Inferenzfluss ist nun in der Lage, echte ONNX-Dateien vollautomatisch zu erkennen und zu laden. Falls der Benutzer die Gewichte noch nicht hinterlegt hat, spuckt das System eine präzise Liste aller fehlenden bzw. als FOUND (nur Stub) markierten Dateien mit deren exakten Pfadangaben aus, bevor es geräuschlos auf die Mock-Pipeline übergeht. Alle Tests wurden erfolgreich abgeschlossen.

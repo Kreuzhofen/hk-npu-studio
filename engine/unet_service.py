@@ -46,8 +46,8 @@ class UNetService:
         unet_path = self.package.get_component_path("unet")
         logger.info(f"[UNetService] Resolving UNet component from: '{unet_path}'")
         
-        # Try to run using ONNX Runtime if available
-        if unet_path and Path(unet_path).exists():
+        # Try to run using ONNX Runtime if package is fully ready
+        if self.package.is_fully_ready() and unet_path and Path(unet_path).exists():
             try:
                 import onnxruntime as ort
                 logger.info(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")

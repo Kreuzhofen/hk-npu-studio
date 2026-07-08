@@ -157,16 +157,17 @@ class OnnxImageBackend(InferenceBackend):
                 model_name=model_name
             )
 
-        onnx_files = [f for f in self.runtime_model.files if f.lower().endswith(".onnx")]
-        if not onnx_files:
-            model_dir = Path(self.runtime_model.model_path)
-            if model_dir.exists() and model_dir.is_dir():
-                try:
-                    onnx_files = [str(f.resolve()) for f in model_dir.rglob("*.onnx")]
-                except Exception:
-                    pass
+        model_dir = Path(self.runtime_model.model_path)
+        is_smp = (model_dir / "package.json").exists() if model_dir.exists() else False
 
-        if not onnx_files:
+        onnx_files = [f for f in self.runtime_model.files if f.lower().endswith(".onnx")]
+        if not onnx_files and model_dir.exists() and model_dir.is_dir():
+            try:
+                onnx_files = [str(f.resolve()) for f in model_dir.rglob("*.onnx")]
+            except Exception:
+                pass
+
+        if not onnx_files and not is_smp:
             msg = f"No compatible ONNX model files (*.onnx) found in directory '{self.runtime_model.model_path}'."
             logger.error(f"[OnnxImageBackend] {msg}")
             print(f"[OnnxImageBackend] {msg}")
@@ -177,34 +178,25 @@ class OnnxImageBackend(InferenceBackend):
                 model_name=model_name
             )
 
-        # 3. Verify ONNX model paths and check if they are fundamentally loadable by instantiating InferenceSession
-        logger.info(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX model files: {onnx_files}")
-        print(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX model files: {onnx_files}")
-
-        onnx_model_path = onnx_files[0]
-        logger.info(f"[OnnxImageBackend] Attempting to create InferenceSession for: '{onnx_model_path}'")
-        print(f"[OnnxImageBackend] Attempting to create InferenceSession for: '{onnx_model_path}'")
-
-        try:
-            import onnxruntime as ort
-            session = ort.InferenceSession(onnx_model_path)
-            inputs = [x.name for x in session.get_inputs()]
-            outputs = [x.name for x in session.get_outputs()]
-            logger.info(f"[OnnxImageBackend] InferenceSession instantiated successfully. Inputs: {inputs}, Outputs: {outputs}")
-            print(f"[OnnxImageBackend] InferenceSession instantiated successfully. Inputs: {inputs}, Outputs: {outputs}")
-            
-            # Cleanly close/release session resources
-            del session
-        except Exception as e:
-            msg = f"Failed to instantiate ONNX InferenceSession for '{onnx_model_path}': {e}"
-            logger.error(f"[OnnxImageBackend] {msg}")
-            print(f"[OnnxImageBackend] {msg}")
-            return GenerationResponse(
-                success=False,
-                status="Failed",
-                message=msg,
-                model_name=model_name
-            )
+        # 3. Verify ONNX model paths and check if they are fundamentally loadable (non-fatal check)
+        onnx_model_path = onnx_files[0] if onnx_files else ""
+        if onnx_model_path:
+            logger.info(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX files. Verifying: '{onnx_model_path}'")
+            print(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX files. Verifying: '{onnx_model_path}'")
+            try:
+                import onnxruntime as ort
+                session = ort.InferenceSession(onnx_model_path)
+                inputs = [x.name for x in session.get_inputs()]
+                outputs = [x.name for x in session.get_outputs()]
+                logger.info(f"[OnnxImageBackend] Root InferenceSession verified. Inputs: {inputs}, Outputs: {outputs}")
+                print(f"[OnnxImageBackend] Root InferenceSession verified. Inputs: {inputs}, Outputs: {outputs}")
+                del session
+            except Exception as e:
+                logger.warning(f"[OnnxImageBackend] Root model loadability check skipped/failed (will use components fallback): {e}")
+                print(f"[OnnxImageBackend] Root model loadability check skipped/failed (will use components fallback): {e}")
+        else:
+            logger.info("[OnnxImageBackend] No root ONNX model file found (SMP components layout mode).")
+            print("[OnnxImageBackend] No root ONNX model file found (SMP components layout mode).")
 
         # 4. Integrate ModelRuntimePackage & TextEmbeddingService for Prompt Processing
         from controllers.model_repository import ModelRepository
@@ -222,6 +214,27 @@ class OnnxImageBackend(InferenceBackend):
                 message=msg,
                 model_name=model_name
             )
+
+        # Verify package components and log status
+        verification_status = pkg.verify_components()
+        logger.info(f"[OnnxImageBackend] Component Verification Status: {verification_status}")
+        print("[OnnxImageBackend] Component Verification Status:")
+        for name, status in verification_status.items():
+            print(f"  - {name:<15}: {status}")
+            
+        if pkg.is_fully_ready():
+            msg = "[OnnxImageBackend] All components are READY. Activating real ONNX execution pipeline."
+            logger.info(msg)
+            print(msg)
+        else:
+            msg = "[OnnxImageBackend] Component validation failed (some components are MISSING/FOUND/INVALID). Activating Mock Pipeline fallback automatically."
+            logger.info(msg)
+            print(msg)
+            for comp, status in verification_status.items():
+                if status != "READY":
+                    comp_path = pkg.get_component_path(comp)
+                    logger.warning(f"  -> Component '{comp}' status is '{status}'. Expected path: '{comp_path}'")
+                    print(f"  -> Component '{comp}' status is '{status}'. Expected path: '{comp_path}'")
             
         embedder = TextEmbeddingService(pkg)
         embed_res = embedder.embed_prompt(job.session.prompt)

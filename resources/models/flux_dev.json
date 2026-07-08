@@ -16,7 +16,7 @@
   ],
   "installed": true,
   "downloaded": true,
-  "path": "C:\\SnapdragonAI\\models\\flux_dev\\model.onnx",
+  "path": "C:\\SnapdragonAI\\models\\flux_dev",
   "status": "Installed",
   "capabilities": {
     "txt2img": true,

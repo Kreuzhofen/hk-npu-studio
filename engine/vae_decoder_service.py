@@ -29,8 +29,8 @@ class VAEDecoderService:
         img_h = latent_shape[2] * 8
         img_w = latent_shape[3] * 8
         
-        # Try to run VAE Decoder using ONNX Runtime
-        if vae_path and Path(vae_path).exists():
+        # Try to run VAE Decoder using ONNX Runtime if package is fully ready
+        if self.package.is_fully_ready() and vae_path and Path(vae_path).exists():
             try:
                 import onnxruntime as ort
                 logger.info(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")

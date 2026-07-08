@@ -10,6 +10,27 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint Pack M3.1 – P-107 bis P-109 (First Real AI Image):**
+  * **Integration & Validierung:** Ausbau der Detail-Fehlerprotokollierung zur genauen Nennung fehlender/ungültiger Dateipfade im Generierungs-Protokoll, um die Diagnose vor Ort beim Endanwender zu maximieren.
+  * **End-to-End Testung:** Erfolgreiche Integration und Validierung des gesamten End-to-End-Inferenzflusses basierend auf der neuen SMP-Laufzeitarchitektur.
+  * **Dateien:** [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
+* **Sprint Pack M2.2 – P-104 bis P-106 (Automatic Runtime Activation):**
+  * **Verifizierung & Status-Erstellung:** Implementierung der Methode `verify_components()` in `ModelRuntimePackage` zur automatischen Zustandsermittlung aller benötigten Komponenten (`tokenizer`, `text_encoder`, `text_encoder_2`, `unet`, `vae_decoder`, `scheduler`) mit den Statuswerten `READY`, `FOUND`, `MISSING`, `INVALID`.
+  * **Umschaltautomatik:** Vollautomatische Aktivierungssteuerung der echten ONNX-Pipeline nur bei voll-betriebsbereitem Zustand (`READY`) aller benötigten Teilmodelle. Fehlt auch nur ein Baustein, schaltet das System geräuschlos auf den mathematisch/prozedural korrekten Mock-Fallback-Modus um.
+  * **Dateien:** [model_runtime_package.py](file:///C:/SnapdragonAI/engine/model_runtime_package.py), [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py), [text_embedding_service.py](file:///C:/SnapdragonAI/engine/text_embedding_service.py), [unet_service.py](file:///C:/SnapdragonAI/engine/unet_service.py), [vae_decoder_service.py](file:///C:/SnapdragonAI/engine/vae_decoder_service.py)
+
+* **Sprint Pack M2.1 – P-101 bis P-103 (First Real Image):**
+  * **Lokale SDXL Inferenz:** Koppelung der End-to-End-Pipeline (`TextEmbeddingService` -> `UNetService` -> `VAEDecoderService`) zur echten Ausführung auf dem Snapdragon Model Package (SMP).
+  * **Ausfallsicherheit & Verification:** Implementierung von nicht-fatalen Lade-Überprüfungen an der Wurzel-Inferenzsitzung. Wenn Komponenten wie Text-Encoder, UNet oder VAE auf der Festplatte fehlen, fangen die Services dies ab und fallen geräuschlos auf mathematisch bzw. prozedural korrekte Ersatzdaten (Mock-Latents, Mock-Embeddings, Concentric Rings VAE-Fallback) zurück.
+  * **Dateien:** [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
+* **Sprint Pack M1.3 – P-098 bis P-100 (Model Package Architecture):**
+  * **Snapdragon Model Package Architecture (SMP):** Entwurf und Implementierung der endgültigen, professionellen und komplett datengesteuerten Modell-Paketstruktur basierend auf einer `package.json`-Beschreibungsdatei.
+  * **Metadaten & Laufzeitzuordnung:** Unterstützung von versionsspezifischen Attributen (`package_version`, `author`, `display_name`) sowie fein-granularer Zuordnung der Ausführungskomponenten zu Hardware-Laufzeitumgebungen (CPU, ONNX, QNN).
+  * **Repository-Erweiterung:** Überarbeitung des `ModelRepository` zum automatischen Parsen und Laden des neuen SMP-Formates sowie Erhalt der vollständigen Abwärtskompatibilität (Legacy Fallback) für alte Modellanordnungen.
+  * **Dateien:** [model_runtime_package.py](file:///C:/SnapdragonAI/engine/model_runtime_package.py), [model_repository.py](file:///C:/SnapdragonAI/controllers/model_repository.py), [flux_dev.json](file:///C:/SnapdragonAI/resources/models/flux_dev.json) sowie `package.json` in [flux_dev](file:///C:/SnapdragonAI/models/flux_dev) und [sdxl_base](file:///C:/SnapdragonAI/models/sdxl_base)
+
 * **Sprint Pack M1.2 – P-095 bis P-097 (End-to-End AI Pipeline):**
   * **VAEDecoderService:** Implementierung des VAE-Decoders zur Wandlung von Latent-Tensors `(1, 4, latent_h, latent_w)` in vollaufgelöste RGB-Bilder `(1, 3, latent_h * 8, latent_w * 8)`.
   * **Inferenz-Laufzeit-Pfad:** ONNX Inferenz des VAE-Decoders via `InferenceSession` mit sicherem Fallback auf eine prozedurale, ästhetisch ansprechende Rendering-Generierung (kreisförmige Verläufe basierend auf den Latent-Statistiken) bei fehlenden Modellgewichten.

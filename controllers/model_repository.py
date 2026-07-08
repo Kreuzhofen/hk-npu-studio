@@ -180,20 +180,76 @@ class ModelRepository:
         """
         Build and resolve the ModelRuntimePackage for a given model ID.
         Locates the model path, loads capabilities, and resolves component paths/runtimes.
+        Supports the new Snapdragon Model Package Architecture (package.json)
+        and falls back to legacy path resolution for backward compatibility.
         """
         model = self.get_model(model_id)
         if not model:
             print(f"[ModelRepository] Error: Model {model_id} not found.")
             return None
-            
+
+        model_path = model.get("path") or ""
+        base_dir = Path(model_path) if model_path else Path("")
+        
+        # Check for package.json in the model directory (Snapdragon Model Package format)
+        package_json_path = base_dir / "package.json" if model_path else Path("")
+        
+        from engine.model_runtime_package import ModelRuntimePackage
+        
+        if package_json_path.exists() and package_json_path.is_file():
+            try:
+                with open(package_json_path, "r", encoding="utf-8") as f:
+                    package_data = json.load(f)
+                
+                print(f"[ModelRepository] Detected new Snapdragon Model Package format for '{model_id}'.")
+                
+                # Extract metadata
+                pkg_ver = package_data.get("package_version", "1.0.0")
+                author = package_data.get("author", model.get("author", ""))
+                display_name = package_data.get("display_name", model.get("display_name", ""))
+                
+                # Extract capabilities
+                capabilities = ModelCapabilities(package_data.get("capabilities", {}))
+                
+                # Extract components
+                component_paths = {}
+                component_runtimes = {}
+                
+                # Defined expected components for diffusion model pipeline
+                expected_components = ["tokenizer", "text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler"]
+                components_config = package_data.get("components", {})
+                
+                for comp in expected_components:
+                    comp_cfg = components_config.get(comp, {})
+                    rel_path = comp_cfg.get("path", "")
+                    
+                    if rel_path:
+                        # Resolve path relative to base_dir
+                        component_paths[comp] = str((base_dir / rel_path).as_posix())
+                    else:
+                        component_paths[comp] = ""
+                        
+                    component_runtimes[comp] = comp_cfg.get("runtime", "CPU" if comp in ["tokenizer", "scheduler"] else "ONNX")
+                    
+                return ModelRuntimePackage(
+                    model_id=model_id,
+                    base_path=base_dir,
+                    capabilities=capabilities,
+                    component_paths=component_paths,
+                    component_runtimes=component_runtimes,
+                    package_version=pkg_ver,
+                    author=author,
+                    display_name=display_name
+                )
+            except Exception as e:
+                print(f"[ModelRepository] Error reading package.json for '{model_id}', falling back to legacy: {e}")
+                
+        # Legacy/Fallback path resolution (for backward compatibility)
         capabilities = self.get_model_capabilities(model_id)
         if not capabilities:
             capabilities = ModelCapabilities()
             
-        model_path = model.get("path") or ""
-        base_dir = Path(model_path) if model_path else Path("")
-        
-        # Define component filenames/folders under the model base path
+        # Define legacy component folders under base path
         component_paths = {
             "tokenizer": str((base_dir / "tokenizer").as_posix()) if model_path else "",
             "text_encoder": str((base_dir / "text_encoder" / "model.onnx").as_posix()) if model_path else "",
@@ -216,12 +272,13 @@ class ModelRepository:
             "scheduler": "CPU"
         }
         
-        from engine.model_runtime_package import ModelRuntimePackage
-        
         return ModelRuntimePackage(
             model_id=model_id,
             base_path=base_dir,
             capabilities=capabilities,
             component_paths=component_paths,
-            component_runtimes=component_runtimes
+            component_runtimes=component_runtimes,
+            package_version="1.0.0",
+            author=model.get("author", ""),
+            display_name=model.get("display_name", "")
         )
