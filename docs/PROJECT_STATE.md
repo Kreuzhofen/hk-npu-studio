@@ -10,6 +10,13 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-094 (First UNet Execution Foundation):**
+  * **UNetService:** Implementierung eines modellunabhängigen UNet-Service zur Rauschvorhersage und Latents-Aktualisierung unter Verwendung des `ModelRuntimePackage`.
+  * **SDXL-Latent-Generierung:** Dynamische Erzeugung von Anfangs-Latents in der korrekten Dimension für SDXL (z. B. `(1, 4, 64, 64)` bei `512x512` Eingangsauflösung).
+  * **Inferenz-Laufzeit-Pfad:** Versuch der echten UNet-ONNX-Inferenz über `InferenceSession` und dynamischer Mapping von Eingangs-Variablen. Ausfallsicherer Fallback auf Euler-aktualisierte Mock-Latents bei Dateifehlern oder fehlendem ONNX-Support.
+  * **Pipeline-Integration:** Vollständige Kopplung von Text-Embeddings und Latents-Aktualisierung im `OnnxImageBackend`. Einzeichnen der finalen Latent-Form auf dem Diagnose-PNG und Erfassung in den JSON-Metadaten-Sidecars.
+  * **Dateien:** [unet_service.py](file:///C:/SnapdragonAI/engine/unet_service.py), [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
 * **Sprint P-093 (First Real AI Execution):**
   * **TextEmbeddingService:** Implementierung eines modellunabhängigen Text-Embedding-Service zur Tokenisierung von Prompts (mit CLIP-Struktur: 77 Token, SOS/EOS, Zero-Padding) und Übertragung an den Text-Encoder.
   * **Inferenz-Laufzeit-Pfad:** Versuch des echten ONNX-Text-Encoder-Laufs mittels `InferenceSession` bei Vorhandensein der `.onnx`-Datei und sauberer Fallback zu stochastisch-deterministischen Dummy-Embeddings (`(1, 77, 768)` für SDXL CLIP) bei Fehlen der Datei oder Bibliotheken.

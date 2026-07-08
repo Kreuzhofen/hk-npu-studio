@@ -226,6 +226,15 @@ class OnnxImageBackend(InferenceBackend):
         embedder = TextEmbeddingService(pkg)
         embed_res = embedder.embed_prompt(job.session.prompt)
 
+        # 4.5. Integrate UNetService for Latent Preparation & Noise Prediction
+        from engine.unet_service import UNetService
+        unet_service = UNetService(pkg)
+        w = job.session.width if job.session.width > 0 else 512
+        h = job.session.height if job.session.height > 0 else 512
+        
+        init_latents = unet_service.generate_initial_latents(w, h, seed=job.session.seed)
+        unet_res = unet_service.predict_noise(init_latents, timestep=999, encoder_hidden_states=embed_res["embeddings"])
+
         # 5. Generate visual PNG and JSON output using the session and job parameters
         output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -236,9 +245,6 @@ class OnnxImageBackend(InferenceBackend):
         dummy_image_path = output_dir / filename
 
         try:
-            w = job.session.width if job.session.width > 0 else 512
-            h = job.session.height if job.session.height > 0 else 512
-
             try:
                 font_title = ImageFont.truetype("segoeui.ttf", 24)
                 font_subtitle = ImageFont.truetype("segoeui.ttf", 18)
@@ -265,12 +271,13 @@ class OnnxImageBackend(InferenceBackend):
             draw.text((40, 115), "ONNX Real Image Generation (Active)", fill="#e8edf2", font=font_subtitle)
 
             draw.text((40, 155), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 180), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 205), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 175), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 195), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
 
             tokens_str = str(embed_res["tokens"][:8]) + "..." if len(embed_res["tokens"]) > 8 else str(embed_res["tokens"])
-            draw.text((40, 230), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 255), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 215), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 235), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 255), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
 
             prompt_str = job.session.prompt
             truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
@@ -302,7 +309,9 @@ class OnnxImageBackend(InferenceBackend):
             "onnx_model_file": onnx_model_path,
             "prompt_tokens": embed_res["tokens"],
             "embedding_shape": embed_res["embedding_shape"],
-            "is_mock_embedding": embed_res["is_mock"]
+            "is_mock_embedding": embed_res["is_mock"],
+            "latent_shape": unet_res["latent_shape"],
+            "is_mock_unet": unet_res["is_mock"]
         }
 
         # Write sidecar JSON alongside the image

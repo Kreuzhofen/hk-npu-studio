@@ -958,3 +958,25 @@ Status: Completed
 ### Notes
 
 Die erste echte Prompt-Tokenisierung und Embedding-Generierung läuft voll integriert über den `TextEmbeddingService` ab. Im Falle eines echten oder gemockten ONNX-Text-Encoder-Laufes werden die Token-IDs an die InferenceSession übergeben. Andernfalls fängt der Service jegliche Dateifehler ab und erzeugt die erforderlichen CLIP ViT-L Embeddings (Shape `[1, 77, 768]`). Alle Tests und Kompilierungsprüfungen waren erfolgreich.
+
+## 08.07.2026 – Sprint P-094 – First UNet Execution Foundation
+
+Status: Completed
+
+### Goals
+
+- Erste Integration der UNet-Komponente zur Rauschvorhersage in die Bildgenerierungspipeline.
+- Implementierung des `UNetService` unter Verwendung des `ModelRuntimePackage`.
+- Dynamische Erzeugung von Anfangs-Latents in SDXL-Dimension (z. B. `(1, 4, 64, 64)` für `512x512` Bilder).
+- Implementierung des UNet-Inferenzpfades über ONNX Runtime mit dynamischem Input-Variablen-Mapping.
+- Ausfallsicherer Fallback auf Euler-aktualisierte Mock-Latents bei Dateifehlern oder fehlendem ONNX-Support.
+- Visualisierung der finalen Latents-Form auf dem Diagnose-PNG und Erfassung in den JSON-Sidecars.
+
+### Modified / Added
+
+- `engine/unet_service.py` (neu)
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Mit dem `UNetService` und der integrierten Latents-Generierung ist die mathematische Hauptschleife der Bilddiffusion (Denoising-Schleife) strukturell voll vorbereitet. Der Service steuert sowohl das Laden und Ausführen der UNet-InferenceSession als auch das ausfallsichere Degradierungs-Handling. Die Visualisierung zeigt erfolgreich die SDXL-Dimensionsgrößen an. Alle Tests liefen fehlerfrei durch.
