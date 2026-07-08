@@ -235,6 +235,11 @@ class OnnxImageBackend(InferenceBackend):
         init_latents = unet_service.generate_initial_latents(w, h, seed=job.session.seed)
         unet_res = unet_service.predict_noise(init_latents, timestep=999, encoder_hidden_states=embed_res["embeddings"])
 
+        # 4.7. Integrate VAEDecoderService for VAE Latent Decoding
+        from engine.vae_decoder_service import VAEDecoderService
+        vae_service = VAEDecoderService(pkg)
+        vae_res = vae_service.decode_latents(unet_res["latents"], prompt=job.session.prompt)
+
         # 5. Generate visual PNG and JSON output using the session and job parameters
         output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -262,7 +267,8 @@ class OnnxImageBackend(InferenceBackend):
                     font_body = ImageFont.load_default()
                     font_prompt = ImageFont.load_default()
 
-            img = Image.new("RGB", (w, h), color="#171d23")
+            # Copy VAE decoded image and draw overlay metadata on it
+            img = vae_res["image"].copy()
             draw = ImageDraw.Draw(img)
             draw.rectangle([(2, 2), (w - 3, h - 3)], outline="#3e4b59", width=2)
             draw.line([(40, 100), (w - 40, 100)], fill="#10b981", width=3) # Green line for real load/generation
@@ -278,11 +284,12 @@ class OnnxImageBackend(InferenceBackend):
             draw.text((40, 215), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
             draw.text((40, 235), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
             draw.text((40, 255), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 275), f"Decoder: {vae_res['backend']}", fill="#9aa7b2", font=font_body)
 
             prompt_str = job.session.prompt
             truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
-            draw.text((40, 290), "Prompt Preview:", fill="#e8edf2", font=font_body)
-            draw.text((40, 315), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
+            draw.text((40, 310), "Prompt Preview:", fill="#e8edf2", font=font_body)
+            draw.text((40, 335), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
 
             timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             draw.text((40, h - 50), f"Generated: {timestamp_str}", fill="#9aa7b2", font=font_body)
@@ -311,7 +318,9 @@ class OnnxImageBackend(InferenceBackend):
             "embedding_shape": embed_res["embedding_shape"],
             "is_mock_embedding": embed_res["is_mock"],
             "latent_shape": unet_res["latent_shape"],
-            "is_mock_unet": unet_res["is_mock"]
+            "is_mock_unet": unet_res["is_mock"],
+            "decoder_backend": vae_res["backend"],
+            "is_mock_decoder": vae_res["is_mock"]
         }
 
         # Write sidecar JSON alongside the image

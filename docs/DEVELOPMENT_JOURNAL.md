@@ -980,3 +980,24 @@ Status: Completed
 ### Notes
 
 Mit dem `UNetService` und der integrierten Latents-Generierung ist die mathematische Hauptschleife der Bilddiffusion (Denoising-Schleife) strukturell voll vorbereitet. Der Service steuert sowohl das Laden und Ausführen der UNet-InferenceSession als auch das ausfallsichere Degradierungs-Handling. Die Visualisierung zeigt erfolgreich die SDXL-Dimensionsgrößen an. Alle Tests liefen fehlerfrei durch.
+
+## 08.07.2026 – Sprint Pack M1.2 – P-095 bis P-097 – End-to-End AI Pipeline
+
+Status: Completed
+
+### Goals
+
+- Aufbau der vollständigen End-to-End-Pipeline im `OnnxImageBackend`: Prompt -> Text Embedding -> UNet -> Latents -> VAE -> PNG.
+- Implementierung des `VAEDecoderService` zur Dekodierung von UNet-Latents in vollaufgelöste RGB-Bilder.
+- Auslegung des VAE-Dekodierungsschritts über ONNX Runtime mit ausfallsicherem Fallback auf ein prozedurales Rendering (Concentric Rings Gradient).
+- Zusammenführung aller Komponenten (TextEmbeddingService, UNetService, VAEDecoderService) und Erzeugung des finalen PNG-Ausgabebildes.
+- Erweiterung des Sidecar-JSON um detaillierte Inferenzstatistiken: `embedding_shape`, `latent_shape`, `decoder_backend`, `is_mock_decoder`, `is_mock_unet`.
+
+### Modified / Added
+
+- `engine/vae_decoder_service.py` (neu)
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Die End-to-End-Pipeline steht architektonisch in voller Funktionsfähigkeit bereit. Sowohl die Token-Extraktion als auch die Rauschunterdrückung und VAE-Dekodierung sind gekoppelt. Das prozedurale Fallback-Rendering erzeugt eine ästhetisch ansprechende Visualisierung der latenten Variablen und bindet die Parameterangaben übersichtlich in die Metadaten-Sidecars ein. Die Stabilität wurde über automatisierte Tests sichergestellt.

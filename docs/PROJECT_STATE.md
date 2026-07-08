@@ -10,6 +10,12 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint Pack M1.2 – P-095 bis P-097 (End-to-End AI Pipeline):**
+  * **VAEDecoderService:** Implementierung des VAE-Decoders zur Wandlung von Latent-Tensors `(1, 4, latent_h, latent_w)` in vollaufgelöste RGB-Bilder `(1, 3, latent_h * 8, latent_w * 8)`.
+  * **Inferenz-Laufzeit-Pfad:** ONNX Inferenz des VAE-Decoders via `InferenceSession` mit sicherem Fallback auf eine prozedurale, ästhetisch ansprechende Rendering-Generierung (kreisförmige Verläufe basierend auf den Latent-Statistiken) bei fehlenden Modellgewichten.
+  * **E2E-Pipeline-Verbindung:** Durchgängige Verkettung von `TextEmbeddingService` -> `UNetService` -> `VAEDecoderService` im `OnnxImageBackend`. Darstellung des Decoders im Diagnose-PNG und vollständige Parametrisierung im Sidecar-JSON.
+  * **Dateien:** [vae_decoder_service.py](file:///C:/SnapdragonAI/engine/vae_decoder_service.py), [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
 * **Sprint P-094 (First UNet Execution Foundation):**
   * **UNetService:** Implementierung eines modellunabhängigen UNet-Service zur Rauschvorhersage und Latents-Aktualisierung unter Verwendung des `ModelRuntimePackage`.
   * **SDXL-Latent-Generierung:** Dynamische Erzeugung von Anfangs-Latents in der korrekten Dimension für SDXL (z. B. `(1, 4, 64, 64)` bei `512x512` Eingangsauflösung).
