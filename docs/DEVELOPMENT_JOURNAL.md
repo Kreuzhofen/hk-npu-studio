@@ -838,3 +838,23 @@ Status: Completed
 ### Notes
 
 Die Parameter-Durchreichung ist jetzt vollständig standardisiert. Alle Parameter werden lückenlos im Asset-Ausgabeordner dokumentiert (sowohl visuell im PNG als auch strukturell im JSON). Alle Unit- und Integrationstests wurden aktualisiert und laufen erfolgreich durch.
+
+## 08.07.2026 – Sprint P-085 – First Real Image Generation
+
+Status: Completed
+
+### Goals
+
+- Erweiterung des `OnnxImageBackend` um den realen Inferenz-Pfad auf Basis der `onnxruntime`.
+- Automatisches Scannen des Modell-Paketverzeichnisses nach `.onnx`-Dateien.
+- Instanziierung einer `onnxruntime.InferenceSession` zur Vorbereitung realer lokaler KI-Inferenz.
+- Protokollierung der Modell-Inputs und -Outputs im Erfolgsfall.
+- Robuste Fehlerbehandlung: Bei Fehlen der Runtime oder der `.onnx`-Datei wird eine ordentliche `GenerationResponse` mit `success=False` und Status `unavailable` oder `Failed` zurückgeliefert, ohne dass es zu Abstürzen kommt.
+
+### Modified / Added
+
+- `engine/onnx_image_backend.py` (modifiziert)
+
+### Notes
+
+Der reale Inferenz-Pfad ist nun strukturell vorbereitet und voll integriert. Falls `onnxruntime` fehlt oder kein Modellpaket bereitgestellt wird, fängt das Backend dies ohne Absturz ab und meldet den entsprechenden Bereitschaftsstatus. Der CPU/NPU-Stub-Workflow bleibt voll lauffähig. Alle Funktionstests inklusive simulierter (gemockter) ONNX-Laufzeitumgebungen verliefen erfolgreich.

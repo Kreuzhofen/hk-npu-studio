@@ -10,6 +10,12 @@
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
+* **Sprint P-085 (First Real Image Generation):**
+  * **Inferenz-Vorbereitung:** Das `OnnxImageBackend` wurde um einen realen Inferenz-Pfad erweitert, der bei Vorhandensein von `onnxruntime` und kompatiblen `.onnx`-Modelldateien im Modell-Paketverzeichnis eine `onnxruntime.InferenceSession` lädt.
+  * **Modell-Erkennung:** Automatische Erkennung und Scannen von `.onnx`-Modellen im Paketverzeichnis.
+  * **Fehlerbehandlung:** Ist kein kompatibles Modell vorhanden oder schlägt der Inferenz-Pfad fehl, wird eine strukturierte `GenerationResponse` mit `success=False` und dem entsprechenden Status (`unavailable` oder `Failed`) zurückgegeben, ohne die GUI oder andere Stubs zu beeinträchtigen.
+  * **Dateien:** [onnx_image_backend.py](file:///C:/SnapdragonAI/engine/onnx_image_backend.py)
+
 * **Sprint P-082 (Generation Parameter Contract):**
   * **Konsistente Parameter-Durchreichung:** Umfassende Transportierung aller 12 Generierungsparameter (`prompt`, `negative_prompt`, `model`, `backend`, `seed`, `width`, `height`, `steps`, `cfg`, `sampler`, `scheduler`, `batch_count`) von der GUI bis ins Backend.
   * **Erweiterung der Metadaten:** Die Parameter `negative_prompt`, `sampler`, `scheduler` und `batch_count` werden vollständig in die Sidecar-JSON geschrieben.

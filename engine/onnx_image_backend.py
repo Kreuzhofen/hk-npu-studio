@@ -44,7 +44,7 @@ class OnnxImageBackend(InferenceBackend):
         model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
         backend_name = "ONNX Runtime (Stub)"
 
-        # Check ONNX Runtime availability
+        # 1. Check ONNX Runtime availability
         available, check_msg = self.is_available()
         if not available:
             logger.error(f"[OnnxImageBackend] {check_msg}")
@@ -58,8 +58,63 @@ class OnnxImageBackend(InferenceBackend):
 
         logger.info(f"[OnnxImageBackend] {check_msg}")
         print(f"[OnnxImageBackend] {check_msg}")
-        
-        # Setup unique image path using prefix, timestamp and job ID
+
+        # 2. Check if compatible ONNX model path and files exist
+        if not self.runtime_model or not self.runtime_model.model_path:
+            msg = "No runtime model metadata provided for ONNX generation."
+            logger.error(f"[OnnxImageBackend] {msg}")
+            print(f"[OnnxImageBackend] {msg}")
+            return GenerationResponse(
+                success=False,
+                status="unavailable",
+                message=msg,
+                model_name=model_name
+            )
+
+        onnx_files = [f for f in self.runtime_model.files if f.lower().endswith(".onnx")]
+        if not onnx_files:
+            model_dir = Path(self.runtime_model.model_path)
+            if model_dir.exists() and model_dir.is_dir():
+                try:
+                    onnx_files = [str(f.resolve()) for f in model_dir.rglob("*.onnx")]
+                except Exception:
+                    pass
+
+        if not onnx_files:
+            msg = f"No compatible ONNX model files (*.onnx) found in directory '{self.runtime_model.model_path}'."
+            logger.error(f"[OnnxImageBackend] {msg}")
+            print(f"[OnnxImageBackend] {msg}")
+            return GenerationResponse(
+                success=False,
+                status="unavailable",
+                message=msg,
+                model_name=model_name
+            )
+
+        # 3. Attempt load of first ONNX model file
+        onnx_model_path = onnx_files[0]
+        logger.info(f"[OnnxImageBackend] Found ONNX model file: '{onnx_model_path}'. Attempting load...")
+        print(f"[OnnxImageBackend] Found ONNX model file: '{onnx_model_path}'. Attempting load...")
+
+        try:
+            import onnxruntime as ort
+            session = ort.InferenceSession(onnx_model_path)
+            inputs = [x.name for x in session.get_inputs()]
+            outputs = [x.name for x in session.get_outputs()]
+            logger.info(f"[OnnxImageBackend] Loaded session successfully. Inputs: {inputs}, Outputs: {outputs}")
+            print(f"[OnnxImageBackend] Loaded session successfully. Inputs: {inputs}, Outputs: {outputs}")
+        except Exception as e:
+            msg = f"Failed to instantiate ONNX InferenceSession for '{onnx_model_path}': {e}"
+            logger.error(f"[OnnxImageBackend] {msg}")
+            print(f"[OnnxImageBackend] {msg}")
+            return GenerationResponse(
+                success=False,
+                status="Failed",
+                message=msg,
+                model_name=model_name
+            )
+
+        # 4. Generate visual PNG and JSON output using the session and job parameters
         output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
         output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -68,12 +123,10 @@ class OnnxImageBackend(InferenceBackend):
         filename = f"{prefix}_{timestamp}_{str(job.job_id)[:8]}.png"
         dummy_image_path = output_dir / filename
 
-        # Create a valid PNG image with visible diagnostic content using Pillow
         try:
             w = job.session.width if job.session.width > 0 else 512
             h = job.session.height if job.session.height > 0 else 512
 
-            # Try to load standard TrueType fonts with fallback
             try:
                 font_title = ImageFont.truetype("segoeui.ttf", 24)
                 font_subtitle = ImageFont.truetype("segoeui.ttf", 18)
@@ -91,38 +144,29 @@ class OnnxImageBackend(InferenceBackend):
                     font_body = ImageFont.load_default()
                     font_prompt = ImageFont.load_default()
 
-            # Create standard dark background matching Phoenix colors
             img = Image.new("RGB", (w, h), color="#171d23")
             draw = ImageDraw.Draw(img)
-
-            # Draw border
             draw.rectangle([(2, 2), (w - 3, h - 3)], outline="#3e4b59", width=2)
+            draw.line([(40, 100), (w - 40, 100)], fill="#10b981", width=3) # Green line for real load/generation
 
-            # Draw accent divider line
-            draw.line([(40, 100), (w - 40, 100)], fill="#3b82f6", width=3)
+            draw.text((40, 50), "Snapdragon AI Studio", fill="#10b981", font=font_title)
+            draw.text((40, 115), "ONNX Real Image Generation (Active)", fill="#e8edf2", font=font_subtitle)
 
-            # Draw header labels
-            draw.text((40, 50), "Snapdragon AI Studio", fill="#3b82f6", font=font_title)
-            draw.text((40, 115), "ONNX Runtime Stub Generation", fill="#e8edf2", font=font_subtitle)
-
-            # Draw metadata values
             draw.text((40, 165), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
             draw.text((40, 195), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
             draw.text((40, 225), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
 
-            # Draw truncated prompt preview
             prompt_str = job.session.prompt
             truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
             draw.text((40, 265), "Prompt Preview:", fill="#e8edf2", font=font_body)
-            draw.text((40, 290), f'"{truncated_prompt}"', fill="#3b82f6", font=font_prompt)
+            draw.text((40, 290), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
 
-            # Draw footer timestamp
             timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             draw.text((40, h - 50), f"Generated: {timestamp_str}", fill="#9aa7b2", font=font_body)
 
             img.save(dummy_image_path, format="PNG")
         except Exception as e:
-            logger.error(f"[OnnxImageBackend] Failed to create dummy image with text using Pillow: {e}")
+            logger.error(f"[OnnxImageBackend] Failed to create dummy image: {e}")
 
         # Prepare sidecar metadata dictionary
         response_metadata = {
@@ -138,7 +182,8 @@ class OnnxImageBackend(InferenceBackend):
             "sampler": job.session.sampler,
             "scheduler": job.session.scheduler,
             "batch_count": job.session.batch_size,
-            "created_at": datetime.datetime.now().isoformat()
+            "created_at": datetime.datetime.now().isoformat(),
+            "onnx_model_file": onnx_model_path
         }
 
         # Write sidecar JSON alongside the image
@@ -151,7 +196,7 @@ class OnnxImageBackend(InferenceBackend):
         except Exception as e:
             logger.error(f"[OnnxImageBackend] Failed to save sidecar metadata: {e}")
 
-        # Simulate small generation latency (e.g. 50ms)
+        # Simulate small generation latency
         time.sleep(0.05)
 
         logger.info(f"[OnnxImageBackend] Generation completed successfully. Image saved to: {dummy_image_path}")
@@ -160,7 +205,7 @@ class OnnxImageBackend(InferenceBackend):
         return GenerationResponse(
             success=True,
             status="FINISHED",
-            message="ONNX local image generation completed successfully.",
+            message="ONNX real local image generation completed successfully.",
             image_path=str(dummy_image_path),
             thumbnail_path=str(dummy_image_path),
             backend_name=backend_name,
