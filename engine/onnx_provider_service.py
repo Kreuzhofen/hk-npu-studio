@@ -26,6 +26,7 @@ class OnnxProviderService:
     _providers_after: list[str] = []
     _qnn_provider_options: dict[str, Any] = {}
     _dll_directories: list[Any] = []
+    _diagnostic_log_dir = Path(r"C:\SnapdragonAI\diagnostics\logs")
 
     @classmethod
     def initialize(cls) -> None:
@@ -159,6 +160,142 @@ class OnnxProviderService:
         logger.info("[OnnxProviderService] %s session providers: %s", component_name, session.get_providers())
         print(f"[OnnxProviderService] {component_name} session providers: {session.get_providers()}")
         return session
+
+    @classmethod
+    def create_qnn_strict_session(
+        cls,
+        model_path: str | Path,
+        component_name: str = "qnn_strict",
+        disable_cpu_fallback: bool = True,
+        enable_basic_profiling: bool = True,
+    ):
+        cls.initialize()
+        import onnxruntime as ort
+
+        options = ort.SessionOptions()
+        if disable_cpu_fallback:
+            options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
+
+        provider_options = cls.provider_options()
+        profiling_file_path = cls._build_profiling_file_path(component_name, model_path)
+        if enable_basic_profiling:
+            provider_options["profiling_level"] = "basic"
+            provider_options["profiling_file_path"] = str(profiling_file_path)
+
+        logger.info(
+            "[OnnxProviderService] Strict QNN load for %s with options: %s",
+            component_name,
+            provider_options,
+        )
+        print(f"[OnnxProviderService] Strict QNN load for {component_name} with options: {provider_options}")
+        session = ort.InferenceSession(
+            str(model_path),
+            sess_options=options,
+            providers=[cls.QNN_PROVIDER],
+            provider_options=[provider_options],
+        )
+        logger.info("[OnnxProviderService] Strict QNN %s session providers: %s", component_name, session.get_providers())
+        print(f"[OnnxProviderService] Strict QNN {component_name} session providers: {session.get_providers()}")
+        return session
+
+    @classmethod
+    def _build_profiling_file_path(cls, component_name: str, model_path: str | Path) -> Path:
+        safe_component = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in component_name)
+        safe_model = Path(model_path).stem or "model"
+        try:
+            cls._diagnostic_log_dir.mkdir(parents=True, exist_ok=True)
+            return cls._diagnostic_log_dir / f"qnn_{safe_component}_{safe_model}_profile.csv"
+        except Exception:
+            return Path(os.environ.get("TEMP", ".")) / f"qnn_{safe_component}_{safe_model}_profile.csv"
+
+    @classmethod
+    def find_local_qnn_test_candidates(
+        cls,
+        project_root: str | Path = r"C:\SnapdragonAI",
+        max_size_mb: int = 64,
+    ) -> list[dict[str, Any]]:
+        root = Path(project_root)
+        if not root.exists():
+            return []
+
+        candidates: list[dict[str, Any]] = []
+        for path in root.rglob("*.onnx"):
+            try:
+                size = path.stat().st_size
+            except Exception:
+                continue
+
+            lowered = str(path).lower()
+            is_placeholder = size <= 1024
+            is_sdxl_component = "\\models\\sdxl_base\\" in lowered or "/models/sdxl_base/" in lowered
+            if is_placeholder:
+                reason = "placeholder_or_invalid"
+            elif is_sdxl_component:
+                reason = "sdxl_component_not_small_test_model"
+            elif size <= max_size_mb * 1024 * 1024:
+                reason = "small_onnx_candidate"
+            else:
+                reason = "too_large_for_diagnostic_smoke_test"
+
+            candidates.append({
+                "path": str(path),
+                "size_bytes": size,
+                "size_mb": round(size / (1024 * 1024), 3),
+                "classification": reason,
+                "suitable_for_strict_qnn_smoke_test": reason == "small_onnx_candidate",
+            })
+
+        return sorted(candidates, key=lambda item: item["size_bytes"])
+
+    @classmethod
+    def run_strict_qnn_diagnostic(cls, model_path: str | Path, component_name: str = "qnn_test") -> dict[str, Any]:
+        cls.initialize()
+        model = Path(model_path)
+        result: dict[str, Any] = {
+            "model_path": str(model),
+            "component_name": component_name,
+            "qnn_available": cls.qnn_available(),
+            "provider_registration_status": cls.provider_registration_status(),
+            "provider_options": cls.provider_options(),
+            "disable_cpu_fallback": True,
+            "profiling_level": "basic",
+            "profiling_file_path": str(cls._build_profiling_file_path(component_name, model)),
+            "status": "not_run",
+            "classification": "",
+            "session_providers": [],
+            "error": "",
+        }
+
+        if not result["qnn_available"]:
+            result["status"] = "provider_unavailable"
+            result["classification"] = "Provider-/DLL-/Optionen-Fehler"
+            return result
+
+        if not model.exists() or not model.is_file():
+            result["status"] = "model_missing"
+            result["classification"] = "Testmodell fehlt"
+            return result
+
+        try:
+            session = cls.create_qnn_strict_session(model, component_name)
+            providers = cls.session_providers(session)
+            result["session_providers"] = providers
+            del session
+            if cls.QNN_PROVIDER in providers:
+                result["status"] = "qnn_full"
+                result["classification"] = "Modell läuft vollständig auf QNN"
+            elif cls.CPU_PROVIDER in providers:
+                result["status"] = "cpu_fallback"
+                result["classification"] = "CPU-Fallback aktiv"
+            else:
+                result["status"] = "unknown_provider"
+                result["classification"] = "Providerstatus unklar"
+        except Exception as exc:
+            result["status"] = "qnn_incompatible_or_load_failed"
+            result["classification"] = "Modell nicht QNN-kompatibel"
+            result["error"] = str(exc)
+
+        return result
 
     @classmethod
     def session_providers(cls, session: Any) -> list[str]:
