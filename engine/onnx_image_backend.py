@@ -200,6 +200,8 @@ class OnnxImageBackend(InferenceBackend):
 
         # 4. Integrate ModelRuntimePackage & TextEmbeddingService for Prompt Processing
         from controllers.model_repository import ModelRepository
+        from engine.onnx_component_inspector import OnnxComponentInspector
+        from engine.sdxl_scheduler_service import SDXLSchedulerService
         from engine.text_embedding_service import TextEmbeddingService
         
         repo = ModelRepository()
@@ -214,6 +216,12 @@ class OnnxImageBackend(InferenceBackend):
                 message=msg,
                 model_name=model_name
             )
+
+        component_metadata = OnnxComponentInspector.inspect_package(
+            pkg,
+            ("text_encoder", "text_encoder_2", "unet", "vae_decoder"),
+        )
+        OnnxComponentInspector.log_metadata(component_metadata)
 
         # Verify package components and log status
         verification_status = pkg.verify_components()
@@ -238,27 +246,28 @@ class OnnxImageBackend(InferenceBackend):
                     print(f"  -> Component '{comp}' status is '{status}'. Expected path: '{comp_path}'")
             
         embedder = TextEmbeddingService(pkg)
-        embed_res = embedder.embed_prompt(job.session.prompt)
+        embed_res = embedder.embed_prompt_sdxl(job.session.prompt, job.session.negative_prompt)
 
-        negative_embed_res = None
-        if job.session.negative_prompt.strip():
-            negative_embed_res = embedder.embed_prompt(job.session.negative_prompt)
-
-        # 4.5. Integrate UNetService for Latent Preparation & Noise Prediction
+        # 4.5. Integrate UNetService and scheduler foundation for latent denoising
         from engine.unet_service import UNetService
         unet_service = UNetService(pkg)
+        scheduler_service = SDXLSchedulerService()
         w = job.session.width if job.session.width > 0 else 512
         h = job.session.height if job.session.height > 0 else 512
+        timesteps = scheduler_service.build_timesteps(job.session.steps, job.session.scheduler)
+        time_ids = scheduler_service.build_time_ids(w, h)
+        scheduler_metadata = scheduler_service.describe(job.session.steps, job.session.scheduler, w, h)
         
         init_latents = unet_service.generate_initial_latents(w, h, seed=job.session.seed)
-        additional_inputs = {}
-        if negative_embed_res is not None:
-            additional_inputs["negative_embeddings"] = negative_embed_res["embeddings"]
-        unet_res = unet_service.predict_noise(
+        unet_res = unet_service.run_denoising_loop(
             init_latents,
-            timestep=999,
-            encoder_hidden_states=embed_res["embeddings"],
-            additional_inputs=additional_inputs or None,
+            timesteps=timesteps,
+            prompt_embeddings=embed_res["embeddings"],
+            pooled_prompt_embeddings=embed_res["pooled_embeddings"],
+            time_ids=time_ids,
+            negative_embeddings=embed_res["negative_embeddings"],
+            negative_pooled_embeddings=embed_res["negative_pooled_embeddings"],
+            guidance_scale=job.session.cfg_scale,
         )
 
         # 4.7. Integrate VAEDecoderService for VAE Latent Decoding
@@ -310,13 +319,14 @@ class OnnxImageBackend(InferenceBackend):
             tokens_str = str(embed_res["tokens"][:8]) + "..." if len(embed_res["tokens"]) > 8 else str(embed_res["tokens"])
             draw.text((40, 215), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
             draw.text((40, 235), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 255), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 275), f"Decoder: {vae_res['backend']}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 255), f"Pooled Shape: {embed_res['pooled_embedding_shape']}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 275), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 295), f"Decoder: {vae_res['backend']}", fill="#9aa7b2", font=font_body)
 
             prompt_str = job.session.prompt
             truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
-            draw.text((40, 310), "Prompt Preview:", fill="#e8edf2", font=font_body)
-            draw.text((40, 335), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
+            draw.text((40, 325), "Prompt Preview:", fill="#e8edf2", font=font_body)
+            draw.text((40, 350), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
 
             timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             draw.text((40, h - 50), f"Generated: {timestamp_str}", fill="#9aa7b2", font=font_body)
@@ -342,12 +352,19 @@ class OnnxImageBackend(InferenceBackend):
             "created_at": datetime.datetime.now().isoformat(),
             "onnx_model_file": onnx_model_path,
             "prompt_tokens": embed_res["tokens"],
+            "negative_prompt_tokens": embed_res["negative_tokens"],
             "embedding_shape": embed_res["embedding_shape"],
+            "negative_embedding_shape": embed_res["negative_embedding_shape"],
+            "pooled_embedding_shape": embed_res["pooled_embedding_shape"],
+            "negative_pooled_embedding_shape": embed_res["negative_pooled_embedding_shape"],
             "is_mock_embedding": embed_res["is_mock"],
-            "negative_embedding_shape": negative_embed_res["embedding_shape"] if negative_embed_res else None,
-            "is_mock_negative_embedding": negative_embed_res["is_mock"] if negative_embed_res else None,
             "latent_shape": unet_res["latent_shape"],
             "is_mock_unet": unet_res["is_mock"],
+            "guidance_prepared": unet_res.get("guidance_prepared", False),
+            "scheduler_metadata": scheduler_metadata,
+            "timesteps": unet_res.get("timesteps", []),
+            "time_ids_shape": list(time_ids.shape),
+            "component_metadata": component_metadata,
             "decoder_backend": vae_res["backend"],
             "is_mock_decoder": vae_res["is_mock"],
             "alpha_fallback": bool(not package_ready or embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"]),

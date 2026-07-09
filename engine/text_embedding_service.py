@@ -1,109 +1,181 @@
 from __future__ import annotations
+
 import logging
 from pathlib import Path
 from typing import Any
+
 import numpy as np
+
 from engine.model_runtime_package import ModelRuntimePackage
+from engine.onnx_component_inspector import OnnxComponentInspector
 
 logger = logging.getLogger("TextEmbeddingService")
 
+
 class TextEmbeddingService:
     """
-    Model-independent service that takes a ModelRuntimePackage, processes a prompt,
-    converts it to tokens, and passes the tokens to the text encoder component
-    to return a structured embedding result.
+    Model-independent service for prompt tokenization and text encoder execution.
+    The legacy single-encoder API remains available, while SDXL dual encoder
+    conditioning is prepared through embed_prompt_sdxl().
     """
+
+    SEQUENCE_LENGTH = 77
+    PRIMARY_WIDTH = 768
+    SECONDARY_WIDTH = 1280
+
     def __init__(self, package: ModelRuntimePackage) -> None:
         self.package = package
 
     def tokenize(self, prompt: str) -> list[int]:
-        """
-        Tokenize prompt. If transformers is installed, it loads a real tokenizer.
-        Otherwise, it falls back to a deterministic native Python tokenizer.
-        """
+        """Tokenize prompt using a local tokenizer if present, otherwise use a deterministic fallback."""
         tokenizer_path = self.package.get_component_path("tokenizer")
         logger.info(f"[TextEmbeddingService] Resolving tokenizer from: '{tokenizer_path}'")
-        
+
         try:
             from transformers import AutoTokenizer
             if tokenizer_path and Path(tokenizer_path).exists():
                 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
                 tokens = tokenizer.encode(prompt)
                 logger.info("[TextEmbeddingService] Used real HuggingFace tokenizer.")
-                return tokens
-        except Exception as e:
-            logger.debug(f"[TextEmbeddingService] Real tokenizer load skipped/failed: {e}")
-            
-        # Native Python deterministic word-to-ID fallback tokenizer (CLIP vocabulary simulation)
-        # Standard CLIP limit is 77 tokens including SOS (49406) and EOS (49407)
+                return self._normalize_token_length(tokens)
+        except Exception as exc:
+            logger.debug(f"[TextEmbeddingService] Real tokenizer load skipped/failed: {exc}")
+
         words = prompt.lower().split()
-        token_ids = [49406] # SOS token
+        token_ids = [49406]
         for word in words:
-            # Simple hash-based token ID generation between 1000 and 40000
-            token_id = (hash(word) % 39000) + 1000
-            token_ids.append(token_id)
-        token_ids.append(49407) # EOS token
-        
-        # Pad to 77 tokens
-        if len(token_ids) < 77:
-            token_ids += [0] * (77 - len(token_ids))
-        else:
-            token_ids = token_ids[:77]
-            
+            token_ids.append((hash(word) % 39000) + 1000)
+        token_ids.append(49407)
         logger.info("[TextEmbeddingService] Used native Python fallback tokenizer.")
-        return token_ids
+        return self._normalize_token_length(token_ids)
 
     def embed_prompt(self, prompt: str) -> dict[str, Any]:
-        """
-        Process the prompt and run it through the text encoder to get embeddings.
-        """
+        """Legacy single prompt embedding API used by existing callers."""
+        result = self.embed_prompt_sdxl(prompt, "")
+        return {
+            "tokens": result["tokens"],
+            "embeddings": result["embeddings"],
+            "pooled_embeddings": result["pooled_embeddings"],
+            "embedding_shape": result["embedding_shape"],
+            "pooled_embedding_shape": result["pooled_embedding_shape"],
+            "is_mock": result["is_mock"],
+            "encoder_metadata": result["encoder_metadata"],
+        }
+
+    def embed_prompt_sdxl(self, prompt: str, negative_prompt: str = "") -> dict[str, Any]:
+        """Prepare SDXL conditioning for positive and negative prompts."""
+        positive = self._embed_dual_encoder(prompt)
+        negative = self._embed_dual_encoder(negative_prompt or "")
+        return {
+            "tokens": positive["tokens"],
+            "negative_tokens": negative["tokens"],
+            "embeddings": positive["embeddings"],
+            "negative_embeddings": negative["embeddings"],
+            "pooled_embeddings": positive["pooled_embeddings"],
+            "negative_pooled_embeddings": negative["pooled_embeddings"],
+            "embedding_shape": list(positive["embeddings"].shape),
+            "negative_embedding_shape": list(negative["embeddings"].shape),
+            "pooled_embedding_shape": list(positive["pooled_embeddings"].shape),
+            "negative_pooled_embedding_shape": list(negative["pooled_embeddings"].shape),
+            "is_mock": bool(positive["is_mock"] or negative["is_mock"]),
+            "encoder_metadata": positive["encoder_metadata"],
+            "negative_encoder_metadata": negative["encoder_metadata"],
+        }
+
+    def _embed_dual_encoder(self, prompt: str) -> dict[str, Any]:
         tokens = self.tokenize(prompt)
-        text_encoder_path = self.package.get_component_path("text_encoder")
-        
-        logger.info(f"[TextEmbeddingService] Tokenized prompt to: {tokens[:10]}...")
-        print(f"[TextEmbeddingService] Tokenized prompt to: {tokens[:10]}...")
-        
-        # If ONNX is available and the package is fully ready, try to run real session
-        if self.package.is_fully_ready() and text_encoder_path and Path(text_encoder_path).exists():
-            try:
-                import onnxruntime as ort
-                logger.info(f"[TextEmbeddingService] Loading text encoder InferenceSession for: '{text_encoder_path}'")
-                print(f"[TextEmbeddingService] Loading text encoder InferenceSession for: '{text_encoder_path}'")
-                
-                session = ort.InferenceSession(text_encoder_path)
-                input_name = session.get_inputs()[0].name
-                
-                # Format tokens as batch size 1, sequence length 77
-                input_data = np.array([tokens], dtype=np.int64)
-                
-                # Run inference
-                outputs = session.run(None, {input_name: input_data})
-                embeddings = outputs[0]
-                
-                logger.info(f"[TextEmbeddingService] ONNX Inference successful. Shape: {embeddings.shape}")
-                print(f"[TextEmbeddingService] ONNX Inference successful. Shape: {embeddings.shape}")
-                
-                # Cleanup
-                del session
-                
-                return {
-                    "tokens": tokens,
-                    "embeddings": embeddings,
-                    "embedding_shape": list(embeddings.shape),
-                    "is_mock": False
-                }
-            except Exception as e:
-                logger.warning(f"[TextEmbeddingService] InferenceSession run failed/skipped: {e}")
-                print(f"[TextEmbeddingService] InferenceSession run failed/skipped: {e}")
-                
-        # Fallback Mock embedding tensor generation (shape: 1, 77, 768 for SDXL CLIP ViT-L/14)
-        mock_embedding = np.random.randn(1, 77, 768).astype(np.float32)
-        logger.info(f"[TextEmbeddingService] Generated mock embeddings with shape: {mock_embedding.shape}")
-        print(f"[TextEmbeddingService] Generated mock embeddings with shape: {mock_embedding.shape}")
-        
+        primary = self._run_encoder_component("text_encoder", tokens, self.PRIMARY_WIDTH)
+        secondary = self._run_encoder_component("text_encoder_2", tokens, self.SECONDARY_WIDTH)
+
+        embeddings = np.concatenate([primary["embeddings"], secondary["embeddings"]], axis=-1).astype(np.float32)
+        pooled = secondary["pooled_embeddings"].astype(np.float32)
+        is_mock = bool(primary["is_mock"] or secondary["is_mock"])
+
+        logger.info(f"[TextEmbeddingService] SDXL embeddings shape: {embeddings.shape}, pooled: {pooled.shape}")
+        print(f"[TextEmbeddingService] SDXL embeddings shape: {embeddings.shape}, pooled: {pooled.shape}")
+
         return {
             "tokens": tokens,
-            "embeddings": mock_embedding,
-            "embedding_shape": list(mock_embedding.shape),
-            "is_mock": True
+            "embeddings": embeddings,
+            "pooled_embeddings": pooled,
+            "is_mock": is_mock,
+            "encoder_metadata": {
+                "text_encoder": primary["metadata"],
+                "text_encoder_2": secondary["metadata"],
+            },
         }
+
+    def _run_encoder_component(self, component_name: str, tokens: list[int], fallback_width: int) -> dict[str, Any]:
+        component_path = self.package.get_component_path(component_name)
+        metadata = OnnxComponentInspector.inspect(component_name, component_path)
+        token_array = np.array([tokens], dtype=np.int64)
+
+        if self.package.is_fully_ready() and component_path and Path(component_path).exists():
+            try:
+                import onnxruntime as ort
+                session = ort.InferenceSession(component_path)
+                inputs = self._build_encoder_inputs(session, token_array)
+                outputs = session.run(None, inputs)
+                hidden = self._as_hidden_states(outputs[0], fallback_width)
+                pooled = self._resolve_pooled_output(outputs, hidden, fallback_width)
+                del session
+                return {
+                    "embeddings": hidden,
+                    "pooled_embeddings": pooled,
+                    "is_mock": False,
+                    "metadata": metadata,
+                }
+            except Exception as exc:
+                logger.warning(f"[TextEmbeddingService] {component_name} run failed/skipped: {exc}")
+                print(f"[TextEmbeddingService] {component_name} run failed/skipped: {exc}")
+
+        rng_seed = abs(hash((component_name, tuple(tokens[:12])))) % (2**32)
+        rng = np.random.default_rng(rng_seed)
+        hidden = rng.standard_normal((1, self.SEQUENCE_LENGTH, fallback_width), dtype=np.float32)
+        pooled = hidden.mean(axis=1).astype(np.float32)
+        return {
+            "embeddings": hidden,
+            "pooled_embeddings": pooled,
+            "is_mock": True,
+            "metadata": metadata,
+        }
+
+    def _build_encoder_inputs(self, session: Any, token_array: np.ndarray) -> dict[str, np.ndarray]:
+        inputs: dict[str, np.ndarray] = {}
+        for item in session.get_inputs():
+            name = item.name
+            lowered = name.lower()
+            if "input" in lowered or "ids" in lowered:
+                inputs[name] = token_array
+            elif "mask" in lowered:
+                inputs[name] = (token_array != 0).astype(np.int64)
+            else:
+                inputs[name] = self._zeros_for_shape(item.shape, np.int64)
+        return inputs
+
+    def _as_hidden_states(self, output: Any, fallback_width: int) -> np.ndarray:
+        array = np.asarray(output)
+        if array.ndim == 3:
+            return array.astype(np.float32)
+        if array.ndim == 2:
+            return np.repeat(array[:, None, :], self.SEQUENCE_LENGTH, axis=1).astype(np.float32)
+        return np.zeros((1, self.SEQUENCE_LENGTH, fallback_width), dtype=np.float32)
+
+    def _resolve_pooled_output(self, outputs: list[Any], hidden: np.ndarray, fallback_width: int) -> np.ndarray:
+        for output in outputs[1:]:
+            array = np.asarray(output)
+            if array.ndim == 2:
+                return array.astype(np.float32)
+        pooled = hidden.mean(axis=1).astype(np.float32)
+        if pooled.shape[-1] == fallback_width:
+            return pooled
+        return np.zeros((1, fallback_width), dtype=np.float32)
+
+    def _normalize_token_length(self, tokens: list[int]) -> list[int]:
+        if len(tokens) < self.SEQUENCE_LENGTH:
+            return tokens + [0] * (self.SEQUENCE_LENGTH - len(tokens))
+        return tokens[: self.SEQUENCE_LENGTH]
+
+    def _zeros_for_shape(self, shape: list[Any], dtype: Any) -> np.ndarray:
+        resolved = [1 if isinstance(value, str) or value is None or value < 0 else int(value) for value in shape]
+        return np.zeros(resolved, dtype=dtype)

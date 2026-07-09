@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from engine.model_runtime_package import ModelRuntimePackage
+from engine.onnx_component_inspector import OnnxComponentInspector
 
 logger = logging.getLogger("VAEDecoderService")
 
@@ -23,6 +24,7 @@ class VAEDecoderService:
         Decode a latent tensor of shape (1, 4, latent_h, latent_w) to an RGB image.
         """
         vae_path = self.package.get_component_path("vae_decoder")
+        metadata = OnnxComponentInspector.inspect("vae_decoder", vae_path)
         logger.info(f"[VAEDecoderService] Resolving VAE Decoder from: '{vae_path}'")
         
         latent_shape = list(latents.shape)
@@ -38,6 +40,7 @@ class VAEDecoderService:
                 
                 session = ort.InferenceSession(vae_path)
                 input_name = session.get_inputs()[0].name
+                print(f"[VAEDecoderService] VAE mapped input: {input_name}")
                 
                 # Run VAE decoding
                 outputs = session.run(None, {input_name: latents})
@@ -59,7 +62,8 @@ class VAEDecoderService:
                     "image": pil_image,
                     "image_shape": [1, 3, img_h, img_w],
                     "is_mock": False,
-                    "backend": "ONNX VAE Decoder"
+                    "backend": "ONNX VAE Decoder",
+                    "metadata": metadata
                 }
             except Exception as e:
                 logger.warning(f"[VAEDecoderService] VAE InferenceSession run failed/skipped: {e}")
@@ -104,5 +108,6 @@ class VAEDecoderService:
             "image": pil_image,
             "image_shape": [1, 3, img_h, img_w],
             "is_mock": True,
-            "backend": "Mock VAE Decoder"
+            "backend": "Mock VAE Decoder",
+            "metadata": metadata
         }
