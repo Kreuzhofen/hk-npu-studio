@@ -44,7 +44,7 @@ class GenerationController:
 
         return True, "Validierung erfolgreich."
 
-    def queue_generation(self) -> GenerationResult:
+    def queue_generation(self, notify_workflow: bool = True) -> GenerationResult:
         """
         Queue the generation based on the active session parameters.
         Validates parameters first, creates a GenerationJob and adds it to the queue.
@@ -115,9 +115,11 @@ class GenerationController:
         self.queue.dequeue()
         self.is_generating = False
 
-        # Notify the WorkflowController that the generation finished
-        from controllers.workflow_controller import WorkflowController
-        WorkflowController.get_instance().on_generation_finished(result)
+        # Notify the WorkflowController that the generation finished.
+        # Worker-thread callers can defer this to the Tk main thread.
+        if notify_workflow:
+            from controllers.workflow_controller import WorkflowController
+            WorkflowController.get_instance().on_generation_finished(result)
 
         return result
 

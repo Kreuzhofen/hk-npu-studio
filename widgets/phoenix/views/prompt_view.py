@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import queue
+import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 from pathlib import Path
@@ -28,6 +30,14 @@ class PhoenixPromptView(WorkspaceFrame):
             has_inspector=True
         )
         self.controller = controller or PromptWorkspaceController()
+        self._generation_running = False
+        self._generation_thread: threading.Thread | None = None
+        self._generation_events: queue.Queue[tuple[str, object]] = queue.Queue()
+        self._progress_after_id: str | None = None
+        self._result_after_id: str | None = None
+        self._progress_percent = 0
+        self._progress_current_step = 0
+        self._progress_total_steps = 0
 
         self._build_input_area()
         self._build_inspector()
@@ -364,6 +374,38 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_gen_status.grid(row=row, column=1, columnspan=3, sticky="w", padx=(4, 16), pady=1)
         row += 1
 
+        tk.Label(
+            self.insp_content, text="Fortschritt:", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
+        ).grid(row=row, column=0, sticky="w", padx=(16, 4), pady=1)
+        self.progress_var = tk.DoubleVar(value=0.0)
+        self.progress_bar = ttk.Progressbar(
+            self.insp_content, variable=self.progress_var, maximum=100, mode="determinate"
+        )
+        self.progress_bar.grid(row=row, column=1, columnspan=3, sticky="ew", padx=(4, 16), pady=1)
+        row += 1
+
+        tk.Label(
+            self.insp_content, text="Phase:", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
+        ).grid(row=row, column=0, sticky="w", padx=(16, 4), pady=1)
+        self.progress_stage_label = tk.Label(
+            self.insp_content, text="Bereit", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_small, anchor="w"
+        )
+        self.progress_stage_label.grid(row=row, column=1, sticky="w", padx=(4, 16), pady=1)
+
+        tk.Label(
+            self.insp_content, text="Steps:", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
+        ).grid(row=row, column=2, sticky="w", padx=(16, 4), pady=1)
+        self.progress_step_label = tk.Label(
+            self.insp_content, text="-", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_small, anchor="w"
+        )
+        self.progress_step_label.grid(row=row, column=3, sticky="w", padx=(4, 16), pady=1)
+        row += 1
+
         # ── Section: Generation Information ───────────
         row = self._inspector_section_header("Generation Information", row)
 
@@ -555,6 +597,9 @@ class PhoenixPromptView(WorkspaceFrame):
     # ==================================================================
 
     def _on_generate(self) -> None:
+        if self._generation_running:
+            return
+
         prompt = self.prompt_text.get("1.0", "end-1c").strip()
         neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
 
@@ -593,28 +638,166 @@ class PhoenixPromptView(WorkspaceFrame):
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
         )
 
+        self._generation_running = True
+        self._progress_total_steps = max(1, steps)
+        self._progress_current_step = 0
+        self._progress_percent = 0
         self._set_generation_busy(True)
+        self._set_progress(3, "Vorbereiten", "-")
+
+        while not self._generation_events.empty():
+            try:
+                self._generation_events.get_nowait()
+            except queue.Empty:
+                break
+
+        self._generation_thread = threading.Thread(
+            target=self._run_generation_worker,
+            name="PromptGenerationWorker",
+            daemon=True,
+        )
+        self._generation_thread.start()
+        self._schedule_progress_tick()
+        self._schedule_result_poll()
+
+    def _run_generation_worker(self) -> None:
         try:
-            result = self.controller.generate_image()
-            if result.success:
-                self._show_generated_output_in_library(result.image_path)
-            else:
-                messagebox.showerror("AI Generate", result.message)
+            result = self.controller.generate_image(notify_workflow=False)
+            self._generation_events.put(("result", result))
         except Exception as error:
             logger.exception("Prompt-to-image generation failed")
-            self.controller.model.update_state(status=f"Fehler: {error}")
-            messagebox.showerror("AI Generate", str(error))
-        finally:
-            self._set_generation_busy(False)
-            self.refresh()
+            self._generation_events.put(("error", error))
+
+    def _schedule_result_poll(self) -> None:
+        if not self._is_view_alive():
+            return
+        self._result_after_id = self.after(250, self._poll_generation_events)
+
+    def _poll_generation_events(self) -> None:
+        if not self._is_view_alive():
+            return
+
+        try:
+            event, payload = self._generation_events.get_nowait()
+        except queue.Empty:
+            if self._generation_running:
+                self._schedule_result_poll()
+            return
+
+        if event == "result":
+            self._handle_generation_result(payload)
+        elif event == "error":
+            self._handle_generation_error(payload)
+
+    def _handle_generation_result(self, result) -> None:
+        if not self._is_view_alive():
+            return
+
+        self._generation_running = False
+        self._cancel_progress_tick()
+        self._set_progress(100 if result.success else self._progress_percent, "Fertig" if result.success else "Fehler", self._step_text())
+        self._set_generation_busy(False)
+
+        if result.success:
+            self._notify_generation_finished(result)
+            self._show_generated_output_in_library(result.image_path)
+        else:
+            messagebox.showerror("AI Generate", result.message)
+
+        self.refresh()
+
+    def _handle_generation_error(self, error: object) -> None:
+        if not self._is_view_alive():
+            return
+
+        self._generation_running = False
+        self._cancel_progress_tick()
+        self.controller.model.update_state(status=f"Fehler: {error}")
+        self._set_progress(self._progress_percent, "Fehler", self._step_text())
+        self._set_generation_busy(False)
+        messagebox.showerror("AI Generate", str(error))
+        self.refresh()
+
+    def _notify_generation_finished(self, result) -> None:
+        try:
+            from controllers.workflow_controller import WorkflowController
+            WorkflowController.get_instance().on_generation_finished(result)
+        except Exception as error:
+            logger.warning("Workflow notification skipped after generation: %s", error)
 
     def _set_generation_busy(self, busy: bool) -> None:
+        if not self._is_view_alive():
+            return
         state = "disabled" if busy else "normal"
         self.gen_btn.configure(state=state)
         status_text = "Generierung läuft" if busy else self.controller.get_state().status
-        self.status_label.configure(text=f"Status: {status_text}")
-        self.insp_gen_status.configure(text=status_text)
-        self.update_idletasks()
+        self._configure_if_alive(self.status_label, text=f"Status: {status_text}")
+        self._configure_if_alive(self.insp_gen_status, text=status_text)
+
+    def _schedule_progress_tick(self) -> None:
+        if not self._is_view_alive() or not self._generation_running:
+            return
+        self._progress_after_id = self.after(1000, self._update_generation_progress)
+
+    def _cancel_progress_tick(self) -> None:
+        if self._progress_after_id and self._is_view_alive():
+            try:
+                self.after_cancel(self._progress_after_id)
+            except Exception:
+                pass
+        self._progress_after_id = None
+
+    def _update_generation_progress(self) -> None:
+        if not self._is_view_alive() or not self._generation_running:
+            return
+
+        if self._progress_percent < 12:
+            self._set_progress(self._progress_percent + 3, "Vorbereiten", "-")
+        elif self._progress_percent < 30:
+            self._set_progress(self._progress_percent + 2, "Text Encoding", "-")
+        elif self._progress_percent < 86:
+            next_percent = min(86, self._progress_percent + 2)
+            span = max(1, 86 - 30)
+            self._progress_current_step = min(
+                self._progress_total_steps,
+                max(1, int(((next_percent - 30) / span) * self._progress_total_steps)),
+            )
+            self._set_progress(next_percent, "UNet Steps", self._step_text())
+        elif self._progress_percent < 94:
+            self._set_progress(self._progress_percent + 1, "VAE Decode", self._step_text())
+        elif self._progress_percent < 98:
+            self._set_progress(self._progress_percent + 1, "Speichern", self._step_text())
+        else:
+            self._set_progress(98, "Speichern", self._step_text())
+
+        self._schedule_progress_tick()
+
+    def _set_progress(self, percent: float, stage: str, step_text: str) -> None:
+        if not self._is_view_alive():
+            return
+        self._progress_percent = max(0, min(100, int(percent)))
+        self.progress_var.set(self._progress_percent)
+        self._configure_if_alive(self.progress_stage_label, text=f"{stage} · {self._progress_percent} %")
+        self._configure_if_alive(self.progress_step_label, text=step_text)
+
+    def _step_text(self) -> str:
+        if self._progress_total_steps <= 0:
+            return "-"
+        current = min(self._progress_total_steps, max(0, self._progress_current_step))
+        return f"{current} / {self._progress_total_steps}"
+
+    def _is_view_alive(self) -> bool:
+        try:
+            return bool(self.winfo_exists())
+        except tk.TclError:
+            return False
+
+    def _configure_if_alive(self, widget: tk.Misc, **kwargs) -> None:
+        try:
+            if widget.winfo_exists():
+                widget.configure(**kwargs)
+        except tk.TclError:
+            pass
 
     def _show_generated_output_in_library(self, image_path: str | None) -> None:
         if not image_path:
@@ -681,7 +864,8 @@ class PhoenixPromptView(WorkspaceFrame):
             self.controller.repository.load_repository()
 
         state = self.controller.get_state()
-        self.status_label.configure(text=f"Status: {state.status}")
+        if not self._generation_running:
+            self.status_label.configure(text=f"Status: {state.status}")
 
         active_backend_name = "None"
         queued_count = 0
@@ -702,7 +886,8 @@ class PhoenixPromptView(WorkspaceFrame):
         # Update Inspector – Generation Status
         self.insp_model.configure(text=state.selected_model if state.selected_model else "-")
         self.insp_backend.configure(text=active_backend_name)
-        self.insp_gen_status.configure(text=state.status)
+        if not self._generation_running:
+            self.insp_gen_status.configure(text=state.status)
         self.insp_queue.configure(text=f"{queued_count} Job(s)")
 
         # Update Inspector – Generation Information

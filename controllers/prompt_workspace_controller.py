@@ -76,10 +76,10 @@ class PromptWorkspaceController:
             batch_size=batch_size,
         )
 
-    def generate_image(self) -> GenerationResult:
+    def generate_image(self, notify_workflow: bool = True) -> GenerationResult:
         # Delegate to GenerationController and update status.
         self.model.update_state(status="Generierung läuft")
-        result = self.generation_controller.queue_generation()
+        result = self.generation_controller.queue_generation(notify_workflow=notify_workflow)
         status_msg = "Abgeschlossen" if result.success else f"Fehler: {result.message}"
         self.model.update_state(status=status_msg)
         self.last_response = result
