@@ -251,7 +251,7 @@ class OnnxImageBackend(InferenceBackend):
         # 4.5. Integrate UNetService and scheduler foundation for latent denoising
         from engine.unet_service import UNetService
         unet_service = UNetService(pkg)
-        scheduler_service = SDXLSchedulerService()
+        scheduler_service = SDXLSchedulerService(pkg.get_component_path("scheduler"))
         w = job.session.width if job.session.width > 0 else 512
         h = job.session.height if job.session.height > 0 else 512
         timesteps = scheduler_service.build_timesteps(job.session.steps, job.session.scheduler)

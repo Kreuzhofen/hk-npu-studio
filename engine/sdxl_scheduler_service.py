@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -9,30 +11,58 @@ logger = logging.getLogger("SDXLSchedulerService")
 
 
 class SDXLSchedulerService:
-    """SDXL scheduler core foundation with deterministic timestep and latent updates."""
+    """SDXL scheduler core foundation aligned with local Euler scheduler metadata."""
 
     DEFAULT_TRAIN_TIMESTEPS = 1000
 
+    def __init__(self, scheduler_path: str | Path | None = None) -> None:
+        self.config = self._load_config(scheduler_path)
+        self.train_timesteps = int(self.config.get("num_train_timesteps", self.DEFAULT_TRAIN_TIMESTEPS))
+        self.timestep_spacing = str(self.config.get("timestep_spacing", "leading"))
+        self.steps_offset = int(self.config.get("steps_offset", 0) or 0)
+        self.prediction_type = str(self.config.get("prediction_type", "epsilon"))
+        self.scheduler_class = str(self.config.get("_class_name", "EulerDiscreteScheduler"))
+
+    def _load_config(self, scheduler_path: str | Path | None) -> dict[str, Any]:
+        if not scheduler_path:
+            return {}
+        path = Path(scheduler_path)
+        config_path = path / "scheduler_config.json" if path.is_dir() else path
+        if not config_path.exists():
+            return {}
+        try:
+            with open(config_path, "r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except Exception as exc:
+            logger.warning("Failed to read scheduler config %s: %s", config_path, exc)
+            return {}
+
     def build_timesteps(self, steps: int, scheduler_name: str = "Normal") -> list[int]:
         step_count = max(1, int(steps or 1))
-        name = (scheduler_name or "Normal").lower()
-        if name == "karras":
+        name = (scheduler_name or self.scheduler_class or "Normal").lower()
+        max_timestep = max(0, self.train_timesteps - 1)
+
+        if name == "karras" or bool(self.config.get("use_karras_sigmas", False)):
             ramp = np.linspace(0.0, 1.0, step_count)
-            values = (1.0 - ramp**2) * (self.DEFAULT_TRAIN_TIMESTEPS - 1)
-        elif name == "exponential":
-            values = np.geomspace(self.DEFAULT_TRAIN_TIMESTEPS, 1, num=step_count) - 1
-        elif name in {"sgm uniform", "sgm_uniform"}:
-            values = np.linspace(self.DEFAULT_TRAIN_TIMESTEPS - 1, 0, num=step_count)
+            values = (1.0 - ramp**2) * max_timestep
+        elif name == "exponential" or bool(self.config.get("use_exponential_sigmas", False)):
+            values = np.geomspace(max(self.train_timesteps, 1), 1, num=step_count) - 1
         else:
-            values = np.linspace(self.DEFAULT_TRAIN_TIMESTEPS - 1, 0, num=step_count)
-        return [max(0, min(self.DEFAULT_TRAIN_TIMESTEPS - 1, int(round(value)))) for value in values]
+            if self.timestep_spacing == "trailing":
+                values = np.linspace(max_timestep, 0, num=step_count, endpoint=False)
+            else:
+                values = np.linspace(max_timestep, 0, num=step_count)
+
+        values = values + self.steps_offset
+        return [max(0, min(max_timestep, int(round(value)))) for value in values]
 
     def build_time_ids(self, width: int, height: int) -> np.ndarray:
         values = [height, width, 0, 0, height, width]
         return np.array([values], dtype=np.float32)
 
     def timestep_to_sigma(self, timestep: int | float) -> float:
-        normalized = max(0.0, min(1.0, float(timestep) / float(self.DEFAULT_TRAIN_TIMESTEPS - 1)))
+        denominator = max(1, self.train_timesteps - 1)
+        normalized = max(0.0, min(1.0, float(timestep) / float(denominator)))
         return normalized
 
     def step(
@@ -48,7 +78,7 @@ class SDXLSchedulerService:
 
         sigma = self.timestep_to_sigma(timestep)
         next_sigma = self.timestep_to_sigma(next_timestep if next_timestep is not None else 0)
-        step_size = max(sigma - next_sigma, 1.0 / self.DEFAULT_TRAIN_TIMESTEPS)
+        step_size = max(sigma - next_sigma, 1.0 / max(1, self.train_timesteps))
         updated = latents - noise_pred * step_size
         return updated.astype(np.float32)
 
@@ -68,6 +98,11 @@ class SDXLSchedulerService:
         sigmas = [self.timestep_to_sigma(timestep) for timestep in timesteps]
         return {
             "scheduler": scheduler_name,
+            "scheduler_class": self.scheduler_class,
+            "prediction_type": self.prediction_type,
+            "timestep_spacing": self.timestep_spacing,
+            "steps_offset": self.steps_offset,
+            "train_timesteps": self.train_timesteps,
             "steps": len(timesteps),
             "timesteps": timesteps,
             "sigmas": sigmas,

@@ -16,7 +16,7 @@ class TextEmbeddingService:
     """
     Model-independent service for prompt tokenization and text encoder execution.
     The legacy single-encoder API remains available, while SDXL dual encoder
-    conditioning is prepared through embed_prompt_sdxl().
+    conditioning uses tokenizer/tokenizer_2 and named ONNX outputs.
     """
 
     SEQUENCE_LENGTH = 77
@@ -40,7 +40,7 @@ class TextEmbeddingService:
             fallback_used = True
             effective_component = "tokenizer"
 
-        logger.info(f"[TextEmbeddingService] Resolving {component_name} from: '{tokenizer_path}'")
+        logger.info("[TextEmbeddingService] Resolving %s from: '%s'", component_name, tokenizer_path)
 
         try:
             from transformers import AutoTokenizer
@@ -48,18 +48,19 @@ class TextEmbeddingService:
                 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
                 tokens = tokenizer.encode(prompt)
                 source = "tokenizer fallback" if fallback_used else component_name
-                logger.info(f"[TextEmbeddingService] Used real HuggingFace {source}.")
+                logger.info("[TextEmbeddingService] Used real HuggingFace %s.", source)
                 return self._normalize_token_length(tokens)
         except Exception as exc:
-            logger.debug(f"[TextEmbeddingService] Real {component_name} load skipped/failed: {exc}")
+            logger.debug("[TextEmbeddingService] Real %s load skipped/failed: %s", component_name, exc)
 
         words = prompt.lower().split()
         token_ids = [49406]
         for word in words:
             token_ids.append((hash((effective_component, word)) % 39000) + 1000)
         token_ids.append(49407)
-        logger.info(f"[TextEmbeddingService] Used native Python fallback tokenizer for {component_name}.")
+        logger.info("[TextEmbeddingService] Used native Python fallback tokenizer for %s.", component_name)
         return self._normalize_token_length(token_ids)
+
     def embed_prompt(self, prompt: str) -> dict[str, Any]:
         """Legacy single prompt embedding API used by existing callers."""
         result = self.embed_prompt_sdxl(prompt, "")
@@ -105,7 +106,7 @@ class TextEmbeddingService:
         pooled = secondary["pooled_embeddings"].astype(np.float32)
         is_mock = bool(primary["is_mock"] or secondary["is_mock"])
 
-        logger.info(f"[TextEmbeddingService] SDXL embeddings shape: {embeddings.shape}, pooled: {pooled.shape}")
+        logger.info("[TextEmbeddingService] SDXL embeddings shape: %s, pooled: %s", embeddings.shape, pooled.shape)
         print(f"[TextEmbeddingService] SDXL embeddings shape: {embeddings.shape}, pooled: {pooled.shape}")
 
         return {
@@ -119,6 +120,7 @@ class TextEmbeddingService:
                 "text_encoder_2": secondary["metadata"],
             },
         }
+
     def _run_encoder_component(self, component_name: str, tokens: list[int], fallback_width: int) -> dict[str, Any]:
         component_path = self.package.get_component_path(component_name)
         metadata = OnnxComponentInspector.inspect(component_name, component_path)
@@ -127,11 +129,12 @@ class TextEmbeddingService:
         if self.package.is_fully_ready() and component_path and Path(component_path).exists():
             try:
                 import onnxruntime as ort
-                session = ort.InferenceSession(component_path)
+                session = ort.InferenceSession(component_path, providers=["CPUExecutionProvider"])
                 inputs = self._build_encoder_inputs(session, token_array)
-                outputs = session.run(None, inputs)
-                hidden = self._as_hidden_states(outputs[0], fallback_width)
-                pooled = self._resolve_pooled_output(outputs, hidden, fallback_width)
+                output_names = [item.name for item in session.get_outputs()]
+                outputs = dict(zip(output_names, session.run(output_names, inputs)))
+                hidden = self._resolve_hidden_output(component_name, outputs, fallback_width)
+                pooled = self._resolve_pooled_output(component_name, outputs, hidden, fallback_width)
                 del session
                 return {
                     "embeddings": hidden,
@@ -140,7 +143,7 @@ class TextEmbeddingService:
                     "metadata": metadata,
                 }
             except Exception as exc:
-                logger.warning(f"[TextEmbeddingService] {component_name} run failed/skipped: {exc}")
+                logger.warning("[TextEmbeddingService] %s run failed/skipped: %s", component_name, exc)
                 print(f"[TextEmbeddingService] {component_name} run failed/skipped: {exc}")
 
         rng_seed = abs(hash((component_name, tuple(tokens[:12])))) % (2**32)
@@ -167,6 +170,39 @@ class TextEmbeddingService:
                 inputs[name] = self._zeros_for_shape(item.shape, np.int64)
         return inputs
 
+    def _resolve_hidden_output(self, component_name: str, outputs: dict[str, Any], fallback_width: int) -> np.ndarray:
+        preferred = ["last_hidden_state"]
+        if component_name == "text_encoder_2":
+            preferred.extend(["hidden_states.31", "hidden_states.32"])
+        else:
+            preferred.extend(["hidden_states.11", "hidden_states.12"])
+
+        for name in preferred:
+            if name in outputs:
+                hidden = self._as_hidden_states(outputs[name], fallback_width)
+                if hidden.shape[-1] == fallback_width:
+                    return hidden
+
+        for name, value in outputs.items():
+            if name.startswith("hidden_states"):
+                hidden = self._as_hidden_states(value, fallback_width)
+                if hidden.shape[-1] == fallback_width:
+                    return hidden
+        return np.zeros((1, self.SEQUENCE_LENGTH, fallback_width), dtype=np.float32)
+
+    def _resolve_pooled_output(self, component_name: str, outputs: dict[str, Any], hidden: np.ndarray, fallback_width: int) -> np.ndarray:
+        preferred = ["text_embeds", "pooler_output"] if component_name == "text_encoder_2" else ["pooler_output", "text_embeds"]
+        for name in preferred:
+            if name in outputs:
+                array = np.asarray(outputs[name])
+                if array.ndim == 2:
+                    return array.astype(np.float32)
+
+        pooled = hidden.mean(axis=1).astype(np.float32)
+        if pooled.shape[-1] == fallback_width:
+            return pooled
+        return np.zeros((1, fallback_width), dtype=np.float32)
+
     def _as_hidden_states(self, output: Any, fallback_width: int) -> np.ndarray:
         array = np.asarray(output)
         if array.ndim == 3:
@@ -174,16 +210,6 @@ class TextEmbeddingService:
         if array.ndim == 2:
             return np.repeat(array[:, None, :], self.SEQUENCE_LENGTH, axis=1).astype(np.float32)
         return np.zeros((1, self.SEQUENCE_LENGTH, fallback_width), dtype=np.float32)
-
-    def _resolve_pooled_output(self, outputs: list[Any], hidden: np.ndarray, fallback_width: int) -> np.ndarray:
-        for output in outputs[1:]:
-            array = np.asarray(output)
-            if array.ndim == 2:
-                return array.astype(np.float32)
-        pooled = hidden.mean(axis=1).astype(np.float32)
-        if pooled.shape[-1] == fallback_width:
-            return pooled
-        return np.zeros((1, fallback_width), dtype=np.float32)
 
     def _normalize_token_length(self, tokens: list[int]) -> list[int]:
         if len(tokens) < self.SEQUENCE_LENGTH:
@@ -193,7 +219,3 @@ class TextEmbeddingService:
     def _zeros_for_shape(self, shape: list[Any], dtype: Any) -> np.ndarray:
         resolved = [1 if isinstance(value, str) or value is None or value < 0 else int(value) for value in shape]
         return np.zeros(resolved, dtype=dtype)
-
-
-
-

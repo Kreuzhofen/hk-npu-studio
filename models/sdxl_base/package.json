@@ -1,12 +1,12 @@
 {
-  "package_version": "1.0.0-alpha",
+  "package_version": "1.0.0-onnx",
   "model_id": "sdxl_base",
-  "display_name": "Stable Diffusion XL Base Alpha Test Package",
-  "author": "Snapdragon AI Studio Local Test",
-  "version": "1.0.0-alpha",
+  "display_name": "Stable Diffusion XL Base ONNX",
+  "author": "Stability AI / Optimum ONNX export",
+  "version": "1.0.0-onnx",
   "package_type": "SMP",
-  "alpha_test_package": true,
-  "description": "Local alpha SMP package for Prompt-to-Image fallback/readiness testing only. It does not contain real model weights.",
+  "alpha_test_package": false,
+  "description": "Local SDXL Base ONNX package for Snapdragon AI Studio prompt-to-image compatibility testing.",
   "capabilities": {
     "txt2img": true,
     "img2img": false,
@@ -23,6 +23,11 @@
     "tokenizer": {
       "type": "tokenizer",
       "path": "tokenizer",
+      "runtime": "CPU"
+    },
+    "tokenizer_2": {
+      "type": "tokenizer",
+      "path": "tokenizer_2",
       "runtime": "CPU"
     },
     "text_encoder": {
@@ -51,9 +56,9 @@
       "runtime": "CPU"
     }
   },
+  "source_layout": "Optimum ORTStableDiffusionXLPipeline",
   "limitations": [
-    "No real ONNX weights are included.",
-    "Generated images use the existing diagnostic fallback path.",
-    "This package is not suitable for quality or performance evaluation."
+    "CPUExecutionProvider loadability is supported, but full SDXL inference may be slow on CPU.",
+    "QNN/NPU optimized execution is not enabled in this package."
   ]
 }

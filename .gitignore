@@ -28,3 +28,29 @@ Desktop.ini
 # Build
 dist/
 build/
+
+# ==========================================================
+# Snapdragon AI Studio
+# AI Model Files
+# ==========================================================
+
+# Ignore all ONNX model weights
+models/**/*.onnx
+models/**/*.onnx_data
+
+# Keep manifests and metadata
+!models/**/package.json
+!models/**/model_index.json
+!models/**/config.json
+!models/**/scheduler_config.json
+!models/**/.gitattributes
+!models/**/README.md
+
+# Keep tokenizer files
+!models/**/tokenizer/**
+!models/**/tokenizer_2/**
+
+# Keep empty directories if required
+!models/**/.gitkeep
+# Local model backups
+models/*_backup/

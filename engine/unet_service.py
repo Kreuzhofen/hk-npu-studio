@@ -164,7 +164,10 @@ class UNetService:
             elif "sample" in lowered or "latent" in lowered:
                 inputs[name] = latents.astype(np.float32)
             elif "timestep" in lowered or lowered in {"t", "time"}:
-                inputs[name] = np.array([timestep], dtype=np.float32)
+                if item.shape == []:
+                    inputs[name] = np.array(float(timestep), dtype=np.float32)
+                else:
+                    inputs[name] = np.array([timestep], dtype=np.float32)
             elif "encoder_hidden" in lowered or "hidden_states" in lowered or "encoder" in lowered:
                 inputs[name] = encoder_hidden_states.astype(np.float32)
             elif "text_embeds" in lowered or "pooled" in lowered:
