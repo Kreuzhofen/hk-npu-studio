@@ -27,28 +27,39 @@ class TextEmbeddingService:
         self.package = package
 
     def tokenize(self, prompt: str) -> list[int]:
-        """Tokenize prompt using a local tokenizer if present, otherwise use a deterministic fallback."""
-        tokenizer_path = self.package.get_component_path("tokenizer")
-        logger.info(f"[TextEmbeddingService] Resolving tokenizer from: '{tokenizer_path}'")
+        """Tokenize prompt through the primary tokenizer for legacy callers."""
+        return self._tokenize_with_component(prompt, "tokenizer")
+
+    def _tokenize_with_component(self, prompt: str, component_name: str) -> list[int]:
+        """Tokenize prompt with a specific tokenizer component and fallback safely."""
+        tokenizer_path = self.package.get_component_path(component_name)
+        fallback_used = False
+        effective_component = component_name
+        if component_name == "tokenizer_2" and (not tokenizer_path or not Path(tokenizer_path).exists()):
+            tokenizer_path = self.package.get_component_path("tokenizer")
+            fallback_used = True
+            effective_component = "tokenizer"
+
+        logger.info(f"[TextEmbeddingService] Resolving {component_name} from: '{tokenizer_path}'")
 
         try:
             from transformers import AutoTokenizer
             if tokenizer_path and Path(tokenizer_path).exists():
                 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
                 tokens = tokenizer.encode(prompt)
-                logger.info("[TextEmbeddingService] Used real HuggingFace tokenizer.")
+                source = "tokenizer fallback" if fallback_used else component_name
+                logger.info(f"[TextEmbeddingService] Used real HuggingFace {source}.")
                 return self._normalize_token_length(tokens)
         except Exception as exc:
-            logger.debug(f"[TextEmbeddingService] Real tokenizer load skipped/failed: {exc}")
+            logger.debug(f"[TextEmbeddingService] Real {component_name} load skipped/failed: {exc}")
 
         words = prompt.lower().split()
         token_ids = [49406]
         for word in words:
-            token_ids.append((hash(word) % 39000) + 1000)
+            token_ids.append((hash((effective_component, word)) % 39000) + 1000)
         token_ids.append(49407)
-        logger.info("[TextEmbeddingService] Used native Python fallback tokenizer.")
+        logger.info(f"[TextEmbeddingService] Used native Python fallback tokenizer for {component_name}.")
         return self._normalize_token_length(token_ids)
-
     def embed_prompt(self, prompt: str) -> dict[str, Any]:
         """Legacy single prompt embedding API used by existing callers."""
         result = self.embed_prompt_sdxl(prompt, "")
@@ -69,6 +80,8 @@ class TextEmbeddingService:
         return {
             "tokens": positive["tokens"],
             "negative_tokens": negative["tokens"],
+            "tokens_2": positive["tokens_2"],
+            "negative_tokens_2": negative["tokens_2"],
             "embeddings": positive["embeddings"],
             "negative_embeddings": negative["embeddings"],
             "pooled_embeddings": positive["pooled_embeddings"],
@@ -83,9 +96,10 @@ class TextEmbeddingService:
         }
 
     def _embed_dual_encoder(self, prompt: str) -> dict[str, Any]:
-        tokens = self.tokenize(prompt)
-        primary = self._run_encoder_component("text_encoder", tokens, self.PRIMARY_WIDTH)
-        secondary = self._run_encoder_component("text_encoder_2", tokens, self.SECONDARY_WIDTH)
+        primary_tokens = self._tokenize_with_component(prompt, "tokenizer")
+        secondary_tokens = self._tokenize_with_component(prompt, "tokenizer_2")
+        primary = self._run_encoder_component("text_encoder", primary_tokens, self.PRIMARY_WIDTH)
+        secondary = self._run_encoder_component("text_encoder_2", secondary_tokens, self.SECONDARY_WIDTH)
 
         embeddings = np.concatenate([primary["embeddings"], secondary["embeddings"]], axis=-1).astype(np.float32)
         pooled = secondary["pooled_embeddings"].astype(np.float32)
@@ -95,7 +109,8 @@ class TextEmbeddingService:
         print(f"[TextEmbeddingService] SDXL embeddings shape: {embeddings.shape}, pooled: {pooled.shape}")
 
         return {
-            "tokens": tokens,
+            "tokens": primary_tokens,
+            "tokens_2": secondary_tokens,
             "embeddings": embeddings,
             "pooled_embeddings": pooled,
             "is_mock": is_mock,
@@ -104,7 +119,6 @@ class TextEmbeddingService:
                 "text_encoder_2": secondary["metadata"],
             },
         }
-
     def _run_encoder_component(self, component_name: str, tokens: list[int], fallback_width: int) -> dict[str, Any]:
         component_path = self.package.get_component_path(component_name)
         metadata = OnnxComponentInspector.inspect(component_name, component_path)
@@ -179,3 +193,7 @@ class TextEmbeddingService:
     def _zeros_for_shape(self, shape: list[Any], dtype: Any) -> np.ndarray:
         resolved = [1 if isinstance(value, str) or value is None or value < 0 else int(value) for value in shape]
         return np.zeros(resolved, dtype=dtype)
+
+
+
+

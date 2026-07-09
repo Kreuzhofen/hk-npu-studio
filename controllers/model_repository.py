@@ -219,7 +219,7 @@ class ModelRepository:
                 component_runtimes = {}
                 
                 # Defined expected components for diffusion model pipeline
-                expected_components = ["tokenizer", "text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler"]
+                expected_components = ["tokenizer", "tokenizer_2", "text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler"]
                 components_config = package_data.get("components", {})
                 
                 for comp in expected_components:
@@ -232,7 +232,7 @@ class ModelRepository:
                     else:
                         component_paths[comp] = ""
                         
-                    component_runtimes[comp] = comp_cfg.get("runtime", "CPU" if comp in ["tokenizer", "scheduler"] else "ONNX")
+                    component_runtimes[comp] = comp_cfg.get("runtime", "CPU" if comp in ["tokenizer", "tokenizer_2", "scheduler"] else "ONNX")
                     
                 return ModelRuntimePackage(
                     model_id=model_id,
@@ -255,6 +255,7 @@ class ModelRepository:
         # Define legacy component folders under base path
         component_paths = {
             "tokenizer": str((base_dir / "tokenizer").as_posix()) if model_path else "",
+            "tokenizer_2": str((base_dir / "tokenizer_2").as_posix()) if model_path else "",
             "text_encoder": str((base_dir / "text_encoder" / "model.onnx").as_posix()) if model_path else "",
             "text_encoder_2": str((base_dir / "text_encoder_2" / "model.onnx").as_posix()) if model_path else "",
             "unet": str((base_dir / "unet" / "model.onnx").as_posix()) if model_path else "",
@@ -268,6 +269,7 @@ class ModelRepository:
         
         component_runtimes = {
             "tokenizer": "CPU",
+            "tokenizer_2": "CPU",
             "text_encoder": runtime_type,
             "text_encoder_2": runtime_type,
             "unet": runtime_type,
@@ -332,3 +334,7 @@ class ModelRepository:
                 return PackageStatus.INVALID
         except Exception:
             return PackageStatus.INVALID
+
+
+
+

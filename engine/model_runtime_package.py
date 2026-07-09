@@ -27,7 +27,7 @@ class ModelRuntimePackage:
         self.author = author
         self.display_name = display_name
         
-        # Paths for supported components: tokenizer, text_encoder, text_encoder_2, unet, vae_decoder, scheduler
+        # Paths for supported components: tokenizer, optional tokenizer_2, text_encoder, text_encoder_2, unet, vae_decoder, scheduler
         self.component_paths = component_paths or {}
         # Runtime types for each component (e.g. "ONNX", "QNN", "CPU", etc.)
         self.component_runtimes = component_runtimes or {}
@@ -46,9 +46,12 @@ class ModelRuntimePackage:
         
     def is_valid_package(self) -> bool:
         """
-        Validates that all declared paths exist on disk.
+        Validates that all declared required paths exist on disk.
+        tokenizer_2 is optional for SDXL packages and may fall back to tokenizer.
         """
         for name, path_str in self.component_paths.items():
+            if name == "tokenizer_2":
+                continue
             if path_str:
                 p = Path(path_str)
                 if not p.exists():
@@ -58,14 +61,11 @@ class ModelRuntimePackage:
     def verify_components(self) -> dict[str, str]:
         """
         Verify status of each expected component in the package.
-        Returns a dictionary mapping component names to their status:
-        - READY: Component exists, is valid type, and is not a mock stub (e.g., size > 1024 bytes).
-        - FOUND: Component exists but size check indicates it's a stub or incomplete validation.
-        - INVALID: Component exists but fails basic type/size validation.
-        - MISSING: Component path is empty or does not exist on disk.
+        tokenizer_2 is optional and reports FALLBACK when unavailable.
         """
         statuses = {}
         expected_components = ["tokenizer", "text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler"]
+        optional_components = ["tokenizer_2"]
         
         for name in expected_components:
             path_str = self.component_paths.get(name)
@@ -83,35 +83,52 @@ class ModelRuntimePackage:
                 if p.is_dir():
                     try:
                         children = list(p.iterdir())
-                        # If a config or vocab file is in the directory, it's ready.
                         if len(children) > 0:
                             statuses[name] = "READY"
                         else:
-                            statuses[name] = "FOUND" # directory exists but is empty
+                            statuses[name] = "FOUND"
                     except Exception:
                         statuses[name] = "INVALID"
                 else:
                     statuses[name] = "INVALID"
             else:
                 if p.is_file():
-                    # Check file size. Real weights are large. 
-                    # If it's a small mock file (<= 1024 bytes), label it as INVALID or FOUND
                     if p.stat().st_size <= 1024:
-                        statuses[name] = "FOUND" # Found the stub file, but it's not a real weight
+                        statuses[name] = "FOUND"
                     else:
                         statuses[name] = "READY"
                 else:
                     statuses[name] = "INVALID"
+
+        for name in optional_components:
+            path_str = self.component_paths.get(name)
+            if not path_str:
+                statuses[name] = "FALLBACK"
+                continue
+
+            p = Path(path_str)
+            if not p.exists():
+                statuses[name] = "FALLBACK"
+                continue
+
+            if p.is_dir():
+                try:
+                    statuses[name] = "READY" if len(list(p.iterdir())) > 0 else "FOUND"
+                except Exception:
+                    statuses[name] = "INVALID"
+            else:
+                statuses[name] = "INVALID"
                     
         return statuses
 
     def is_fully_ready(self) -> bool:
         """
-        Checks if all expected components are in the READY status.
+        Checks if all required components are in the READY status.
         """
         statuses = self.verify_components()
-        return all(status == "READY" for status in statuses.values())
-        
+        required = {name: status for name, status in statuses.items() if name != "tokenizer_2"}
+        return all(status == "READY" for status in required.values())
+
     def to_dict(self) -> dict[str, Any]:
         """
         Serialize metadata for debugging/logging.
@@ -128,3 +145,7 @@ class ModelRuntimePackage:
             "verification_status": self.verify_components(),
             "is_fully_ready": self.is_fully_ready()
         }
+
+
+
+
