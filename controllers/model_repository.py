@@ -63,6 +63,7 @@ class ModelRepository:
     """
 
     _active_model_id: str | None = None
+    _logged_smp_models: set[str] = set()
 
     @classmethod
     def get_active_model_id(cls) -> str | None:
@@ -201,7 +202,9 @@ class ModelRepository:
                 with open(package_json_path, "r", encoding="utf-8") as f:
                     package_data = json.load(f)
                 
-                print(f"[ModelRepository] Detected new Snapdragon Model Package format for '{model_id}'.")
+                if model_id not in ModelRepository._logged_smp_models:
+                    print(f"[ModelRepository] Detected new Snapdragon Model Package format for '{model_id}'.")
+                    ModelRepository._logged_smp_models.add(model_id)
                 
                 # Extract metadata
                 pkg_ver = package_data.get("package_version", "1.0.0")
