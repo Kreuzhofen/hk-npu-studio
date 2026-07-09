@@ -312,8 +312,8 @@ class OnnxProviderService:
         if cls.QNN_PROVIDER in flat:
             return "ONNX Runtime + QNNExecutionProvider"
         if cls.QNN_PROVIDER in cls._providers_after:
-            return "ONNX Runtime (CPU fallback; QNN available)"
-        return "ONNX Runtime (CPUExecutionProvider)"
+            return "QNN available / CPU fallback"
+        return "ONNX Runtime CPU"
 
     @classmethod
     def diagnostics(cls) -> dict[str, Any]:

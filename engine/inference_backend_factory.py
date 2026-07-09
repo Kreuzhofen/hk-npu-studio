@@ -29,7 +29,7 @@ class InferenceBackendFactory:
         if not backend_cls:
             # Fallback mapping
             if "ONNX" in name:
-                backend_cls = cls._registry.get("ONNX Runtime (Stub)")
+                backend_cls = cls._registry.get("ONNX Runtime CPU")
             else:
                 backend_cls = cls._registry.get("Stub")
                 
@@ -55,4 +55,5 @@ from engine.onnx_image_backend import OnnxImageBackend
 InferenceBackendFactory.register_backend("Stub", StubImageBackend)
 InferenceBackendFactory.register_backend("Local CPU (Stub)", StubImageBackend)
 InferenceBackendFactory.register_backend("Qualcomm QNN NPU (Stub)", StubImageBackend)
+InferenceBackendFactory.register_backend("ONNX Runtime CPU", OnnxImageBackend)
 InferenceBackendFactory.register_backend("ONNX Runtime (Stub)", OnnxImageBackend)

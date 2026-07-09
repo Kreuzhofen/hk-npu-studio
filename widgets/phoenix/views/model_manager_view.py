@@ -413,6 +413,45 @@ class PhoenixModelManagerView(tk.Frame):
         self.env_qnn_sdk = self._create_value_label(self.inspector_scroll_content, 34, 1)
         self.env_qnn_tools = self._create_value_label(self.inspector_scroll_content, 35, 1)
 
+        self.npu_diag_button = tk.Button(
+            self.inspector_scroll_content,
+            text="Run NPU Diagnostic",
+            command=self._run_npu_diagnostic,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.elevated_bg,
+            activeforeground=PHOENIX_THEME.text_primary,
+            bd=1,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            height=1,
+        )
+        self.npu_diag_button.grid(row=36, column=0, columnspan=2, sticky="ew", padx=16, pady=(14, 8))
+        _Tooltip(self.npu_diag_button, "Run local MobileNetV2 DLC smoke test through qnn-net-run.")
+
+        npu_diag_props = [
+            ("QNN verfügbar:", 37), ("DLC-Test:", 38), ("Exit Code:", 39),
+            ("Output-Datei:", 40), ("Profiling:", 41), ("Bericht:", 42),
+            ("Warnungen:", 43)
+        ]
+        for name, r in npu_diag_props:
+            tk.Label(
+                self.inspector_scroll_content,
+                text=name,
+                bg=PHOENIX_THEME.card_bg,
+                fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_body,
+                anchor="w"
+            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
+
+        self.npu_qnn_available = self._create_value_label(self.inspector_scroll_content, 37, 1)
+        self.npu_test_status = self._create_value_label(self.inspector_scroll_content, 38, 1)
+        self.npu_exit_code = self._create_value_label(self.inspector_scroll_content, 39, 1)
+        self.npu_output_file = self._create_value_label(self.inspector_scroll_content, 40, 1, wrap=True)
+        self.npu_profiling_files = self._create_value_label(self.inspector_scroll_content, 41, 1, wrap=True)
+        self.npu_report_path = self._create_value_label(self.inspector_scroll_content, 42, 1, wrap=True)
+        self.npu_warnings = self._create_value_label(self.inspector_scroll_content, 43, 1, wrap=True)
+
         # ==========================================
         # BOTTOM STATUS BAR
         # ==========================================
@@ -581,6 +620,95 @@ class PhoenixModelManagerView(tk.Frame):
         self._set_action_button_state(self.btn_validate, "validate" in states)
         self._set_action_button_state(self.btn_update, "update" in states)
         self._set_action_button_state(self.btn_remove, "remove" in states)
+
+    def _format_npu_diagnostic_summary(self, report: dict[str, object]) -> str:
+        output_files = report.get("output_files") if isinstance(report, dict) else []
+        profiling_files = report.get("profiling_files") if isinstance(report, dict) else []
+
+        lines = [
+            f"Status: {self._safe_text(report.get('status'))}",
+            f"Exit Code: {self._safe_text(report.get('exit_code'))}",
+            f"QNN verfügbar: {self._format_bool(report.get('qnn_available'))}",
+            f"Report: {self._safe_text(report.get('report_path'))}",
+        ]
+        if output_files:
+            lines.append("")
+            lines.append("Output-Dateien:")
+            lines.extend(f"- {self._safe_text(item.get('path'))}" for item in output_files[:4] if isinstance(item, dict))
+        if profiling_files:
+            lines.append("")
+            lines.append("Profiling-Dateien:")
+            lines.extend(f"- {self._safe_text(item.get('path'))}" for item in profiling_files[:4] if isinstance(item, dict))
+        warning_text = self._extract_npu_warning_text(report)
+        if warning_text:
+            lines.append("")
+            lines.append("Bekannte Warnungen:")
+            lines.append(warning_text)
+        return "\n".join(lines)
+
+    def _extract_npu_warning_text(self, report: dict[str, object]) -> str:
+        text = "\n".join([
+            self._safe_text(report.get("stdout"), ""),
+            self._safe_text(report.get("stderr"), ""),
+        ])
+        warnings = []
+        for line in text.splitlines():
+            if "ERROR" in line or "failed" in line.lower():
+                clean = line.strip()
+                if clean and clean not in warnings:
+                    warnings.append(clean)
+        return " | ".join(warnings[:3]) if warnings else "Keine"
+
+    def _apply_npu_diagnostic_result(self, report: dict[str, object]) -> None:
+        output_files = report.get("output_files") if isinstance(report, dict) else []
+        profiling_files = report.get("profiling_files") if isinstance(report, dict) else []
+        output_path = "Nicht erzeugt"
+        if isinstance(output_files, list):
+            for item in output_files:
+                if isinstance(item, dict) and str(item.get("path", "")).endswith("class_logits.raw"):
+                    output_path = self._safe_text(item.get("path"))
+                    break
+        profiling_text = "Nicht erzeugt"
+        if isinstance(profiling_files, list) and profiling_files:
+            profiling_text = f"{len(profiling_files)} Datei(en)"
+
+        self.npu_qnn_available.configure(text=self._format_bool(report.get("qnn_available")))
+        self.npu_test_status.configure(text=self._safe_text(report.get("status")))
+        self.npu_exit_code.configure(text=self._safe_text(report.get("exit_code")))
+        self.npu_output_file.configure(text=output_path)
+        self.npu_profiling_files.configure(text=profiling_text)
+        self.npu_report_path.configure(text=self._safe_text(report.get("report_path")))
+        self.npu_warnings.configure(text=self._extract_npu_warning_text(report))
+
+    def _run_npu_diagnostic(self) -> None:
+        self.npu_diag_button.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
+        self.status_lbl.configure(text="NPU Diagnostic läuft...")
+        self.update_idletasks()
+        try:
+            report = self.controller.run_npu_diagnostic()
+        except Exception as exc:
+            report = {
+                "status": "failed",
+                "exit_code": "—",
+                "report_path": "",
+                "stdout": "",
+                "stderr": str(exc),
+                "output_files": [],
+                "profiling_files": [],
+                "htp_indicators": [],
+            }
+        finally:
+            self.npu_diag_button.configure(state="normal", fg=PHOENIX_THEME.text_primary)
+
+        self._apply_npu_diagnostic_result(report)
+        success = report.get("status") == "success"
+        label = "QNN DLC Diagnostic: Success" if success else "QNN DLC Diagnostic: Failed"
+        self.status_lbl.configure(text=f"{label} - {self._safe_text(report.get('report_path'))}")
+        summary = self._format_npu_diagnostic_summary(report)
+        if success:
+            messagebox.showinfo("NPU Diagnostic", summary)
+        else:
+            messagebox.showwarning("NPU Diagnostic", summary)
 
     @staticmethod
     def _format_capabilities(capabilities: object) -> str:

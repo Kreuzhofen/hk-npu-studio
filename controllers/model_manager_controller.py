@@ -5,6 +5,7 @@ from controllers.model_manager_model import ModelManagerModel
 from engine.backends.backend_manager import BackendManager
 from engine.backends.discovery_result import DiscoveryResult
 from engine.model_install_service import ModelInstallService
+from engine.qnn_dlc_diagnostic_runner import QnnDlcDiagnosticRunner
 
 
 class ModelManagerController:
@@ -93,5 +94,9 @@ class ModelManagerController:
     def get_package_status(self, model_id: str) -> str:
         """Retrieve the detailed PackageStatus string for a model."""
         return str(self.model.repository.get_package_status(model_id))
+
+    def run_npu_diagnostic(self) -> dict[str, Any]:
+        """Run the local QNN DLC smoke test and return the diagnostic report."""
+        return QnnDlcDiagnosticRunner().run()
 
 Class = ModelManagerController
