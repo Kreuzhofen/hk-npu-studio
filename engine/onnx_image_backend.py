@@ -222,7 +222,8 @@ class OnnxImageBackend(InferenceBackend):
         for name, status in verification_status.items():
             print(f"  - {name:<15}: {status}")
             
-        if pkg.is_fully_ready():
+        package_ready = pkg.is_fully_ready()
+        if package_ready:
             msg = "[OnnxImageBackend] All components are READY. Activating real ONNX execution pipeline."
             logger.info(msg)
             print(msg)
@@ -299,7 +300,8 @@ class OnnxImageBackend(InferenceBackend):
             draw.line([(40, 100), (w - 40, 100)], fill="#10b981", width=3) # Green line for real load/generation
 
             draw.text((40, 50), "Snapdragon AI Studio", fill="#10b981", font=font_title)
-            draw.text((40, 115), "ONNX Real Image Generation (Active)", fill="#e8edf2", font=font_subtitle)
+            generation_label = "ONNX Real Image Generation" if package_ready and not vae_res.get("is_mock") else "ONNX Alpha Fallback Generation"
+            draw.text((40, 115), generation_label, fill="#e8edf2", font=font_subtitle)
 
             draw.text((40, 155), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
             draw.text((40, 175), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
@@ -347,7 +349,9 @@ class OnnxImageBackend(InferenceBackend):
             "latent_shape": unet_res["latent_shape"],
             "is_mock_unet": unet_res["is_mock"],
             "decoder_backend": vae_res["backend"],
-            "is_mock_decoder": vae_res["is_mock"]
+            "is_mock_decoder": vae_res["is_mock"],
+            "alpha_fallback": bool(not package_ready or embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"]),
+            "alpha_fallback_reason": "Package contains placeholder or incomplete ONNX components." if not package_ready else "",
         }
 
         # Write sidecar JSON alongside the image
@@ -369,7 +373,11 @@ class OnnxImageBackend(InferenceBackend):
         return GenerationResponse(
             success=True,
             status="FINISHED",
-            message="ONNX real local image generation completed successfully.",
+            message=(
+                "ONNX local image generation completed successfully."
+                if not response_metadata["alpha_fallback"]
+                else "ONNX alpha fallback image generated successfully; no real model weights were used."
+            ),
             image_path=str(dummy_image_path),
             thumbnail_path=str(dummy_image_path),
             backend_name=backend_name,

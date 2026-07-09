@@ -2,7 +2,7 @@
   "id": "sdxl_base",
   "display_name": "Stable Diffusion XL Base",
   "author": "Stability AI",
-  "version": "1.0",
+  "version": "1.0.0-alpha",
   "license": "CreativeML Open RAIL++-M",
   "description": "High-resolution local text-to-image generation model utilizing two text encoders.",
   "category": "Text-to-Image",
@@ -14,10 +14,10 @@
     "txt2img",
     "img2img"
   ],
-  "installed": false,
-  "downloaded": false,
-  "path": "",
-  "status": "Available for Download",
+  "installed": true,
+  "downloaded": true,
+  "path": "C:\\SnapdragonAI\\models\\sdxl_base",
+  "status": "Alpha Test Package",
   "capabilities": {
     "txt2img": true,
     "img2img": true,

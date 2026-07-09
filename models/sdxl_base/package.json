@@ -1,20 +1,23 @@
 {
-  "package_version": "1.0.0",
+  "package_version": "1.0.0-alpha",
   "model_id": "sdxl_base",
-  "display_name": "Stable Diffusion XL Base",
-  "author": "Stability AI",
-  "version": "1.0.0",
+  "display_name": "Stable Diffusion XL Base Alpha Test Package",
+  "author": "Snapdragon AI Studio Local Test",
+  "version": "1.0.0-alpha",
+  "package_type": "SMP",
+  "alpha_test_package": true,
+  "description": "Local alpha SMP package for Prompt-to-Image fallback/readiness testing only. It does not contain real model weights.",
   "capabilities": {
     "txt2img": true,
-    "img2img": true,
-    "inpainting": true,
-    "outpainting": true,
-    "lora": true,
-    "controlnet": true,
+    "img2img": false,
+    "inpainting": false,
+    "outpainting": false,
+    "lora": false,
+    "controlnet": false,
     "image_to_video": false,
-    "batch_generation": true,
+    "batch_generation": false,
     "onnx_runtime": true,
-    "qnn_runtime": true
+    "qnn_runtime": false
   },
   "components": {
     "tokenizer": {
@@ -35,7 +38,7 @@
     "unet": {
       "type": "unet",
       "path": "unet/model.onnx",
-      "runtime": "QNN"
+      "runtime": "ONNX"
     },
     "vae_decoder": {
       "type": "vae_decoder",
@@ -47,5 +50,10 @@
       "path": "scheduler",
       "runtime": "CPU"
     }
-  }
+  },
+  "limitations": [
+    "No real ONNX weights are included.",
+    "Generated images use the existing diagnostic fallback path.",
+    "This package is not suitable for quality or performance evaluation."
+  ]
 }

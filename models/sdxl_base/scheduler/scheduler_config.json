@@ -1,0 +1,4 @@
+{
+  "alpha_test_scheduler": true,
+  "note": "Placeholder only; existing pipeline uses fallback denoising."
+}

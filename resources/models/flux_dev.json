@@ -14,10 +14,10 @@
     "txt2img",
     "img2img"
   ],
-  "installed": true,
-  "downloaded": true,
-  "path": "C:\\SnapdragonAI\\models\\flux_dev",
-  "status": "Installed",
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Available for Download",
   "capabilities": {
     "txt2img": true,
     "img2img": true,
