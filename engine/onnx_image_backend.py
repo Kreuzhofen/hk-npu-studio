@@ -256,7 +256,7 @@ class OnnxImageBackend(InferenceBackend):
         h = job.session.height if job.session.height > 0 else 512
         timesteps = scheduler_service.build_timesteps(job.session.steps, job.session.scheduler)
         time_ids = scheduler_service.build_time_ids(w, h)
-        scheduler_metadata = scheduler_service.describe(job.session.steps, job.session.scheduler, w, h)
+        scheduler_metadata = scheduler_service.describe(job.session.steps, job.session.scheduler, w, h, job.session.cfg_scale)
         
         init_latents = unet_service.generate_initial_latents(w, h, seed=job.session.seed)
         unet_res = unet_service.run_denoising_loop(
@@ -361,9 +361,15 @@ class OnnxImageBackend(InferenceBackend):
             "latent_shape": unet_res["latent_shape"],
             "is_mock_unet": unet_res["is_mock"],
             "guidance_prepared": unet_res.get("guidance_prepared", False),
+            "guidance_applied": unet_res.get("guidance_applied", False),
+            "guidance_scale": unet_res.get("guidance_scale", job.session.cfg_scale),
             "scheduler_metadata": scheduler_metadata,
             "timesteps": unet_res.get("timesteps", []),
+            "step_count": unet_res.get("step_count", 0),
+            "step_records": unet_res.get("step_records", []),
             "time_ids_shape": list(time_ids.shape),
+            "initial_latent_shape": list(init_latents.shape),
+            "final_latent_shape": unet_res.get("latent_shape", []),
             "component_metadata": component_metadata,
             "decoder_backend": vae_res["backend"],
             "is_mock_decoder": vae_res["is_mock"],

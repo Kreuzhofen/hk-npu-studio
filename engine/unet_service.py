@@ -14,10 +14,7 @@ logger = logging.getLogger("UNetService")
 
 
 class UNetService:
-    """
-    Model-independent UNet wrapper with SDXL input mapping preparation.
-    It supports existing fallback generation and prepares a multi-step denoising loop.
-    """
+    """Model-independent UNet wrapper with SDXL scheduler and CFG core."""
 
     def __init__(self, package: ModelRuntimePackage) -> None:
         self.package = package
@@ -53,15 +50,14 @@ class UNetService:
                 logger.info(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
                 print(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
                 outputs = session.run(None, inputs)
-                output_noise = np.asarray(outputs[0]).astype(np.float32)
+                output_noise = self._normalize_noise_output(np.asarray(outputs[0]), latents)
                 logger.info(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
                 print(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
                 del session
-                updated_latents = latents - 0.1 * output_noise if output_noise.shape == latents.shape else output_noise
                 return {
-                    "latents": updated_latents.astype(np.float32),
                     "noise_pred": output_noise,
-                    "latent_shape": list(updated_latents.shape),
+                    "latent_shape": list(latents.shape),
+                    "noise_shape": list(output_noise.shape),
                     "is_mock": False,
                     "metadata": metadata,
                 }
@@ -70,13 +66,12 @@ class UNetService:
                 print(f"[UNetService] UNet InferenceSession run failed/skipped: {exc}")
 
         mock_noise = np.random.randn(*latents.shape).astype(np.float32)
-        updated_latents = latents - 0.05 * mock_noise
-        logger.info(f"[UNetService] Generated mock UNet latents update with shape: {updated_latents.shape}")
-        print(f"[UNetService] Generated mock UNet latents update with shape: {updated_latents.shape}")
+        logger.info(f"[UNetService] Generated mock UNet noise prediction with shape: {mock_noise.shape}")
+        print(f"[UNetService] Generated mock UNet noise prediction with shape: {mock_noise.shape}")
         return {
-            "latents": updated_latents.astype(np.float32),
             "noise_pred": mock_noise,
-            "latent_shape": list(updated_latents.shape),
+            "latent_shape": list(latents.shape),
+            "noise_shape": list(mock_noise.shape),
             "is_mock": True,
             "metadata": metadata,
         }
@@ -92,33 +87,63 @@ class UNetService:
         negative_pooled_embeddings: np.ndarray | None = None,
         guidance_scale: float = 7.0,
     ) -> dict[str, Any]:
-        current = latents
+        current = latents.astype(np.float32)
         any_mock = False
         last_result: dict[str, Any] | None = None
-        total = max(1, len(timesteps))
+        step_records: list[dict[str, Any]] = []
+        guidance_enabled = bool(negative_embeddings is not None and guidance_scale != 1.0)
 
         for index, timestep in enumerate(timesteps):
-            additional_inputs = {
+            next_timestep = timesteps[index + 1] if index + 1 < len(timesteps) else None
+            positive_inputs = {
                 "text_embeds": pooled_prompt_embeddings,
                 "time_ids": time_ids,
                 "pooled_prompt_embeds": pooled_prompt_embeddings,
             }
-            if negative_embeddings is not None:
-                additional_inputs["negative_embeddings"] = negative_embeddings
-            if negative_pooled_embeddings is not None:
-                additional_inputs["negative_pooled_embeddings"] = negative_pooled_embeddings
+            positive_result = self.predict_noise(current, timestep, prompt_embeddings, positive_inputs)
+            positive_noise = positive_result["noise_pred"]
+            negative_noise = None
+            negative_result: dict[str, Any] | None = None
 
-            result = self.predict_noise(current, timestep, prompt_embeddings, additional_inputs)
-            current = self.scheduler.step(current, result["latents"], timestep, index, total)
-            any_mock = any_mock or bool(result.get("is_mock"))
-            last_result = result
+            if guidance_enabled:
+                negative_inputs = {
+                    "text_embeds": negative_pooled_embeddings,
+                    "time_ids": time_ids,
+                    "pooled_prompt_embeds": negative_pooled_embeddings,
+                }
+                negative_result = self.predict_noise(current, timestep, negative_embeddings, negative_inputs)
+                negative_noise = negative_result["noise_pred"]
+
+            guided_noise = self.scheduler.combine_classifier_free_guidance(
+                positive_noise,
+                negative_noise,
+                guidance_scale,
+            )
+            current = self.scheduler.step(current, guided_noise, timestep, next_timestep)
+            any_mock = any_mock or bool(positive_result.get("is_mock")) or bool(negative_result and negative_result.get("is_mock"))
+            last_result = positive_result
+            step_records.append({
+                "index": index,
+                "timestep": timestep,
+                "next_timestep": next_timestep,
+                "positive_noise_shape": list(positive_noise.shape),
+                "negative_noise_shape": list(negative_noise.shape) if negative_noise is not None else None,
+                "guided_noise_shape": list(guided_noise.shape),
+                "latent_shape": list(current.shape),
+                "guidance_applied": bool(guidance_enabled and negative_noise is not None),
+                "mock_step": bool(positive_result.get("is_mock")) or bool(negative_result and negative_result.get("is_mock")),
+            })
 
         return {
             "latents": current.astype(np.float32),
             "latent_shape": list(current.shape),
             "is_mock": any_mock,
             "timesteps": timesteps,
-            "guidance_prepared": bool(negative_embeddings is not None and guidance_scale != 1.0),
+            "step_count": len(step_records),
+            "step_records": step_records,
+            "guidance_prepared": guidance_enabled,
+            "guidance_applied": any(record["guidance_applied"] for record in step_records),
+            "guidance_scale": float(guidance_scale),
             "last_unet_metadata": last_result.get("metadata") if last_result else {},
         }
 
@@ -153,6 +178,15 @@ class UNetService:
             else:
                 inputs[name] = self._zeros_for_shape(item.shape, np.float32)
         return inputs
+
+    def _normalize_noise_output(self, output: np.ndarray, latents: np.ndarray) -> np.ndarray:
+        output = output.astype(np.float32)
+        if output.shape == latents.shape:
+            return output
+        if output.size == latents.size:
+            return output.reshape(latents.shape).astype(np.float32)
+        logger.warning("UNet output shape %s does not match latents %s; using zeros noise.", output.shape, latents.shape)
+        return np.zeros_like(latents, dtype=np.float32)
 
     def _zeros_for_shape(self, shape: list[Any], dtype: Any) -> np.ndarray:
         resolved = [1 if isinstance(value, str) or value is None or value < 0 else int(value) for value in shape]
