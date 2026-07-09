@@ -8,6 +8,7 @@ import numpy as np
 
 from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
+from engine.onnx_provider_service import OnnxProviderService
 
 logger = logging.getLogger("TextEmbeddingService")
 
@@ -128,13 +129,13 @@ class TextEmbeddingService:
 
         if self.package.is_fully_ready() and component_path and Path(component_path).exists():
             try:
-                import onnxruntime as ort
-                session = ort.InferenceSession(component_path, providers=["CPUExecutionProvider"])
+                session = OnnxProviderService.create_session(component_path, component_name)
                 inputs = self._build_encoder_inputs(session, token_array)
                 output_names = [item.name for item in session.get_outputs()]
                 outputs = dict(zip(output_names, session.run(output_names, inputs)))
                 hidden = self._resolve_hidden_output(component_name, outputs, fallback_width)
                 pooled = self._resolve_pooled_output(component_name, outputs, hidden, fallback_width)
+                metadata["session_providers"] = OnnxProviderService.session_providers(session)
                 del session
                 return {
                     "embeddings": hidden,

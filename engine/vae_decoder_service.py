@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
+from engine.onnx_provider_service import OnnxProviderService
 
 logger = logging.getLogger("VAEDecoderService")
 
@@ -34,11 +35,10 @@ class VAEDecoderService:
         # Try to run VAE Decoder using ONNX Runtime if package is fully ready
         if self.package.is_fully_ready() and vae_path and Path(vae_path).exists():
             try:
-                import onnxruntime as ort
                 logger.info(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")
                 print(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")
                 
-                session = ort.InferenceSession(vae_path)
+                session = OnnxProviderService.create_session(vae_path, "vae_decoder")
                 input_name = session.get_inputs()[0].name
                 print(f"[VAEDecoderService] VAE mapped input: {input_name}")
                 
@@ -48,6 +48,7 @@ class VAEDecoderService:
                 
                 logger.info(f"[VAEDecoderService] VAE ONNX run successful. Output shape: {vae_output.shape}")
                 print(f"[VAEDecoderService] VAE ONNX run successful. Output shape: {vae_output.shape}")
+                metadata["session_providers"] = OnnxProviderService.session_providers(session)
                 
                 # Cleanup session
                 del session
@@ -62,7 +63,7 @@ class VAEDecoderService:
                     "image": pil_image,
                     "image_shape": [1, 3, img_h, img_w],
                     "is_mock": False,
-                    "backend": "ONNX VAE Decoder",
+                    "backend": OnnxProviderService.runtime_label([metadata.get("session_providers", [])]),
                     "metadata": metadata
                 }
             except Exception as e:

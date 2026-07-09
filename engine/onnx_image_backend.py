@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
+from engine.onnx_provider_service import OnnxProviderService
 from engine.runtime_model import RuntimeModel
 
 logger = logging.getLogger("OnnxImageBackend")
@@ -16,8 +17,7 @@ logger = logging.getLogger("OnnxImageBackend")
 
 class OnnxImageBackend(InferenceBackend):
     """
-    ONNX Runtime stub image generation backend.
-    Renders diagnostic text details indicating ONNX execution on a dark background using Pillow.
+    ONNX Runtime image generation backend with CPU fallback and optional QNN diagnostics.
     """
 
     def __init__(self, runtime_model: RuntimeModel | None = None) -> None:
@@ -87,8 +87,9 @@ class OnnxImageBackend(InferenceBackend):
         try:
             import onnxruntime
             version = getattr(onnxruntime, "__version__", "unknown")
+            diagnostics = OnnxProviderService.diagnostics()
             try:
-                providers = onnxruntime.get_available_providers()
+                providers = OnnxProviderService.available_providers()
             except Exception:
                 providers = []
             
@@ -113,14 +114,17 @@ class OnnxImageBackend(InferenceBackend):
                 logger.warning(f"[OnnxImageBackend] {warn_msg}")
                 print(f"[OnnxImageBackend] {warn_msg}")
                 
-            msg = f"ONNX Runtime v{version} available. Providers: {providers}"
+            msg = (
+                f"ONNX Runtime v{version} available. Providers: {providers}. "
+                f"QNN registration: {diagnostics.get('provider_registration_status')}"
+            )
             return True, msg
         except ImportError as e:
             return False, f"ONNX Runtime is not installed on this system: {e}"
 
     def generate(self, job: GenerationJob) -> GenerationResponse:
         model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
-        backend_name = "ONNX Runtime (Stub)"
+        backend_name = OnnxProviderService.runtime_label()
 
         # 1. Check ONNX Runtime availability
         available, check_msg = self.is_available()
@@ -184,12 +188,12 @@ class OnnxImageBackend(InferenceBackend):
             logger.info(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX files. Verifying: '{onnx_model_path}'")
             print(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX files. Verifying: '{onnx_model_path}'")
             try:
-                import onnxruntime as ort
-                session = ort.InferenceSession(onnx_model_path)
+                session = OnnxProviderService.create_session(onnx_model_path, "root_model")
                 inputs = [x.name for x in session.get_inputs()]
                 outputs = [x.name for x in session.get_outputs()]
-                logger.info(f"[OnnxImageBackend] Root InferenceSession verified. Inputs: {inputs}, Outputs: {outputs}")
-                print(f"[OnnxImageBackend] Root InferenceSession verified. Inputs: {inputs}, Outputs: {outputs}")
+                session_providers = OnnxProviderService.session_providers(session)
+                logger.info(f"[OnnxImageBackend] Root InferenceSession verified. Providers: {session_providers}, Inputs: {inputs}, Outputs: {outputs}")
+                print(f"[OnnxImageBackend] Root InferenceSession verified. Providers: {session_providers}, Inputs: {inputs}, Outputs: {outputs}")
                 del session
             except Exception as e:
                 logger.warning(f"[OnnxImageBackend] Root model loadability check skipped/failed (will use components fallback): {e}")
@@ -274,6 +278,14 @@ class OnnxImageBackend(InferenceBackend):
         from engine.vae_decoder_service import VAEDecoderService
         vae_service = VAEDecoderService(pkg)
         vae_res = vae_service.decode_latents(unet_res["latents"], prompt=job.session.prompt)
+        session_provider_lists = [
+            embed_res.get("encoder_metadata", {}).get("text_encoder", {}).get("session_providers", []),
+            embed_res.get("encoder_metadata", {}).get("text_encoder_2", {}).get("session_providers", []),
+            unet_res.get("last_unet_metadata", {}).get("session_providers", []),
+            vae_res.get("metadata", {}).get("session_providers", []),
+        ]
+        backend_name = OnnxProviderService.runtime_label(session_provider_lists)
+        provider_diagnostics = OnnxProviderService.diagnostics()
 
         # 5. Generate visual PNG and JSON output using the session and job parameters
         output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
@@ -371,6 +383,8 @@ class OnnxImageBackend(InferenceBackend):
             "initial_latent_shape": list(init_latents.shape),
             "final_latent_shape": unet_res.get("latent_shape", []),
             "component_metadata": component_metadata,
+            "provider_diagnostics": provider_diagnostics,
+            "session_provider_lists": session_provider_lists,
             "decoder_backend": vae_res["backend"],
             "is_mock_decoder": vae_res["is_mock"],
             "alpha_fallback": bool(not package_ready or embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"]),

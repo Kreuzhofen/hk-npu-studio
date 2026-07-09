@@ -8,6 +8,7 @@ import numpy as np
 
 from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
+from engine.onnx_provider_service import OnnxProviderService
 from engine.sdxl_scheduler_service import SDXLSchedulerService
 
 logger = logging.getLogger("UNetService")
@@ -42,10 +43,9 @@ class UNetService:
 
         if self.package.is_fully_ready() and unet_path and Path(unet_path).exists():
             try:
-                import onnxruntime as ort
                 logger.info(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
                 print(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
-                session = ort.InferenceSession(unet_path)
+                session = OnnxProviderService.create_session(unet_path, "unet")
                 inputs = self._build_unet_inputs(session, latents, timestep, encoder_hidden_states, additional_inputs or {})
                 logger.info(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
                 print(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
@@ -53,6 +53,7 @@ class UNetService:
                 output_noise = self._normalize_noise_output(np.asarray(outputs[0]), latents)
                 logger.info(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
                 print(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
+                metadata["session_providers"] = OnnxProviderService.session_providers(session)
                 del session
                 return {
                     "noise_pred": output_noise,
