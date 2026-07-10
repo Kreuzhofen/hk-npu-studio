@@ -4,6 +4,7 @@ import logging
 import queue
 import threading
 import tkinter as tk
+import datetime
 from tkinter import messagebox, ttk
 from pathlib import Path
 
@@ -695,13 +696,18 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self._generation_running = False
         self._cancel_progress_tick()
-        self._set_progress(100 if result.success else self._progress_percent, "Fertig" if result.success else "Fehler", self._step_text())
+        self._set_progress(100, "Fertig" if result.success else "Fehler", self._step_text())
         self._set_generation_busy(False)
 
         if result.success:
+            self._append_generation_diagnostic(result, "before_finish_callback")
             self._notify_generation_finished(result)
+            self._append_generation_diagnostic(result, "after_finish_callback")
+            self._append_generation_diagnostic(result, "before_gallery_open_callback")
             self._show_generated_output_in_library(result.image_path)
+            self._append_generation_diagnostic(result, "after_gallery_open_callback")
         else:
+            self._append_generation_diagnostic(result, "generation_failed", result.message)
             messagebox.showerror("AI Generate", result.message)
 
         self.refresh()
@@ -713,7 +719,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self._generation_running = False
         self._cancel_progress_tick()
         self.controller.model.update_state(status=f"Fehler: {error}")
-        self._set_progress(self._progress_percent, "Fehler", self._step_text())
+        self._set_progress(100, "Fehler", self._step_text())
         self._set_generation_busy(False)
         messagebox.showerror("AI Generate", str(error))
         self.refresh()
@@ -723,7 +729,25 @@ class PhoenixPromptView(WorkspaceFrame):
             from controllers.workflow_controller import WorkflowController
             WorkflowController.get_instance().on_generation_finished(result)
         except Exception as error:
+            self._append_generation_diagnostic(result, "finish_callback_exception", str(error))
             logger.warning("Workflow notification skipped after generation: %s", error)
+
+    def _append_generation_diagnostic(self, result, step: str, details: str = "") -> None:
+        metadata = getattr(result, "metadata", None)
+        if not isinstance(metadata, dict):
+            return
+        log_path = metadata.get("diagnostic_log_path")
+        if not log_path:
+            return
+        timestamp = datetime.datetime.now().isoformat(timespec="seconds")
+        line = f"[{timestamp}] {step}"
+        if details:
+            line = f"{line} | {details}"
+        try:
+            with open(log_path, "a", encoding="utf-8") as log_file:
+                log_file.write(line + "\n")
+        except Exception as error:
+            logger.warning("Generation diagnostic append failed: %s", error)
 
     def _set_generation_busy(self, busy: bool) -> None:
         if not self._is_view_alive():

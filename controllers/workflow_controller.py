@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from dataclasses import dataclass
 from typing import Any
 from controllers.model_repository import ModelRepository
@@ -81,17 +82,39 @@ class WorkflowController:
     def on_generation_finished(self, result: GenerationResult) -> None:
         """Register successful generation outputs for Gallery and Review workspaces."""
         if result.success and result.image_path:
+            self._append_generation_diagnostic(result, "before_workflow_state_update")
             self.state.last_generated_image = result.image_path
             self.state.selected_gallery_image = result.image_path
             self.state.selected_compare_image = result.image_path
+            self._append_generation_diagnostic(result, "after_workflow_state_update")
 
             if self.workspace is not None:
                 try:
+                    self._append_generation_diagnostic(result, "before_gallery_refresh")
                     gallery_view = self.workspace._get_or_create_view("gallery")
                     show_generated = getattr(gallery_view, "show_generated_image", None)
                     if callable(show_generated):
                         show_generated(result.image_path)
+                    self._append_generation_diagnostic(result, "after_gallery_refresh")
                 except Exception as error:
+                    self._append_generation_diagnostic(result, "gallery_refresh_exception", str(error))
                     print(f"[WorkflowController] Gallery update skipped: {error}")
 
         print(f"[WorkflowController] Generation Finished Callback. Success={result.success}, Status={result.status}")
+
+    def _append_generation_diagnostic(self, result: GenerationResult, step: str, details: str = "") -> None:
+        metadata = getattr(result, "metadata", None)
+        if not isinstance(metadata, dict):
+            return
+        log_path = metadata.get("diagnostic_log_path")
+        if not log_path:
+            return
+        timestamp = datetime.datetime.now().isoformat(timespec="seconds")
+        line = f"[{timestamp}] {step}"
+        if details:
+            line = f"{line} | {details}"
+        try:
+            with open(log_path, "a", encoding="utf-8") as log_file:
+                log_file.write(line + "\n")
+        except Exception:
+            pass

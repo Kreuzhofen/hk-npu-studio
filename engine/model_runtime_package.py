@@ -50,7 +50,7 @@ class ModelRuntimePackage:
         tokenizer_2 is optional for SDXL packages and may fall back to tokenizer.
         """
         for name, path_str in self.component_paths.items():
-            if name == "tokenizer_2":
+            if name in ["tokenizer_2", "text_encoder_2", "qnn_dlc"]:
                 continue
             if path_str:
                 p = Path(path_str)
@@ -61,15 +61,20 @@ class ModelRuntimePackage:
     def verify_components(self) -> dict[str, str]:
         """
         Verify status of each expected component in the package.
-        tokenizer_2 and qnn_dlc are optional unless QNN-DLC is the declared runtime.
+        tokenizer_2, text_encoder_2 and qnn_dlc are optional depending on the package declaration and capabilities.
         """
         statuses = {}
         if self.capabilities.qnn_dlc_runtime and not self.capabilities.onnx_runtime:
             expected_components = ["qnn_dlc"]
             optional_components: list[str] = []
         else:
-            expected_components = ["tokenizer", "text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler"]
-            optional_components = ["tokenizer_2", "qnn_dlc"]
+            expected_components = ["tokenizer", "text_encoder", "unet", "vae_decoder", "scheduler"]
+            optional_components = ["tokenizer_2", "qnn_dlc", "text_encoder_2"]
+
+            # If text_encoder_2 is declared, expect it to be present
+            if self.component_paths.get("text_encoder_2"):
+                expected_components.append("text_encoder_2")
+                optional_components.remove("text_encoder_2")
 
         for name in expected_components:
             path_str = self.component_paths.get(name)
@@ -114,8 +119,22 @@ class ModelRuntimePackage:
                 return "INVALID"
 
         if path.is_file():
+            # Support QNN precompiled wrappers (ONNX files pointing to QNN context binaries)
+            # which can be extremely small (<= 1024 bytes).
+            if path.suffix.lower() == ".onnx":
+                parent_dir = path.parent
+                stem = path.stem
+                context_bin1 = parent_dir / f"{name}_qairt_context.bin"
+                context_bin2 = parent_dir / f"{stem}_qairt_context.bin"
+                if context_bin1.exists() or context_bin2.exists():
+                    cb = context_bin1 if context_bin1.exists() else context_bin2
+                    if cb.stat().st_size > 0:
+                        return "READY"
+                    else:
+                        return "INVALID"
             return "FOUND" if path.stat().st_size <= 1024 else "READY"
         return "INVALID"
+
     def is_fully_ready(self) -> bool:
         """
         Checks if all required components are in the READY status.
@@ -124,6 +143,9 @@ class ModelRuntimePackage:
         optional = {"tokenizer_2"}
         if not self.capabilities.qnn_dlc_runtime:
             optional.add("qnn_dlc")
+        if not self.component_paths.get("text_encoder_2"):
+            optional.add("text_encoder_2")
+
         required = {name: status for name, status in statuses.items() if name not in optional}
         return all(status == "READY" for status in required.values())
 

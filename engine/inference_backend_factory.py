@@ -39,11 +39,14 @@ class InferenceBackendFactory:
         # Instantiate with runtime_model passed to constructor
         from engine.stub_image_backend import StubImageBackend
         from engine.onnx_image_backend import OnnxImageBackend
+        from engine.sd15_qnn_backend import StableDiffusion15QnnBackend
         
         if issubclass(backend_cls, StubImageBackend):
             return backend_cls(backend_name=name, runtime_model=runtime_model)
         elif issubclass(backend_cls, OnnxImageBackend):
             return backend_cls(runtime_model=runtime_model)
+        elif issubclass(backend_cls, StableDiffusion15QnnBackend):
+            return backend_cls()
             
         return backend_cls()
 
@@ -51,9 +54,11 @@ class InferenceBackendFactory:
 # Dynamic registration of the backends
 from engine.stub_image_backend import StubImageBackend
 from engine.onnx_image_backend import OnnxImageBackend
+from engine.sd15_qnn_backend import StableDiffusion15QnnBackend
 
 InferenceBackendFactory.register_backend("Stub", StubImageBackend)
 InferenceBackendFactory.register_backend("Local CPU (Stub)", StubImageBackend)
 InferenceBackendFactory.register_backend("Qualcomm QNN NPU (Stub)", StubImageBackend)
 InferenceBackendFactory.register_backend("ONNX Runtime CPU", OnnxImageBackend)
 InferenceBackendFactory.register_backend("ONNX Runtime (Stub)", OnnxImageBackend)
+InferenceBackendFactory.register_backend("Qualcomm Stable Diffusion 1.5 (HTP V73)", StableDiffusion15QnnBackend)

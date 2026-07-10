@@ -54,3 +54,7 @@ models/**/*.onnx_data
 !models/**/.gitkeep
 # Local model backups
 models/*_backup/
+
+# Diagnostics and local test models
+diagnostics/
+models/qnn_mobilenet_v2/

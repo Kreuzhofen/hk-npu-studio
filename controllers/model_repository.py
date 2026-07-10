@@ -348,6 +348,8 @@ class ModelRepository:
                 
             if pkg.is_fully_ready():
                 return PackageStatus.READY
+            elif pkg.is_valid_package():
+                return PackageStatus.INSTALLED
             else:
                 return PackageStatus.INVALID
         except Exception:

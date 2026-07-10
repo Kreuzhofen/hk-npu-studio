@@ -1,0 +1,32 @@
+{
+  "id": "stable_diffusion_v1_5_qnn",
+  "display_name": "Stable Diffusion 1.5 QNN",
+  "author": "Qualcomm",
+  "version": "1.5.0-qnn",
+  "license": "CreativeML Open RAIL-M",
+  "description": "Qualcomm precompiled Stable Diffusion 1.5 w8a16 model running on Hexagon NPU (HTP V73).",
+  "category": "Text-to-Image",
+  "backend": "Qualcomm Stable Diffusion 1.5 (HTP V73)",
+  "recommended_backend": "Qualcomm Stable Diffusion 1.5 (HTP V73)",
+  "minimum_ram_gb": 8,
+  "recommended_ram_gb": 16,
+  "supports": [
+    "txt2img"
+  ],
+  "installed": true,
+  "downloaded": true,
+  "path": "C:\\SnapdragonAI\\temp\\stable_diffusion_v1_5_qnn_inspection\\stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite",
+  "status": "Running on Qualcomm Hexagon HTP",
+  "capabilities": {
+    "txt2img": true,
+    "img2img": false,
+    "inpainting": false,
+    "outpainting": false,
+    "lora": false,
+    "controlnet": false,
+    "image_to_video": false,
+    "batch_generation": false,
+    "onnx_runtime": true,
+    "qnn_runtime": true
+  }
+}

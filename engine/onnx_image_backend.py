@@ -4,7 +4,9 @@ import time
 import datetime
 import json
 import logging
+import traceback
 from pathlib import Path
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
@@ -22,6 +24,60 @@ class OnnxImageBackend(InferenceBackend):
 
     def __init__(self, runtime_model: RuntimeModel | None = None) -> None:
         self.runtime_model = runtime_model
+
+    def _build_save_diagnostic_log_path(self, job: GenerationJob) -> Path:
+        logs_dir = Path("C:/SnapdragonAI/diagnostics/logs")
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        return logs_dir / f"prompt_to_image_save_{timestamp}_{str(job.job_id)[:8]}.log"
+
+    def _append_save_diagnostic(self, log_path: Path, step: str, details: str = "") -> None:
+        timestamp = datetime.datetime.now().isoformat(timespec="seconds")
+        message = f"[{timestamp}] {step}"
+        if details:
+            message = f"{message} | {details}"
+        try:
+            with open(log_path, "a", encoding="utf-8") as log_file:
+                log_file.write(message + "\n")
+        except Exception as error:
+            logger.warning("[OnnxImageBackend] Failed to write save diagnostic log: %s", error)
+
+    def _validate_output_image(self, image: object) -> dict[str, object]:
+        if not isinstance(image, Image.Image):
+            raise ValueError(f"VAE decoder returned invalid image type: {type(image).__name__}")
+        if image.width <= 0 or image.height <= 0:
+            raise ValueError(f"VAE decoder returned invalid image size: {image.size}")
+
+        array = np.asarray(image)
+        if array.size == 0:
+            raise ValueError("VAE decoder returned empty image data.")
+        if np.issubdtype(array.dtype, np.floating) and not np.isfinite(array).all():
+            raise ValueError("VAE decoder returned image data containing NaN or Inf values.")
+
+        return {
+            "mode": image.mode,
+            "size": list(image.size),
+            "shape": list(array.shape),
+            "dtype": str(array.dtype),
+            "min": float(np.min(array)),
+            "max": float(np.max(array)),
+        }
+
+    def _save_failure_response(
+        self,
+        message: str,
+        model_name: str,
+        backend_name: str,
+        diagnostic_log_path: Path,
+    ) -> GenerationResponse:
+        return GenerationResponse(
+            success=False,
+            status="SaveError",
+            message=message,
+            backend_name=backend_name,
+            model_name=model_name,
+            metadata={"diagnostic_log_path": str(diagnostic_log_path)}
+        )
 
     @staticmethod
     def discover_onnx_models(project_root: Path | str = "C:/SnapdragonAI") -> list[dict[str, any]]:
@@ -125,6 +181,12 @@ class OnnxImageBackend(InferenceBackend):
     def generate(self, job: GenerationJob) -> GenerationResponse:
         model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
         backend_name = OnnxProviderService.runtime_label()
+        save_diagnostic_log_path = self._build_save_diagnostic_log_path(job)
+        self._append_save_diagnostic(
+            save_diagnostic_log_path,
+            "generation_start",
+            f"job_id={job.job_id}, model={model_name}, size={job.session.width}x{job.session.height}, steps={job.session.steps}"
+        )
 
         # 1. Check ONNX Runtime availability
         available, check_msg = self.is_available()
@@ -277,7 +339,23 @@ class OnnxImageBackend(InferenceBackend):
         # 4.7. Integrate VAEDecoderService for VAE Latent Decoding
         from engine.vae_decoder_service import VAEDecoderService
         vae_service = VAEDecoderService(pkg)
-        vae_res = vae_service.decode_latents(unet_res["latents"], prompt=job.session.prompt)
+        try:
+            self._append_save_diagnostic(save_diagnostic_log_path, "before_vae_decode")
+            vae_res = vae_service.decode_latents(unet_res["latents"], prompt=job.session.prompt)
+            self._append_save_diagnostic(
+                save_diagnostic_log_path,
+                "after_vae_decode",
+                f"is_mock={vae_res.get('is_mock')}, backend={vae_res.get('backend')}, image_shape={vae_res.get('image_shape')}"
+            )
+        except Exception as error:
+            self._append_save_diagnostic(save_diagnostic_log_path, "vae_decode_exception", traceback.format_exc())
+            logger.exception("[OnnxImageBackend] VAE decode failed")
+            return self._save_failure_response(
+                f"VAE Decode fehlgeschlagen: {error}",
+                model_name,
+                backend_name,
+                save_diagnostic_log_path,
+            )
         session_provider_lists = [
             embed_res.get("encoder_metadata", {}).get("text_encoder", {}).get("session_providers", []),
             embed_res.get("encoder_metadata", {}).get("text_encoder_2", {}).get("session_providers", []),
@@ -286,6 +364,7 @@ class OnnxImageBackend(InferenceBackend):
         ]
         backend_name = OnnxProviderService.runtime_label(session_provider_lists)
         provider_diagnostics = OnnxProviderService.diagnostics()
+        alpha_fallback = bool(not package_ready or embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"])
 
         # 5. Generate visual PNG and JSON output using the session and job parameters
         output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
@@ -297,6 +376,10 @@ class OnnxImageBackend(InferenceBackend):
         dummy_image_path = output_dir / filename
 
         try:
+            self._append_save_diagnostic(save_diagnostic_log_path, "before_image_conversion")
+            image_stats = self._validate_output_image(vae_res.get("image"))
+            self._append_save_diagnostic(save_diagnostic_log_path, "after_image_validation", json.dumps(image_stats))
+
             try:
                 font_title = ImageFont.truetype("segoeui.ttf", 24)
                 font_subtitle = ImageFont.truetype("segoeui.ttf", 18)
@@ -316,36 +399,66 @@ class OnnxImageBackend(InferenceBackend):
 
             # Copy VAE decoded image and draw overlay metadata on it
             img = vae_res["image"].copy()
-            draw = ImageDraw.Draw(img)
-            draw.rectangle([(2, 2), (w - 3, h - 3)], outline="#3e4b59", width=2)
-            draw.line([(40, 100), (w - 40, 100)], fill="#10b981", width=3) # Green line for real load/generation
+            if img.mode not in ("RGB", "RGBA"):
+                img = img.convert("RGB")
+            self._append_save_diagnostic(
+                save_diagnostic_log_path,
+                "after_image_conversion",
+                f"mode={img.mode}, size={img.size}"
+            )
+            if alpha_fallback:
+                self._append_save_diagnostic(save_diagnostic_log_path, "before_diagnostic_renderer")
+                draw = ImageDraw.Draw(img)
+                img_w, img_h = img.size
+                draw.rectangle([(2, 2), (img_w - 3, img_h - 3)], outline="#3e4b59", width=2)
+                draw.line([(40, 100), (img_w - 40, 100)], fill="#10b981", width=3)
 
-            draw.text((40, 50), "Snapdragon AI Studio", fill="#10b981", font=font_title)
-            generation_label = "ONNX Real Image Generation" if package_ready and not vae_res.get("is_mock") else "ONNX Alpha Fallback Generation"
-            draw.text((40, 115), generation_label, fill="#e8edf2", font=font_subtitle)
+                draw.text((40, 50), "Snapdragon AI Studio", fill="#10b981", font=font_title)
+                draw.text((40, 115), "ONNX Alpha Fallback Generation", fill="#e8edf2", font=font_subtitle)
 
-            draw.text((40, 155), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 175), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 195), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 155), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 175), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 195), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
 
-            tokens_str = str(embed_res["tokens"][:8]) + "..." if len(embed_res["tokens"]) > 8 else str(embed_res["tokens"])
-            draw.text((40, 215), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 235), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 255), f"Pooled Shape: {embed_res['pooled_embedding_shape']}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 275), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 295), f"Decoder: {vae_res['backend']}", fill="#9aa7b2", font=font_body)
+                tokens_str = str(embed_res["tokens"][:8]) + "..." if len(embed_res["tokens"]) > 8 else str(embed_res["tokens"])
+                draw.text((40, 215), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 235), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 255), f"Pooled Shape: {embed_res['pooled_embedding_shape']}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 275), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 295), f"Decoder: {vae_res['backend']}", fill="#9aa7b2", font=font_body)
 
-            prompt_str = job.session.prompt
-            truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
-            draw.text((40, 325), "Prompt Preview:", fill="#e8edf2", font=font_body)
-            draw.text((40, 350), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
+                prompt_str = job.session.prompt
+                truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
+                draw.text((40, 325), "Prompt Preview:", fill="#e8edf2", font=font_body)
+                draw.text((40, 350), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
 
-            timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            draw.text((40, h - 50), f"Generated: {timestamp_str}", fill="#9aa7b2", font=font_body)
-
+                timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                draw.text((40, img_h - 50), f"Generated: {timestamp_str}", fill="#9aa7b2", font=font_body)
+                self._append_save_diagnostic(save_diagnostic_log_path, "after_diagnostic_renderer")
+            else:
+                self._append_save_diagnostic(
+                    save_diagnostic_log_path,
+                    "real_vae_output_selected",
+                    "Saving decoded VAE image without diagnostic overlay."
+                )
+            self._append_save_diagnostic(save_diagnostic_log_path, "before_png_save", str(dummy_image_path))
             img.save(dummy_image_path, format="PNG")
+            if not dummy_image_path.exists() or dummy_image_path.stat().st_size <= 0:
+                raise IOError(f"PNG save completed but output file is missing or empty: {dummy_image_path}")
+            self._append_save_diagnostic(
+                save_diagnostic_log_path,
+                "after_png_save",
+                f"path={dummy_image_path}, bytes={dummy_image_path.stat().st_size}"
+            )
         except Exception as e:
-            logger.error(f"[OnnxImageBackend] Failed to create dummy image: {e}")
+            self._append_save_diagnostic(save_diagnostic_log_path, "png_save_exception", traceback.format_exc())
+            logger.exception("[OnnxImageBackend] Failed to create output image")
+            return self._save_failure_response(
+                f"PNG konnte nicht gespeichert werden: {e}",
+                model_name,
+                backend_name,
+                save_diagnostic_log_path,
+            )
 
         # Prepare sidecar metadata dictionary
         response_metadata = {
@@ -387,19 +500,36 @@ class OnnxImageBackend(InferenceBackend):
             "session_provider_lists": session_provider_lists,
             "decoder_backend": vae_res["backend"],
             "is_mock_decoder": vae_res["is_mock"],
-            "alpha_fallback": bool(not package_ready or embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"]),
+            "diagnostic_log_path": str(save_diagnostic_log_path),
+            "image_stats": image_stats,
+            "alpha_fallback": alpha_fallback,
             "alpha_fallback_reason": "Package contains placeholder or incomplete ONNX components." if not package_ready else "",
         }
 
         # Write sidecar JSON alongside the image
         metadata_path = dummy_image_path.with_suffix(".json")
         try:
+            self._append_save_diagnostic(save_diagnostic_log_path, "before_json_sidecar_save", str(metadata_path))
             with open(metadata_path, "w", encoding="utf-8") as f:
                 json.dump(response_metadata, f, indent=2, ensure_ascii=False)
+            if not metadata_path.exists() or metadata_path.stat().st_size <= 0:
+                raise IOError(f"JSON sidecar save completed but file is missing or empty: {metadata_path}")
             logger.info(f"[OnnxImageBackend] Saved sidecar metadata to: {metadata_path}")
             print(f"[OnnxImageBackend] Saved sidecar metadata to: {metadata_path}")
+            self._append_save_diagnostic(
+                save_diagnostic_log_path,
+                "after_json_sidecar_save",
+                f"path={metadata_path}, bytes={metadata_path.stat().st_size}"
+            )
         except Exception as e:
-            logger.error(f"[OnnxImageBackend] Failed to save sidecar metadata: {e}")
+            self._append_save_diagnostic(save_diagnostic_log_path, "json_sidecar_exception", traceback.format_exc())
+            logger.exception("[OnnxImageBackend] Failed to save sidecar metadata")
+            return self._save_failure_response(
+                f"JSON-Metadaten konnten nicht gespeichert werden: {e}",
+                model_name,
+                backend_name,
+                save_diagnostic_log_path,
+            )
 
         # Simulate small generation latency
         time.sleep(0.05)
@@ -407,6 +537,7 @@ class OnnxImageBackend(InferenceBackend):
         logger.info(f"[OnnxImageBackend] Generation completed successfully. Image saved to: {dummy_image_path}")
         print(f"[OnnxImageBackend] Generation completed successfully. Image saved to: {dummy_image_path}")
 
+        self._append_save_diagnostic(save_diagnostic_log_path, "before_finish_response")
         return GenerationResponse(
             success=True,
             status="FINISHED",
