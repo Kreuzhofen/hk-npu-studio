@@ -310,7 +310,7 @@ class OnnxProviderService:
         provider_lists = session_provider_lists or []
         flat = [provider for providers in provider_lists for provider in providers]
         if cls.QNN_PROVIDER in flat:
-            return "ONNX Runtime + QNNExecutionProvider"
+            return "ONNX Runtime QNN Provider"
         if cls.QNN_PROVIDER in cls._providers_after:
             return "QNN available / CPU fallback"
         return "ONNX Runtime CPU"
@@ -328,3 +328,4 @@ class OnnxProviderService:
             "ai_stack_root": str(cls.AI_STACK_ROOT),
             "qnn_registration_attempted": cls._registration_attempted,
         }
+

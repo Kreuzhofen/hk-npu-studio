@@ -313,7 +313,7 @@ class ModelInstallService:
             "size_bytes": int
         }
         """
-        allowed_extensions = {".onnx", ".bin", ".safetensors", ".gguf", ".json", ".pb", ".pt", ".pth"}
+        allowed_extensions = {".onnx", ".dlc", ".bin", ".safetensors", ".gguf", ".json", ".pb", ".pt", ".pth"}
         result = {
             "success": False,
             "message": "Validierung gestartet.",
@@ -878,6 +878,7 @@ class ModelInstallService:
                     logger.warning("Failed to clean incomplete package directory: %s", package_dir)
             self._set_package_status(model_id, installed=False, downloaded=False, path="", status="Install Failed")
             return False
+
 
 
 

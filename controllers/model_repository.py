@@ -25,6 +25,7 @@ class ModelCapabilities:
         self.batch_generation = bool(data.get("batch_generation", False))
         self.onnx_runtime = bool(data.get("onnx_runtime", False))
         self.qnn_runtime = bool(data.get("qnn_runtime", False))
+        self.qnn_dlc_runtime = bool(data.get("qnn_dlc_runtime", False))
 
     def has_capability(self, capability: str) -> bool:
         normalized = capability.lower().replace("-", "_").replace(" ", "_")
@@ -41,7 +42,8 @@ class ModelCapabilities:
             "image_to_video": self.image_to_video,
             "batch_generation": self.batch_generation,
             "onnx_runtime": self.onnx_runtime,
-            "qnn_runtime": self.qnn_runtime
+            "qnn_runtime": self.qnn_runtime,
+            "qnn_dlc_runtime": self.qnn_dlc_runtime
         }
 
 
@@ -219,7 +221,7 @@ class ModelRepository:
                 component_runtimes = {}
                 
                 # Defined expected components for diffusion model pipeline
-                expected_components = ["tokenizer", "tokenizer_2", "text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler"]
+                expected_components = ["tokenizer", "tokenizer_2", "text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler", "qnn_dlc"]
                 components_config = package_data.get("components", {})
                 
                 for comp in expected_components:
@@ -232,7 +234,16 @@ class ModelRepository:
                     else:
                         component_paths[comp] = ""
                         
-                    component_runtimes[comp] = comp_cfg.get("runtime", "CPU" if comp in ["tokenizer", "tokenizer_2", "scheduler"] else "ONNX")
+                    if not rel_path:
+                        component_runtimes[comp] = ""
+                    else:
+                        if comp == "qnn_dlc":
+                            default_runtime = "QNN_DLC"
+                        elif comp in ["tokenizer", "tokenizer_2", "scheduler"]:
+                            default_runtime = "CPU"
+                        else:
+                            default_runtime = "ONNX"
+                        component_runtimes[comp] = comp_cfg.get("runtime", default_runtime)
                     
                 return ModelRuntimePackage(
                     model_id=model_id,
@@ -260,12 +271,18 @@ class ModelRepository:
             "text_encoder_2": str((base_dir / "text_encoder_2" / "model.onnx").as_posix()) if model_path else "",
             "unet": str((base_dir / "unet" / "model.onnx").as_posix()) if model_path else "",
             "vae_decoder": str((base_dir / "vae_decoder" / "model.onnx").as_posix()) if model_path else "",
-            "scheduler": str((base_dir / "scheduler").as_posix()) if model_path else ""
+            "scheduler": str((base_dir / "scheduler").as_posix()) if model_path else "",
+            "qnn_dlc": str((base_dir / "qnn_dlc" / "model.dlc").as_posix()) if model_path else ""
         }
         
         # Resolve runtime types based on model config
         backend_type = model.get("backend", "ONNX Runtime")
-        runtime_type = "ONNX" if "ONNX" in backend_type else "QNN"
+        if "DLC" in backend_type or "HTP" in backend_type:
+            runtime_type = "QNN_DLC"
+        elif "ONNX" in backend_type:
+            runtime_type = "ONNX"
+        else:
+            runtime_type = "QNN"
         
         component_runtimes = {
             "tokenizer": "CPU",
@@ -274,7 +291,8 @@ class ModelRepository:
             "text_encoder_2": runtime_type,
             "unet": runtime_type,
             "vae_decoder": runtime_type,
-            "scheduler": "CPU"
+            "scheduler": "CPU",
+            "qnn_dlc": "QNN_DLC"
         }
         
         return ModelRuntimePackage(
@@ -334,6 +352,9 @@ class ModelRepository:
                 return PackageStatus.INVALID
         except Exception:
             return PackageStatus.INVALID
+
+
+
 
 
 
