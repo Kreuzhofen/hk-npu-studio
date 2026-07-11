@@ -33,6 +33,17 @@ from engine.inference_backend import InferenceBackend
 
 logger = logging.getLogger("StableDiffusion15QnnBackend")
 
+
+def _read_git_commit() -> str:
+    try:
+        git_dir = Path(__file__).parent.parent / ".git"
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref: "):
+            return (git_dir / head[5:]).read_text(encoding="utf-8").strip()[:7]
+        return head[:7]
+    except OSError:
+        return "unknown"
+
 # Setup process environment for QNN runtime
 ROOT = Path(r"C:\SnapdragonAI\temp\sd15_first_npu_image")
 MODEL_DIR = Path(r"C:\SnapdragonAI\temp\stable_diffusion_v1_5_qnn_inspection\stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite")
@@ -519,6 +530,13 @@ class StableDiffusion15QnnBackend(InferenceBackend):
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "qnn_htp": "V73",
                 "cpu_fallback": False,
+                "git_commit": _read_git_commit(),
+                "backend_version": "2.45",
+                "runtime_version": provider_diagnostics["ort_version"],
+                "model_version": "1.5.0-qnn",
+                "tokenizer_version": "CLIPTokenizer/SD1.5",
+                "scheduler_version": "EulerScheduler",
+                "qairt_version": "2.45.0.260326154327",
                 "timings": {
                     "text_encoder_ms": t_text_encoder_ms,
                     "unet_total_ms": t_unet_total_ms,

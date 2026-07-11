@@ -33,6 +33,17 @@ from engine.inference_backend import InferenceBackend
 
 logger = logging.getLogger("StableDiffusion21QnnBackend")
 
+
+def _read_git_commit() -> str:
+    try:
+        git_dir = Path(__file__).parent.parent / ".git"
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref: "):
+            return (git_dir / head[5:]).read_text(encoding="utf-8").strip()[:7]
+        return head[:7]
+    except OSError:
+        return "unknown"
+
 # Setup process environment for QNN runtime
 ROOT = Path(r"C:\SnapdragonAI\temp\sd21_qnn_runtime")
 MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v2_1")
@@ -346,6 +357,10 @@ class StableDiffusion21QnnBackend(InferenceBackend):
         """
         model_name = job_data.get("model_name", "stable_diffusion_v2_1_qnn")
         logger.info(f"Starting physical generation for model '{model_name}'")
+        logger.info(
+            "Generation start | Model: %s | Backend: Qualcomm QNN | Runtime: ONNX Runtime QNN | HTP: V73 | Scheduler: DDIMScheduler | Prediction: v_prediction | Steps: %s | CFG: %s",
+            model_name, job_data.get("steps", 20), job_data.get("cfg_scale", 7.5),
+        )
 
         # Resolve paths
         from controllers.model_repository import ModelRepository
@@ -523,6 +538,13 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "qnn_htp": "V73",
                 "cpu_fallback": False,
+                "git_commit": _read_git_commit(),
+                "backend_version": "2.45",
+                "runtime_version": provider_diagnostics["ort_version"],
+                "model_version": "2.1.0-qnn",
+                "tokenizer_version": "CLIPTokenizer/SD2.1",
+                "scheduler_version": "diffusers-0.8.0 contract",
+                "qairt_version": "2.45.0.260326154327",
                 "total_runtime_seconds": total_duration,
                 "timings": {
                     "text_encoder_ms": t_text_encoder_ms,
@@ -547,6 +569,11 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             with open(metadata_path, "w", encoding="utf-8") as f:
                 json.dump(response_metadata, f, indent=2, ensure_ascii=False)
 
+            logger.info(
+                "Performance | Text Encoder: %.2f ms | UNet: %.2f ms | VAE: %.2f ms | Total: %.2f ms",
+                t_text_encoder_ms, t_unet_total_ms, t_vae_ms, total_duration * 1000.0,
+            )
+            logger.info("Generation completed successfully")
             return {
                 "success": True,
                 "message": "Qualcomm SD2.1 QNN local image generation completed successfully on Hexagon NPU.",
@@ -556,7 +583,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             }
 
         except Exception as e:
-            logger.exception("Pipeline execution failed")
+            logger.exception("Generation failed: %s", e)
             return {
                 "success": False,
                 "message": f"End-to-End Pipeline fehlgeschlagen: {e}",

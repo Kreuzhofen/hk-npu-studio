@@ -119,29 +119,28 @@ class BackendManager:
                 except Exception:
                     pass
             
-            if preferred:
-                pref_lower = preferred.lower()
-                if "stable diffusion 2.1 (htp v73)" in pref_lower:
-                    target_backend_name = "Qualcomm Stable Diffusion 2.1 (HTP V73)"
-                elif "stable diffusion 1.5 (htp v73)" in pref_lower:
-                    target_backend_name = "Qualcomm Stable Diffusion 1.5 (HTP V73)"
-                elif "qnn" in pref_lower or "npu" in pref_lower:
-                    target_backend_name = "Qualcomm QNN NPU (Stub)"
-                elif "onnx" in pref_lower:
-                    target_backend_name = "ONNX Runtime (Stub)"
-                elif "remote" in pref_lower:
-                    target_backend_name = "Remote Cloud API (Stub)"
-                elif "cpu" in pref_lower:
-                    target_backend_name = "CPU (Stub)"
+            if preferred and preferred in self._backends:
+                target_backend_name = preferred
 
-        # General priority fallback list
-        general_order = [
-            "Qualcomm Stable Diffusion 2.1 (HTP V73)",
-            "Qualcomm Stable Diffusion 1.5 (HTP V73)",
-            "Qualcomm QNN NPU (Stub)",
-            "ONNX Runtime (Stub)",
-            "CPU (Stub)"
-        ]
+        # Generic fallback priority by adapter capability/type.  Keep CPU last;
+        # registry insertion order must not affect execution priority.
+        def fallback_priority(adapter: BackendAdapter) -> int:
+            if isinstance(adapter, (StableDiffusion15QnnBackendAdapter, StableDiffusion21QnnBackendAdapter)):
+                return 0
+            if isinstance(adapter, QNNBackendAdapter):
+                return 1
+            if isinstance(adapter, ONNXBackendAdapter):
+                return 2
+            if isinstance(adapter, RemoteBackendAdapter):
+                return 3
+            if isinstance(adapter, CPUBackendAdapter):
+                return 5
+            return 4
+
+        general_order = sorted(
+            self._backends,
+            key=lambda name: fallback_priority(self._backends[name]),
+        )
 
         # Put preferred backend first if it is registered
         order = []
@@ -155,15 +154,6 @@ class BackendManager:
         for name in order:
             adapter = self.get_backend(name)
             if adapter and adapter.is_available():
-                return adapter
-
-        # Fallback to any active or registered backend
-        active = self.get_active_backend()
-        if active and active.is_available():
-            return active
-            
-        for adapter in self._backends.values():
-            if adapter.is_available():
                 return adapter
 
         return None

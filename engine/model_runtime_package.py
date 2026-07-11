@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 from typing import Any
 from pathlib import Path
 from controllers.model_repository import ModelCapabilities
@@ -124,16 +125,52 @@ class ModelRuntimePackage:
             if path.suffix.lower() == ".onnx":
                 parent_dir = path.parent
                 stem = path.stem
-                context_bin1 = parent_dir / f"{name}_qairt_context.bin"
-                context_bin2 = parent_dir / f"{stem}_qairt_context.bin"
-                if context_bin1.exists() or context_bin2.exists():
-                    cb = context_bin1 if context_bin1.exists() else context_bin2
+                candidates = (
+                    parent_dir / f"{name}_qairt_context.bin",
+                    parent_dir / f"{stem}_qairt_context.bin",
+                    parent_dir / f"{stem}.bin",
+                )
+                cb = next((candidate for candidate in candidates if candidate.exists()), None)
+                if cb is not None:
                     if cb.stat().st_size > 0:
                         return "READY"
                     else:
                         return "INVALID"
             return "FOUND" if path.stat().st_size <= 1024 else "READY"
         return "INVALID"
+
+    def validation_detail(self) -> dict[str, str]:
+        """Return a stable product-facing package validation code and path."""
+        if not (self.base_path / "package.json").is_file():
+            return {"code": "INCOMPLETE", "message": "Package manifest missing", "path": str(self.base_path / "package.json")}
+        if not (self.base_path / "metadata.json").is_file():
+            return {"code": "INCOMPLETE", "message": "Model metadata missing", "path": str(self.base_path / "metadata.json")}
+        statuses = self.verify_components()
+        labels = {"tokenizer": "MISSING TOKENIZER", "scheduler": "MISSING SCHEDULER"}
+        for name in ("tokenizer", "scheduler"):
+            if statuses.get(name) != "READY":
+                return {"code": labels[name], "message": labels[name].title(), "path": str(self.component_paths.get(name, ""))}
+        for name in ("text_encoder", "unet", "vae_decoder"):
+            path = Path(self.component_paths.get(name, ""))
+            if not path.is_file():
+                return {"code": "MISSING WRAPPER", "message": "ONNX wrapper missing", "path": str(path)}
+            if self._component_status(name, path) != "READY":
+                return {"code": "MISSING CONTEXT", "message": "Required QNN context binary not found", "path": str(self._expected_context_path(name, path))}
+        return {"code": "READY", "message": "Package ready", "path": str(self.base_path)}
+
+    def _expected_context_path(self, component_name: str, wrapper_path: Path) -> Path:
+        """Resolve the package's declared or conventional external QNN context path."""
+        metadata_path = self.base_path / "metadata.json"
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            metadata = {}
+
+        model_files = metadata.get("model_files", {})
+        stem_context = wrapper_path.with_suffix(".bin")
+        if isinstance(model_files, dict) and stem_context.name in model_files:
+            return stem_context
+        return wrapper_path.parent / f"{component_name}_qairt_context.bin"
 
     def is_fully_ready(self) -> bool:
         """
