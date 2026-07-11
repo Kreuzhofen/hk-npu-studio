@@ -1,0 +1,137 @@
+{
+    "model_id": "stable_diffusion_v2_1",
+    "model_name": "Stable-Diffusion-v2.1",
+    "runtime": "qnn_context_binary",
+    "precision": "w8a16",
+    "tool_versions": {
+        "qairt": "2.45.0.260326154327"
+    },
+    "model_files": {
+        "text_encoder.bin": {
+            "inputs": {
+                "tokens": {
+                    "shape": [
+                        1,
+                        77
+                    ],
+                    "dtype": "int32"
+                }
+            },
+            "outputs": {
+                "text_embedding": {
+                    "shape": [
+                        1,
+                        77,
+                        1024
+                    ],
+                    "dtype": "uint16",
+                    "quantization_parameters": {
+                        "scale": 0.0003611861611716449,
+                        "zero_point": 25953
+                    }
+                }
+            }
+        },
+        "unet.bin": {
+            "inputs": {
+                "timestep": {
+                    "shape": [
+                        1,
+                        1
+                    ],
+                    "dtype": "uint16",
+                    "quantization_parameters": {
+                        "scale": 0.014511330053210258,
+                        "zero_point": 0
+                    }
+                },
+                "latent": {
+                    "shape": [
+                        1,
+                        64,
+                        64,
+                        4
+                    ],
+                    "dtype": "uint16",
+                    "quantization_parameters": {
+                        "scale": 0.00039352630847133696,
+                        "zero_point": 36942
+                    }
+                },
+                "text_emb": {
+                    "shape": [
+                        1,
+                        77,
+                        1024
+                    ],
+                    "dtype": "uint16",
+                    "quantization_parameters": {
+                        "scale": 0.0003388274344615638,
+                        "zero_point": 23954
+                    }
+                }
+            },
+            "outputs": {
+                "output_latent": {
+                    "shape": [
+                        1,
+                        64,
+                        64,
+                        4
+                    ],
+                    "dtype": "uint16",
+                    "quantization_parameters": {
+                        "scale": 0.00032439929782412946,
+                        "zero_point": 26599
+                    }
+                }
+            }
+        },
+        "vae.bin": {
+            "inputs": {
+                "latent": {
+                    "shape": [
+                        1,
+                        64,
+                        64,
+                        4
+                    ],
+                    "dtype": "uint16",
+                    "quantization_parameters": {
+                        "scale": 0.00041641038842499256,
+                        "zero_point": 34999
+                    }
+                }
+            },
+            "outputs": {
+                "image": {
+                    "shape": [
+                        1,
+                        512,
+                        512,
+                        3
+                    ],
+                    "dtype": "uint16",
+                    "quantization_parameters": {
+                        "scale": 0.000015259021893143654,
+                        "zero_point": 0
+                    }
+                }
+            }
+        }
+    },
+    "chipset_attributes": {
+        "aliases": [
+            "qualcomm-snapdragon-x-elite",
+            "sc8380xp"
+        ],
+        "marketing_name": "Snapdragon® X Elite",
+        "world": "Compute",
+        "supports_fp16": true,
+        "htp_version": 73,
+        "soc_model": 60,
+        "reference_device": "Snapdragon X Elite CRD",
+        "supports_weight_sharing": true,
+        "name": "qualcomm-snapdragon-x-elite"
+    }
+}

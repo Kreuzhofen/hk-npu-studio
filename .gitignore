@@ -58,3 +58,11 @@ models/*_backup/
 # Diagnostics and local test models
 diagnostics/
 models/qnn_mobilenet_v2/
+
+# Qualcomm QNN context binaries
+models/**/*.bin
+
+# Keep SD2.1 EPContext ONNX wrappers
+!models/stable_diffusion_v2_1/text_encoder.onnx
+!models/stable_diffusion_v2_1/unet.onnx
+!models/stable_diffusion_v2_1/vae.onnx

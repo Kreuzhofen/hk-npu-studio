@@ -7,6 +7,7 @@ from engine.backends.qnn_backend_adapter import QNNBackendAdapter
 from engine.backends.onnx_backend_adapter import ONNXBackendAdapter
 from engine.backends.remote_backend_adapter import RemoteBackendAdapter
 from engine.backends.sd15_qnn_backend_adapter import StableDiffusion15QnnBackendAdapter
+from engine.backends.sd21_qnn_backend_adapter import StableDiffusion21QnnBackendAdapter
 from engine.backends.discovery_result import DiscoveryResult
 
 
@@ -27,6 +28,7 @@ class BackendManager:
         self.register_backend(ONNXBackendAdapter())
         self.register_backend(RemoteBackendAdapter())
         self.register_backend(StableDiffusion15QnnBackendAdapter())
+        self.register_backend(StableDiffusion21QnnBackendAdapter())
 
         # Set default active backend to CPU fallback stub
         self.set_active_backend("CPU (Stub)")
@@ -119,7 +121,9 @@ class BackendManager:
             
             if preferred:
                 pref_lower = preferred.lower()
-                if "stable diffusion 1.5 (htp v73)" in pref_lower:
+                if "stable diffusion 2.1 (htp v73)" in pref_lower:
+                    target_backend_name = "Qualcomm Stable Diffusion 2.1 (HTP V73)"
+                elif "stable diffusion 1.5 (htp v73)" in pref_lower:
                     target_backend_name = "Qualcomm Stable Diffusion 1.5 (HTP V73)"
                 elif "qnn" in pref_lower or "npu" in pref_lower:
                     target_backend_name = "Qualcomm QNN NPU (Stub)"
@@ -132,6 +136,7 @@ class BackendManager:
 
         # General priority fallback list
         general_order = [
+            "Qualcomm Stable Diffusion 2.1 (HTP V73)",
             "Qualcomm Stable Diffusion 1.5 (HTP V73)",
             "Qualcomm QNN NPU (Stub)",
             "ONNX Runtime (Stub)",
