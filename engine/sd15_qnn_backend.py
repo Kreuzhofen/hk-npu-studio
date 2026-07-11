@@ -134,11 +134,13 @@ class SimpleCLIPTokenizer:
         return [self.encoder[bpe_token] for bpe_token in bpe_tokens]
 
     def tokenize_prompt(self, prompt: str, max_length: int = 77) -> list[int]:
+        eos_token_id = 49407
         ids = [49406] + self.encode(prompt) + [49407]
         if len(ids) < max_length:
-            ids = ids + [0] * (max_length - len(ids))
+            ids = ids + [eos_token_id] * (max_length - len(ids))
         else:
             ids = ids[:max_length]
+            ids[-1] = eos_token_id
         return ids
 
 
@@ -468,7 +470,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
 
             # 5. VAE Decoder
             print("Decoding image on HTP", flush=True)
-            latents_vae = latents / 0.18215
+            latents_vae = latents
             # VAE latent input: scale=0.00034003707696683705, zero_point=34382
             latents_vae_quant = np.clip(np.round(latents_vae / 0.00034003707696683705) + 34382, 0, 65535).astype(np.uint16)
 
@@ -478,7 +480,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
 
             # Dequantize VAE output: scale=0.000015259021893143654, zero_point=0
             image_float = image_quant.astype(np.float32) * 0.000015259021893143654
-            image_rgb = np.clip((image_float[0] + 1.0) * 127.5, 0, 255).astype(np.uint8)
+            image_rgb = np.clip(image_float[0] * 255.0, 0, 255).astype(np.uint8)
 
             # Clean up sessions to release NPU memory
             text_encoder_session.end_profiling()
