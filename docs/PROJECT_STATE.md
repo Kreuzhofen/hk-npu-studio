@@ -1,12 +1,14 @@
 # Projektstatus – Snapdragon AI Studio
 
-**Stand:** 07.07.2026
+**Stand:** 12.07.2026
 **Zweig:** `feature/phoenix-rebuild`
 **Zielplattform:** Windows 11 ARM64 (Qualcomm Snapdragon X NPU via QNN)
 
 ---
 
 ## 1. Aktueller Status & Letzte Änderungen
+
+* **Recovery IQ-R01 – IQ-001/IQ-004:** Die SD1.5-/SD2.1-QNN-Backends respektieren die angeforderten Steps und ausdrücklich leere Negative Prompts. Der SD1.5-Euler-Vertrag verwendet `leading`, Offset 1 und epsilon Prediction; kompakte Sidecars dokumentieren Timesteps, Sigmas, Latent Scaling, Tensorstatistiken und Laufzeiten. AI Generate bezieht Auflösung, Steps, CFG, Seed, Sampler, Scheduler und Prediction Type modellunabhängig aus `generation_parameters`; Modellwechsel und Model-Manager-Aktivierung synchronisieren die sichtbaren Controls und den Generation-Job.
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:
 
@@ -369,4 +371,3 @@ Mit Sprint S-001 wurde die offizielle Neuausrichtung zur **AI Creative Suite (Pr
 * **Prompt / AI Generate** → **AI Generate**
 
 Detaillierte Vision siehe [PRODUCT_VISION_2.0.md](file:///C:/SnapdragonAI/docs/PRODUCT_VISION_2.0.md).
-

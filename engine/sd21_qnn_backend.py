@@ -32,6 +32,12 @@ from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
 
 logger = logging.getLogger("StableDiffusion21QnnBackend")
+DEFAULT_NEGATIVE_PROMPT = "blurry, low quality, distorted"
+
+
+def _resolve_negative_prompt(job_data: dict[str, Any]) -> str:
+    """Use the fallback only when the field is absent; preserve an explicit empty value."""
+    return str(job_data["negative_prompt"]) if "negative_prompt" in job_data else DEFAULT_NEGATIVE_PROMPT
 
 
 def _read_git_commit() -> str:
@@ -426,7 +432,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             tokenizer = SimpleCLIPTokenizer(vocab_path, merges_path)
 
             prompt = job_data.get("prompt", "")
-            negative_prompt = str(job_data.get("negative_prompt", ""))
+            negative_prompt = _resolve_negative_prompt(job_data)
 
             print("Tokenizing prompt", flush=True)
             cond_tokens = tokenizer.tokenize_prompt(prompt)
@@ -538,7 +544,9 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 "model": model_name,
                 "model_id": "stable_diffusion_v2_1_qnn",
                 "model_name": "Stable Diffusion 2.1",
+                "model_version": "2.1.0-qnn",
                 "backend": "Qualcomm Stable Diffusion 2.1 (HTP V73)",
+                "device": "Qualcomm Hexagon HTP V73",
                 "runtime": "ONNX Runtime QNN",
                 "htp_version": 73,
                 "seed": seed,
@@ -562,7 +570,6 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 "git_commit": _read_git_commit(),
                 "backend_version": "2.45",
                 "runtime_version": provider_diagnostics["ort_version"],
-                "model_version": "2.1.0-qnn",
                 "tokenizer_version": "CLIPTokenizer/SD2.1",
                 "scheduler_version": "diffusers-0.8.0 contract",
                 "qairt_version": "2.45.0.260326154327",

@@ -226,7 +226,7 @@ class PhoenixPromptView(WorkspaceFrame):
             activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
             width=12
         )
-        self.cfg_scale.set(7.0)
+        self.cfg_scale.set(7.5)
         self.cfg_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
 
         tk.Label(sampling_frame, text="Steps:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=1, sticky="w", pady=(0, 1))
@@ -248,14 +248,14 @@ class PhoenixPromptView(WorkspaceFrame):
         dropdown_frame.grid_columnconfigure(3, weight=1)
 
         tk.Label(dropdown_frame, text="Sampler:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
-        self.sampler_var = tk.StringVar(value="Euler a")
+        self.sampler_var = tk.StringVar(value="Euler")
         self.sampler_menu = tk.OptionMenu(dropdown_frame, self.sampler_var, "Euler a", "Euler", "DPM++ 2M", "DDIM", "LMS")
         self.sampler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         self.sampler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         self.sampler_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
 
         tk.Label(dropdown_frame, text="Sched.:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-        self.scheduler_var = tk.StringVar(value="Normal")
+        self.scheduler_var = tk.StringVar(value="Euler")
         self.scheduler_menu = tk.OptionMenu(dropdown_frame, self.scheduler_var, "Normal", "Karras", "Exponential", "SGM Uniform")
         self.scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         self.scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
@@ -307,7 +307,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
     def _apply_generation_contract(self, model_id: str) -> None:
         """Render the selected model's generic metadata contract without model-specific logic."""
-        contract = self.controller.get_generation_parameters(model_id)
+        contract = self.controller.select_model(model_id)
         if not contract:
             return
 
@@ -321,6 +321,10 @@ class PhoenixPromptView(WorkspaceFrame):
             spec = contract.get(name)
             if isinstance(spec, dict):
                 self._configure_option_contract(widget, variable, spec)
+
+        if contract.get("resolution_locked") is True:
+            self.width_menu.configure(state="disabled")
+            self.height_menu.configure(state="disabled")
 
         scale_controls = {"steps": self.steps_scale, "cfg": self.cfg_scale}
         for name, widget in scale_controls.items():
@@ -1036,8 +1040,6 @@ class PhoenixPromptView(WorkspaceFrame):
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""
         new_model = self.model_var.get()
-        self.controller.repository.set_active_model_id(new_model)
-
         if hasattr(self, "seed_entry"):
             self._apply_generation_contract(new_model)
 
@@ -1054,8 +1056,8 @@ class PhoenixPromptView(WorkspaceFrame):
             batch_size = int(self.batch_var.get() or 1)
         except Exception:
             prompt, neg_prompt = "", ""
-            seed, steps, cfg, width, height = -1, 20, 7.0, 512, 512
-            sampler, scheduler, batch_size = "Euler a", "Normal", 1
+            seed, steps, cfg, width, height = -1, 20, 7.5, 512, 512
+            sampler, scheduler, batch_size = "Euler", "Euler", 1
 
         self.controller.update_parameters(
             prompt=prompt, negative_prompt=neg_prompt,

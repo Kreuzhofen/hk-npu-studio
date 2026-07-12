@@ -20,6 +20,7 @@
   "official_qualcomm_package": true,
   "availability_message": "Qualcomm NPU package ready.",
   "generation_parameters": {
+    "resolution_locked": true,
     "width": {"default": 512, "values": [512], "editable": false},
     "height": {"default": 512, "values": [512], "editable": false},
     "steps": {"default": 20, "min": 1, "max": 100},

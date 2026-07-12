@@ -21,8 +21,8 @@ class PromptWorkspaceController:
         repository: ModelRepository | None = None,
     ) -> None:
         self.model = model or PromptWorkspaceModel()
-        self.generation_controller = generation_controller or GenerationController()
-        self.repository = repository or ModelRepository()
+        self.repository = repository or getattr(generation_controller, "repository", None) or ModelRepository()
+        self.generation_controller = generation_controller or GenerationController(repository=self.repository)
         self.last_response: Any = None
 
         # Dynamically populate model names from the data-driven repository
@@ -30,12 +30,41 @@ class PromptWorkspaceController:
         if not self.AVAILABLE_MODELS:
             self.AVAILABLE_MODELS = ["None"]
 
+        active_model = self.repository.get_active_model_id()
+        if active_model in self.AVAILABLE_MODELS:
+            self.select_model(active_model)
+
     def get_state(self) -> PromptWorkspaceState:
         return self.model.state
 
     def get_generation_parameters(self, model_id: str) -> dict[str, Any] | None:
         """Return the central model-specific generation control contract."""
         return self.repository.get_generation_parameters(model_id)
+
+    def select_model(self, model_id: str) -> dict[str, Any] | None:
+        """Select a model and synchronize controller state to its metadata defaults."""
+        contract = self.get_generation_parameters(model_id)
+        if not contract:
+            return None
+        values = {
+            name: spec.get("default")
+            for name, spec in contract.items()
+            if isinstance(spec, dict) and "default" in spec
+        }
+        self.repository.set_active_model_id(model_id)
+        self.model.update_state(
+            selected_model=model_id,
+            width=values["width"], height=values["height"],
+            steps=values["steps"], cfg=values["cfg"], seed=values["seed"],
+            sampler=values["sampler"], scheduler=values["scheduler"],
+        )
+        self.generation_controller.update_session(
+            model_name=model_id,
+            width=values["width"], height=values["height"],
+            steps=values["steps"], cfg_scale=values["cfg"], seed=values["seed"],
+            sampler=values["sampler"], scheduler=values["scheduler"],
+        )
+        return contract
 
     def update_parameters(
         self,

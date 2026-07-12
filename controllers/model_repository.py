@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -156,7 +157,34 @@ class ModelRepository:
         """Return the model-owned generation control contract, if declared."""
         model = self.get_model(model_id)
         parameters = model.get("generation_parameters") if model else None
-        return dict(parameters) if isinstance(parameters, dict) else None
+        return deepcopy(parameters) if isinstance(parameters, dict) else None
+
+    def validate_generation_parameters(
+        self, model_id: str, values: dict[str, Any]
+    ) -> tuple[bool, str]:
+        """Validate visible generation values against the model-owned contract."""
+        contract = self.get_generation_parameters(model_id)
+        if not contract:
+            return False, f"Kein Generation-Parametervertrag für Modell '{model_id}' gefunden."
+
+        for name, value in values.items():
+            spec = contract.get(name)
+            if not isinstance(spec, dict):
+                continue
+            allowed = spec.get("values")
+            if isinstance(allowed, list) and allowed and value not in allowed:
+                return False, f"{name} wird vom ausgewählten Modell nicht unterstützt: {value}"
+            if "min" in spec and value < spec["min"]:
+                return False, f"{name} muss mindestens {spec['min']} sein."
+            if "max" in spec and value > spec["max"]:
+                return False, f"{name} darf höchstens {spec['max']} sein."
+            resolution = spec.get("resolution")
+            if resolution and "min" in spec:
+                offset = (float(value) - float(spec["min"])) / float(resolution)
+                if abs(offset - round(offset)) > 1e-9:
+                    return False, f"{name} muss dem Raster {resolution} entsprechen."
+
+        return True, "Validierung erfolgreich."
 
     def update_model(self, model_id: str, **kwargs: Any) -> bool:
         """

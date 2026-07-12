@@ -5,6 +5,7 @@ from controllers.generation_session import GenerationSessionModel
 from controllers.generation_job import GenerationJob
 from controllers.generation_queue import GenerationQueue
 from controllers.generation_result import GenerationResult
+from controllers.model_repository import ModelRepository
 from engine.backends.backend_manager import BackendManager
 
 
@@ -15,10 +16,15 @@ class GenerationController:
     Now leverages a FIFO GenerationQueue for pipeline scheduling and BackendManager for adapter routing.
     """
 
-    def __init__(self, session: GenerationSessionModel | None = None) -> None:
+    def __init__(
+        self,
+        session: GenerationSessionModel | None = None,
+        repository: ModelRepository | None = None,
+    ) -> None:
         self.session = session or GenerationSessionModel()
         self.queue = GenerationQueue()
         self.backend_manager = BackendManager()
+        self.repository = repository or ModelRepository()
         self.is_generating = False
 
     def update_session(self, **kwargs: Any) -> None:
@@ -33,19 +39,9 @@ class GenerationController:
         if not self.session.prompt.strip():
             return False, "Prompt darf nicht leer sein."
         
-        if self.session.steps < 1 or self.session.steps > 150:
-            return False, "Steps müssen zwischen 1 und 150 liegen."
-            
-        if self.session.cfg_scale < 1.0 or self.session.cfg_scale > 30.0:
-            return False, "CFG Scale muss zwischen 1.0 und 30.0 liegen."
-
-        if self.session.width <= 0 or self.session.height <= 0:
-            return False, "Breite und Höhe müssen positive Werte sein."
-
-        from controllers.model_repository import ModelRepository
-        contract = ModelRepository().get_generation_parameters(self.session.model_name)
-        if contract:
-            session_values = {
+        return self.repository.validate_generation_parameters(
+            self.session.model_name,
+            {
                 "width": self.session.width,
                 "height": self.session.height,
                 "steps": self.session.steps,
@@ -53,20 +49,8 @@ class GenerationController:
                 "seed": self.session.seed,
                 "sampler": self.session.sampler,
                 "scheduler": self.session.scheduler,
-            }
-            for name, value in session_values.items():
-                spec = contract.get(name)
-                if not isinstance(spec, dict):
-                    continue
-                allowed = spec.get("values")
-                if isinstance(allowed, list) and allowed and value not in allowed:
-                    return False, f"{name} wird vom ausgewählten Modell nicht unterstützt: {value}"
-                if "min" in spec and value < spec["min"]:
-                    return False, f"{name} muss mindestens {spec['min']} sein."
-                if "max" in spec and value > spec["max"]:
-                    return False, f"{name} darf höchstens {spec['max']} sein."
-
-        return True, "Validierung erfolgreich."
+            },
+        )
 
     def queue_generation(self, notify_workflow: bool = True) -> GenerationResult:
         """
@@ -99,8 +83,7 @@ class GenerationController:
         print("--------------------------------------------")
 
         # Resolve model metadata
-        from controllers.model_repository import ModelRepository
-        repo = ModelRepository()
+        repo = self.repository
         model_metadata = repo.get_model(job_session.model_name)
 
         # Verify model installation prior to execution
