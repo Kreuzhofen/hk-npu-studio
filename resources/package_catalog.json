@@ -2,6 +2,10 @@
   "packages": [
     {
       "model_id": "cogvideox",
+      "catalog_status": "RESEARCH",
+      "official_qualcomm_package": false,
+      "product_available": false,
+      "availability_message": "Official Qualcomm NPU package not available.",
       "display_name": "CogVideoX",
       "version": "1.0.0",
       "description": "Local text-to-video package entry for future SMP installation.",
@@ -25,6 +29,10 @@
     },
     {
       "model_id": "flux_dev",
+      "catalog_status": "NO QUALCOMM PACKAGE",
+      "official_qualcomm_package": false,
+      "product_available": false,
+      "availability_message": "Official Qualcomm NPU package not available.",
       "display_name": "Flux.1 Dev",
       "version": "1.0.0",
       "description": "State-of-the-art 12B parameter rectified flow transformer local text-to-image model.",
@@ -48,6 +56,10 @@
     },
     {
       "model_id": "ltx_video",
+      "catalog_status": "RESEARCH",
+      "official_qualcomm_package": false,
+      "product_available": false,
+      "availability_message": "Official Qualcomm NPU package not available.",
       "display_name": "LTX Video",
       "version": "1.0.0",
       "description": "Local video generation package entry for future SMP installation.",
@@ -71,6 +83,10 @@
     },
     {
       "model_id": "sd35_large",
+      "catalog_status": "NO QUALCOMM PACKAGE",
+      "official_qualcomm_package": false,
+      "product_available": false,
+      "availability_message": "Official Qualcomm NPU package not available.",
       "display_name": "Stable Diffusion 3.5 Large",
       "version": "1.0.0",
       "description": "Large local text-to-image generation package entry for future SMP installation.",
@@ -94,6 +110,10 @@
     },
     {
       "model_id": "sdxl_base",
+      "catalog_status": "NO QUALCOMM PACKAGE",
+      "official_qualcomm_package": false,
+      "product_available": false,
+      "availability_message": "Official Qualcomm NPU package not available.",
       "display_name": "Stable Diffusion XL Base",
       "version": "1.0",
       "description": "High-resolution local text-to-image generation model utilizing two text encoders.",
@@ -117,6 +137,10 @@
     },
     {
       "model_id": "sdxl_refiner",
+      "catalog_status": "NO QUALCOMM PACKAGE",
+      "official_qualcomm_package": false,
+      "product_available": false,
+      "availability_message": "Official Qualcomm NPU package not available.",
       "display_name": "Stable Diffusion XL Refiner",
       "version": "1.0.0",
       "description": "Local image refinement package entry for future SMP installation.",
@@ -140,6 +164,10 @@
     },
     {
       "model_id": "wan22",
+      "catalog_status": "RESEARCH",
+      "official_qualcomm_package": false,
+      "product_available": false,
+      "availability_message": "Official Qualcomm NPU package not available.",
       "display_name": "WAN 2.2",
       "version": "1.0.0",
       "description": "Local video generation package entry for future SMP installation.",

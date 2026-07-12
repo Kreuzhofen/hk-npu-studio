@@ -24,6 +24,10 @@ class PackageCatalogEntry:
     download_url: str
     checksum: str | None = None
     status: str | None = None
+    catalog_status: str | None = None
+    official_qualcomm_package: bool = False
+    product_available: bool = False
+    availability_message: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "PackageCatalogEntry":
@@ -54,6 +58,10 @@ class PackageCatalogEntry:
             download_url=str(data["download_url"]),
             checksum=str(data["checksum"]) if data.get("checksum") else None,
             status=str(data["status"]) if data.get("status") else None,
+            catalog_status=str(data["catalog_status"]) if data.get("catalog_status") else None,
+            official_qualcomm_package=bool(data.get("official_qualcomm_package", False)),
+            product_available=bool(data.get("product_available", False)),
+            availability_message=str(data["availability_message"]) if data.get("availability_message") else None,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -69,6 +77,10 @@ class PackageCatalogEntry:
             "download_url": self.download_url,
             "checksum": self.checksum,
             "status": self.status,
+            "catalog_status": self.catalog_status,
+            "official_qualcomm_package": self.official_qualcomm_package,
+            "product_available": self.product_available,
+            "availability_message": self.availability_message,
         }
 
 

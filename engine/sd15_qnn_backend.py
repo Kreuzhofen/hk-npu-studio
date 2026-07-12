@@ -44,6 +44,20 @@ def _read_git_commit() -> str:
     except OSError:
         return "unknown"
 
+
+def _tensor_summary(name: str, value: np.ndarray) -> dict[str, Any]:
+    """Return compact tensor diagnostics without serializing tensor values."""
+    array = np.asarray(value)
+    return {
+        "name": name,
+        "shape": list(array.shape),
+        "dtype": str(array.dtype),
+        "min": float(array.min()),
+        "max": float(array.max()),
+        "mean": float(array.mean()),
+        "standard_deviation": float(array.std()),
+    }
+
 # Setup process environment for QNN runtime
 ROOT = Path(r"C:\SnapdragonAI\temp\sd15_first_npu_image")
 MODEL_DIR = Path(r"C:\SnapdragonAI\temp\stable_diffusion_v1_5_qnn_inspection\stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite")
@@ -163,8 +177,10 @@ class EulerScheduler:
         self.alphas_cumprod = np.cumprod(self.alphas, axis=0)
         
     def set_timesteps(self, num_inference_steps: int) -> None:
-        timesteps = np.linspace(self.num_train_timesteps - 1, 0, num_inference_steps, dtype=np.float32)
-        self.timesteps = np.round(timesteps).astype(np.int32)
+        step_ratio = self.num_train_timesteps // num_inference_steps
+        self.timesteps = (
+            np.arange(num_inference_steps) * step_ratio
+        ).round()[::-1].astype(np.int32) + 1
         
         sigmas_full = ((1.0 - self.alphas_cumprod) / self.alphas_cumprod) ** 0.5
         sigmas = []
@@ -394,7 +410,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
         # Force 512x512 resolution for this precompiled model layout
         width = 512
         height = 512
-        steps = min(job_data.get("steps", 10), 10) # cap to 10 steps for sprint limits
+        steps = int(job_data.get("steps", 20))
 
         t_pipeline_start = time.time()
         try:
@@ -405,7 +421,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
             tokenizer = SimpleCLIPTokenizer(vocab_path, merges_path)
             
             prompt = job_data.get("prompt", "")
-            negative_prompt = job_data.get("negative_prompt", "") or "blurry, low quality, distorted"
+            negative_prompt = str(job_data.get("negative_prompt", ""))
 
             print("Tokenizing prompt", flush=True)
             cond_tokens = tokenizer.tokenize_prompt(prompt)
@@ -438,6 +454,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
                 seed = int(time.time()) % 100000
             rng = np.random.default_rng(seed=seed)
             latents = rng.standard_normal((1, 64, 64, 4), dtype=np.float32) * scheduler.sigmas[0]
+            initial_latents = latents.copy()
 
             # 4. Denoising Loop
             print("Generating on Qualcomm Hexagon HTP", flush=True)
@@ -515,6 +532,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
             png_size = image_path.stat().st_size
 
             # Save JSON sidecar
+            total_duration = time.time() - t_pipeline_start
             response_metadata = {
                 "prompt": prompt,
                 "negative_prompt": negative_prompt,
@@ -527,6 +545,14 @@ class StableDiffusion15QnnBackend(InferenceBackend):
                 "cfg": cfg,
                 "sampler": "Euler a",
                 "scheduler": "EulerScheduler",
+                "prediction_type": "epsilon",
+                "timesteps": scheduler.timesteps.tolist(),
+                "sigmas": scheduler.sigmas.tolist(),
+                "latent_scaling": {
+                    "initial_noise_sigma": float(scheduler.sigmas[0]),
+                    "unet_input": "latents / sqrt(sigma^2 + 1)",
+                    "vae_scaling_applied": False,
+                },
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "qnn_htp": "V73",
                 "cpu_fallback": False,
@@ -537,6 +563,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
                 "tokenizer_version": "CLIPTokenizer/SD1.5",
                 "scheduler_version": "EulerScheduler",
                 "qairt_version": "2.45.0.260326154327",
+                "total_runtime_seconds": total_duration,
                 "timings": {
                     "text_encoder_ms": t_text_encoder_ms,
                     "unet_total_ms": t_unet_total_ms,
@@ -547,12 +574,27 @@ class StableDiffusion15QnnBackend(InferenceBackend):
                 "qnn_htp_verified": True,
                 "cpu_fallback_used": False
             }
+            response_metadata["tensor_diagnostics"] = [
+                _tensor_summary("text_encoder.tokens.conditional", cond_arr),
+                _tensor_summary("text_encoder.tokens.unconditional", uncond_arr),
+                _tensor_summary("text_encoder.text_embedding.conditional", cond_emb_q),
+                _tensor_summary("text_encoder.text_embedding.unconditional", uncond_emb_q),
+                _tensor_summary("unet.text_emb.conditional", cond_emb_unet),
+                _tensor_summary("unet.text_emb.unconditional", uncond_emb_unet),
+                _tensor_summary("unet.latent.initial", initial_latents),
+                _tensor_summary("unet.output_latent.conditional.last", out_cond_q),
+                _tensor_summary("unet.output_latent.unconditional.last", out_uncond_q),
+                _tensor_summary("vae.latent.float", latents_vae),
+                _tensor_summary("vae.latent.quantized", latents_vae_quant),
+                _tensor_summary("vae.image.quantized", image_quant),
+                _tensor_summary("image.float", image_float),
+                _tensor_summary("image.rgb_uint8", image_rgb),
+            ]
 
             metadata_path = image_path.with_suffix(".json")
             with open(metadata_path, "w", encoding="utf-8") as f:
                 json.dump(response_metadata, f, indent=2, ensure_ascii=False)
 
-            total_duration = time.time() - t_pipeline_start
             return {
                 "success": True,
                 "message": "Qualcomm SD1.5 QNN local image generation completed successfully on Hexagon NPU.",

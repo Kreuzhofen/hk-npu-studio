@@ -26,12 +26,16 @@ class PromptWorkspaceController:
         self.last_response: Any = None
 
         # Dynamically populate model names from the data-driven repository
-        self.AVAILABLE_MODELS = [m["id"] for m in self.repository.get_all_models()]
+        self.AVAILABLE_MODELS = [m["id"] for m in self.repository.get_product_models()]
         if not self.AVAILABLE_MODELS:
             self.AVAILABLE_MODELS = ["None"]
 
     def get_state(self) -> PromptWorkspaceState:
         return self.model.state
+
+    def get_generation_parameters(self, model_id: str) -> dict[str, Any] | None:
+        """Return the central model-specific generation control contract."""
+        return self.repository.get_generation_parameters(model_id)
 
     def update_parameters(
         self,

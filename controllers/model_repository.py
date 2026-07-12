@@ -113,7 +113,11 @@ class ModelRepository:
                     print(f"[ModelRepository] Error loading {filename}: {e}")
 
         if ModelRepository._active_model_id is None and self._models:
-            ModelRepository._active_model_id = list(self._models.keys())[0]
+            product_model = next(
+                (model_id for model_id, model in self._models.items() if model.get("product_available") is True),
+                None,
+            )
+            ModelRepository._active_model_id = product_model or list(self._models.keys())[0]
 
     def _validate_model_data(self, data: dict[str, Any]) -> bool:
         """
@@ -138,6 +142,21 @@ class ModelRepository:
         Get all registered models.
         """
         return list(self._models.values())
+
+    def get_product_models(self) -> list[dict[str, Any]]:
+        """Return only models explicitly approved for productive generation."""
+        return [model for model in self._models.values() if model.get("product_available") is True]
+
+    def is_product_model(self, model_id: str) -> bool:
+        """Whether a model may be selected in a production generation workspace."""
+        model = self.get_model(model_id)
+        return bool(model and model.get("product_available") is True)
+
+    def get_generation_parameters(self, model_id: str) -> dict[str, Any] | None:
+        """Return the model-owned generation control contract, if declared."""
+        model = self.get_model(model_id)
+        parameters = model.get("generation_parameters") if model else None
+        return dict(parameters) if isinstance(parameters, dict) else None
 
     def update_model(self, model_id: str, **kwargs: Any) -> bool:
         """

@@ -53,6 +53,8 @@ class ModelManagerController:
 
     def set_active_model_id(self, model_id: str | None) -> None:
         """Set the active model ID in the single source of truth."""
+        if model_id is not None and not self.model.repository.is_product_model(model_id):
+            return
         self.model.repository.set_active_model_id(model_id)
 
     def get_discovery_result(self) -> DiscoveryResult:

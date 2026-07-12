@@ -42,6 +42,30 @@ class GenerationController:
         if self.session.width <= 0 or self.session.height <= 0:
             return False, "Breite und Höhe müssen positive Werte sein."
 
+        from controllers.model_repository import ModelRepository
+        contract = ModelRepository().get_generation_parameters(self.session.model_name)
+        if contract:
+            session_values = {
+                "width": self.session.width,
+                "height": self.session.height,
+                "steps": self.session.steps,
+                "cfg": self.session.cfg_scale,
+                "seed": self.session.seed,
+                "sampler": self.session.sampler,
+                "scheduler": self.session.scheduler,
+            }
+            for name, value in session_values.items():
+                spec = contract.get(name)
+                if not isinstance(spec, dict):
+                    continue
+                allowed = spec.get("values")
+                if isinstance(allowed, list) and allowed and value not in allowed:
+                    return False, f"{name} wird vom ausgewählten Modell nicht unterstützt: {value}"
+                if "min" in spec and value < spec["min"]:
+                    return False, f"{name} muss mindestens {spec['min']} sein."
+                if "max" in spec and value > spec["max"]:
+                    return False, f"{name} darf höchstens {spec['max']} sein."
+
         return True, "Validierung erfolgreich."
 
     def queue_generation(self, notify_workflow: bool = True) -> GenerationResult:

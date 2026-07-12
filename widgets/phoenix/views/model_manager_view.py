@@ -549,6 +549,10 @@ class PhoenixModelManagerView(tk.Frame):
             "UPDATE_AVAILABLE": "[UPDATE AVAILABLE]",
             "INVALID": "[INVALID]",
             "READY": "[READY]",
+            "INSTALLABLE": "[INSTALLABLE]",
+            "COMING_SOON": "[COMING SOON]",
+            "NO_QUALCOMM_PACKAGE": "[NO QUALCOMM PACKAGE]",
+            "RESEARCH": "[RESEARCH]",
         }
         return labels.get(normalized, f"[{normalized.replace('_', ' ')}]")
 
@@ -584,7 +588,7 @@ class PhoenixModelManagerView(tk.Frame):
             return PHOENIX_THEME.text_primary
         if normalized == "INVALID":
             return PHOENIX_THEME.text_disabled
-        if normalized == "NOT_INSTALLED":
+        if normalized in {"NOT_INSTALLED", "COMING_SOON", "NO_QUALCOMM_PACKAGE", "RESEARCH"}:
             return PHOENIX_THEME.text_muted
         return PHOENIX_THEME.accent
 
@@ -729,7 +733,12 @@ class PhoenixModelManagerView(tk.Frame):
         return None
 
     def _resolved_package_status(self, model_id: str) -> str:
+        model = self.controller.get_model_details(model_id)
+        if model and model.get("catalog_status"):
+            return self._format_status(model.get("catalog_status"))
         package = self._get_catalog_package(model_id)
+        if package and package.get("catalog_status"):
+            return self._format_status(package.get("catalog_status"))
         if package:
             return self._format_status(package.get("status"))
         try:
@@ -783,7 +792,12 @@ class PhoenixModelManagerView(tk.Frame):
             text=self._format_runtime_availability_badge(required_runtime, self._runtime_availability(required_runtime))
         )
         self.inspect_package_size.configure(text=self._format_size(package))
-        self.inspect_download_url.configure(text=self._safe_text(package.get("download_url") if package else None, "Nicht verfügbar"))
+        availability_message = self._safe_text(
+            (package.get("availability_message") if package else None) or model.get("availability_message"),
+            "Nicht verfügbar",
+        )
+        download_url = package.get("download_url") if package else None
+        self.inspect_download_url.configure(text=self._safe_text(download_url, availability_message))
         self.inspect_checksum.configure(text=self._safe_text(package.get("checksum") if package else None, "Nicht verfügbar"))
         self.inspect_capabilities.configure(text=self._format_capabilities(capabilities))
 
@@ -1091,6 +1105,15 @@ class PhoenixModelManagerView(tk.Frame):
         model_id = selected[0]
         model = self.controller.get_model_details(model_id)
         if not model:
+            return
+
+        if model.get("product_available") is not True:
+            self.status_lbl.configure(
+                text=self._safe_text(
+                    model.get("availability_message"),
+                    "Official Qualcomm NPU package not available.",
+                )
+            )
             return
 
         display_name = model["display_name"]

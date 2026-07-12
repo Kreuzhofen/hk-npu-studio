@@ -18,6 +18,10 @@
   "downloaded": false,
   "path": "",
   "status": "Available for Download",
+  "catalog_status": "RESEARCH",
+  "product_available": false,
+  "official_qualcomm_package": false,
+  "availability_message": "Official Qualcomm NPU package not available.",
   "capabilities": {
     "txt2img": true,
     "img2img": false,

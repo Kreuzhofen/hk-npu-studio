@@ -197,17 +197,17 @@ class PhoenixPromptView(WorkspaceFrame):
 
         tk.Label(size_frame, text="Breite:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
         self.width_var = tk.StringVar(value="512")
-        width_menu = tk.OptionMenu(size_frame, self.width_var, "256", "512", "768", "1024")
-        width_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
-        width_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
-        width_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+        self.width_menu = tk.OptionMenu(size_frame, self.width_var, "256", "512", "768", "1024")
+        self.width_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        self.width_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        self.width_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
 
         tk.Label(size_frame, text="Höhe:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
         self.height_var = tk.StringVar(value="512")
-        height_menu = tk.OptionMenu(size_frame, self.height_var, "256", "512", "768", "1024")
-        height_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
-        height_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
-        height_menu.grid(row=0, column=3, sticky="ew", pady=2)
+        self.height_menu = tk.OptionMenu(size_frame, self.height_var, "256", "512", "768", "1024")
+        self.height_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        self.height_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        self.height_menu.grid(row=0, column=3, sticky="ew", pady=2)
         r += 1
 
         # ── Group: Sampling ───────────────────────────
@@ -249,17 +249,17 @@ class PhoenixPromptView(WorkspaceFrame):
 
         tk.Label(dropdown_frame, text="Sampler:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
         self.sampler_var = tk.StringVar(value="Euler a")
-        sampler_menu = tk.OptionMenu(dropdown_frame, self.sampler_var, "Euler a", "Euler", "DPM++ 2M", "DDIM", "LMS")
-        sampler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
-        sampler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
-        sampler_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+        self.sampler_menu = tk.OptionMenu(dropdown_frame, self.sampler_var, "Euler a", "Euler", "DPM++ 2M", "DDIM", "LMS")
+        self.sampler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        self.sampler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        self.sampler_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
 
         tk.Label(dropdown_frame, text="Sched.:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
         self.scheduler_var = tk.StringVar(value="Normal")
-        scheduler_menu = tk.OptionMenu(dropdown_frame, self.scheduler_var, "Normal", "Karras", "Exponential", "SGM Uniform")
-        scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
-        scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
-        scheduler_menu.grid(row=0, column=3, sticky="ew", pady=2)
+        self.scheduler_menu = tk.OptionMenu(dropdown_frame, self.scheduler_var, "Normal", "Karras", "Exponential", "SGM Uniform")
+        self.scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        self.scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        self.scheduler_menu.grid(row=0, column=3, sticky="ew", pady=2)
         r += 1
 
         # ── Group: Output ─────────────────────────────
@@ -288,6 +288,61 @@ class PhoenixPromptView(WorkspaceFrame):
         batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
+
+        self._apply_generation_contract(self.model_var.get())
+
+    @staticmethod
+    def _configure_option_contract(widget: tk.OptionMenu, variable: tk.StringVar, spec: dict) -> None:
+        """Apply a metadata-owned list contract to an option control."""
+        values = [str(value) for value in spec.get("values", [])]
+        default = str(spec.get("default", values[0] if values else variable.get()))
+        if default not in values:
+            values.insert(0, default)
+        menu = widget["menu"]
+        menu.delete(0, "end")
+        for value in values:
+            menu.add_command(label=value, command=tk._setit(variable, value))
+        variable.set(default)
+        widget.configure(state="normal" if spec.get("editable", True) and len(values) > 1 else "disabled")
+
+    def _apply_generation_contract(self, model_id: str) -> None:
+        """Render the selected model's generic metadata contract without model-specific logic."""
+        contract = self.controller.get_generation_parameters(model_id)
+        if not contract:
+            return
+
+        option_controls = {
+            "width": (self.width_menu, self.width_var),
+            "height": (self.height_menu, self.height_var),
+            "sampler": (self.sampler_menu, self.sampler_var),
+            "scheduler": (self.scheduler_menu, self.scheduler_var),
+        }
+        for name, (widget, variable) in option_controls.items():
+            spec = contract.get(name)
+            if isinstance(spec, dict):
+                self._configure_option_contract(widget, variable, spec)
+
+        scale_controls = {"steps": self.steps_scale, "cfg": self.cfg_scale}
+        for name, widget in scale_controls.items():
+            spec = contract.get(name)
+            if not isinstance(spec, dict):
+                continue
+            options = {}
+            if "min" in spec:
+                options["from_"] = spec["min"]
+            if "max" in spec:
+                options["to"] = spec["max"]
+            if "resolution" in spec:
+                options["resolution"] = spec["resolution"]
+            if options:
+                widget.configure(**options)
+            if "default" in spec:
+                widget.set(spec["default"])
+
+        seed_spec = contract.get("seed")
+        if isinstance(seed_spec, dict) and "default" in seed_spec:
+            self.seed_entry.delete(0, "end")
+            self.seed_entry.insert(0, str(seed_spec["default"]))
 
     def _section_header(self, parent: tk.Frame, title: str, row: int) -> int:
         """Create a subtle section divider label and return the next row index."""
@@ -982,6 +1037,9 @@ class PhoenixPromptView(WorkspaceFrame):
         """Trace callback when the model variable is updated in the UI."""
         new_model = self.model_var.get()
         self.controller.repository.set_active_model_id(new_model)
+
+        if hasattr(self, "seed_entry"):
+            self._apply_generation_contract(new_model)
 
         try:
             prompt = self.prompt_text.get("1.0", "end-1c")

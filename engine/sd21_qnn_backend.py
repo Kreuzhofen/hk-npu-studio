@@ -44,6 +44,20 @@ def _read_git_commit() -> str:
     except OSError:
         return "unknown"
 
+
+def _tensor_summary(name: str, value: np.ndarray) -> dict[str, Any]:
+    """Return compact tensor diagnostics without serializing tensor values."""
+    array = np.asarray(value)
+    return {
+        "name": name,
+        "shape": list(array.shape),
+        "dtype": str(array.dtype),
+        "min": float(array.min()),
+        "max": float(array.max()),
+        "mean": float(array.mean()),
+        "standard_deviation": float(array.std()),
+    }
+
 # Setup process environment for QNN runtime
 ROOT = Path(r"C:\SnapdragonAI\temp\sd21_qnn_runtime")
 MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v2_1")
@@ -412,7 +426,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             tokenizer = SimpleCLIPTokenizer(vocab_path, merges_path)
 
             prompt = job_data.get("prompt", "")
-            negative_prompt = job_data.get("negative_prompt", "") or "blurry, low quality, distorted"
+            negative_prompt = str(job_data.get("negative_prompt", ""))
 
             print("Tokenizing prompt", flush=True)
             cond_tokens = tokenizer.tokenize_prompt(prompt)
@@ -445,6 +459,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 seed = int(time.time()) % 100000
             rng = np.random.default_rng(seed=seed)
             latents = rng.standard_normal((1, 64, 64, 4), dtype=np.float32)
+            initial_latents = latents.copy()
 
             # 4. Denoising Loop
             print("Generating on Qualcomm Hexagon HTP", flush=True)
@@ -534,7 +549,13 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 "sampler": "DDIM",
                 "scheduler": "DDIMScheduler",
                 "prediction_type": "v_prediction",
+                "timesteps": scheduler.timesteps.tolist(),
                 "latent_scaling_applied": False,
+                "latent_scaling": {
+                    "initial_noise_sigma": 1.0,
+                    "unet_input": "latents (no sigma scaling)",
+                    "vae_scaling_applied": False,
+                },
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "qnn_htp": "V73",
                 "cpu_fallback": False,
@@ -564,6 +585,22 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 "output_fraction_at_0": float(np.mean(image_quant == 0)),
                 "output_fraction_at_65535": float(np.mean(image_quant == 65535)),
             }
+            response_metadata["tensor_diagnostics"] = [
+                _tensor_summary("text_encoder.tokens.conditional", cond_arr),
+                _tensor_summary("text_encoder.tokens.unconditional", uncond_arr),
+                _tensor_summary("text_encoder.text_embedding.conditional", cond_emb_q),
+                _tensor_summary("text_encoder.text_embedding.unconditional", uncond_emb_q),
+                _tensor_summary("unet.text_emb.conditional", cond_emb_unet),
+                _tensor_summary("unet.text_emb.unconditional", uncond_emb_unet),
+                _tensor_summary("unet.latent.initial", initial_latents),
+                _tensor_summary("unet.output_latent.conditional.last", out_cond_q),
+                _tensor_summary("unet.output_latent.unconditional.last", out_uncond_q),
+                _tensor_summary("vae.latent.float", latents_vae),
+                _tensor_summary("vae.latent.quantized", latents_vae_quant),
+                _tensor_summary("vae.image.quantized", image_quant),
+                _tensor_summary("image.float", image_float),
+                _tensor_summary("image.rgb_uint8", image_rgb),
+            ]
 
             metadata_path = image_path.with_suffix(".json")
             with open(metadata_path, "w", encoding="utf-8") as f:

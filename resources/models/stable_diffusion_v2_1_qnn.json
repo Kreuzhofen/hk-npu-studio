@@ -15,6 +15,20 @@
   "downloaded": true,
   "path": "C:\\SnapdragonAI\\models\\stable_diffusion_v2_1",
   "status": "Running on Qualcomm Hexagon HTP",
+  "catalog_status": "READY",
+  "product_available": true,
+  "official_qualcomm_package": true,
+  "availability_message": "Qualcomm NPU package ready.",
+  "generation_parameters": {
+    "width": {"default": 512, "values": [512], "editable": false},
+    "height": {"default": 512, "values": [512], "editable": false},
+    "steps": {"default": 20, "min": 1, "max": 100},
+    "cfg": {"default": 7.5, "min": 1.0, "max": 20.0, "resolution": 0.5},
+    "seed": {"default": -1},
+    "sampler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
+    "scheduler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
+    "prediction_type": "v_prediction"
+  },
   "capabilities": {
     "txt2img": true, "img2img": false, "inpainting": false,
     "outpainting": false, "lora": false, "controlnet": false,
