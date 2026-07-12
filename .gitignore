@@ -10,6 +10,8 @@ venv/
 # Temporäre Daten
 temp/
 output/
+data/*.sqlite3
+data/*.sqlite3-*
 
 # Windows
 Thumbs.db

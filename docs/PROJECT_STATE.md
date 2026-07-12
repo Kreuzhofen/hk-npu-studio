@@ -8,6 +8,7 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
+* **Sprint P4-001A – AI Asset Library Index Foundation:** Eine medienneutrale Asset-Index-Schicht synchronisiert unterstützte Bilder aus dem zentralen Output-Pfad deterministisch in einen lokalen SQLite-Index unter `data/asset_index.sqlite3`. Das Dateisystem bleibt Source of Truth; SQLite enthält ausschließlich reproduzierbare Such- und Metadaten, niemals Asset-Dateien. JSON-Sidecars werden bevorzugt und fehlertolerant ausgewertet, geänderte Assets aktualisiert und entfernte Assets als fehlend markiert. Die Struktur bereitet Video-Assets architektonisch vor, implementiert aber noch keine Videoverarbeitung, GUI-Umschaltung oder Live-Überwachung. Der PO-Abnahme-Bugfix aktualisiert die Gallery-Auswahl bei Einzel- und Doppelklick direkt an bestehenden Karten, sodass kein Grid-Neuaufbau und kein erneuter Thumbnail-Load ausgelöst wird.
 * **Recovery IQ-R01 – IQ-001/IQ-004:** Die SD1.5-/SD2.1-QNN-Backends respektieren die angeforderten Steps und ausdrücklich leere Negative Prompts. Der SD1.5-Euler-Vertrag verwendet `leading`, Offset 1 und epsilon Prediction; kompakte Sidecars dokumentieren Timesteps, Sigmas, Latent Scaling, Tensorstatistiken und Laufzeiten. AI Generate bezieht Auflösung, Steps, CFG, Seed, Sampler, Scheduler und Prediction Type modellunabhängig aus `generation_parameters`; Modellwechsel und Model-Manager-Aktivierung synchronisieren die sichtbaren Controls und den Generation-Job.
 
 Am **08.07.2026** bzw. **07.07.2026** wurden folgende Sprints abgeschlossen:

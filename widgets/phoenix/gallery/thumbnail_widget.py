@@ -85,7 +85,7 @@ class ThumbnailWidget(tk.Frame):
         self._bind_events(self.image_label)
 
         # 1. Dateiname
-        name_label = tk.Label(
+        self.name_label = tk.Label(
             self,
             text=self._short_filename(self.image.filename),
             bg=PHOENIX_THEME.elevated_bg,
@@ -95,14 +95,14 @@ class ThumbnailWidget(tk.Frame):
             justify="center",
             wraplength=max(self.MIN_WRAP_LENGTH, self.size + PHOENIX_THEME.space_md),
         )
-        name_label.grid(
+        self.name_label.grid(
             row=1,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_sm,
             pady=(PHOENIX_THEME.space_xs, 0),
         )
-        self._bind_events(name_label)
+        self._bind_events(self.name_label)
 
         # 2. Auflösung (z.B. 1920 × 1080)
         res_text = self.image.resolution_label
@@ -189,6 +189,17 @@ class ThumbnailWidget(tk.Frame):
             image=self.thumbnail_image,
             text="",
             font=None,
+        )
+
+    def set_selected(self, selected: bool) -> None:
+        """Update selection styling without rebuilding or reloading the thumbnail."""
+        self.selected = selected
+        self.configure(
+            highlightbackground=PHOENIX_THEME.accent if selected else PHOENIX_THEME.border,
+            highlightthickness=2 if selected else 1,
+        )
+        self.name_label.configure(
+            fg=PHOENIX_THEME.text_primary if selected else PHOENIX_THEME.text_secondary,
         )
 
     def destroy(self) -> None:

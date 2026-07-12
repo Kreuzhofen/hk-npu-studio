@@ -3,6 +3,8 @@ from pathlib import Path
 BASE = Path(r"C:\SnapdragonAI")
 INPUT_DIR = BASE / "input"
 OUTPUT_DIR = BASE / "output"
+DATA_DIR = BASE / "data"
+ASSET_INDEX_DB = DATA_DIR / "asset_index.sqlite3"
 TEMP_DIR = BASE / "temp"
 MODELS_DIR = BASE / "models"
 PLUGINS_DIR = BASE / "plugins"

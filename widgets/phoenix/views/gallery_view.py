@@ -95,7 +95,7 @@ class PhoenixGalleryView(WorkspaceFrame):
         """Behandelt das Anklicken einer Karte zur visuellen Markierung."""
         # Einzelbildauswahl (Mehrfachauswahl laut Sprintumfang nicht implementiert)
         self.controller.select_image(image, ctrl=False, shift=False)
-        self._refresh_ui()
+        self._refresh_selection_ui()
 
     def _clear_selection(self) -> None:
         """Löscht die visuelle Selektionsmarkierung."""
@@ -106,7 +106,7 @@ class PhoenixGalleryView(WorkspaceFrame):
         # First ensure the image is selected in the controller
         self.controller.select_image(image, ctrl=False, shift=False)
         path = self.controller.prepare_compare_source()
-        self._refresh_ui()
+        self._refresh_selection_ui()
 
         if path:
             app = self.winfo_toplevel()
@@ -129,6 +129,16 @@ class PhoenixGalleryView(WorkspaceFrame):
             selected_paths=self.controller.selected_paths,
             thumbnail_size=self.controller.get_thumbnail_size(),
         )
+        self.status_bar.update_values(
+            image_count=self.controller.get_image_count(),
+            selection_count=self.controller.get_selection_count(),
+            thumbnail_size=self.controller.thumbnail_size_label,
+            status=self.controller.get_status(),
+        )
+
+    def _refresh_selection_ui(self) -> None:
+        """Refresh selection/status without rebuilding the thumbnail grid."""
+        self.thumbnail_area.set_selection(self.controller.selected_paths)
         self.status_bar.update_values(
             image_count=self.controller.get_image_count(),
             selection_count=self.controller.get_selection_count(),

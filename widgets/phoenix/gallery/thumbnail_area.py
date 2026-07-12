@@ -92,6 +92,15 @@ class GalleryThumbnailArea(tk.Frame):
         self.thumbnail_size = thumbnail_size
         self._render_grid()
 
+    def set_selection(self, selected_paths: set[Path]) -> None:
+        """Update card selection in place, preserving loaded thumbnail widgets."""
+        if self.selected_paths == selected_paths:
+            return
+        self.selected_paths = set(selected_paths)
+        for child in self.grid_frame.winfo_children():
+            if isinstance(child, ThumbnailWidget):
+                child.set_selected(child.image.path in self.selected_paths)
+
 
     def get_column_count(self) -> int:
         return self.current_columns
