@@ -1693,92 +1693,85 @@ class PhoenixPromptView(WorkspaceFrame):
         if not hasattr(self, "dnd_card") or not self.dnd_card.winfo_exists():
             return
 
-        # Clear existing widgets
-        for widget in self.dnd_card.winfo_children():
-            try:
-                widget.destroy()
-            except Exception:
-                pass
-
-        # Define hover highlight to change border color
-        def on_dnd_enter(event):
-            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.accent)
-        def on_dnd_leave(event):
-            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
-
         input_path = self.controller.model.state.input_image_path
-        if input_path:
-            # Loaded state: show thumbnail, name, resolution, and remove button
-            filename = "Unbekannt"
-            resolution = "-"
-            photo_image = None
-            try:
-                from PIL import Image, ImageTk
-                path = Path(input_path)
-                if path.exists() and path.is_file():
-                    filename = path.name
-                    with Image.open(path) as img:
-                        w, h = img.size
-                        resolution = f"{w} × {h}"
-                        # Scale thumbnail to compact size fit
-                        img.thumbnail((70, 70))
-                        photo_image = ImageTk.PhotoImage(img)
-                        self._dnd_photo_ref = photo_image
-                else:
-                    filename = "Datei nicht gefunden"
-            except Exception as e:
-                logger.error("Failed to render DND preview thumbnail: %s", e)
-                filename = "Fehler beim Laden"
+        if (
+            getattr(self, "_dnd_preview_widgets_ready", False)
+            and self._dnd_rendered_input_path == input_path
+        ):
+            return
 
-            self.dnd_card.grid_columnconfigure(0, weight=0)
-            self.dnd_card.grid_columnconfigure(1, weight=1)
+        if not getattr(self, "_dnd_preview_widgets_ready", False):
+            def on_dnd_enter(event):
+                self.dnd_card.configure(highlightbackground=PHOENIX_THEME.accent)
 
-            # Left side: Thumbnail preview
-            if photo_image:
-                preview_lbl = tk.Label(
-                    self.dnd_card,
-                    image=photo_image,
-                    bg=PHOENIX_THEME.surface,
-                )
-                preview_lbl.grid(row=0, column=0, padx=12, pady=8, sticky="w")
-            else:
-                preview_lbl = tk.Label(
-                    self.dnd_card,
-                    text="❌",
-                    font=("Segoe UI", 16),
-                    bg=PHOENIX_THEME.surface,
-                    fg=PHOENIX_THEME.accent,
-                )
-                preview_lbl.grid(row=0, column=0, padx=12, pady=8, sticky="w")
+            def on_dnd_leave(event):
+                self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
 
-            # Right side: Metadata and Remove Button
-            meta_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface)
-            meta_frame.grid(row=0, column=1, padx=(0, 12), pady=8, sticky="nsew")
-            meta_frame.columnconfigure(0, weight=1)
+            def on_dnd_click(event):
+                if self._dnd_visible_state == "empty":
+                    self._on_dnd_click(event)
 
-            display_filename = filename if len(filename) < 24 else filename[:21] + "..."
-            name_lbl = tk.Label(
-                meta_frame,
-                text=display_filename,
+            self.dnd_card.grid_columnconfigure(0, weight=1)
+
+            self._dnd_empty_frame = tk.Frame(
+                self.dnd_card,
+                bg=PHOENIX_THEME.surface,
+                cursor="hand2",
+            )
+            self._dnd_empty_frame.columnconfigure(0, weight=1)
+            self._dnd_empty_icon = tk.Label(
+                self._dnd_empty_frame,
+                text="📥",
+                font=("Segoe UI", 20),
+                bg=PHOENIX_THEME.surface,
+                fg=PHOENIX_THEME.accent,
+                cursor="hand2",
+            )
+            self._dnd_empty_icon.grid(row=0, column=0, pady=(0, 4))
+            self._dnd_empty_text = tk.Label(
+                self._dnd_empty_frame,
+                text="Bild hierher ziehen oder klicken",
+                font=PHOENIX_THEME.font_caption,
+                fg=PHOENIX_THEME.text_muted,
+                bg=PHOENIX_THEME.surface,
+                cursor="hand2",
+            )
+            self._dnd_empty_text.grid(row=1, column=0)
+
+            self._dnd_loaded_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface)
+            self._dnd_loaded_frame.grid_columnconfigure(1, weight=1)
+            self._dnd_preview_label = tk.Label(
+                self._dnd_loaded_frame,
+                text="❌",
+                font=("Segoe UI", 16),
+                bg=PHOENIX_THEME.surface,
+                fg=PHOENIX_THEME.accent,
+            )
+            self._dnd_preview_label.grid(row=0, column=0, padx=12, pady=8, sticky="w")
+
+            self._dnd_meta_frame = tk.Frame(self._dnd_loaded_frame, bg=PHOENIX_THEME.surface)
+            self._dnd_meta_frame.grid(row=0, column=1, padx=(0, 12), pady=8, sticky="nsew")
+            self._dnd_meta_frame.columnconfigure(0, weight=1)
+            self._dnd_name_label = tk.Label(
+                self._dnd_meta_frame,
+                text="",
                 font=PHOENIX_THEME.font_body,
                 fg=PHOENIX_THEME.text_primary,
                 bg=PHOENIX_THEME.surface,
                 anchor="w",
             )
-            name_lbl.grid(row=0, column=0, sticky="w", pady=(0, 2))
-
-            res_lbl = tk.Label(
-                meta_frame,
-                text=resolution,
+            self._dnd_name_label.grid(row=0, column=0, sticky="w", pady=(0, 2))
+            self._dnd_resolution_label = tk.Label(
+                self._dnd_meta_frame,
+                text="-",
                 font=PHOENIX_THEME.font_caption,
                 fg=PHOENIX_THEME.text_muted,
                 bg=PHOENIX_THEME.surface,
                 anchor="w",
             )
-            res_lbl.grid(row=1, column=0, sticky="w", pady=(0, 6))
-
-            remove_btn = tk.Button(
-                meta_frame,
+            self._dnd_resolution_label.grid(row=1, column=0, sticky="w", pady=(0, 6))
+            self._dnd_remove_button = tk.Button(
+                self._dnd_meta_frame,
                 text="✕ Bild entfernen",
                 command=self._remove_reference_image,
                 bg=PHOENIX_THEME.elevated_bg,
@@ -1792,60 +1785,81 @@ class PhoenixPromptView(WorkspaceFrame):
                 padx=8,
                 pady=4,
             )
-            remove_btn.grid(row=2, column=0, sticky="w")
-            self._add_button_hover(remove_btn)
+            self._dnd_remove_button.grid(row=2, column=0, sticky="w")
+            self._add_button_hover(self._dnd_remove_button)
 
-            # Bind hover highlights to card
-            for widget in (self.dnd_card, preview_lbl, meta_frame, name_lbl, res_lbl, remove_btn):
+            empty_widgets = (
+                self.dnd_card,
+                self._dnd_empty_frame,
+                self._dnd_empty_icon,
+                self._dnd_empty_text,
+            )
+            all_widgets = empty_widgets + (
+                self._dnd_loaded_frame,
+                self._dnd_preview_label,
+                self._dnd_meta_frame,
+                self._dnd_name_label,
+                self._dnd_resolution_label,
+                self._dnd_remove_button,
+            )
+            for widget in empty_widgets:
+                widget.bind("<Button-1>", on_dnd_click)
+            for widget in all_widgets:
                 widget.bind("<Enter>", on_dnd_enter, add="+")
                 widget.bind("<Leave>", on_dnd_leave, add="+")
 
-        else:
-            # Empty state: show upload icon and text prompt
-            self.dnd_card.grid_columnconfigure(0, weight=1)
-            self.dnd_card.grid_columnconfigure(1, weight=0)
-
-            container = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface, cursor="hand2")
-            container.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
-            container.columnconfigure(0, weight=1)
-
-            dnd_icon_lbl = tk.Label(
-                container,
-                text="📥",
-                font=("Segoe UI", 20),
-                bg=PHOENIX_THEME.surface,
-                fg=PHOENIX_THEME.accent,
-                cursor="hand2",
-            )
-            dnd_icon_lbl.grid(row=0, column=0, pady=(0, 4))
-
-            dnd_text_lbl = tk.Label(
-                container,
-                text="Bild hierher ziehen oder klicken",
-                font=PHOENIX_THEME.font_caption,
-                fg=PHOENIX_THEME.text_muted,
-                bg=PHOENIX_THEME.surface,
-                cursor="hand2",
-            )
-            dnd_text_lbl.grid(row=1, column=0)
-
-            # Bind clicks
-            for widget in (self.dnd_card, container, dnd_icon_lbl, dnd_text_lbl):
-                widget.bind("<Button-1>", self._on_dnd_click)
-
-            # Bind hover highlights to card
-            for widget in (self.dnd_card, container, dnd_icon_lbl, dnd_text_lbl):
-                widget.bind("<Enter>", on_dnd_enter, add="+")
-                widget.bind("<Leave>", on_dnd_leave, add="+")
-
-            # Bind Drag & Drop
             if DND_AVAILABLE:
-                for widget in (self.dnd_card, container, dnd_icon_lbl, dnd_text_lbl):
+                for widget in empty_widgets:
                     try:
                         widget.drop_target_register(DND_FILES)
                         widget.dnd_bind("<<Drop>>", self._on_image_drop)
                     except tk.TclError as e:
                         logger.warning("TkDND not available in Tcl interpreter (likely in test environment): %s", e)
+
+            self._dnd_visible_state = None
+            self._dnd_rendered_input_path = object()
+            self._dnd_preview_widgets_ready = True
+
+        new_state = "loaded" if input_path else "empty"
+        if input_path:
+            filename = "Unbekannt"
+            resolution = "-"
+            photo_image = None
+            try:
+                from PIL import Image, ImageTk
+                path = Path(input_path)
+                if path.exists() and path.is_file():
+                    filename = path.name
+                    with Image.open(path) as img:
+                        width, height = img.size
+                        resolution = f"{width} × {height}"
+                        img.thumbnail((70, 70))
+                        photo_image = ImageTk.PhotoImage(img)
+                else:
+                    filename = "Datei nicht gefunden"
+            except Exception as e:
+                logger.error("Failed to render DND preview thumbnail: %s", e)
+                filename = "Fehler beim Laden"
+
+            self._dnd_photo_ref = photo_image
+            if photo_image is not None:
+                self._dnd_preview_label.configure(image=photo_image, text="")
+            else:
+                self._dnd_preview_label.configure(image="", text="❌")
+            display_filename = filename if len(filename) < 24 else filename[:21] + "..."
+            self._dnd_name_label.configure(text=display_filename)
+            self._dnd_resolution_label.configure(text=resolution)
+
+        if self._dnd_visible_state != new_state:
+            if new_state == "loaded":
+                self._dnd_empty_frame.grid_remove()
+                self._dnd_loaded_frame.grid(row=0, column=0, sticky="nsew")
+            else:
+                self._dnd_loaded_frame.grid_remove()
+                self._dnd_empty_frame.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
+            self._dnd_visible_state = new_state
+
+        self._dnd_rendered_input_path = input_path
 
     def _show_prompt_history_popup(self) -> None:
         """Display the persistent prompt history popup menu under the history button."""

@@ -53,7 +53,9 @@ class PhoenixModelManagerView(tk.Frame):
     def __init__(self, master: tk.Misc, controller: ModelManagerController | None = None) -> None:
         super().__init__(master, bg=PHOENIX_THEME.content_bg)
         self.controller = controller or ModelManagerController()
-        
+        self._advanced_popup: tk.Toplevel | None = None
+        self._advanced_return_focus: tk.Misc | None = None
+
         self._build()
         self.refresh()
 
@@ -241,25 +243,26 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspector_panel.bind("<Enter>", _bind_mousewheel)
         self.inspector_panel.bind("<Leave>", _unbind_mousewheel)
 
-        # Title: Model Information
+        # Compact model information. Operational and diagnostic controls live in
+        # the modal Advanced Settings popup below.
         tk.Label(
             self.inspector_scroll_content,
-            text="Model Information",
+            text="Modellinformationen",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
         ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(12, 8))
 
-        # Model properties sheet
-        selected_props = [
-            ("Name:", 1), ("Beschreibung:", 2), ("Kategorie:", 3),
-            ("Version:", 4), ("Autor:", 5), ("Lizenz:", 6),
-            ("Backend:", 7), ("Min. RAM:", 8), ("Empf. RAM:", 9),
-            ("Installiert:", 10), ("Downloadstatus:", 11), ("Status:", 12),
-            ("Pfad:", 13)
+        base_props = [
+            ("Modellname:", 1),
+            ("Version:", 2),
+            ("Backend:", 3),
+            ("Status:", 4),
+            ("Beschreibung:", 5),
+            ("Fähigkeiten:", 6),
         ]
-        for name, r in selected_props:
+        for name, row in base_props:
             tk.Label(
                 self.inspector_scroll_content,
                 text=name,
@@ -267,41 +270,30 @@ class PhoenixModelManagerView(tk.Frame):
                 fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_body,
                 anchor="w"
-            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
+            ).grid(row=row, column=0, sticky="nw", padx=(16, 4), pady=4)
 
-        # Create labels (description wrapping enabled)
         self.inspect_name = self._create_value_label(self.inspector_scroll_content, 1, 1)
-        self.inspect_desc = self._create_value_label(self.inspector_scroll_content, 2, 1, wrap=True)
-        self.inspect_category = self._create_value_label(self.inspector_scroll_content, 3, 1)
-        self.inspect_version = self._create_value_label(self.inspector_scroll_content, 4, 1)
-        self.inspect_author = self._create_value_label(self.inspector_scroll_content, 5, 1)
-        self.inspect_license = self._create_value_label(self.inspector_scroll_content, 6, 1)
-        self.inspect_backend = self._create_value_label(self.inspector_scroll_content, 7, 1)
-        self.inspect_min_ram = self._create_value_label(self.inspector_scroll_content, 8, 1)
-        self.inspect_rec_ram = self._create_value_label(self.inspector_scroll_content, 9, 1)
-        self.inspect_installed = self._create_value_label(self.inspector_scroll_content, 10, 1)
-        self.inspect_download = self._create_value_label(self.inspector_scroll_content, 11, 1)
-        self.inspect_status = self._create_value_label(self.inspector_scroll_content, 12, 1)
-        self.inspect_path = self._create_value_label(self.inspector_scroll_content, 13, 1, wrap=True)
+        self.inspect_version = self._create_value_label(self.inspector_scroll_content, 2, 1)
+        self.inspect_backend = self._create_value_label(self.inspector_scroll_content, 3, 1)
+        self.inspect_status = self._create_value_label(self.inspector_scroll_content, 4, 1)
+        self.inspect_desc = self._create_value_label(self.inspector_scroll_content, 5, 1, wrap=True)
+        self.inspect_capabilities = self._create_value_label(self.inspector_scroll_content, 6, 1, wrap=True)
 
-        # Package catalog details
         tk.Label(
             self.inspector_scroll_content,
-            text="Package Details",
+            text="Installationsinformationen",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).grid(row=14, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
+        ).grid(row=7, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
 
-        package_props = [
-            ("Package Status:", 15), ("Package-Typ:", 16), ("Package-Version:", 17),
-            ("Installierte Version:", 18), ("Update-Hinweis:", 19),
-            ("Erforderliche Runtime:", 20), ("Installierte Runtime:", 21),
-            ("Runtime-Verfügbarkeit:", 22), ("Package-Größe:", 23),
-            ("Download-URL:", 24), ("Checksum:", 25), ("Capabilities:", 26)
+        install_props = [
+            ("Installiert:", 8),
+            ("Downloadstatus:", 9),
+            ("Pfad:", 10),
         ]
-        for name, r in package_props:
+        for name, row in install_props:
             tk.Label(
                 self.inspector_scroll_content,
                 text=name,
@@ -309,27 +301,396 @@ class PhoenixModelManagerView(tk.Frame):
                 fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_body,
                 anchor="w"
-            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
+            ).grid(row=row, column=0, sticky="nw", padx=(16, 4), pady=4)
 
-        self.inspect_package_status = self._create_value_label(self.inspector_scroll_content, 15, 1)
+        self.inspect_installed = self._create_value_label(self.inspector_scroll_content, 8, 1)
+        self.inspect_download = self._create_value_label(self.inspector_scroll_content, 9, 1)
+        self.inspect_path = self._create_value_label(self.inspector_scroll_content, 10, 1, wrap=True)
+
+        self.advanced_settings_button = tk.Button(
+            self.inspector_scroll_content,
+            text="⚙️ Erweiterte Einstellungen...",
+            command=self._open_advanced_settings,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent_dark,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=12,
+            pady=9,
+        )
+        self.advanced_settings_button.grid(
+            row=11,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=16,
+            pady=(18, 16),
+        )
+
+        # ==========================================
+        # BOTTOM STATUS BAR
+        # ==========================================
+        self.status_bar = tk.Frame(
+            self,
+            bg=PHOENIX_THEME.elevated_bg,
+            height=26,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+        )
+        self.status_bar.grid(row=2, column=0, columnspan=2, sticky="ew", padx=(24, 24), pady=(0, 16))
+
+        self.status_lbl = tk.Label(
+            self.status_bar,
+            text="Bereit",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w"
+        )
+        self.status_lbl.pack(side="left", padx=12, pady=4)
+
+    def _advanced_popup_is_open(self) -> bool:
+        try:
+            return self._advanced_popup is not None and bool(self._advanced_popup.winfo_exists())
+        except tk.TclError:
+            return False
+
+    def _open_advanced_settings(self) -> None:
+        if self._advanced_popup_is_open():
+            self._advanced_popup.lift()
+            self._advanced_popup.focus_force()
+            return
+
+        if not self.tree.selection():
+            messagebox.showinfo("Erweiterte Einstellungen", "Kein Modell ausgewählt.")
+            return
+
+        self._advanced_return_focus = self.focus_get()
+        popup = tk.Toplevel(self.winfo_toplevel(), bg=PHOENIX_THEME.app_bg)
+        self._advanced_popup = popup
+        popup.withdraw()
+        popup.title("AI Model Manager – Erweiterte Einstellungen")
+        popup.transient(self.winfo_toplevel())
+        popup.protocol("WM_DELETE_WINDOW", self._close_advanced_settings)
+        popup.bind("<Escape>", lambda _event: self._close_advanced_settings())
+
+        heading = tk.Frame(popup, bg=PHOENIX_THEME.app_bg)
+        heading.pack(
+            fill="x",
+            padx=PHOENIX_THEME.space_xl,
+            pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_md),
+        )
+        tk.Label(
+            heading,
+            text="Erweiterte Einstellungen",
+            bg=PHOENIX_THEME.app_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_title,
+            anchor="w",
+        ).pack(fill="x")
+        tk.Label(
+            heading,
+            text="Modell-, Package-, Validierungs- und Diagnoseoptionen des ausgewählten Modells",
+            bg=PHOENIX_THEME.app_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).pack(fill="x", pady=(PHOENIX_THEME.space_xs, 0))
+
+        tabs_shell = tk.Frame(popup, bg=PHOENIX_THEME.app_bg)
+        tabs_shell.pack(
+            fill="both",
+            expand=True,
+            padx=PHOENIX_THEME.space_xl,
+            pady=(0, PHOENIX_THEME.space_md),
+        )
+
+        segment_bar = tk.Frame(tabs_shell, bg=PHOENIX_THEME.app_bg)
+        segment_bar.pack(fill="x")
+        tab_host = tk.Frame(
+            tabs_shell,
+            bg=PHOENIX_THEME.card_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+        )
+        tab_host.pack(fill="both", expand=True)
+        tab_host.rowconfigure(0, weight=1)
+        tab_host.columnconfigure(0, weight=1)
+
+        model_tab = tk.Frame(tab_host, bg=PHOENIX_THEME.card_bg)
+        package_tab = tk.Frame(tab_host, bg=PHOENIX_THEME.card_bg)
+        system_tab = tk.Frame(tab_host, bg=PHOENIX_THEME.card_bg)
+        tab_frames = (model_tab, package_tab, system_tab)
+        tab_titles = ("Modell", "Package & Validierung", "System & Diagnose")
+        for tab_frame in tab_frames:
+            tab_frame.grid(row=0, column=0, sticky="nsew")
+
+        tab_buttons: list[tk.Label] = []
+        self._advanced_active_tab = 0
+
+        def render_tabs() -> None:
+            for index, button in enumerate(tab_buttons):
+                active = index == self._advanced_active_tab
+                button.configure(
+                    bg=PHOENIX_THEME.accent if active else PHOENIX_THEME.elevated_bg,
+                    fg=PHOENIX_THEME.text_on_accent if active else PHOENIX_THEME.text_secondary,
+                )
+
+        def select_tab(index: int, *, keyboard: bool = False) -> str:
+            self._advanced_active_tab = index
+            tab_frames[index].tkraise()
+            render_tabs()
+            if keyboard:
+                tab_buttons[index].focus_set()
+            else:
+                popup.focus_set()
+            return "break"
+
+        def move_tab(index: int, delta: int) -> str:
+            return select_tab((index + delta) % len(tab_frames), keyboard=True)
+
+        def on_tab_enter(index: int) -> None:
+            if index != self._advanced_active_tab:
+                tab_buttons[index].configure(
+                    bg=PHOENIX_THEME.accent_soft,
+                    fg=PHOENIX_THEME.text_primary,
+                )
+
+        def on_tab_leave(index: int) -> None:
+            render_tabs()
+
+        def on_tab_focus(index: int, focused: bool) -> None:
+            tab_buttons[index].configure(
+                highlightbackground=PHOENIX_THEME.accent if focused else PHOENIX_THEME.border,
+                highlightcolor=PHOENIX_THEME.accent if focused else PHOENIX_THEME.border,
+            )
+
+        for index, title in enumerate(tab_titles):
+            button = tk.Label(
+                segment_bar,
+                text=title,
+                bg=PHOENIX_THEME.elevated_bg,
+                fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_button,
+                cursor="hand2",
+                takefocus=True,
+                padx=PHOENIX_THEME.button_pad_x,
+                pady=PHOENIX_THEME.button_pad_y,
+                highlightbackground=PHOENIX_THEME.border,
+                highlightcolor=PHOENIX_THEME.border,
+                highlightthickness=1,
+            )
+            button.pack(side="left")
+            tab_buttons.append(button)
+
+            button.bind("<Button-1>", lambda _event, tab_index=index: select_tab(tab_index))
+            button.bind("<Return>", lambda _event, tab_index=index: select_tab(tab_index, keyboard=True))
+            button.bind("<space>", lambda _event, tab_index=index: select_tab(tab_index, keyboard=True))
+            button.bind("<Left>", lambda _event, tab_index=index: move_tab(tab_index, -1))
+            button.bind("<Right>", lambda _event, tab_index=index: move_tab(tab_index, 1))
+            button.bind("<Home>", lambda _event: select_tab(0, keyboard=True))
+            button.bind("<End>", lambda _event: select_tab(len(tab_frames) - 1, keyboard=True))
+            button.bind("<Enter>", lambda _event, tab_index=index: on_tab_enter(tab_index))
+            button.bind("<Leave>", lambda _event, tab_index=index: on_tab_leave(tab_index))
+            button.bind("<FocusIn>", lambda _event, tab_index=index: on_tab_focus(tab_index, True))
+            button.bind("<FocusOut>", lambda _event, tab_index=index: on_tab_focus(tab_index, False))
+
+        self._advanced_tab_buttons = tab_buttons
+        self._advanced_tab_frames = tab_frames
+        self._advanced_select_tab = select_tab
+        select_tab(0)
+
+        self._build_advanced_model_tab(model_tab)
+        self._build_advanced_package_tab(package_tab)
+        self._build_advanced_system_tab(system_tab)
+
+        footer = tk.Frame(popup, bg=PHOENIX_THEME.app_bg)
+        footer.pack(
+            fill="x",
+            padx=PHOENIX_THEME.space_xl,
+            pady=(0, PHOENIX_THEME.space_lg),
+        )
+        close_button = tk.Button(
+            footer,
+            text="Schließen",
+            command=self._close_advanced_settings,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent_dark,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.button_pad_y,
+        )
+        close_button.pack(
+            side="right",
+            padx=PHOENIX_THEME.space_sm,
+            pady=PHOENIX_THEME.space_sm,
+        )
+
+        self.show_details()
+        self._update_environment_details()
+
+        popup.update_idletasks()
+        owner = self.winfo_toplevel()
+        width = max(820, popup.winfo_reqwidth())
+        height = max(620, popup.winfo_reqheight())
+        x = owner.winfo_rootx() + max(0, (owner.winfo_width() - width) // 2)
+        y = owner.winfo_rooty() + max(0, (owner.winfo_height() - height) // 2)
+        popup.geometry(f"{width}x{height}+{x}+{y}")
+        popup.minsize(760, 560)
+        popup.deiconify()
+        popup.lift()
+        popup.grab_set()
+        close_button.focus_set()
+
+    def _advanced_section(self, parent: tk.Frame, title: str, row: int) -> None:
+        section = tk.Frame(parent, bg=PHOENIX_THEME.card_bg)
+        section.grid(
+            row=row,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=PHOENIX_THEME.space_lg,
+            pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm),
+        )
+        tk.Label(
+            section,
+            text=title,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        ).pack(side="left")
+        tk.Frame(section, bg=PHOENIX_THEME.border, height=1).pack(
+            side="left",
+            fill="x",
+            expand=True,
+            padx=(PHOENIX_THEME.space_sm, 0),
+        )
+
+    def _advanced_value_label(
+        self,
+        parent: tk.Frame,
+        row: int,
+        *,
+        wrap: bool = False,
+    ) -> tk.Label:
+        value = tk.Label(
+            parent,
+            text="—",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+            justify="left",
+        )
+        if wrap:
+            value.configure(wraplength=420)
+        value.grid(
+            row=row,
+            column=1,
+            sticky="ew",
+            padx=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_lg),
+            pady=PHOENIX_THEME.space_xs,
+        )
+        return value
+
+    def _build_advanced_model_tab(self, parent: tk.Frame) -> None:
+        parent.columnconfigure(1, weight=1)
+        self._advanced_section(parent, "Modellparameter", 0)
+
+        properties = [
+            ("Kategorie:", 1),
+            ("Autor:", 2),
+            ("Lizenz:", 3),
+            ("Min. RAM:", 4),
+            ("Empf. RAM:", 5),
+        ]
+        for name, row in properties:
+            tk.Label(
+                parent,
+                text=name,
+                bg=PHOENIX_THEME.card_bg,
+                fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_body,
+                anchor="w",
+            ).grid(
+                row=row,
+                column=0,
+                sticky="w",
+                padx=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm),
+                pady=PHOENIX_THEME.space_xs,
+            )
+
+        self.inspect_category = self._advanced_value_label(parent, 1)
+        self.inspect_author = self._advanced_value_label(parent, 2)
+        self.inspect_license = self._advanced_value_label(parent, 3, wrap=True)
+        self.inspect_min_ram = self._advanced_value_label(parent, 4)
+        self.inspect_rec_ram = self._advanced_value_label(parent, 5)
+
+    def _build_advanced_package_tab(self, parent: tk.Frame) -> None:
+        parent.columnconfigure(1, weight=1)
+        self._advanced_section(parent, "Package Details & Validierung", 0)
+
+        properties = [
+            ("Package Status:", 1),
+            ("Package-Typ:", 2),
+            ("Package-Version:", 3),
+            ("Installierte Version:", 4),
+            ("Update-Hinweis:", 5),
+            ("Erforderliche Runtime:", 6),
+            ("Installierte Runtime:", 7),
+            ("Runtime-Verfügbarkeit:", 8),
+            ("Package-Größe:", 9),
+            ("Download-URL:", 10),
+            ("Checksum:", 11),
+        ]
+        for name, row in properties:
+            tk.Label(
+                parent,
+                text=name,
+                bg=PHOENIX_THEME.card_bg,
+                fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_body,
+                anchor="w",
+            ).grid(
+                row=row,
+                column=0,
+                sticky="nw",
+                padx=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm),
+                pady=PHOENIX_THEME.space_xs,
+            )
+
+        self.inspect_package_status = self._advanced_value_label(parent, 1)
         self.inspect_package_status.configure(font=PHOENIX_THEME.font_button, fg=PHOENIX_THEME.accent)
-        self.inspect_package_type = self._create_value_label(self.inspector_scroll_content, 16, 1)
-        self.inspect_package_version = self._create_value_label(self.inspector_scroll_content, 17, 1)
-        self.inspect_installed_version = self._create_value_label(self.inspector_scroll_content, 18, 1)
-        self.inspect_update_hint = self._create_value_label(self.inspector_scroll_content, 19, 1, wrap=True)
-        self.inspect_required_runtime = self._create_value_label(self.inspector_scroll_content, 20, 1)
-        self.inspect_installed_runtime = self._create_value_label(self.inspector_scroll_content, 21, 1)
-        self.inspect_runtime_available = self._create_value_label(self.inspector_scroll_content, 22, 1, wrap=True)
-        self.inspect_package_size = self._create_value_label(self.inspector_scroll_content, 23, 1)
-        self.inspect_download_url = self._create_value_label(self.inspector_scroll_content, 24, 1, wrap=True)
-        self.inspect_checksum = self._create_value_label(self.inspector_scroll_content, 25, 1, wrap=True)
-        self.inspect_capabilities = self._create_value_label(self.inspector_scroll_content, 26, 1, wrap=True)
+        self.inspect_package_type = self._advanced_value_label(parent, 2)
+        self.inspect_package_version = self._advanced_value_label(parent, 3)
+        self.inspect_installed_version = self._advanced_value_label(parent, 4)
+        self.inspect_update_hint = self._advanced_value_label(parent, 5, wrap=True)
+        self.inspect_required_runtime = self._advanced_value_label(parent, 6)
+        self.inspect_installed_runtime = self._advanced_value_label(parent, 7)
+        self.inspect_runtime_available = self._advanced_value_label(parent, 8, wrap=True)
+        self.inspect_package_size = self._advanced_value_label(parent, 9)
+        self.inspect_download_url = self._advanced_value_label(parent, 10, wrap=True)
+        self.inspect_checksum = self._advanced_value_label(parent, 11, wrap=True)
 
-        # ==========================================
-        # PACKAGE ACTION BUTTONS (UX PREPARATION)
-        # ==========================================
-        self.buttons_frame = tk.Frame(self.inspector_scroll_content, bg=PHOENIX_THEME.card_bg)
-        self.buttons_frame.grid(row=27, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 12))
+        self.buttons_frame = tk.Frame(parent, bg=PHOENIX_THEME.card_bg)
+        self.buttons_frame.grid(
+            row=12,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=PHOENIX_THEME.space_lg,
+            pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_lg),
+        )
         self.buttons_frame.columnconfigure((0, 1), weight=1)
 
         button_style = {
@@ -337,13 +698,16 @@ class PhoenixModelManagerView(tk.Frame):
             "fg": PHOENIX_THEME.text_muted,
             "activebackground": PHOENIX_THEME.elevated_bg,
             "activeforeground": PHOENIX_THEME.text_muted,
-            "bd": 1,
+            "highlightbackground": PHOENIX_THEME.border,
+            "highlightthickness": 1,
+            "bd": 0,
             "relief": "flat",
             "font": PHOENIX_THEME.font_button,
             "state": "disabled",
-            "height": 1,
+            "padx": PHOENIX_THEME.button_pad_x,
+            "pady": PHOENIX_THEME.button_pad_y,
+            "cursor": "hand2",
         }
-
         self.btn_install = tk.Button(
             self.buttons_frame,
             text="Install",
@@ -368,111 +732,134 @@ class PhoenixModelManagerView(tk.Frame):
             command=lambda: self._on_package_action("remove"),
             **button_style,
         )
-
-        self.btn_install.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
-        self.btn_validate.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
-        self.btn_update.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
-        self.btn_remove.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
-
+        self.btn_install.grid(row=0, column=0, sticky="ew", padx=(0, PHOENIX_THEME.space_xs), pady=PHOENIX_THEME.space_xs)
+        self.btn_validate.grid(row=0, column=1, sticky="ew", padx=(PHOENIX_THEME.space_xs, 0), pady=PHOENIX_THEME.space_xs)
+        self.btn_update.grid(row=1, column=0, sticky="ew", padx=(0, PHOENIX_THEME.space_xs), pady=PHOENIX_THEME.space_xs)
+        self.btn_remove.grid(row=1, column=1, sticky="ew", padx=(PHOENIX_THEME.space_xs, 0), pady=PHOENIX_THEME.space_xs)
         _Tooltip(self.btn_install, "Install local SMP package.")
         _Tooltip(self.btn_validate, "Validate installed package locally.")
         _Tooltip(self.btn_update, "Update from local SMP package.")
         _Tooltip(self.btn_remove, "Remove local package files safely.")
 
-        # ==========================================
-        # SYSTEM ENVIRONMENT CARD
-        # ==========================================
-        tk.Label(
-            self.inspector_scroll_content,
-            text="System-Umgebung",
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_card_title,
-            anchor="w",
-        ).grid(row=28, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
+    def _build_advanced_system_tab(self, parent: tk.Frame) -> None:
+        parent.columnconfigure(1, weight=1)
+        self._advanced_section(parent, "System-Umgebung", 0)
 
-        env_props = [
-            ("Betriebssystem:", 29), ("Architektur:", 30), ("Python:", 31),
-            ("CPU:", 32), ("ONNX Runtime:", 33), ("QNN SDK:", 34), ("QNN Tools:", 35)
+        environment_properties = [
+            ("Betriebssystem:", 1),
+            ("Architektur:", 2),
+            ("Python:", 3),
+            ("CPU:", 4),
+            ("ONNX Runtime:", 5),
+            ("QNN SDK:", 6),
+            ("QNN Tools:", 7),
         ]
-        for name, r in env_props:
+        for name, row in environment_properties:
             tk.Label(
-                self.inspector_scroll_content,
+                parent,
                 text=name,
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_body,
-                anchor="w"
-            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
+                anchor="w",
+            ).grid(
+                row=row,
+                column=0,
+                sticky="w",
+                padx=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm),
+                pady=PHOENIX_THEME.space_xs,
+            )
 
-        self.env_os = self._create_value_label(self.inspector_scroll_content, 29, 1)
-        self.env_arch = self._create_value_label(self.inspector_scroll_content, 30, 1)
-        self.env_python = self._create_value_label(self.inspector_scroll_content, 31, 1)
-        self.env_cpu = self._create_value_label(self.inspector_scroll_content, 32, 1)
-        self.env_onnx = self._create_value_label(self.inspector_scroll_content, 33, 1)
-        self.env_qnn_sdk = self._create_value_label(self.inspector_scroll_content, 34, 1)
-        self.env_qnn_tools = self._create_value_label(self.inspector_scroll_content, 35, 1)
+        self.env_os = self._advanced_value_label(parent, 1)
+        self.env_arch = self._advanced_value_label(parent, 2)
+        self.env_python = self._advanced_value_label(parent, 3)
+        self.env_cpu = self._advanced_value_label(parent, 4)
+        self.env_onnx = self._advanced_value_label(parent, 5)
+        self.env_qnn_sdk = self._advanced_value_label(parent, 6)
+        self.env_qnn_tools = self._advanced_value_label(parent, 7)
 
         self.npu_diag_button = tk.Button(
-            self.inspector_scroll_content,
+            parent,
             text="Run NPU Diagnostic",
             command=self._run_npu_diagnostic,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.elevated_bg,
+            activebackground=PHOENIX_THEME.accent_soft,
             activeforeground=PHOENIX_THEME.text_primary,
-            bd=1,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+            bd=0,
             relief="flat",
             font=PHOENIX_THEME.font_button,
-            height=1,
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.button_pad_y,
+            cursor="hand2",
         )
-        self.npu_diag_button.grid(row=36, column=0, columnspan=2, sticky="ew", padx=16, pady=(14, 8))
+        self.npu_diag_button.grid(
+            row=8,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=PHOENIX_THEME.space_lg,
+            pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md),
+        )
         _Tooltip(self.npu_diag_button, "Run local MobileNetV2 DLC smoke test through qnn-net-run.")
 
-        npu_diag_props = [
-            ("QNN verfügbar:", 37), ("DLC-Test:", 38), ("Exit Code:", 39),
-            ("Output-Datei:", 40), ("Profiling:", 41), ("Bericht:", 42),
-            ("Warnungen:", 43)
+        self._advanced_section(parent, "Diagnoseergebnis", 9)
+        diagnostic_properties = [
+            ("QNN verfügbar:", 10),
+            ("DLC-Test:", 11),
+            ("Exit Code:", 12),
+            ("Output-Datei:", 13),
+            ("Profiling:", 14),
+            ("Bericht:", 15),
+            ("Warnungen:", 16),
         ]
-        for name, r in npu_diag_props:
+        for name, row in diagnostic_properties:
             tk.Label(
-                self.inspector_scroll_content,
+                parent,
                 text=name,
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_body,
-                anchor="w"
-            ).grid(row=r, column=0, sticky="w", padx=(16, 4), pady=4)
+                anchor="w",
+            ).grid(
+                row=row,
+                column=0,
+                sticky="nw",
+                padx=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm),
+                pady=PHOENIX_THEME.space_xs,
+            )
 
-        self.npu_qnn_available = self._create_value_label(self.inspector_scroll_content, 37, 1)
-        self.npu_test_status = self._create_value_label(self.inspector_scroll_content, 38, 1)
-        self.npu_exit_code = self._create_value_label(self.inspector_scroll_content, 39, 1)
-        self.npu_output_file = self._create_value_label(self.inspector_scroll_content, 40, 1, wrap=True)
-        self.npu_profiling_files = self._create_value_label(self.inspector_scroll_content, 41, 1, wrap=True)
-        self.npu_report_path = self._create_value_label(self.inspector_scroll_content, 42, 1, wrap=True)
-        self.npu_warnings = self._create_value_label(self.inspector_scroll_content, 43, 1, wrap=True)
+        self.npu_qnn_available = self._advanced_value_label(parent, 10)
+        self.npu_test_status = self._advanced_value_label(parent, 11)
+        self.npu_exit_code = self._advanced_value_label(parent, 12)
+        self.npu_output_file = self._advanced_value_label(parent, 13, wrap=True)
+        self.npu_profiling_files = self._advanced_value_label(parent, 14, wrap=True)
+        self.npu_report_path = self._advanced_value_label(parent, 15, wrap=True)
+        self.npu_warnings = self._advanced_value_label(parent, 16, wrap=True)
 
-        # ==========================================
-        # BOTTOM STATUS BAR
-        # ==========================================
-        self.status_bar = tk.Frame(
-            self,
-            bg=PHOENIX_THEME.elevated_bg,
-            height=26,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
-        )
-        self.status_bar.grid(row=2, column=0, columnspan=2, sticky="ew", padx=(24, 24), pady=(0, 16))
-        
-        self.status_lbl = tk.Label(
-            self.status_bar,
-            text="Bereit",
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_caption,
-            anchor="w"
-        )
-        self.status_lbl.pack(side="left", padx=12, pady=4)
+    def _close_advanced_settings(self) -> None:
+        popup = self._advanced_popup
+        return_focus = self._advanced_return_focus
+        self._advanced_popup = None
+        self._advanced_return_focus = None
+        if popup is not None:
+            try:
+                if popup.grab_current() == popup:
+                    popup.grab_release()
+                popup.destroy()
+            except tk.TclError:
+                pass
+
+        if return_focus is not None:
+            try:
+                if return_focus.winfo_exists():
+                    self.after_idle(return_focus.focus_set)
+                    return
+            except tk.TclError:
+                pass
+        self.after_idle(self.advanced_settings_button.focus_set)
 
     def _create_value_label(self, parent: tk.Frame, r: int, c: int, wrap: bool = False) -> tk.Label:
         lbl = tk.Label(
@@ -612,6 +999,8 @@ class PhoenixModelManagerView(tk.Frame):
         )
 
     def _set_package_action_states(self, status: object | None) -> None:
+        if not self._advanced_popup_is_open():
+            return
         normalized = self._format_status(status) if status else ""
         states = {
             "NOT_INSTALLED": {"install"},
@@ -768,6 +1157,12 @@ class PhoenixModelManagerView(tk.Frame):
     def _set_package_detail_values(self, model: dict[str, object]) -> None:
         model_id = self._safe_text(model.get("id"))
         package = self._get_catalog_package(model_id)
+        capabilities = package.get("capabilities") if package else model.get("capabilities")
+        self.inspect_capabilities.configure(text=self._format_capabilities(capabilities))
+
+        if not self._advanced_popup_is_open():
+            return
+
         status = self._resolved_package_status(model_id)
         package_version = self._safe_text(package.get("version") if package else model.get("version"))
         installed_version = self._safe_text(model.get("version"), "Nicht verfügbar") if model.get("installed") else "Nicht verfügbar"
@@ -775,8 +1170,6 @@ class PhoenixModelManagerView(tk.Frame):
             package.get("recommended_runtime") if package else model.get("recommended_backend") or model.get("backend")
         )
         installed_runtime = self._safe_text(model.get("backend"), "Nicht verfügbar") if model.get("installed") else "Nicht verfügbar"
-        capabilities = package.get("capabilities") if package else model.get("capabilities")
-
         update_hint = "Keine neuere Version verfügbar"
         if status == "UPDATE_AVAILABLE":
             update_hint = f"Neuere Version verfügbar: {package_version}"
@@ -799,7 +1192,31 @@ class PhoenixModelManagerView(tk.Frame):
         download_url = package.get("download_url") if package else None
         self.inspect_download_url.configure(text=self._safe_text(download_url, availability_message))
         self.inspect_checksum.configure(text=self._safe_text(package.get("checksum") if package else None, "Nicht verfügbar"))
-        self.inspect_capabilities.configure(text=self._format_capabilities(capabilities))
+
+    def _update_advanced_model_details(self, model: dict[str, object]) -> None:
+        if not self._advanced_popup_is_open():
+            return
+        self.inspect_category.configure(text=self._safe_text(model.get("category")))
+        self.inspect_author.configure(text=self._safe_text(model.get("author")))
+        self.inspect_license.configure(text=self._safe_text(model.get("license")))
+        self.inspect_min_ram.configure(text=self._format_ram(model.get("minimum_ram_gb")))
+        self.inspect_rec_ram.configure(text=self._format_ram(model.get("recommended_ram_gb")))
+
+    def _update_environment_details(self) -> None:
+        if not self._advanced_popup_is_open():
+            return
+        result = self.controller.get_discovery_result()
+        if not result:
+            return
+        self.env_os.configure(text=self._safe_text(result.os_name))
+        self.env_arch.configure(text=self._safe_text(result.architecture))
+        self.env_python.configure(text=self._safe_text(result.python_version))
+        self.env_cpu.configure(text="Verfügbar" if result.cpu_available else "Nicht verfügbar")
+        self.env_onnx.configure(
+            text=f"Verfügbar ({result.onnx_version})" if result.onnx_available else "Nicht installiert"
+        )
+        self.env_qnn_sdk.configure(text="Gefunden" if result.qnn_sdk_found else "Nicht gefunden")
+        self.env_qnn_tools.configure(text="Gefunden" if result.qnn_tools_found else "Nicht gefunden")
 
     def refresh(self) -> None:
         """Reload models from repository and populate treeview while keeping active selection."""
@@ -849,36 +1266,41 @@ class PhoenixModelManagerView(tk.Frame):
             self.show_details()
         else:
             # Fallback values if list is completely empty
-            for lbl in (self.inspect_name, self.inspect_desc, self.inspect_category,
-                        self.inspect_version, self.inspect_author, self.inspect_license,
-                        self.inspect_backend, self.inspect_min_ram, self.inspect_rec_ram,
-                        self.inspect_installed, self.inspect_download, self.inspect_status,
-                        self.inspect_path, self.inspect_package_status,
-                        self.inspect_package_type, self.inspect_package_version,
-                        self.inspect_installed_version, self.inspect_update_hint,
-                        self.inspect_required_runtime, self.inspect_installed_runtime,
-                        self.inspect_runtime_available, self.inspect_package_size,
-                        self.inspect_download_url, self.inspect_checksum,
-                        self.inspect_capabilities):
+            for lbl in (
+                self.inspect_name,
+                self.inspect_version,
+                self.inspect_backend,
+                self.inspect_status,
+                self.inspect_desc,
+                self.inspect_capabilities,
+                self.inspect_installed,
+                self.inspect_download,
+                self.inspect_path,
+            ):
                 lbl.configure(text="—")
+            if self._advanced_popup_is_open():
+                for lbl in (
+                    self.inspect_category,
+                    self.inspect_author,
+                    self.inspect_license,
+                    self.inspect_min_ram,
+                    self.inspect_rec_ram,
+                    self.inspect_package_status,
+                    self.inspect_package_type,
+                    self.inspect_package_version,
+                    self.inspect_installed_version,
+                    self.inspect_update_hint,
+                    self.inspect_required_runtime,
+                    self.inspect_installed_runtime,
+                    self.inspect_runtime_available,
+                    self.inspect_package_size,
+                    self.inspect_download_url,
+                    self.inspect_checksum,
+                ):
+                    lbl.configure(text="—")
             self._set_package_action_states(None)
 
-        # 5. Update System Environment discovery details
-        res = self.controller.get_discovery_result()
-        if res:
-            self.env_os.configure(text=self._safe_text(res.os_name))
-            self.env_arch.configure(text=self._safe_text(res.architecture))
-            self.env_python.configure(text=self._safe_text(res.python_version))
-            self.env_cpu.configure(text="Verfügbar" if res.cpu_available else "Nicht verfügbar")
-            
-            onnx_txt = f"Verfügbar ({res.onnx_version})" if res.onnx_available else "Nicht installiert"
-            self.env_onnx.configure(text=onnx_txt)
-            
-            qnn_sdk_txt = "Gefunden" if res.qnn_sdk_found else "Nicht gefunden"
-            self.env_qnn_sdk.configure(text=qnn_sdk_txt)
-            
-            qnn_tools_txt = "Gefunden" if res.qnn_tools_found else "Nicht gefunden"
-            self.env_qnn_tools.configure(text=qnn_tools_txt)
+        self._update_environment_details()
 
     def show_details(self) -> None:
         """Display comprehensive metadata properties for the selected model."""
@@ -894,20 +1316,16 @@ class PhoenixModelManagerView(tk.Frame):
             return
         package_status = self._resolved_package_status(model_id)
 
-        # Update Grid value labels cleanly
+        # Compact inspector values
         self.inspect_name.configure(text=self._safe_text(model.get("display_name")))
-        self.inspect_desc.configure(text=self._safe_text(model.get("description")))
-        self.inspect_category.configure(text=self._safe_text(model.get("category")))
         self.inspect_version.configure(text=self._safe_text(model.get("version")))
-        self.inspect_author.configure(text=self._safe_text(model.get("author")))
-        self.inspect_license.configure(text=self._safe_text(model.get("license")))
         self.inspect_backend.configure(text=self._safe_text(model.get("backend")))
-        self.inspect_min_ram.configure(text=self._format_ram(model.get("minimum_ram_gb")))
-        self.inspect_rec_ram.configure(text=self._format_ram(model.get("recommended_ram_gb")))
+        self._configure_status_badge(self.inspect_status, package_status)
+        self.inspect_desc.configure(text=self._safe_text(model.get("description")))
         self.inspect_installed.configure(text=self._format_bool(model.get("installed")))
         self.inspect_download.configure(text="Heruntergeladen" if model.get("downloaded") else "Ausstehend")
-        self._configure_status_badge(self.inspect_status, package_status)
         self.inspect_path.configure(text=self._safe_text(model.get("path"), "Nicht verfügbar"))
+        self._update_advanced_model_details(model)
         self._set_package_detail_values(model)
         self._set_package_action_states(package_status)
 
@@ -938,12 +1356,16 @@ class PhoenixModelManagerView(tk.Frame):
 
     def _apply_validation_result(self, validation: dict[str, object]) -> None:
         status = "READY" if validation.get("success") else "INVALID"
+        self.inspect_capabilities.configure(
+            text=self._safe_text(validation.get("capabilities_hint"), "Nicht verfügbar")
+        )
+        if not self._advanced_popup_is_open():
+            return
         self._configure_status_badge(self.inspect_package_status, status)
         self.inspect_package_version.configure(text=self._safe_text(validation.get("package_version"), "Nicht verfügbar"))
         self.inspect_update_hint.configure(text=self._safe_text(validation.get("version_hint"), "Nicht verfügbar"))
         self.inspect_runtime_available.configure(text=self._safe_text(validation.get("runtime_hint"), "Nicht verfügbar"))
         self.inspect_checksum.configure(text=self._safe_text(validation.get("checksum_hint"), "Nicht geprüft"))
-        self.inspect_capabilities.configure(text=self._safe_text(validation.get("capabilities_hint"), "Nicht verfügbar"))
 
     def _validate_selected_package(self) -> None:
         selected = self.tree.selection()
@@ -1198,5 +1620,3 @@ class PhoenixModelManagerView(tk.Frame):
                 messagebox.showerror("Fehler", f"Ordner konnte nicht geöffnet werden: {e}")
         else:
             messagebox.showerror("Fehler", f"Der Pfad '{folder_path}' existiert nicht.")
-
-
