@@ -81,6 +81,7 @@ class PromptWorkspaceController:
         sampler: str = "Euler a",
         scheduler: str = "Normal",
         batch_size: int = 1,
+        input_image_path: str | None = None,
     ) -> None:
         # Update local UI state model
         self.model.update_state(
@@ -95,6 +96,7 @@ class PromptWorkspaceController:
             sampler=sampler,
             scheduler=scheduler,
             batch_count=batch_size,
+            input_image_path=input_image_path,
         )
         # Update central generation session parameters
         self.generation_controller.update_session(
@@ -109,6 +111,7 @@ class PromptWorkspaceController:
             sampler=sampler,
             scheduler=scheduler,
             batch_size=batch_size,
+            input_image_path=input_image_path,
         )
 
     def generate_image(self, notify_workflow: bool = True) -> GenerationResult:

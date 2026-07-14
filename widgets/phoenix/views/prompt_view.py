@@ -12,6 +12,13 @@ from controllers.prompt_workspace_controller import PromptWorkspaceController
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
 
+try:
+    from tkinterdnd2 import DND_FILES
+    DND_AVAILABLE = True
+except ImportError:
+    DND_FILES = None
+    DND_AVAILABLE = False
+
 
 logger = logging.getLogger("PhoenixPromptView")
 
@@ -214,7 +221,7 @@ class PhoenixPromptView(WorkspaceFrame):
         r = self._section_header(p, "Model", r)
 
         model_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        model_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+        model_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
         model_frame.grid_columnconfigure(0, weight=0)
         model_frame.grid_columnconfigure(1, weight=1)
 
@@ -253,8 +260,8 @@ class PhoenixPromptView(WorkspaceFrame):
             column=0,
             columnspan=2,
             sticky="ew",
-            padx=PHOENIX_THEME.space_md,
-            pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm),
+            padx=16,
+            pady=(8, 12),
         )
         prompt_card.grid_columnconfigure(0, weight=1)
 
@@ -269,8 +276,6 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         prompt_header_frame.grid_columnconfigure(0, weight=1)
         prompt_header_frame.grid_columnconfigure(1, weight=0)
-        prompt_header_frame.grid_columnconfigure(2, weight=0)
-        prompt_header_frame.grid_columnconfigure(3, weight=0)
 
         tk.Label(
             prompt_header_frame,
@@ -281,54 +286,68 @@ class PhoenixPromptView(WorkspaceFrame):
             anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
-        self.templates_btn = tk.Button(
+        # Cohesive toolbar frame acting as a segmented control group
+        self.prompt_toolbar = tk.Frame(
             prompt_header_frame,
-            text="Vorlagen ▼",
+            bg=PHOENIX_THEME.border,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+        )
+        self.prompt_toolbar.grid(row=0, column=1, sticky="e")
+
+        self.templates_btn = tk.Button(
+            self.prompt_toolbar,
+            text="📋 Vorlagen",
             bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_secondary,
+            fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.accent,
             activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat",
             bd=0,
-            font=PHOENIX_THEME.font_caption,
+            font=PHOENIX_THEME.font_small,
             cursor="hand2",
-            padx=8,
-            pady=2,
+            padx=10,
+            pady=4,
             command=self._show_templates_popup,
         )
-        self.templates_btn.grid(row=0, column=1, sticky="e", padx=(0, 6))
+        self.templates_btn.grid(row=0, column=0, sticky="nsew", padx=(0, 1))
+        self._add_button_hover(self.templates_btn)
 
         self.history_btn = tk.Button(
-            prompt_header_frame,
-            text="🕘",
-            bg=PHOENIX_THEME.surface,
-            fg=PHOENIX_THEME.text_secondary,
-            activebackground=PHOENIX_THEME.surface,
-            activeforeground=PHOENIX_THEME.accent,
-            relief="flat",
-            bd=0,
-            font=("Segoe UI", 12, "bold"),
-            cursor="hand2",
-            command=self._show_prompt_history_popup,
-        )
-        self.history_btn.grid(row=0, column=2, sticky="e", padx=(0, 6))
-
-        self.maximize_btn = tk.Button(
-            prompt_header_frame,
-            text="⛶ Maximieren",
+            self.prompt_toolbar,
+            text="🕘 Verlauf",
             bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_secondary,
+            fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.accent,
             activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat",
             bd=0,
-            font=PHOENIX_THEME.font_caption,
+            font=PHOENIX_THEME.font_small,
             cursor="hand2",
-            padx=8,
-            pady=2,
+            padx=10,
+            pady=4,
+            command=self._show_prompt_history_popup,
+        )
+        self.history_btn.grid(row=0, column=1, sticky="nsew", padx=(0, 1))
+        self._add_button_hover(self.history_btn)
+
+        self.maximize_btn = tk.Button(
+            self.prompt_toolbar,
+            text="⛶ Maximieren",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_small,
+            cursor="hand2",
+            padx=10,
+            pady=4,
             command=self._open_expandable_prompt_popup,
         )
-        self.maximize_btn.grid(row=0, column=3, sticky="e")
+        self.maximize_btn.grid(row=0, column=2, sticky="nsew")
+        self._add_button_hover(self.maximize_btn)
         tk.Label(
             prompt_card,
             text="Beschreibe Motiv, Licht, Perspektive und Stil möglichst konkret.",
@@ -411,11 +430,47 @@ class PhoenixPromptView(WorkspaceFrame):
         self._update_prompt_counters()
         r += 1
 
+        # ── Group: Referenzbild (Demnächst) ───────────
+        r = self._section_header(p, "Referenzbild (Demnächst)", r)
+        self.dnd_subtitle = tk.Label(
+            p,
+            text="Vorbereitung für Image→Image und Image→Video.",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+        )
+        self.dnd_subtitle.grid(
+            row=r,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=16,
+            pady=(0, PHOENIX_THEME.space_sm),
+        )
+        r += 1
+
+        self.dnd_card = tk.Frame(
+            p,
+            bg=PHOENIX_THEME.surface,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+        )
+        self.dnd_card.grid(
+            row=r,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=16,
+            pady=(0, 12),
+        )
+        r += 1
+
         # ── Group: Image Size ─────────────────────────
         r = self._section_header(p, "Image Size", r)
 
         self.size_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        self.size_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+        self.size_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
         self.size_frame.row_idx = r
         self.size_frame.grid_columnconfigure(0, weight=0)
         self.size_frame.grid_columnconfigure(1, weight=1)
@@ -513,9 +568,10 @@ class PhoenixPromptView(WorkspaceFrame):
             sampling_frame, text="Erweiterte Einstellungen ⚙️",
             font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
             bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_secondary,
-            activebackground=PHOENIX_THEME.elevated_bg, activeforeground=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
             command=self._open_advanced_settings_popup
         )
+        self._add_button_hover(self.adv_settings_btn)
 
         tk.Label(sampling_frame, text="Steps:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=1, sticky="w", pady=(0, 1))
         self.steps_scale = tk.Scale(
@@ -534,24 +590,27 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.btn_preset_schnell = tk.Button(
             self.steps_preset_frame, text="⚡ Schnell",
-            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=4, pady=4,
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
             command=lambda: self._select_steps_preset("Schnell")
         )
-        self.btn_preset_schnell.grid(row=0, column=0, sticky="ew", pady=(0, 2))
+        self.btn_preset_schnell.grid(row=0, column=0, sticky="ew", pady=2)
+        self._add_button_hover(self.btn_preset_schnell)
 
         self.btn_preset_standard = tk.Button(
             self.steps_preset_frame, text="⭐ Standard",
-            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=4, pady=4,
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
             command=lambda: self._select_steps_preset("Standard")
         )
         self.btn_preset_standard.grid(row=1, column=0, sticky="ew", pady=2)
+        self._add_button_hover(self.btn_preset_standard)
 
         self.btn_preset_beste = tk.Button(
             self.steps_preset_frame, text="💎 Beste Qualität",
-            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=4, pady=4,
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
             command=lambda: self._select_steps_preset("Beste Qualität")
         )
-        self.btn_preset_beste.grid(row=2, column=0, sticky="ew", pady=(2, 0))
+        self.btn_preset_beste.grid(row=2, column=0, sticky="ew", pady=2)
+        self._add_button_hover(self.btn_preset_beste)
 
         self._update_steps_preset_colors()
 
@@ -1095,6 +1154,7 @@ class PhoenixPromptView(WorkspaceFrame):
             seed=seed, steps=steps, cfg=cfg,
             width=width, height=height, selected_model=selected_model,
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
+            input_image_path=self.controller.model.state.input_image_path,
         )
 
         self._generation_running = True
@@ -1474,6 +1534,9 @@ class PhoenixPromptView(WorkspaceFrame):
         # Enable/Disable Action Buttons
         self._enable_action_buttons(has_preview)
 
+        # Update Drag & Drop reference image preview
+        self._update_dnd_preview()
+
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""
         new_model = self.model_var.get()
@@ -1501,7 +1564,288 @@ class PhoenixPromptView(WorkspaceFrame):
             seed=seed, steps=steps, cfg=cfg,
             width=width, height=height, selected_model=new_model,
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
+            input_image_path=self.controller.model.state.input_image_path,
         )
+
+    def _on_image_drop(self, event) -> None:
+        """Handle Drag & Drop events for reference images."""
+        if not event.data:
+            return
+        dropped_paths = self.tk.splitlist(event.data)
+        if dropped_paths:
+            self._load_reference_image(dropped_paths[0])
+
+    def _on_dnd_click(self, event=None) -> None:
+        """Open a file dialog to manually select a reference image."""
+        from tkinter import filedialog
+        file_path = filedialog.askopenfilename(
+            title="Referenzbild auswählen",
+            filetypes=[
+                ("Bilddateien", "*.png *.jpg *.jpeg *.webp"),
+                ("PNG Image", "*.png"),
+                ("JPEG Image", "*.jpg *.jpeg"),
+                ("WebP Image", "*.webp"),
+                ("Alle Dateien", "*.*")
+            ]
+        )
+        if file_path:
+            self._load_reference_image(file_path)
+
+    def _load_reference_image(self, file_path: str) -> None:
+        """Load a selected reference image, verify format, extract dimensions, and update state."""
+        path = Path(file_path)
+        if not path.exists() or not path.is_file():
+            return
+
+        ext = path.suffix.lower()
+        if ext not in (".png", ".jpg", ".jpeg", ".webp"):
+            messagebox.showerror(
+                "Ungültiges Format",
+                "Es werden nur Bilddateien in den Formaten PNG, JPG, JPEG und WebP unterstützt."
+            )
+            return
+
+        try:
+            from PIL import Image
+            with Image.open(path) as img:
+                self._ref_image_path = str(path)
+
+                # Retrieve current parameter values safely
+                prompt = self.prompt_text.get("1.0", "end-1c").strip()
+                neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
+                try:
+                    seed = int(self.seed_entry.get().strip() or -1)
+                except ValueError:
+                    seed = -1
+                steps = int(self.steps_scale.get())
+                cfg = float(self.cfg_scale.get())
+                try:
+                    width = int(self.width_var.get() or 512)
+                except ValueError:
+                    width = 512
+                try:
+                    height = int(self.height_var.get() or 512)
+                except ValueError:
+                    height = 512
+                selected_model = self.model_var.get()
+                sampler = self.sampler_var.get()
+                scheduler = self.scheduler_var.get()
+                try:
+                    batch_size = int(self.batch_var.get() or 1)
+                except ValueError:
+                    batch_size = 1
+
+                # Update state model and session controller
+                self.controller.update_parameters(
+                    prompt=prompt, negative_prompt=neg_prompt,
+                    seed=seed, steps=steps, cfg=cfg,
+                    width=width, height=height, selected_model=selected_model,
+                    sampler=sampler, scheduler=scheduler, batch_size=batch_size,
+                    input_image_path=self._ref_image_path
+                )
+                self.refresh()
+        except Exception as e:
+            logger.exception("Failed to load reference image: %s", file_path)
+            messagebox.showerror("Fehler beim Laden", f"Das Bild konnte nicht geladen werden:\n{e}")
+
+    def _remove_reference_image(self) -> None:
+        """Clear the reference image and reset state parameters."""
+        try:
+            prompt = self.prompt_text.get("1.0", "end-1c").strip()
+            neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
+            try:
+                seed = int(self.seed_entry.get().strip() or -1)
+            except ValueError:
+                seed = -1
+            steps = int(self.steps_scale.get())
+            cfg = float(self.cfg_scale.get())
+            try:
+                width = int(self.width_var.get() or 512)
+            except ValueError:
+                width = 512
+            try:
+                height = int(self.height_var.get() or 512)
+            except ValueError:
+                height = 512
+            selected_model = self.model_var.get()
+            sampler = self.sampler_var.get()
+            scheduler = self.scheduler_var.get()
+            try:
+                batch_size = int(self.batch_var.get() or 1)
+            except ValueError:
+                batch_size = 1
+        except Exception:
+            prompt, neg_prompt = "", ""
+            seed, steps, cfg, width, height = -1, 20, 7.5, 512, 512
+            sampler, scheduler, batch_size = "Euler", "Euler", 1
+
+        self.controller.update_parameters(
+            prompt=prompt, negative_prompt=neg_prompt,
+            seed=seed, steps=steps, cfg=cfg,
+            width=width, height=height, selected_model=selected_model,
+            sampler=sampler, scheduler=scheduler, batch_size=batch_size,
+            input_image_path=None
+        )
+        self.refresh()
+
+    def _update_dnd_preview(self) -> None:
+        """Update the Drag & Drop area layout depending on whether an input image is present."""
+        if not hasattr(self, "dnd_card") or not self.dnd_card.winfo_exists():
+            return
+
+        # Clear existing widgets
+        for widget in self.dnd_card.winfo_children():
+            try:
+                widget.destroy()
+            except Exception:
+                pass
+
+        # Define hover highlight to change border color
+        def on_dnd_enter(event):
+            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.accent)
+        def on_dnd_leave(event):
+            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
+
+        input_path = self.controller.model.state.input_image_path
+        if input_path:
+            # Loaded state: show thumbnail, name, resolution, and remove button
+            filename = "Unbekannt"
+            resolution = "-"
+            photo_image = None
+            try:
+                from PIL import Image, ImageTk
+                path = Path(input_path)
+                if path.exists() and path.is_file():
+                    filename = path.name
+                    with Image.open(path) as img:
+                        w, h = img.size
+                        resolution = f"{w} × {h}"
+                        # Scale thumbnail to compact size fit
+                        img.thumbnail((70, 70))
+                        photo_image = ImageTk.PhotoImage(img)
+                        self._dnd_photo_ref = photo_image
+                else:
+                    filename = "Datei nicht gefunden"
+            except Exception as e:
+                logger.error("Failed to render DND preview thumbnail: %s", e)
+                filename = "Fehler beim Laden"
+
+            self.dnd_card.grid_columnconfigure(0, weight=0)
+            self.dnd_card.grid_columnconfigure(1, weight=1)
+
+            # Left side: Thumbnail preview
+            if photo_image:
+                preview_lbl = tk.Label(
+                    self.dnd_card,
+                    image=photo_image,
+                    bg=PHOENIX_THEME.surface,
+                )
+                preview_lbl.grid(row=0, column=0, padx=12, pady=8, sticky="w")
+            else:
+                preview_lbl = tk.Label(
+                    self.dnd_card,
+                    text="❌",
+                    font=("Segoe UI", 16),
+                    bg=PHOENIX_THEME.surface,
+                    fg=PHOENIX_THEME.accent,
+                )
+                preview_lbl.grid(row=0, column=0, padx=12, pady=8, sticky="w")
+
+            # Right side: Metadata and Remove Button
+            meta_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface)
+            meta_frame.grid(row=0, column=1, padx=(0, 12), pady=8, sticky="nsew")
+            meta_frame.columnconfigure(0, weight=1)
+
+            display_filename = filename if len(filename) < 24 else filename[:21] + "..."
+            name_lbl = tk.Label(
+                meta_frame,
+                text=display_filename,
+                font=PHOENIX_THEME.font_body,
+                fg=PHOENIX_THEME.text_primary,
+                bg=PHOENIX_THEME.surface,
+                anchor="w",
+            )
+            name_lbl.grid(row=0, column=0, sticky="w", pady=(0, 2))
+
+            res_lbl = tk.Label(
+                meta_frame,
+                text=resolution,
+                font=PHOENIX_THEME.font_caption,
+                fg=PHOENIX_THEME.text_muted,
+                bg=PHOENIX_THEME.surface,
+                anchor="w",
+            )
+            res_lbl.grid(row=1, column=0, sticky="w", pady=(0, 6))
+
+            remove_btn = tk.Button(
+                meta_frame,
+                text="✕ Bild entfernen",
+                command=self._remove_reference_image,
+                bg=PHOENIX_THEME.elevated_bg,
+                fg=PHOENIX_THEME.text_secondary,
+                activebackground=PHOENIX_THEME.accent,
+                activeforeground=PHOENIX_THEME.text_on_accent,
+                relief="flat",
+                bd=0,
+                font=PHOENIX_THEME.font_caption,
+                cursor="hand2",
+                padx=8,
+                pady=4,
+            )
+            remove_btn.grid(row=2, column=0, sticky="w")
+            self._add_button_hover(remove_btn)
+
+            # Bind hover highlights to card
+            for widget in (self.dnd_card, preview_lbl, meta_frame, name_lbl, res_lbl, remove_btn):
+                widget.bind("<Enter>", on_dnd_enter, add="+")
+                widget.bind("<Leave>", on_dnd_leave, add="+")
+
+        else:
+            # Empty state: show upload icon and text prompt
+            self.dnd_card.grid_columnconfigure(0, weight=1)
+            self.dnd_card.grid_columnconfigure(1, weight=0)
+
+            container = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface, cursor="hand2")
+            container.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
+            container.columnconfigure(0, weight=1)
+
+            dnd_icon_lbl = tk.Label(
+                container,
+                text="📥",
+                font=("Segoe UI", 20),
+                bg=PHOENIX_THEME.surface,
+                fg=PHOENIX_THEME.accent,
+                cursor="hand2",
+            )
+            dnd_icon_lbl.grid(row=0, column=0, pady=(0, 4))
+
+            dnd_text_lbl = tk.Label(
+                container,
+                text="Bild hierher ziehen oder klicken",
+                font=PHOENIX_THEME.font_caption,
+                fg=PHOENIX_THEME.text_muted,
+                bg=PHOENIX_THEME.surface,
+                cursor="hand2",
+            )
+            dnd_text_lbl.grid(row=1, column=0)
+
+            # Bind clicks
+            for widget in (self.dnd_card, container, dnd_icon_lbl, dnd_text_lbl):
+                widget.bind("<Button-1>", self._on_dnd_click)
+
+            # Bind hover highlights to card
+            for widget in (self.dnd_card, container, dnd_icon_lbl, dnd_text_lbl):
+                widget.bind("<Enter>", on_dnd_enter, add="+")
+                widget.bind("<Leave>", on_dnd_leave, add="+")
+
+            # Bind Drag & Drop
+            if DND_AVAILABLE:
+                for widget in (self.dnd_card, container, dnd_icon_lbl, dnd_text_lbl):
+                    try:
+                        widget.drop_target_register(DND_FILES)
+                        widget.dnd_bind("<<Drop>>", self._on_image_drop)
+                    except tk.TclError as e:
+                        logger.warning("TkDND not available in Tcl interpreter (likely in test environment): %s", e)
 
     def _show_prompt_history_popup(self) -> None:
         """Display the persistent prompt history popup menu under the history button."""
@@ -1689,6 +2033,9 @@ class PhoenixPromptView(WorkspaceFrame):
         }
         for name, btn in presets.items():
             if self.active_steps_preset == name:
+                btn.is_active = True
+                btn.normal_bg = PHOENIX_THEME.accent
+                btn.normal_fg = PHOENIX_THEME.text_on_accent
                 btn.configure(
                     bg=PHOENIX_THEME.accent,
                     fg=PHOENIX_THEME.text_on_accent,
@@ -1696,6 +2043,9 @@ class PhoenixPromptView(WorkspaceFrame):
                     activeforeground=PHOENIX_THEME.text_on_accent,
                 )
             else:
+                btn.is_active = False
+                btn.normal_bg = PHOENIX_THEME.elevated_bg
+                btn.normal_fg = PHOENIX_THEME.text_secondary
                 btn.configure(
                     bg=PHOENIX_THEME.elevated_bg,
                     fg=PHOENIX_THEME.text_secondary,
@@ -2020,3 +2370,28 @@ class PhoenixPromptView(WorkspaceFrame):
 
         if hasattr(self, "popup_counter_lbl") and hasattr(self, "_prompt_popup") and self._prompt_popup.winfo_exists():
             self.popup_counter_lbl.configure(text=counter_text)
+
+    def _add_button_hover(self, button: tk.Button, hover_bg: str | None = None, hover_fg: str | None = None) -> None:
+        """Add modern, premium hover highlighting to a button."""
+        original_bg = button.cget("bg")
+        original_fg = button.cget("fg")
+        h_bg = hover_bg or PHOENIX_THEME.accent
+        h_fg = hover_fg or PHOENIX_THEME.text_on_accent
+
+        def on_enter(event):
+            if str(button.cget("state")) != "disabled":
+                if hasattr(button, "is_active") and button.is_active:
+                    return
+                button.configure(bg=h_bg, fg=h_fg)
+
+        def on_leave(event):
+            if str(button.cget("state")) != "disabled":
+                if hasattr(button, "is_active") and button.is_active:
+                    button.configure(bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent)
+                    return
+                current_normal_bg = getattr(button, "normal_bg", original_bg)
+                current_normal_fg = getattr(button, "normal_fg", original_fg)
+                button.configure(bg=current_normal_bg, fg=current_normal_fg)
+
+        button.bind("<Enter>", on_enter, add="+")
+        button.bind("<Leave>", on_leave, add="+")

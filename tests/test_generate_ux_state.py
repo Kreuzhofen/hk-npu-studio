@@ -108,6 +108,27 @@ class GenerateUxStateTests(unittest.TestCase):
         self.assertEqual("CANCELLED", controller.cancel_generation())
         self.assertEqual("CANCELLED", job.status)
 
+    def test_input_image_path_mvc_propagation(self) -> None:
+        from controllers.prompt_workspace_controller import PromptWorkspaceController
+        from controllers.prompt_workspace_model import PromptWorkspaceModel
+
+        # Test default is None
+        session = GenerationSessionModel()
+        self.assertIsNone(session.input_image_path)
+
+        model = PromptWorkspaceModel()
+        self.assertIsNone(model.state.input_image_path)
+
+        # Test update_state updates it
+        model.update_state(input_image_path="path/to/image.png")
+        self.assertEqual("path/to/image.png", model.state.input_image_path)
+
+        # Test reset sets it back to None
+        session.update(input_image_path="path/to/image.png")
+        self.assertEqual("path/to/image.png", session.input_image_path)
+        session.reset()
+        self.assertIsNone(session.input_image_path)
+
 
 if __name__ == "__main__":
     unittest.main()

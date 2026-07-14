@@ -17,6 +17,7 @@ class PromptWorkspaceState:
     scheduler: str = "Normal"
     batch_count: int = 1
     status: str = "Bereit"
+    input_image_path: str | None = None
 
 
 class PromptWorkspaceModel:
@@ -39,5 +40,6 @@ class PromptWorkspaceModel:
             "scheduler": kwargs.get("scheduler", self.state.scheduler),
             "batch_count": kwargs.get("batch_count", self.state.batch_count),
             "status": kwargs.get("status", self.state.status),
+            "input_image_path": kwargs.get("input_image_path", self.state.input_image_path),
         }
         self.state = PromptWorkspaceState(**fields)

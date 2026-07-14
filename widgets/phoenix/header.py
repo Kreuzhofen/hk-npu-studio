@@ -10,9 +10,8 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 class PhoenixHeader(tk.Frame):
     def __init__(self, master: tk.Misc) -> None:
-        super().__init__(master, bg=PHOENIX_THEME.header_bg, height=60)
-        self.grid_propagate(False)
-        self.pack_propagate(False)
+        super().__init__(master, bg=PHOENIX_THEME.header_bg)
+        self.pack_propagate(True)
 
         self.title_label: tk.Label
         self.view_label: tk.Label
@@ -71,4 +70,3 @@ class PhoenixHeader(tk.Frame):
 
     def set_view(self, title: str) -> None:
         self.view_label.configure(text=title)
-

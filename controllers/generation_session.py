@@ -23,6 +23,7 @@ class GenerationSessionModel:
     batch_size: int = 1
     output_directory: str = "output"
     output_prefix: str = "generate"
+    input_image_path: str | None = None
 
     def reset(self) -> None:
         """Reset all parameters to default values."""
@@ -39,6 +40,7 @@ class GenerationSessionModel:
         self.batch_size = 1
         self.output_directory = "output"
         self.output_prefix = "generate"
+        self.input_image_path = None
 
     def update(self, **kwargs: Any) -> None:
         """Update fields dynamically."""
