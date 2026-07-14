@@ -35,6 +35,12 @@ class LocalImageGeneratorAdapter:
 
         logger.info(f"[Adapter] Delegating to InferenceBackend: {backend.__class__.__name__}")
         print(f"[Adapter] Delegating to InferenceBackend: {backend.__class__.__name__}")
-        
-        return backend.generate(job)
 
+        bind_running_backend = getattr(self.backend_adapter, "set_running_backend", None)
+        if callable(bind_running_backend):
+            bind_running_backend(backend)
+        try:
+            return backend.generate(job)
+        finally:
+            if callable(bind_running_backend):
+                bind_running_backend(None)

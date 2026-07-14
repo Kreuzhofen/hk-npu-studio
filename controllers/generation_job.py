@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import uuid4, UUID
 from dataclasses import dataclass, field
 from pathlib import Path
+from threading import Event
 
 from controllers.generation_session import GenerationSessionModel
 
@@ -21,3 +22,4 @@ class GenerationJob:
     progress: float = 0.0
     result_path: Path | None = None
     error_message: str | None = None
+    cancel_requested: Event = field(default_factory=Event, repr=False, compare=False)

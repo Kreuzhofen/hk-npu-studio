@@ -24,6 +24,7 @@ class PhoenixTheme:
     accent: str
     accent_dark: str
     accent_soft: str
+    success: str
 
     background: str
     surface: str
@@ -75,6 +76,7 @@ def _create_phoenix_theme() -> PhoenixTheme:
         accent=palette.accent,
         accent_dark=palette.button_active,
         accent_soft=palette.surface,
+        success=palette.success,
         background=palette.background,
         surface=palette.surface,
         card=palette.card,

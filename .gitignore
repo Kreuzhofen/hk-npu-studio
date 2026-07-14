@@ -12,6 +12,7 @@ temp/
 output/
 data/*.sqlite3
 data/*.sqlite3-*
+data/preferences.json
 
 # Windows
 Thumbs.db

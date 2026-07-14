@@ -12,6 +12,13 @@ class StableDiffusion21QnnBackendAdapter(BackendAdapter):
 
     MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v2_1")
 
+    def __init__(self) -> None:
+        self._running_backend = None
+
+    def set_running_backend(self, backend) -> None:
+        """Bind the physical backend instance currently executing this adapter's job."""
+        self._running_backend = backend
+
     def initialize(self) -> None:
         print("[StableDiffusion21QnnBackendAdapter] Running on Qualcomm Hexagon HTP")
 
@@ -37,10 +44,20 @@ class StableDiffusion21QnnBackendAdapter(BackendAdapter):
 
     def generate(self, job: GenerationJob) -> GenerationResult:
         from engine.inference_backend_factory import InferenceBackendFactory
-        return InferenceBackendFactory.get_backend(self.get_backend_name()).generate(job)
+        backend = InferenceBackendFactory.get_backend(self.get_backend_name())
+        self._running_backend = backend
+        try:
+            return backend.generate(job)
+        finally:
+            if self._running_backend is backend:
+                self._running_backend = None
 
     def cancel(self, job: GenerationJob) -> str:
+        job.cancel_requested.set()
         job.status = "CANCELLED"
+        backend = self._running_backend
+        if backend is not None:
+            backend.cancel(job)
         return "Generation cancelled"
 
     def get_progress(self, job: GenerationJob) -> float:

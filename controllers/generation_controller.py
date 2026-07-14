@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 from controllers.generation_session import GenerationSessionModel
 from controllers.generation_job import GenerationJob
@@ -26,6 +27,27 @@ class GenerationController:
         self.backend_manager = BackendManager()
         self.repository = repository or ModelRepository()
         self.is_generating = False
+
+    @staticmethod
+    def discard_cancelled_output(result: GenerationResult, job: GenerationJob) -> GenerationResult:
+        """Remove any output that raced with cancellation and return the canonical result."""
+        output_paths = {result.image_path, result.thumbnail_path}
+        output_dir = Path(job.session.output_directory or "output")
+        if output_dir.is_dir():
+            job_token = str(job.job_id)[:8]
+            output_paths.update(str(path) for path in output_dir.glob(f"*{job_token}*.png"))
+        for output_path in output_paths:
+            if not output_path:
+                continue
+            path = Path(output_path)
+            path.unlink(missing_ok=True)
+            path.with_suffix(".json").unlink(missing_ok=True)
+        return GenerationResult(
+            success=False,
+            status="CANCELLED",
+            message="Generation cancelled.",
+            model_name=job.session.model_name,
+        )
 
     def update_session(self, **kwargs: Any) -> None:
         """Update active generation session settings."""
@@ -72,6 +94,7 @@ class GenerationController:
         job_session = GenerationSessionModel(**self.session.to_dict())
         job = GenerationJob(session=job_session)
         self.queue.enqueue(job)
+        self.queue.dequeue()
 
         self.is_generating = True
         
@@ -91,7 +114,8 @@ class GenerationController:
         loader = ModelLoaderService(repo)
         resolve_result = loader.resolve_model(job_session.model_name)
         if not resolve_result.success:
-            self.queue.dequeue()
+            job.status = "FAILED"
+            self.queue.clear_finished()
             self.is_generating = False
             return GenerationResult(
                 success=False,
@@ -113,13 +137,18 @@ class GenerationController:
         pipeline = ImageGenerationPipeline(job=job, backend_adapter=selected_backend)
         result = pipeline.run()
 
+        if job.cancel_requested.is_set():
+            result = self.discard_cancelled_output(result, job)
+
         # Update result metadata so AI Generate can show the routed backend
         if selected_backend:
             result.backend_name = selected_backend.get_backend_name()
             result.metadata["routed_backend"] = selected_backend.get_backend_name()
 
-        # Dequeue since execution finished
-        self.queue.dequeue()
+        # Finalize and remove the active queue item.
+        if job.status != "CANCELLED":
+            job.status = "FINISHED" if result.success else "FAILED"
+        self.queue.clear_finished()
         self.is_generating = False
 
         # Notify the WorkflowController that the generation finished.
@@ -148,9 +177,8 @@ class GenerationController:
         if active_backend is not None and current is not None:
             active_backend.cancel(current)
 
-        self.is_generating = False
         print("--- [GenerationController: Cancel Generation] ---")
         print("All jobs in queue cancelled.")
         print("--------------------------------------------------")
         
-        return "Generation cancelled (stub)"
+        return "CANCELLED"

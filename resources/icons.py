@@ -75,6 +75,7 @@ class IconManager:
         "info",
         "warning",
         "error",
+        "lock",
     )
 
     FALLBACK_SYMBOLS = {
@@ -97,6 +98,7 @@ class IconManager:
         "info": "i",
         "warning": "!",
         "error": "!",
+        "lock": "🔒",
     }
 
     LEGACY_FILES = {

@@ -36,6 +36,7 @@ class GenerationQueue:
         """Cancel a job in the queue by its ID."""
         for job in self._jobs:
             if job.job_id == job_id:
+                job.cancel_requested.set()
                 job.status = "CANCELLED"
                 return True
         return False

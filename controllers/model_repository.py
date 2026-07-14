@@ -6,6 +6,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from config import PREFERENCES_PATH
+
 
 class ModelCapabilities:
     """
@@ -67,14 +69,18 @@ class ModelRepository:
 
     _active_model_id: str | None = None
     _logged_smp_models: set[str] = set()
+    _preferences_path: Path = PREFERENCES_PATH
 
     @classmethod
     def get_active_model_id(cls) -> str | None:
         return cls._active_model_id
 
-    @classmethod
-    def set_active_model_id(cls, model_id: str | None) -> None:
-        cls._active_model_id = model_id
+    def set_active_model_id(self, model_id: str | None) -> None:
+        """Persist a valid selectable model as the shared active model."""
+        if model_id is not None and not self.is_selectable_model(model_id):
+            return
+        ModelRepository._active_model_id = model_id
+        self._save_active_model_preference(model_id)
 
     def __init__(self, models_dir: str | None = None) -> None:
         if models_dir is None:
@@ -96,7 +102,7 @@ class ModelRepository:
             print(f"[ModelRepository] Warning: Directory {self.models_dir} does not exist.")
             return
 
-        for filename in os.listdir(self.models_dir):
+        for filename in sorted(os.listdir(self.models_dir)):
             if filename.endswith(".json"):
                 filepath = os.path.join(self.models_dir, filename)
                 try:
@@ -113,12 +119,17 @@ class ModelRepository:
                 except Exception as e:
                     print(f"[ModelRepository] Error loading {filename}: {e}")
 
-        if ModelRepository._active_model_id is None and self._models:
-            product_model = next(
-                (model_id for model_id, model in self._models.items() if model.get("product_available") is True),
-                None,
-            )
-            ModelRepository._active_model_id = product_model or list(self._models.keys())[0]
+        selectable_models = [
+            model_id for model_id in self._models if self.is_selectable_model(model_id)
+        ]
+        active_model = ModelRepository._active_model_id
+        if active_model not in selectable_models:
+            preferred_model = self._load_active_model_preference()
+            active_model = preferred_model if preferred_model in selectable_models else None
+            if active_model is None:
+                active_model = selectable_models[0] if selectable_models else None
+            ModelRepository._active_model_id = active_model
+            self._save_active_model_preference(active_model)
 
     def _validate_model_data(self, data: dict[str, Any]) -> bool:
         """
@@ -145,13 +156,46 @@ class ModelRepository:
         return list(self._models.values())
 
     def get_product_models(self) -> list[dict[str, Any]]:
-        """Return only models explicitly approved for productive generation."""
-        return [model for model in self._models.values() if model.get("product_available") is True]
+        """Return installed product models that are selectable for generation."""
+        return [model for model in self._models.values() if self.is_selectable_model(str(model.get("id", "")))]
 
     def is_product_model(self, model_id: str) -> bool:
         """Whether a model may be selected in a production generation workspace."""
         model = self.get_model(model_id)
         return bool(model and model.get("product_available") is True)
+
+    def is_selectable_model(self, model_id: str) -> bool:
+        """Whether an installed product model can be activated for generation."""
+        model = self.get_model(model_id)
+        return bool(
+            model
+            and model.get("product_available") is True
+            and model.get("installed") is True
+            and isinstance(model.get("generation_parameters"), dict)
+        )
+
+    @classmethod
+    def _load_active_model_preference(cls) -> str | None:
+        try:
+            data = json.loads(cls._preferences_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return None
+        value = data.get("active_model_id") if isinstance(data, dict) else None
+        return str(value) if value else None
+
+    @classmethod
+    def _save_active_model_preference(cls, model_id: str | None) -> None:
+        path = cls._preferences_path
+        temporary_path = path.with_suffix(path.suffix + ".tmp")
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            temporary_path.write_text(
+                json.dumps({"active_model_id": model_id}, indent=2),
+                encoding="utf-8",
+            )
+            temporary_path.replace(path)
+        except OSError:
+            temporary_path.unlink(missing_ok=True)
 
     def get_generation_parameters(self, model_id: str) -> dict[str, Any] | None:
         """Return the model-owned generation control contract, if declared."""

@@ -7,6 +7,7 @@ Utilizes a subprocess worker to isolate QAIRT 2.45.41 from QAIRT 2.47 system dri
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 import os
@@ -97,7 +98,10 @@ class SimpleCLIPTokenizer:
             self.encoder = json.load(f)
         self.decoder = {v: k for k, v in self.encoder.items()}
         self.byte_encoder = bytes_to_unicode()
-        self.pat = re.compile(r"""<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[a-zA-Z]+|[0-9]+|[^a-zA-Z0-9\s]+""", re.IGNORECASE)
+        self.pat = re.compile(
+            r"""<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[^\W\d_]+|\d+|(?:[^\s\w]|_)+""",
+            re.IGNORECASE,
+        )
 
         with open(merges_path, 'r', encoding='utf-8') as f:
             merges = f.read().split('\n')
@@ -158,6 +162,7 @@ class SimpleCLIPTokenizer:
     def encode(self, text: str) -> list[int]:
         import re
         bpe_tokens = []
+        text = html.unescape(html.unescape(text))
         text = re.sub(r'\s+', ' ', text.lower()).strip()
         for token in re.findall(self.pat, text):
             token = "".join(self.byte_encoder[b] for b in token.encode('utf-8'))
@@ -206,6 +211,23 @@ class StableDiffusion21QnnBackend(InferenceBackend):
     def __init__(self) -> None:
         self.tokenizer = None
         self.scheduler = None
+        self._active_process = None
+
+    def cancel(self, job: GenerationJob) -> str:
+        """Terminate the worker subprocess that owns the active QNN sessions."""
+        import subprocess
+
+        job.cancel_requested.set()
+        job.status = "CANCELLED"
+        process = self._active_process
+        if process is not None and process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+        return "CANCELLED"
 
     def _setup_sessions(self, model_dir: Path) -> tuple[Any, Any, Any, dict[str, Any]]:
         import onnxruntime as ort
@@ -258,12 +280,21 @@ class StableDiffusion21QnnBackend(InferenceBackend):
         logger.info("[Main Process] Spawning worker subprocess for SD2.1 QNN...")
         print("[Main Process] Spawning worker subprocess for SD2.1 QNN...")
 
+        if job.cancel_requested.is_set():
+            return GenerationResponse(
+                success=False,
+                status="CANCELLED",
+                message="Generation cancelled.",
+                model_name=job.session.model_name,
+            )
+
         # Create temporary json files for communication
         temp_dir = ROOT
         temp_dir.mkdir(parents=True, exist_ok=True)
         job_id_str = str(job.job_id)[:8]
         input_json_path = temp_dir / f"job_input_{job_id_str}.json"
         output_json_path = temp_dir / f"job_output_{job_id_str}.json"
+        output_json_path.unlink(missing_ok=True)
 
         # Serialize job parameters
         job_data = {
@@ -305,19 +336,29 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             text=True,
             bufsize=1
         )
+        self._active_process = process
 
         # Read output in real-time to update status/progress
         while True:
             line = process.stdout.readline()
+            if job.cancel_requested.is_set():
+                self.cancel(job)
+                input_json_path.unlink(missing_ok=True)
+                output_json_path.unlink(missing_ok=True)
+                self._active_process = None
+                return GenerationResponse(
+                    success=False,
+                    status="CANCELLED",
+                    message="Generation cancelled.",
+                    model_name=job.session.model_name,
+                )
             if not line and process.poll() is not None:
                 break
             if line:
                 line_str = line.strip()
                 print(f"[QNN Worker] {line_str}")
-                # Log status in prompt view and update job status
-                if any(k in line_str for k in ["Preparing", "Loading", "Starting", "Tokenizing", "Running", "Decoding", "Saving", "Step", "Image"]):
-                    job.status = line_str
-
+                # Keep lifecycle status RUNNING so GenerationQueue can locate the active job.
+                if not job.cancel_requested.is_set() and any(k in line_str for k in ["Preparing", "Loading", "Starting", "Tokenizing", "Running", "Decoding", "Saving", "Step", "Image"]):
                     # Estimate progress based on steps
                     if "Step " in line_str and "/" in line_str:
                         try:
@@ -329,10 +370,21 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                             pass
 
         process.wait()
+        self._active_process = None
+
+        if job.cancel_requested.is_set():
+            input_json_path.unlink(missing_ok=True)
+            output_json_path.unlink(missing_ok=True)
+            return GenerationResponse(
+                success=False,
+                status="CANCELLED",
+                message="Generation cancelled.",
+                model_name=job.session.model_name,
+            )
 
         # Check if output json exists
         if not output_json_path.exists():
-            err_msg = "Subprocess finished but did not write output JSON."
+            err_msg = f"Subprocess exited with code {process.returncode} without writing output JSON."
             logger.error(err_msg)
             return GenerationResponse(
                 success=False,
@@ -424,9 +476,11 @@ class StableDiffusion21QnnBackend(InferenceBackend):
         steps = int(job_data.get("steps", 20))
 
         t_pipeline_start = time.time()
+        sessions_to_close: list[Any] = []
         try:
             # 1. Setup Sessions
             text_encoder_session, unet_session, vae_session, provider_diagnostics = self._setup_sessions(model_dir)
+            sessions_to_close = [text_encoder_session, unet_session, vae_session]
 
             # 2. Tokenize and Embed
             tokenizer = SimpleCLIPTokenizer(vocab_path, merges_path)
@@ -514,12 +568,6 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             # Dequantize VAE output: scale=0.000015259021893143654, zero_point=0
             image_float = image_quant.astype(np.float32) * 0.000015259021893143654
             image_rgb = np.clip(image_float[0] * 255.0, 0, 255).astype(np.uint8)
-
-            # Clean up sessions to release NPU memory
-            text_encoder_session.end_profiling()
-            unet_session.end_profiling()
-            vae_session.end_profiling()
-            del text_encoder_session, unet_session, vae_session
 
             # 6. Save image using Pillow
             print("Saving image", flush=True)
@@ -633,6 +681,13 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 "message": f"End-to-End Pipeline fehlgeschlagen: {e}",
                 "metadata": {}
             }
+        finally:
+            for session in sessions_to_close:
+                try:
+                    session.end_profiling()
+                except Exception:
+                    logger.exception("Failed to finalize QNN session after pipeline error")
+            sessions_to_close.clear()
 
 
 if __name__ == "__main__":
