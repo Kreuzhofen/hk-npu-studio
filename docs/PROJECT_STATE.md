@@ -1,6 +1,6 @@
 # Projektstatus – Snapdragon AI Studio
 
-**Stand:** 13.07.2026
+**Stand:** 14.07.2026
 **Zweig:** `feature/phoenix-rebuild`
 **Zielplattform:** Windows 11 ARM64 (Qualcomm Snapdragon X NPU via QNN)
 
@@ -8,6 +8,11 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
+* **Sprint G-004A – Fix Quality Presets Visibility:** Behebung eines Layout-Verdrängungs-Bugs, bei dem die drei nebeneinander angeordneten Presets-Buttons die Spaltenbreite im Canvas-Viewport überdehnten und somit die gesamte rechte Spalte unsichtbar machten. Die Schaltflächen werden nun platzsparend untereinander angeordnet, wodurch die korrekte Spaltenbreite (290px) gewahrt bleibt.
+* **Sprint G-004 – Quality Presets:** Ersatz der technischen Steps-Einstellungen im Standardmodus (bei Modellen mit gesperrter Auflösung) durch drei Presets (⚡ Schnell, ⭐ Standard, 💎 Beste Qualität). Die Presets steuern intern die Steps (Schnell = 10, Standard = 20, Beste Qualität = 30 für SD1.5 und SD2.1 QNN Modelle), während der tatsächliche Step-Wert in den Metadaten erhalten bleibt. Umschalten auf andere Modelle stellt die standardmäßige Steps-Skala automatisch wieder her.
+* **Sprint G-003 – Prompt Templates:** Einführung einer ausbaufähigen Vorlagenverwaltung für AI-Prompts. Eine JSON-Datei unter `resources/prompt_templates.json` speichert Kategorien (Portrait, Landschaft, Architektur, Fantasy, Sci-Fi, Produktfoto) mit Vorlagen. In der UI bietet eine "Vorlagen ▼"-Schaltfläche ein kaskadierendes Menü zur Schnellauswahl. Ein Klick überschreibt den Hauptprompt, während der negative Prompt unberührt bleibt. Alle Elemente integrieren sich harmonisch in das Phoenix-Theming.
+* **Progress Bar Fix (G-003):** Beseitigung des Problems, dass die Progressbar bei tab- oder layoutbedingten externen Theme-Aktualisierungen grau wird, indem die Layoutstruktur und die Phoenix-Success-Rolle bei jedem Fortschrittsschritt re-aktiviert werden.
+* **Sprint G-002 – Prompt History:** Hinzufügen einer lokalen Prompt-History für AI Generate. Die letzten 20 erfolgreich generierten Prompts werden persistent und duplikatfrei (neuester Eintrag gewinnt) in der Datei `data/prompt_history.json` gespeichert. Die History lässt sich über ein kleines Verlaufssymbol (🕘) direkt neben dem Prompt-Titel öffnen. Ein Klick auf einen Eintrag übernimmt den Prompt in das Textfeld, während negative Prompts unverändert bleiben. Sämtliche UI-Elemente unterstützen Dark- und Light-Theme-Vorgaben über den `ThemeManager` ohne hartcodierte Farben.
 * **Sprint G-001E – Resolution Availability UX:** Die Auflösungsauswahl stellt für die Modelle SD1.5 QNN und SD2.1 QNN ausschließlich die unterstützte Option 512×512 sichtbar und ausgewählt dar. Die Option 1024×1024 bleibt sichtbar, wird jedoch im Layout deaktiviert und mit einem Schloss-Symbol (🔒) und dem Vermerk „Demnächst“ versehen. Ein Informationstext weist darauf hin, dass höhere Auflösungen kompatible Qualcomm-Modelle voraussetzen. Die UI wechselt bei anderen Modellen automatisch auf die Standard-Dropdowns zur Breite/Höhe-Auswahl zurück. Alle Farben basieren auf dem Phoenix-ThemeManager, wodurch die Dark- und Light-Theme-Kompatibilität vollständig erhalten bleibt.
 * **Sprint G-001D – Functional Cancel:** Der Abbruchpfad reicht nun vom AI-Generate-Button über GenerationController, Queue und QNN-Adapter bis zum konkreten SD1.5-/SD2.1-Workerprozess. Worker-Logzeilen überschreiben den Queue-Lifecycle nicht mehr; das dauerhafte Cancel-Signal beendet den Subprozess, verhindert erfolgreiche Workflow-Callbacks und entfernt im Save-Race entstandene PNG-/Sidecar-Dateien des abgebrochenen Jobs. Reale NPU-Tests nach jeweils fünf Sekunden endeten für beide Modelle mit `CANCELLED`, ohne Ausgabe und ohne verbliebenen Worker.
 * **Sprint G-001 – AI Generate UX Refresh:** Die AI-Generate-Oberfläche priorisiert den Prompt nun als akzentgerahmten Composer mit großzügiger Hauptbeschreibung und klar untergeordnetem Negative Prompt. Eine feste, deutlich hervorgehobene Action-Bar hält die lokale Bildgenerierung als primäre Aktion jederzeit sichtbar. Abstände, Typografie, Flächen und Zustände verwenden ausschließlich Phoenix-Theme-Rollen und funktionieren in Dark und Light; Controller, Modellparameter und Bildpipeline bleiben unverändert.
@@ -16,6 +21,52 @@
 * **Experiment HR-001 – Tiled QNN Diffusion PoC:** Ein isolierter SD2.1-Proof-of-Concept denoisiert einen gemeinsamen 128×128-Latent-Canvas über neun überlappende, feste 64×64-QNN-Fenster. Text Encoder, 360 UNet-Inferenzen pro 20-Step-Lauf und neun gekachelte VAE-Decodes laufen fail-closed über QNN/HTP; Host-Code übernimmt ausschließlich DDIM-Scheduler, Canvas, Cosine-Blending, Akkumulation und PNG-Ausgabe. 1024×1024-Läufe mit 64 px und 128 px Bildüberlappung waren technisch erfolgreich und reproduzierbar, sind wegen noch sichtbarer großräumiger Motiv-/Perspektivwechsel aber ausdrücklich nicht als Produktfunktion freigegeben. Produktiver 512×512-Pfad und GUI bleiben unverändert.
 * **Sprint P4-001A – AI Asset Library Index Foundation:** Eine medienneutrale Asset-Index-Schicht synchronisiert unterstützte Bilder aus dem zentralen Output-Pfad deterministisch in einen lokalen SQLite-Index unter `data/asset_index.sqlite3`. Das Dateisystem bleibt Source of Truth; SQLite enthält ausschließlich reproduzierbare Such- und Metadaten, niemals Asset-Dateien. JSON-Sidecars werden bevorzugt und fehlertolerant ausgewertet, geänderte Assets aktualisiert und entfernte Assets als fehlend markiert. Die Struktur bereitet Video-Assets architektonisch vor, implementiert aber noch keine Videoverarbeitung, GUI-Umschaltung oder Live-Überwachung. Der PO-Abnahme-Bugfix aktualisiert die Gallery-Auswahl bei Einzel- und Doppelklick direkt an bestehenden Karten, sodass kein Grid-Neuaufbau und kein erneuter Thumbnail-Load ausgelöst wird.
 * **Recovery IQ-R01 – IQ-001/IQ-004:** Die SD1.5-/SD2.1-QNN-Backends respektieren die angeforderten Steps und ausdrücklich leere Negative Prompts. Der SD1.5-Euler-Vertrag verwendet `leading`, Offset 1 und epsilon Prediction; kompakte Sidecars dokumentieren Timesteps, Sigmas, Latent Scaling, Tensorstatistiken und Laufzeiten. AI Generate bezieht Auflösung, Steps, CFG, Seed, Sampler, Scheduler und Prediction Type modellunabhängig aus `generation_parameters`; Modellwechsel und Model-Manager-Aktivierung synchronisieren die sichtbaren Controls und den Generation-Job.
+
+Am **14.07.2026** wurden folgende Sprints abgeschlossen:
+
+* **Sprint G-006 – Prompt Counter:**
+  * **Live-Zähler:** Ein dynamischer Zähler für Zeichen und Wörter unter dem Prompt-Textfeld im Hauptbereich.
+  * **Popup-Zähler:** Eine analoge Echtzeitanzeige im großen Prompt-Editor (Popup).
+  * **Echtzeit-Synchronisation:** Beide Zählerstände werden bei jeder Tastatureingabe oder Prompt-Änderung (History/Templates) synchron aktualisiert.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [test_prompt_counter.py](file:///C:/SnapdragonAI/tests/test_prompt_counter.py)
+
+* **Sprint G-005 – Expandable Prompt Editor:**
+  * **Maximierungs-Button:** Ein neuer Button "⛶ Maximieren" neben dem Prompt-Header öffnet den Editor.
+  * **Großes Editor-Popup:** Öffnet einen Prompt-Editor (Größe ca. 80% des Hauptfensters) in einem zentrierten Popup.
+  * **Echtzeit-Synchronisation:** Bidirektionale Synchronisierung über explizite Sync-Methoden stellt die unmittelbare Wertaktualisierung sicher.
+  * **Template- & History-Kompakt:** Das Laden von Vorlagen oder aus dem Verlauf befüllt parallel den Popup-Editor, falls dieser geöffnet ist.
+  * **Schließen per ESC:** Der Tastaturbefehl ESC schließt das Fenster unmittelbar und übernimmt die Änderungen.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [test_expandable_prompt.py](file:///C:/SnapdragonAI/tests/test_expandable_prompt.py)
+
+* **Sprint G-004D – Advanced Settings Popup Preview:**
+  * **Kompakter Workspace:** Reduzierter Hauptbereich zeigt nur Modell, Prompts, Qualitätsprofile, Generierungskontrollen und einen Button "Erweiterte Einstellungen".
+  * **Zentralisiertes Einstellungs-Popup:** Ein Klick öffnet ein modales Popup mit Auflösung (512x512/1024x1024), CFG-Scale, Sampler/Scheduler und Seed/Batch-Steuerungen.
+  * **Konsistenter Zustand:** Bidirektionale Bindung an dieselben `tk.Variable`-Instanzen stellt die unmittelbare Synchronisierung ohne redundanten State sicher.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [test_advanced_popup.py](file:///C:/SnapdragonAI/tests/test_advanced_popup.py)
+
+* **Sprint G-004A – Fix Quality Presets Visibility:**
+  * **Vertikales Stacking:** Platzierung der drei Preset-Schaltflächen untereinander zur Einhaltung der maximalen Spaltenbreite.
+  * **Workspace-Sichtbarkeit:** Vollständige Sichtbarkeit der Steuerelemente in Dark- und Light-Themes.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py)
+
+* **Sprint G-004 – Quality Presets:**
+  * **Presets-Steuerung:** Ersatz der Steps-Skala durch drei Presets im Standardmodus.
+  * **Modellabhängiges Mapping:** Zuweisung von 10, 20 oder 30 Steps für SD1.5/SD2.1 QNN.
+  * **Konsistente Metadaten:** Die tatsächliche Step-Zahl bleibt im Metadata-Sidecar erhalten.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [test_quality_presets.py](file:///C:/SnapdragonAI/tests/test_quality_presets.py)
+
+* **Sprint G-003 – Prompt Templates:**
+  * **Vorlagen-Verwaltung:** Speicherung von Vorlagen in der JSON-Datei `resources/prompt_templates.json`.
+  * **Kaskadierendes Menü:** Schaltfläche "Vorlagen ▼" öffnet ein gegliedertes Popup-Menü.
+  * **Auswahl-Übernahme:** Klick befüllt den Hauptprompt, ohne negative Prompts zu überschreiben.
+  * **Fortschrittsbalken-Korrektur:** Nachhaltige Beseitigung des Gray-State-Bugs durch regelmäßige `_ensure_progress_style()`-Sicherstellung.
+  * **Dateien:** [prompt_workspace_controller.py](file:///C:/SnapdragonAI/controllers/prompt_workspace_controller.py), [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [config.py](file:///C:/SnapdragonAI/config.py), [prompt_templates.json](file:///C:/SnapdragonAI/resources/prompt_templates.json), [test_prompt_templates.py](file:///C:/SnapdragonAI/tests/test_prompt_templates.py)
+
+* **Sprint G-002 – Prompt History:**
+  * **Verlauf-Speicherung:** Persistent und duplikatfreie Speicherung der letzten 20 erfolgreichen Prompts.
+  * **UI-Trigger:** Verlaufssymbol (🕘) neben dem Prompt-Eingabefeld öffnet das Popup-Menü mit den Verlaufseinträgen.
+  * **Fokus-Übernahme:** Klick auf einen Eintrag übernimmt diesen direkt ins Prompt-Feld, ohne negative Prompts zu manipulieren.
+  * **Dateien:** [prompt_workspace_controller.py](file:///C:/SnapdragonAI/controllers/prompt_workspace_controller.py), [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [config.py](file:///C:/SnapdragonAI/config.py), [test_prompt_history.py](file:///C:/SnapdragonAI/tests/test_prompt_history.py)
 
 Am **13.07.2026** wurde folgender Sprint abgeschlossen:
 

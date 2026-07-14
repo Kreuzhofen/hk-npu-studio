@@ -22,6 +22,7 @@ class PhoenixPromptView(WorkspaceFrame):
     Professional two-column layout with grouped parameters on the left
     and a unified AI Generation Inspector on the right.
     """
+    COMPACT_PREVIEW_MODE = True
 
     def __init__(self, master: tk.Misc, controller: PromptWorkspaceController | None = None) -> None:
         super().__init__(
@@ -196,6 +197,16 @@ class PhoenixPromptView(WorkspaceFrame):
 
     def _build_parameters(self) -> None:
         """Build all parameter groups inside the scrollable param_content frame."""
+        # Shared variables for layout synchronization
+        self.width_var = tk.StringVar(value="512")
+        self.height_var = tk.StringVar(value="512")
+        self.sampler_var = tk.StringVar(value="Euler")
+        self.scheduler_var = tk.StringVar(value="Normal")
+        self.batch_var = tk.StringVar(value="1")
+        self.cfg_var = tk.DoubleVar(value=7.5)
+        self.steps_var = tk.IntVar(value=20)
+        self.seed_var = tk.StringVar(value="-1")
+
         p = self.param_content  # shorthand
         r = 0
 
@@ -247,20 +258,77 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         prompt_card.grid_columnconfigure(0, weight=1)
 
-        tk.Label(
-            prompt_card,
-            text="DEIN PROMPT",
-            bg=PHOENIX_THEME.surface,
-            fg=PHOENIX_THEME.accent,
-            font=PHOENIX_THEME.font_card_title,
-            anchor="w",
-        ).grid(
+        # Header frame for DEIN PROMPT and history button
+        prompt_header_frame = tk.Frame(prompt_card, bg=PHOENIX_THEME.surface)
+        prompt_header_frame.grid(
             row=0,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
             pady=(PHOENIX_THEME.space_md, 0),
         )
+        prompt_header_frame.grid_columnconfigure(0, weight=1)
+        prompt_header_frame.grid_columnconfigure(1, weight=0)
+        prompt_header_frame.grid_columnconfigure(2, weight=0)
+        prompt_header_frame.grid_columnconfigure(3, weight=0)
+
+        tk.Label(
+            prompt_header_frame,
+            text="DEIN PROMPT",
+            bg=PHOENIX_THEME.surface,
+            fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        ).grid(row=0, column=0, sticky="w")
+
+        self.templates_btn = tk.Button(
+            prompt_header_frame,
+            text="Vorlagen ▼",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_caption,
+            cursor="hand2",
+            padx=8,
+            pady=2,
+            command=self._show_templates_popup,
+        )
+        self.templates_btn.grid(row=0, column=1, sticky="e", padx=(0, 6))
+
+        self.history_btn = tk.Button(
+            prompt_header_frame,
+            text="🕘",
+            bg=PHOENIX_THEME.surface,
+            fg=PHOENIX_THEME.text_secondary,
+            activebackground=PHOENIX_THEME.surface,
+            activeforeground=PHOENIX_THEME.accent,
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 12, "bold"),
+            cursor="hand2",
+            command=self._show_prompt_history_popup,
+        )
+        self.history_btn.grid(row=0, column=2, sticky="e", padx=(0, 6))
+
+        self.maximize_btn = tk.Button(
+            prompt_header_frame,
+            text="⛶ Maximieren",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_caption,
+            cursor="hand2",
+            padx=8,
+            pady=2,
+            command=self._open_expandable_prompt_popup,
+        )
+        self.maximize_btn.grid(row=0, column=3, sticky="e")
         tk.Label(
             prompt_card,
             text="Beschreibe Motiv, Licht, Perspektive und Stil möglichst konkret.",
@@ -288,9 +356,27 @@ class PhoenixPromptView(WorkspaceFrame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(0, PHOENIX_THEME.space_md),
+            pady=(0, PHOENIX_THEME.space_xs),
         )
         self.prompt_text.insert("1.0", "A futuristic cyberpunk cityscape, neon lights, high resolution, highly detailed")
+        self.prompt_text.bind("<KeyRelease>", lambda e: self._on_main_prompt_key())
+
+        # Live Prompt Counter Label
+        self.prompt_counter_lbl = tk.Label(
+            prompt_card,
+            text="Zeichen: 0 | Wörter: 0",
+            bg=PHOENIX_THEME.surface,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="e"
+        )
+        self.prompt_counter_lbl.grid(
+            row=3,
+            column=0,
+            sticky="e",
+            padx=PHOENIX_THEME.space_md,
+            pady=(0, PHOENIX_THEME.space_sm)
+        )
 
         tk.Label(
             prompt_card,
@@ -300,7 +386,7 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
         ).grid(
-            row=3,
+            row=4,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
@@ -315,13 +401,14 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm,
         )
         self.neg_prompt_text.grid(
-            row=4,
+            row=5,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
             pady=(0, PHOENIX_THEME.space_md),
         )
         self.neg_prompt_text.insert("1.0", "blurry, low quality, distorted, extra limbs, bad anatomy")
+        self._update_prompt_counters()
         r += 1
 
         # ── Group: Image Size ─────────────────────────
@@ -329,6 +416,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.size_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
         self.size_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+        self.size_frame.row_idx = r
         self.size_frame.grid_columnconfigure(0, weight=0)
         self.size_frame.grid_columnconfigure(1, weight=1)
         self.size_frame.grid_columnconfigure(2, weight=0)
@@ -336,7 +424,6 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.width_label = tk.Label(self.size_frame, text="Breite:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         self.width_label.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
-        self.width_var = tk.StringVar(value="512")
         self.width_menu = tk.OptionMenu(self.size_frame, self.width_var, "256", "512", "768", "1024")
         self.width_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         self.width_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
@@ -344,7 +431,6 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.height_label = tk.Label(self.size_frame, text="Höhe:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         self.height_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-        self.height_var = tk.StringVar(value="512")
         self.height_menu = tk.OptionMenu(self.size_frame, self.height_var, "256", "512", "768", "1024")
         self.height_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         self.height_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
@@ -410,16 +496,26 @@ class PhoenixPromptView(WorkspaceFrame):
         sampling_frame.grid_columnconfigure(0, weight=1)
         sampling_frame.grid_columnconfigure(1, weight=1)
 
-        tk.Label(sampling_frame, text="CFG Scale:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", pady=(0, 1))
+        self.cfg_label = tk.Label(sampling_frame, text="CFG Scale:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        self.cfg_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
         self.cfg_scale = tk.Scale(
             sampling_frame, from_=1.0, to=20.0, resolution=0.5, orient="horizontal",
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             highlightthickness=0, font=PHOENIX_THEME.font_caption,
             activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
-            width=12
+            width=12, variable=self.cfg_var
         )
-        self.cfg_scale.set(7.5)
         self.cfg_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
+
+        # Advanced settings button for compact mode
+        self.adv_label = tk.Label(sampling_frame, text="Einstellungen:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        self.adv_settings_btn = tk.Button(
+            sampling_frame, text="Erweiterte Einstellungen ⚙️",
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_secondary,
+            activebackground=PHOENIX_THEME.elevated_bg, activeforeground=PHOENIX_THEME.text_primary,
+            command=self._open_advanced_settings_popup
+        )
 
         tk.Label(sampling_frame, text="Steps:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=1, sticky="w", pady=(0, 1))
         self.steps_scale = tk.Scale(
@@ -427,28 +523,53 @@ class PhoenixPromptView(WorkspaceFrame):
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             highlightthickness=0, font=PHOENIX_THEME.font_caption,
             activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
-            width=12
+            width=12, variable=self.steps_var
         )
-        self.steps_scale.set(20)
         self.steps_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
 
-        dropdown_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
-        dropdown_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
-        dropdown_frame.grid_columnconfigure(0, weight=0)
-        dropdown_frame.grid_columnconfigure(1, weight=1)
-        dropdown_frame.grid_columnconfigure(2, weight=0)
-        dropdown_frame.grid_columnconfigure(3, weight=1)
+        # Quality presets for standard mode (locked resolution models)
+        self.active_steps_preset = "Standard"
+        self.steps_preset_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
+        self.steps_preset_frame.grid_columnconfigure(0, weight=1)
 
-        tk.Label(dropdown_frame, text="Sampler:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
-        self.sampler_var = tk.StringVar(value="Euler")
-        self.sampler_menu = tk.OptionMenu(dropdown_frame, self.sampler_var, "Euler a", "Euler", "DPM++ 2M", "DDIM", "LMS")
+        self.btn_preset_schnell = tk.Button(
+            self.steps_preset_frame, text="⚡ Schnell",
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=4, pady=4,
+            command=lambda: self._select_steps_preset("Schnell")
+        )
+        self.btn_preset_schnell.grid(row=0, column=0, sticky="ew", pady=(0, 2))
+
+        self.btn_preset_standard = tk.Button(
+            self.steps_preset_frame, text="⭐ Standard",
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=4, pady=4,
+            command=lambda: self._select_steps_preset("Standard")
+        )
+        self.btn_preset_standard.grid(row=1, column=0, sticky="ew", pady=2)
+
+        self.btn_preset_beste = tk.Button(
+            self.steps_preset_frame, text="💎 Beste Qualität",
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=4, pady=4,
+            command=lambda: self._select_steps_preset("Beste Qualität")
+        )
+        self.btn_preset_beste.grid(row=2, column=0, sticky="ew", pady=(2, 0))
+
+        self._update_steps_preset_colors()
+
+        self.dropdown_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
+        self.dropdown_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self.dropdown_frame.grid_columnconfigure(0, weight=0)
+        self.dropdown_frame.grid_columnconfigure(1, weight=1)
+        self.dropdown_frame.grid_columnconfigure(2, weight=0)
+        self.dropdown_frame.grid_columnconfigure(3, weight=1)
+
+        tk.Label(self.dropdown_frame, text="Sampler:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+        self.sampler_menu = tk.OptionMenu(self.dropdown_frame, self.sampler_var, "Euler a", "Euler", "DPM++ 2M", "DDIM", "LMS")
         self.sampler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         self.sampler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         self.sampler_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
 
-        tk.Label(dropdown_frame, text="Sched.:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-        self.scheduler_var = tk.StringVar(value="Euler")
-        self.scheduler_menu = tk.OptionMenu(dropdown_frame, self.scheduler_var, "Normal", "Karras", "Exponential", "SGM Uniform")
+        tk.Label(self.dropdown_frame, text="Sched.:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+        self.scheduler_menu = tk.OptionMenu(self.dropdown_frame, self.scheduler_var, "Normal", "Karras", "Exponential", "SGM Uniform")
         self.scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         self.scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         self.scheduler_menu.grid(row=0, column=3, sticky="ew", pady=2)
@@ -457,26 +578,26 @@ class PhoenixPromptView(WorkspaceFrame):
         # ── Group: Output ─────────────────────────────
         r = self._section_header(p, "Output", r)
 
-        output_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        output_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
-        output_frame.grid_columnconfigure(0, weight=0)
-        output_frame.grid_columnconfigure(1, weight=1)
-        output_frame.grid_columnconfigure(2, weight=0)
-        output_frame.grid_columnconfigure(3, weight=1)
+        self.output_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
+        self.output_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+        self.output_frame.row_idx = r
+        self.output_frame.grid_columnconfigure(0, weight=0)
+        self.output_frame.grid_columnconfigure(1, weight=1)
+        self.output_frame.grid_columnconfigure(2, weight=0)
+        self.output_frame.grid_columnconfigure(3, weight=1)
 
-        tk.Label(output_frame, text="Seed:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+        tk.Label(self.output_frame, text="Seed:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
         self.seed_entry = tk.Entry(
-            output_frame, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            self.output_frame, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
             insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border, highlightcolor=PHOENIX_THEME.accent,
-            highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body
+            highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body,
+            textvariable=self.seed_var
         )
-        self.seed_entry.insert(0, "-1")
         self.seed_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
 
-        tk.Label(output_frame, text="Batch:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-        self.batch_var = tk.StringVar(value="1")
-        batch_menu = tk.OptionMenu(output_frame, self.batch_var, "1", "2", "4", "8")
+        tk.Label(self.output_frame, text="Batch:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+        batch_menu = tk.OptionMenu(self.output_frame, self.batch_var, "1", "2", "4", "8")
         batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
@@ -514,32 +635,62 @@ class PhoenixPromptView(WorkspaceFrame):
             if isinstance(spec, dict):
                 self._configure_option_contract(widget, variable, spec)
 
-        if contract.get("resolution_locked") is True:
-            self.width_menu.configure(state="disabled")
-            self.height_menu.configure(state="disabled")
+        # Manage visibility based on COMPACT_PREVIEW_MODE
+        if self.COMPACT_PREVIEW_MODE:
+            # Hide the entire Image Size group, dropdown frame, and Output group from main panel
+            self.size_frame.grid_remove()
+            self.dropdown_frame.grid_remove()
+            self.output_frame.grid_remove()
+            if hasattr(self, "_section_labels"):
+                if "Image Size" in self._section_labels:
+                    self._section_labels["Image Size"].grid_remove()
+                if "Output" in self._section_labels:
+                    self._section_labels["Output"].grid_remove()
 
-            # Hide standard dropdown elements
-            self.width_label.grid_remove()
-            self.width_menu.grid_remove()
-            self.height_label.grid_remove()
-            self.height_menu.grid_remove()
-
-            # Show locked resolution frame
-            self.locked_res_frame.grid(row=0, column=0, columnspan=4, sticky="ew")
-
-            # Force values to 512
-            self.width_var.set("512")
-            self.height_var.set("512")
+            # Hide standard CFG scale and show advanced settings button
+            self.cfg_label.grid_remove()
+            self.cfg_scale.grid_remove()
+            self.adv_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
+            self.adv_settings_btn.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
         else:
-            # Hide locked resolution frame
-            self.locked_res_frame.grid_remove()
+            # Show standard CFG scale and hide advanced settings button
+            self.adv_label.grid_remove()
+            self.adv_settings_btn.grid_remove()
+            self.cfg_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
+            self.cfg_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
 
-            # Show standard dropdown elements
-            self.width_label.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
-            self.width_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
-            self.height_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-            self.height_menu.grid(row=0, column=3, sticky="ew", pady=2)
+            # Show the entire Image Size group, dropdown frame, and Output group in main panel
+            if hasattr(self, "_section_labels"):
+                if "Image Size" in self._section_labels:
+                    lbl = self._section_labels["Image Size"]
+                    lbl.grid(row=lbl.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(4, 1))
+                if "Output" in self._section_labels:
+                    lbl = self._section_labels["Output"]
+                    lbl.grid(row=lbl.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(4, 1))
 
+            self.size_frame.grid(row=self.size_frame.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+            self.dropdown_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+            self.output_frame.grid(row=self.output_frame.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+
+            # Layout resolution inside size_frame
+            if contract.get("resolution_locked") is True:
+                self.width_menu.configure(state="disabled")
+                self.height_menu.configure(state="disabled")
+                self.width_label.grid_remove()
+                self.width_menu.grid_remove()
+                self.height_label.grid_remove()
+                self.height_menu.grid_remove()
+                self.locked_res_frame.grid(row=0, column=0, columnspan=4, sticky="ew")
+                self.width_var.set("512")
+                self.height_var.set("512")
+            else:
+                self.locked_res_frame.grid_remove()
+                self.width_label.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+                self.width_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+                self.height_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+                self.height_menu.grid(row=0, column=3, sticky="ew", pady=2)
+
+        # Always configure scale ranges
         scale_controls = {"steps": self.steps_scale, "cfg": self.cfg_scale}
         for name, widget in scale_controls.items():
             spec = contract.get(name)
@@ -557,17 +708,46 @@ class PhoenixPromptView(WorkspaceFrame):
             if "default" in spec:
                 widget.set(spec["default"])
 
+        # Layout steps scale or quality presets inside sampling_frame (column 1)
+        if contract.get("resolution_locked") is True:
+            # Hide steps scale and show preset frame
+            self.steps_scale.grid_remove()
+            self.steps_preset_frame.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
+
+            # Re-sync preset based on current step scale value
+            current_steps = self.steps_scale.get()
+            if current_steps == 10:
+                self._select_steps_preset("Schnell")
+            elif current_steps == 30:
+                self._select_steps_preset("Beste Qualität")
+            else:
+                self._select_steps_preset("Standard")
+        else:
+            # Hide steps preset frame and show scale
+            self.steps_preset_frame.grid_remove()
+            self.steps_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
+
+        # Always configure seed default
         seed_spec = contract.get("seed")
         if isinstance(seed_spec, dict) and "default" in seed_spec:
-            self.seed_entry.delete(0, "end")
-            self.seed_entry.insert(0, str(seed_spec["default"]))
+            self.seed_var.set(str(seed_spec["default"]))
+
+        # If advanced settings popup is currently open and active, refresh it so it stays synced
+        if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
+            self._advanced_popup.destroy()
+            self._open_advanced_settings_popup()
 
     def _section_header(self, parent: tk.Frame, title: str, row: int) -> int:
         """Create a subtle section divider label and return the next row index."""
-        tk.Label(
+        lbl = tk.Label(
             parent, text=title, bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title, anchor="w"
-        ).grid(row=row, column=0, columnspan=2, sticky="ew", padx=16, pady=(4, 1))
+        )
+        lbl.grid(row=row, column=0, columnspan=2, sticky="ew", padx=16, pady=(4, 1))
+        lbl.row_idx = row
+        if not hasattr(self, "_section_labels"):
+            self._section_labels = {}
+        self._section_labels[title] = lbl
         return row + 1
 
     # ==================================================================
@@ -653,47 +833,7 @@ class PhoenixPromptView(WorkspaceFrame):
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
         ).grid(row=row, column=0, sticky="w", padx=(16, 4), pady=1)
         self.progress_var = tk.DoubleVar(value=0.0)
-        self.progress_style = ttk.Style(self)
-        progress_elements = set(self.progress_style.element_names())
-        if "Phoenix.Horizontal.Progressbar.trough" not in progress_elements:
-            self.progress_style.element_create(
-                "Phoenix.Horizontal.Progressbar.trough",
-                "from",
-                "clam",
-                "Horizontal.Progressbar.trough",
-            )
-        if "Phoenix.Horizontal.Progressbar.pbar" not in progress_elements:
-            self.progress_style.element_create(
-                "Phoenix.Horizontal.Progressbar.pbar",
-                "from",
-                "clam",
-                "Horizontal.Progressbar.pbar",
-            )
-        self.progress_style.layout(
-            "Phoenix.Horizontal.TProgressbar",
-            [
-                (
-                    "Phoenix.Horizontal.Progressbar.trough",
-                    {
-                        "sticky": "nswe",
-                        "children": [
-                            (
-                                "Phoenix.Horizontal.Progressbar.pbar",
-                                {"side": "left", "sticky": "ns"},
-                            )
-                        ],
-                    },
-                )
-            ],
-        )
-        self.progress_style.configure(
-            "Phoenix.Horizontal.TProgressbar",
-            troughcolor=PHOENIX_THEME.elevated_bg,
-            background=PHOENIX_THEME.success,
-            lightcolor=PHOENIX_THEME.success,
-            darkcolor=PHOENIX_THEME.success,
-            bordercolor=PHOENIX_THEME.border,
-        )
+        self._ensure_progress_style()
         self.progress_bar = ttk.Progressbar(
             self.insp_content,
             variable=self.progress_var,
@@ -1154,6 +1294,7 @@ class PhoenixPromptView(WorkspaceFrame):
     def _set_progress(self, percent: float, stage: str, step_text: str) -> None:
         if not self._is_view_alive():
             return
+        self._ensure_progress_style()
         self._progress_percent = max(0, min(100, int(percent)))
         self.progress_var.set(self._progress_percent)
         self._configure_if_alive(self.progress_stage_label, text=f"{stage} · {self._progress_percent} %")
@@ -1361,3 +1502,521 @@ class PhoenixPromptView(WorkspaceFrame):
             width=width, height=height, selected_model=new_model,
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
         )
+
+    def _show_prompt_history_popup(self) -> None:
+        """Display the persistent prompt history popup menu under the history button."""
+        history = self.controller.load_prompt_history()
+        if not history:
+            menu = tk.Menu(self, tearoff=0)
+            menu.add_command(label="Verlauf leer", state="disabled")
+            menu.configure(
+                bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_body, relief="flat", bd=1,
+            )
+            x = self.history_btn.winfo_rootx()
+            y = self.history_btn.winfo_rooty() + self.history_btn.winfo_height()
+            menu.post(x, y)
+            return
+
+        menu = tk.Menu(self, tearoff=0)
+        menu.configure(
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
+            font=PHOENIX_THEME.font_body, relief="flat", bd=1,
+        )
+
+        for prompt in history:
+            display_label = prompt if len(prompt) < 50 else prompt[:47] + "..."
+            menu.add_command(
+                label=display_label,
+                command=lambda p=prompt: self._load_prompt_from_history(p)
+            )
+
+        x = self.history_btn.winfo_rootx()
+        y = self.history_btn.winfo_rooty() + self.history_btn.winfo_height()
+        menu.post(x, y)
+
+    def _load_prompt_from_history(self, prompt: str) -> None:
+        """Load a selected prompt into the input field."""
+        self.prompt_text.delete("1.0", "end")
+        self.prompt_text.insert("1.0", prompt)
+        if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
+            self._prompt_popup_text.delete("1.0", "end")
+            self._prompt_popup_text.insert("1.0", prompt)
+
+    def _ensure_progress_style(self) -> None:
+        """Sustainably ensure the custom Phoenix progress bar style is active and correctly colored."""
+        style = ttk.Style(self)
+        style.configure(
+            "Phoenix.Horizontal.TProgressbar",
+            troughcolor=PHOENIX_THEME.elevated_bg,
+            background=PHOENIX_THEME.success,
+            lightcolor=PHOENIX_THEME.success,
+            darkcolor=PHOENIX_THEME.success,
+            bordercolor=PHOENIX_THEME.border,
+        )
+        elements = set(style.element_names())
+        if "Phoenix.Horizontal.Progressbar.trough" not in elements:
+            try:
+                style.element_create(
+                    "Phoenix.Horizontal.Progressbar.trough",
+                    "from",
+                    "clam",
+                    "Horizontal.Progressbar.trough",
+                )
+            except Exception:
+                pass
+        if "Phoenix.Horizontal.Progressbar.pbar" not in elements:
+            try:
+                style.element_create(
+                    "Phoenix.Horizontal.Progressbar.pbar",
+                    "from",
+                    "clam",
+                    "Horizontal.Progressbar.pbar",
+                )
+            except Exception:
+                pass
+
+        style.layout(
+            "Phoenix.Horizontal.TProgressbar",
+            [
+                (
+                    "Phoenix.Horizontal.Progressbar.trough",
+                    {
+                        "sticky": "nswe",
+                        "children": [
+                            (
+                                "Phoenix.Horizontal.Progressbar.pbar",
+                                {"side": "left", "sticky": "ns"},
+                            )
+                        ],
+                    },
+                )
+            ],
+        )
+
+    def _show_templates_popup(self) -> None:
+        """Display a hierarchical popup menu with prompt templates categories and presets."""
+        categories = self.controller.load_prompt_templates()
+        if not categories:
+            menu = tk.Menu(self, tearoff=0)
+            menu.add_command(label="Keine Vorlagen gefunden", state="disabled")
+            menu.configure(
+                bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_body, relief="flat", bd=1,
+            )
+            x = self.templates_btn.winfo_rootx()
+            y = self.templates_btn.winfo_rooty() + self.templates_btn.winfo_height()
+            menu.post(x, y)
+            return
+
+        menu = tk.Menu(self, tearoff=0)
+        menu.configure(
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
+            font=PHOENIX_THEME.font_body, relief="flat", bd=1,
+        )
+
+        order = ["Portrait", "Landschaft", "Architektur", "Fantasy", "Sci-Fi", "Produktfoto"]
+        available_categories = list(categories.keys())
+
+        sorted_categories = []
+        for cat in order:
+            if cat in available_categories:
+                sorted_categories.append(cat)
+                available_categories.remove(cat)
+        sorted_categories.extend(available_categories)
+
+        self._submenus = []
+
+        for category_name in sorted_categories:
+            presets = categories[category_name]
+            if not presets:
+                continue
+
+            sub_menu = tk.Menu(menu, tearoff=0)
+            sub_menu.configure(
+                bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+                activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
+                font=PHOENIX_THEME.font_body, relief="flat", bd=1,
+            )
+            self._submenus.append(sub_menu)
+
+            for preset in presets:
+                name = preset.get("name", "Preset")
+                prompt = preset.get("prompt", "")
+                sub_menu.add_command(
+                    label=name,
+                    command=lambda p=prompt: self._load_template_prompt(p)
+                )
+
+            menu.add_cascade(label=category_name, menu=sub_menu)
+
+        x = self.templates_btn.winfo_rootx()
+        y = self.templates_btn.winfo_rooty() + self.templates_btn.winfo_height()
+        menu.post(x, y)
+
+    def _load_template_prompt(self, prompt: str) -> None:
+        """Load a prompt template into the input field."""
+        self.prompt_text.delete("1.0", "end")
+        self.prompt_text.insert("1.0", prompt)
+        if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
+            self._prompt_popup_text.delete("1.0", "end")
+            self._prompt_popup_text.insert("1.0", prompt)
+
+    def _select_steps_preset(self, preset_name: str) -> None:
+        """Select a steps preset and update the steps scale value and UI colors."""
+        self.active_steps_preset = preset_name
+
+        # Default maps (both SD1.5 and SD2.1 use: Schnell=10, Standard=20, Beste Qualität=30)
+        val = 20
+        if preset_name == "Schnell":
+            val = 10
+        elif preset_name == "Standard":
+            val = 20
+        elif preset_name == "Beste Qualität":
+            val = 30
+
+        self.steps_scale.set(val)
+        self._update_steps_preset_colors()
+
+    def _update_steps_preset_colors(self) -> None:
+        """Update background and foreground colors of the steps preset buttons based on active selection."""
+        presets = {
+            "Schnell": self.btn_preset_schnell,
+            "Standard": self.btn_preset_standard,
+            "Beste Qualität": self.btn_preset_beste,
+        }
+        for name, btn in presets.items():
+            if self.active_steps_preset == name:
+                btn.configure(
+                    bg=PHOENIX_THEME.accent,
+                    fg=PHOENIX_THEME.text_on_accent,
+                    activebackground=PHOENIX_THEME.accent,
+                    activeforeground=PHOENIX_THEME.text_on_accent,
+                )
+            else:
+                btn.configure(
+                    bg=PHOENIX_THEME.elevated_bg,
+                    fg=PHOENIX_THEME.text_secondary,
+                    activebackground=PHOENIX_THEME.elevated_bg,
+                    activeforeground=PHOENIX_THEME.text_primary,
+                )
+
+    def _open_advanced_settings_popup(self) -> None:
+        """Open a modal/non-modal popup for advanced settings."""
+        if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
+            self._advanced_popup.focus()
+            return
+
+        popup = tk.Toplevel(self)
+        popup.title("Erweiterte Einstellungen")
+        popup.geometry("380x520")
+        popup.configure(bg=PHOENIX_THEME.card_bg)
+        popup.resizable(False, False)
+        self._advanced_popup = popup
+
+        # Center the popup relative to main window
+        try:
+            x = self.winfo_rootx() + (self.winfo_width() - 380) // 2
+            y = self.winfo_rooty() + (self.winfo_height() - 520) // 2
+            popup.geometry(f"+{x}+{y}")
+        except Exception:
+            pass
+
+        # Scrollable container inside popup to ensure everything fits perfectly
+        container = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
+        container.pack(fill="both", expand=True, padx=16, pady=16)
+
+        # Get active model contract
+        contract = self.controller.select_model(self.model_var.get())
+        if not contract:
+            contract = {}
+
+        # ── Group: Image Size ─────────────────────────
+        tk.Label(container, text="Image Size", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(0, 4))
+
+        size_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        size_frame.pack(fill="x", pady=(0, 12))
+        size_frame.grid_columnconfigure(0, weight=0)
+        size_frame.grid_columnconfigure(1, weight=1)
+        size_frame.grid_columnconfigure(2, weight=0)
+        size_frame.grid_columnconfigure(3, weight=1)
+
+        popup_width_label = tk.Label(size_frame, text="Breite:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        popup_width_menu = tk.OptionMenu(size_frame, self.width_var, "256", "512", "768", "1024")
+        popup_width_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        popup_width_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+
+        popup_height_label = tk.Label(size_frame, text="Höhe:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        popup_height_menu = tk.OptionMenu(size_frame, self.height_var, "256", "512", "768", "1024")
+        popup_height_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        popup_height_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+
+        # Build Locked Resolution View inside popup
+        from resources.icons import IconManager
+        popup_locked_res_frame = tk.Frame(size_frame, bg=PHOENIX_THEME.card_bg)
+        popup_locked_res_frame.grid_columnconfigure(0, weight=1)
+        popup_locked_res_frame.grid_columnconfigure(1, weight=1)
+
+        popup_res_512_btn = tk.Button(
+            popup_locked_res_frame, text="512 × 512",
+            bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, font=PHOENIX_THEME.font_button, state="normal", padx=10, pady=8
+        )
+        popup_res_512_btn.grid(row=0, column=0, sticky="ew", padx=(0, 6), pady=(4, 4))
+
+        lock_symbol = IconManager.get_symbol("lock")
+        popup_res_1024_btn = tk.Button(
+            popup_locked_res_frame, text=f"{lock_symbol} 1024 × 1024 (Demnächst)",
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_disabled,
+            activebackground=PHOENIX_THEME.elevated_bg, activeforeground=PHOENIX_THEME.text_disabled,
+            relief="flat", bd=0, font=PHOENIX_THEME.font_button, state="disabled",
+            disabledforeground=PHOENIX_THEME.text_disabled, padx=10, pady=8
+        )
+        popup_res_1024_btn.grid(row=0, column=1, sticky="ew", padx=(6, 0), pady=(4, 4))
+
+        popup_locked_hint_lbl = tk.Label(
+            popup_locked_res_frame, text="Höhere Auflösungen benötigen ein kompatibles Qualcomm-Modell.",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_caption,
+            anchor="w", justify="left", wraplength=340
+        )
+        popup_locked_hint_lbl.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+
+        # Show either locked resolution or width/height dropdowns
+        if contract.get("resolution_locked") is True:
+            popup_width_label.grid_remove()
+            popup_width_menu.grid_remove()
+            popup_height_label.grid_remove()
+            popup_height_menu.grid_remove()
+            popup_locked_res_frame.grid(row=0, column=0, columnspan=4, sticky="ew")
+        else:
+            popup_locked_res_frame.grid_remove()
+            popup_width_label.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+            popup_width_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+            popup_height_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+            popup_height_menu.grid(row=0, column=3, sticky="ew", pady=2)
+
+            # Configure options in width/height dropdowns
+            self._configure_option_contract(popup_width_menu, self.width_var, contract.get("width", {}))
+            self._configure_option_contract(popup_height_menu, self.height_var, contract.get("height", {}))
+
+        # ── Group: Sampling ───────────────────────────
+        tk.Label(container, text="Sampling", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(10, 4))
+
+        sampling_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        sampling_frame.pack(fill="x", pady=(0, 12))
+        sampling_frame.grid_columnconfigure(0, weight=1)
+
+        # CFG Scale Slider
+        tk.Label(sampling_frame, text="CFG Scale:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", pady=(0, 1))
+        popup_cfg_scale = tk.Scale(
+            sampling_frame, from_=1.0, to=20.0, resolution=0.5, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.cfg_var
+        )
+        popup_cfg_scale.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+
+        # Configure CFG from contract
+        cfg_spec = contract.get("cfg", {})
+        cfg_options = {}
+        if "min" in cfg_spec:
+            cfg_options["from_"] = cfg_spec["min"]
+        if "max" in cfg_spec:
+            cfg_options["to"] = cfg_spec["max"]
+        if "resolution" in cfg_spec:
+            cfg_options["resolution"] = cfg_spec["resolution"]
+        if cfg_options:
+            popup_cfg_scale.configure(**cfg_options)
+
+        # Sampler & Scheduler
+        dropdown_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
+        dropdown_frame.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+        dropdown_frame.grid_columnconfigure(0, weight=0)
+        dropdown_frame.grid_columnconfigure(1, weight=1)
+        dropdown_frame.grid_columnconfigure(2, weight=0)
+        dropdown_frame.grid_columnconfigure(3, weight=1)
+
+        tk.Label(dropdown_frame, text="Sampler:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+        popup_sampler_menu = tk.OptionMenu(dropdown_frame, self.sampler_var, "Euler a", "Euler", "DPM++ 2M", "DDIM", "LMS")
+        popup_sampler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        popup_sampler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        popup_sampler_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+
+        tk.Label(dropdown_frame, text="Sched.:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+        popup_scheduler_menu = tk.OptionMenu(dropdown_frame, self.scheduler_var, "Normal", "Karras", "Exponential", "SGM Uniform")
+        popup_scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        popup_scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        popup_scheduler_menu.grid(row=0, column=3, sticky="ew", pady=2)
+
+        # Configure Sampler & Scheduler from contract
+        self._configure_option_contract(popup_sampler_menu, self.sampler_var, contract.get("sampler", {}))
+        self._configure_option_contract(popup_scheduler_menu, self.scheduler_var, contract.get("scheduler", {}))
+
+        # ── Group: Output ─────────────────────────────
+        tk.Label(container, text="Output", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(10, 4))
+
+        output_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        output_frame.pack(fill="x", pady=(0, 12))
+        output_frame.grid_columnconfigure(0, weight=0)
+        output_frame.grid_columnconfigure(1, weight=1)
+        output_frame.grid_columnconfigure(2, weight=0)
+        output_frame.grid_columnconfigure(3, weight=1)
+
+        tk.Label(output_frame, text="Seed:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+        popup_seed_entry = tk.Entry(
+            output_frame, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border, highlightcolor=PHOENIX_THEME.accent,
+            highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body,
+            textvariable=self.seed_var
+        )
+        popup_seed_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+
+        tk.Label(output_frame, text="Batch:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+        popup_batch_menu = tk.OptionMenu(output_frame, self.batch_var, "1", "2", "4", "8")
+        popup_batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        popup_batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        popup_batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
+
+        # OK button to close
+        close_btn = tk.Button(
+            container, text="Schließen", bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=16, pady=8,
+            command=popup.destroy
+        )
+        close_btn.pack(pady=(16, 0))
+
+    def _open_expandable_prompt_popup(self) -> None:
+        """Open a large prompt editor popup (ca. 80% of main window size)."""
+        if hasattr(self, "_prompt_popup") and self._prompt_popup.winfo_exists():
+            self._prompt_popup.focus()
+            return
+
+        popup = tk.Toplevel(self)
+        popup.title("Großer Prompt-Editor")
+        popup.configure(bg=PHOENIX_THEME.card_bg)
+        self._prompt_popup = popup
+
+        # Calculate dimensions: 80% of main window
+        try:
+            main_w = self.winfo_toplevel().winfo_width()
+            main_h = self.winfo_toplevel().winfo_height()
+            width = int(main_w * 0.8) if main_w > 200 else 1120
+            height = int(main_h * 0.8) if main_h > 200 else 720
+            x = self.winfo_toplevel().winfo_rootx() + (main_w - width) // 2
+            y = self.winfo_toplevel().winfo_rooty() + (main_h - height) // 2
+            popup.geometry(f"{width}x{height}+{x}+{y}")
+        except Exception:
+            popup.geometry("1120x720")
+
+        # Container
+        container = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
+        container.pack(fill="both", expand=True, padx=24, pady=24)
+
+        # Header with title & shortcut reminder
+        header_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        header_frame.pack(fill="x", pady=(0, 12))
+
+        tk.Label(
+            header_frame, text="Großer Prompt-Editor",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title, anchor="w"
+        ).pack(side="left")
+
+        tk.Label(
+            header_frame, text="(ESC zum Schließen & Übernehmen)",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="e"
+        ).pack(side="right")
+
+        # Text widget container with Scrollbar
+        text_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        text_frame.pack(fill="both", expand=True)
+
+        scrollbar = tk.Scrollbar(text_frame, orient="vertical")
+        scrollbar.pack(side="right", fill="y")
+
+        popup_text = tk.Text(
+            text_frame, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border, highlightcolor=PHOENIX_THEME.accent,
+            highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body, wrap="word",
+            padx=16, pady=16, yscrollcommand=scrollbar.set
+        )
+        popup_text.pack(side="left", fill="both", expand=True)
+        scrollbar.configure(command=popup_text.yview)
+        self._prompt_popup_text = popup_text
+
+        # Populate initial content
+        initial_text = self.prompt_text.get("1.0", "end-1c")
+        popup_text.insert("1.0", initial_text)
+        popup_text.focus_set()
+
+        # Live Prompt Counter Label in Popup
+        self.popup_counter_lbl = tk.Label(
+            container,
+            text="Zeichen: 0 | Wörter: 0",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="e"
+        )
+        self.popup_counter_lbl.pack(fill="x", pady=(4, 0))
+
+        # Real-time synchronization
+        popup_text.bind("<KeyRelease>", lambda e: self._sync_popup_prompt_to_main())
+        self._update_prompt_counters()
+
+        # OK button to close
+        btn_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        btn_frame.pack(fill="x", pady=(16, 0))
+
+        close_btn = tk.Button(
+            btn_frame, text="Schließen & Übernehmen", bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=20, pady=10,
+            command=popup.destroy
+        )
+        close_btn.pack(anchor="center")
+
+        # Bind ESC key to close
+        popup.bind("<Escape>", lambda e: popup.destroy())
+
+    def _sync_popup_prompt_to_main(self) -> None:
+        """Synchronize text from popup editor to main prompt field."""
+        if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
+            content = self._prompt_popup_text.get("1.0", "end-1c")
+            self.prompt_text.delete("1.0", "end")
+            self.prompt_text.insert("1.0", content)
+            self._update_prompt_counters()
+
+    def _sync_main_prompt_to_popup(self) -> None:
+        """Synchronize text from main prompt field to popup editor."""
+        if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
+            content = self.prompt_text.get("1.0", "end-1c")
+            self._prompt_popup_text.delete("1.0", "end")
+            self._prompt_popup_text.insert("1.0", content)
+            self._update_prompt_counters()
+
+    def _on_main_prompt_key(self) -> None:
+        """Key release handler for the main prompt text box."""
+        self._sync_main_prompt_to_popup()
+        self._update_prompt_counters()
+
+    def _update_prompt_counters(self) -> None:
+        """Update character and word counts in both the main view and the popup if open."""
+        content = self.prompt_text.get("1.0", "end-1c")
+        char_count = len(content)
+        word_count = len(content.split())
+        counter_text = f"Zeichen: {char_count} | Wörter: {word_count}"
+
+        if hasattr(self, "prompt_counter_lbl"):
+            self.prompt_counter_lbl.configure(text=counter_text)
+
+        if hasattr(self, "popup_counter_lbl") and hasattr(self, "_prompt_popup") and self._prompt_popup.winfo_exists():
+            self.popup_counter_lbl.configure(text=counter_text)

@@ -1,0 +1,64 @@
+{
+  "categories": {
+    "Portrait": [
+      {
+        "name": "Cinematic Portrait",
+        "prompt": "Cinematic portrait of a person, dramatic lighting, highly detailed, photorealistic, 8k resolution"
+      },
+      {
+        "name": "Studio Portrait",
+        "prompt": "Professional studio portrait, soft key lighting, clean background, realistic skin textures, sharp focus"
+      }
+    ],
+    "Landschaft": [
+      {
+        "name": "Nordic Mountain Lake",
+        "prompt": "Nordic mountain lake at sunrise, reflection on water, epic scale, fog rising, cinematic lighting, ultra realistic"
+      },
+      {
+        "name": "Sunny Meadow",
+        "prompt": "Sunny green meadow under a bright blue sky with fluffy clouds, vibrant colors, wide angle, peaceful landscape"
+      }
+    ],
+    "Architektur": [
+      {
+        "name": "Futuristic House",
+        "prompt": "Futuristic modernist architecture house integrated with nature, glass facade, evening light, highly detailed"
+      },
+      {
+        "name": "Cyberpunk Street",
+        "prompt": "Cyberpunk street view, neon signs, skyscrapers, wet pavement, atmospheric cyberpunk architecture"
+      }
+    ],
+    "Fantasy": [
+      {
+        "name": "Elven Forest Castle",
+        "prompt": "Elven castle deep in a glowing magical forest, waterfalls, fantasy art, digital painting, majestic, unreal engine"
+      },
+      {
+        "name": "Dragon Peak",
+        "prompt": "Peak of a burning mountain with a massive dragon perched on top, fantasy concept art, dramatic clouds"
+      }
+    ],
+    "Sci-Fi": [
+      {
+        "name": "Spaceship Interior",
+        "prompt": "Interior view of a spaceship cockpit looking at a galaxy, screens glowing, high tech sci-fi, detailed concept art"
+      },
+      {
+        "name": "Alien Oasis",
+        "prompt": "Vibrant alien landscape with bioluminescent plants and floating islands, sci-fi concept art, surreal colors"
+      }
+    ],
+    "Produktfoto": [
+      {
+        "name": "Premium Watch",
+        "prompt": "Premium watch advertisement photo, dark background, reflective surfaces, macro photography, commercial studio lighting"
+      },
+      {
+        "name": "Minimalist Perfume",
+        "prompt": "Minimalist design perfume bottle on a concrete block, pastel background, soft shadows, aesthetics product photography"
+      }
+    ]
+  }
+}

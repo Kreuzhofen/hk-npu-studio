@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 from typing import Any
 
 from controllers.prompt_workspace_model import PromptWorkspaceModel, PromptWorkspaceState
@@ -119,7 +121,65 @@ class PromptWorkspaceController:
             status_msg = "Abgeschlossen" if result.success else f"Fehler: {result.message}"
         self.model.update_state(status=status_msg)
         self.last_response = result
+        if result.success and result.status != "CANCELLED":
+            self.save_prompt_to_history(self.model.state.prompt)
         return result
+
+    def load_prompt_history(self) -> list[str]:
+        """Load prompt history from disk."""
+        from config import PROMPT_HISTORY_PATH
+        if not PROMPT_HISTORY_PATH.exists():
+            return []
+        try:
+            with open(PROMPT_HISTORY_PATH, "r", encoding="utf-8") as f:
+                history = json.load(f)
+            if isinstance(history, list):
+                return [str(p) for p in history if p]
+        except Exception as e:
+            print(f"[PromptWorkspaceController] Error loading prompt history: {e}")
+        return []
+
+    def save_prompt_to_history(self, prompt: str) -> None:
+        """Add a prompt to history, ensuring uniqueness, ordering, and size limit of 20."""
+        prompt = prompt.strip()
+        if not prompt:
+            return
+        from config import PROMPT_HISTORY_PATH
+        history = self.load_prompt_history()
+
+        # Remove duplicate if exists (newest wins)
+        if prompt in history:
+            history.remove(prompt)
+
+        history.insert(0, prompt)
+
+        # Limit to 20 entries
+        history = history[:20]
+
+        try:
+            PROMPT_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+            temp_path = PROMPT_HISTORY_PATH.with_suffix(PROMPT_HISTORY_PATH.suffix + ".tmp")
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=2, ensure_ascii=False)
+            if os.path.exists(PROMPT_HISTORY_PATH):
+                os.remove(PROMPT_HISTORY_PATH)
+            os.rename(temp_path, PROMPT_HISTORY_PATH)
+        except Exception as e:
+            print(f"[PromptWorkspaceController] Error saving prompt history: {e}")
+
+    def load_prompt_templates(self) -> dict[str, list[dict[str, str]]]:
+        """Load prompt templates from resources JSON file."""
+        from config import PROMPT_TEMPLATES_PATH
+        if not PROMPT_TEMPLATES_PATH.exists():
+            return {}
+        try:
+            with open(PROMPT_TEMPLATES_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict) and "categories" in data:
+                return data["categories"]
+        except Exception as e:
+            print(f"[PromptWorkspaceController] Error loading prompt templates: {e}")
+        return {}
 
     def cancel_generation(self) -> str:
         """Use the existing generation-controller cancellation path."""
