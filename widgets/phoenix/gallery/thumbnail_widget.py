@@ -104,10 +104,8 @@ class ThumbnailWidget(tk.Frame):
         )
         self._bind_events(self.name_label)
 
-        # 2. Auflösung (z.B. 1920 × 1080)
+        # 2. Auflösung
         res_text = self.image.resolution_label
-        if res_text == "-":
-            res_text = "1920 × 1080"  # Fallback/Placeholder
         res_label = tk.Label(
             self,
             text=res_text,
@@ -125,10 +123,8 @@ class ThumbnailWidget(tk.Frame):
         )
         self._bind_events(res_label)
 
-        # 3. Format (z.B. PNG)
+        # 3. Format
         fmt_text = self.image.format_label
-        if fmt_text == "-":
-            fmt_text = "PNG"  # Fallback/Placeholder
         fmt_label = tk.Label(
             self,
             text=fmt_text,

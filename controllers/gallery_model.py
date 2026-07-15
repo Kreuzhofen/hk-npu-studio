@@ -14,6 +14,10 @@ class GalleryImage:
     width: int | None
     height: int | None
     file_size: int | None
+    file_created_at: int | None = None
+    prompt: str | None = None
+    model_id: str | None = None
+    seed: int | None = None
 
     @property
     def resolution_label(self) -> str:
@@ -38,6 +42,17 @@ class GalleryImage:
                     return f"{int(size)} {unit}"
                 return f"{size:.1f} {unit}"
             size /= 1024
+
+    @property
+    def created_label(self) -> str:
+        if self.file_created_at is None:
+            return "-"
+        import datetime
+        try:
+            dt_val = datetime.datetime.fromtimestamp(self.file_created_at)
+            return dt_val.strftime("%d.%m.%Y %H:%M:%S")
+        except Exception:
+            return "-"
 
 
 @dataclass

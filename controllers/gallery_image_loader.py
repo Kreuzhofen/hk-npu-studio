@@ -42,9 +42,30 @@ class ImageLoader:
             height = None
 
         try:
-            file_size = path.stat().st_size
+            stat = path.stat()
+            file_size = stat.st_size
+            file_created_at = int(stat.st_ctime)
         except OSError:
             file_size = None
+            file_created_at = None
+
+        prompt: str | None = None
+        model_id: str | None = None
+        seed: int | None = None
+
+        sidecar = path.with_suffix(".json")
+        if sidecar.is_file():
+            try:
+                import json
+                with open(sidecar, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                if "metadata" in meta and isinstance(meta["metadata"], dict):
+                    meta = meta["metadata"]
+                prompt = meta.get("prompt")
+                model_id = meta.get("model_id") or meta.get("model")
+                seed = meta.get("seed")
+            except Exception:
+                pass
 
         return GalleryImage(
             path=path,
@@ -53,4 +74,8 @@ class ImageLoader:
             width=width,
             height=height,
             file_size=file_size,
+            file_created_at=file_created_at,
+            prompt=prompt,
+            model_id=model_id,
+            seed=seed,
         )

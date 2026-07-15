@@ -245,16 +245,136 @@ class GalleryThumbnailArea(tk.Frame):
             font=PHOENIX_THEME.font_body,
         )
         menu.add_command(
-            label="In Compare öffnen",
+            label="Öffnen",
             command=lambda img=image: self.on_double_click(img),
         )
         menu.add_command(
-            label="Mit aktivem Modell generieren (TODO)",
-            command=self._on_generate_with_active_model_todo,
-            state="disabled",
+            label="Im Explorer anzeigen",
+            command=lambda img=image: self._open_in_explorer(img),
+        )
+        menu.add_command(
+            label="In Review Workspace übernehmen",
+            command=lambda img=image: self._transfer_to_review(img),
+        )
+        menu.add_separator()
+        menu.add_command(
+            label="Löschen",
+            command=lambda img=image: self._delete_image(img),
         )
         self._context_menu = menu
         menu.post(event.x_root, event.y_root)
+
+    def _open_in_explorer(self, image: GalleryImage) -> None:
+        import subprocess
+        try:
+            subprocess.Popen(["explorer", "/select,", str(image.path.resolve())])
+        except Exception:
+            pass
+
+    def _transfer_to_review(self, image: GalleryImage) -> None:
+        app = self.winfo_toplevel()
+        if hasattr(app, "application_controller") and app.application_controller is not None:
+            app.application_controller.open_compare_with_image(image.path)
+
+    def _delete_image(self, image: GalleryImage) -> None:
+        from dialogs.studio_dialog import StudioDialog
+
+        class DeleteConfirmDialog(StudioDialog):
+            def __init__(self, master: tk.Misc, filename: str) -> None:
+                self.confirmed = False
+                super().__init__(
+                    master,
+                    title="Löschen bestätigen",
+                    size=(420, 220),
+                    min_size=(350, 180),
+                    resizable=False,
+                )
+                self._build_ui(filename)
+                self.center(master)
+
+            def _build_ui(self, filename: str) -> None:
+                self.add_title("Asset unwiderruflich löschen?", "Diese Aktion kann nicht rückgängig gemacht werden.")
+
+                tk.Label(
+                    self.body,
+                    text=f"Datei: {filename}",
+                    font=PHOENIX_THEME.font_body,
+                    fg=PHOENIX_THEME.text_primary,
+                    bg=PHOENIX_THEME.card_bg,
+                    anchor="w",
+                ).pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
+
+                # Clear standard footer button packing and replace with side-by-side buttons
+                btn_cancel = tk.Button(
+                    self.footer,
+                    text="Abbrechen",
+                    command=self.close,
+                    bg=PHOENIX_THEME.elevated_bg,
+                    fg=PHOENIX_THEME.text_secondary,
+                    activebackground=PHOENIX_THEME.border,
+                    activeforeground=PHOENIX_THEME.text_primary,
+                    relief="flat",
+                    bd=0,
+                    padx=PHOENIX_THEME.button_pad_x,
+                    pady=PHOENIX_THEME.button_pad_y,
+                    font=PHOENIX_THEME.font_button,
+                    cursor="hand2",
+                    width=12,
+                )
+                btn_cancel.pack(side="left", padx=PHOENIX_THEME.space_sm)
+
+                btn_delete = tk.Button(
+                    self.footer,
+                    text="Löschen",
+                    command=self._confirm,
+                    bg="#ef4444",
+                    fg="#ffffff",
+                    activebackground="#dc2626",
+                    activeforeground="#ffffff",
+                    relief="flat",
+                    bd=0,
+                    padx=PHOENIX_THEME.button_pad_x,
+                    pady=PHOENIX_THEME.button_pad_y,
+                    font=PHOENIX_THEME.font_button,
+                    cursor="hand2",
+                    width=12,
+                )
+                btn_delete.pack(side="right", padx=PHOENIX_THEME.space_sm)
+
+            def _confirm(self) -> None:
+                self.confirmed = True
+                self.close()
+
+        dialog = DeleteConfirmDialog(self.winfo_toplevel(), image.filename)
+        self.wait_window(dialog)
+
+        if dialog.confirmed:
+            try:
+                # Delete image file
+                if image.path.is_file():
+                    image.path.unlink(missing_ok=True)
+                # Delete sidecar JSON file
+                sidecar = image.path.with_suffix(".json")
+                if sidecar.is_file():
+                    sidecar.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+            # Find parent PhoenixGalleryView to refresh
+            curr = self
+            gallery_view = None
+            while curr:
+                if curr.__class__.__name__ == "PhoenixGalleryView":
+                    gallery_view = curr
+                    break
+                parent_name = curr.winfo_parent()
+                if not parent_name:
+                    break
+                curr = curr.nametowidget(parent_name)
+
+            if gallery_view:
+                gallery_view.controller.refresh()
+                gallery_view._refresh_ui()
 
     def _on_generate_with_active_model_todo(self) -> None:
         """Hook/TODO: Generates a new asset using the active model as a guide."""

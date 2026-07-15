@@ -19,9 +19,11 @@ class GalleryController:
     def __init__(self, image_loader: ImageLoader | None = None) -> None:
         self.image_loader = image_loader or ImageLoader()
         self.model = GalleryModel()
-        self.current_folder: Path | None = None
+        from config import OUTPUT_DIR
+        self.current_folder: Path | None = OUTPUT_DIR
         self.thumbnail_size_label = "Mittel"
         self.status = "Bereit"
+        self.refresh()
 
     @property
     def images(self) -> list[GalleryImage]:
