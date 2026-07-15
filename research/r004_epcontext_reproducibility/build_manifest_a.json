@@ -1,0 +1,119 @@
+{
+  "build": "A",
+  "compile_options": {
+    "embed_compiled_data_into_model": false,
+    "flags": [
+      "ERROR_IF_NO_NODES_COMPILED",
+      "ERROR_IF_OUTPUT_FILE_EXISTS"
+    ],
+    "graph_optimization_level": "ORT_DISABLE_ALL",
+    "provider": "QNNExecutionProvider",
+    "provider_options": {
+      "backend_path": "C:\\Users\\holge\\AppData\\Roaming\\Python\\Python311-arm64\\site-packages\\onnxruntime_qnn\\QnnHtp.dll"
+    }
+  },
+  "context": {
+    "path": "C:\\SnapdragonAI\\research\\r004_epcontext_reproducibility\\build_a\\minimal_qdq_conv_ctx_qnn.bin",
+    "relative_reference": "minimal_qdq_conv_ctx_qnn.bin",
+    "sha256": "609c77a22cf67147c4491f38a12c8ea24171dee873a0af894e078fa4eebd0da9",
+    "size": 28672
+  },
+  "experiment": "R-004 Reproducible EPContext Build",
+  "input_model": {
+    "path": "C:\\SnapdragonAI\\research\\r004_epcontext_reproducibility\\minimal_qdq_conv.onnx",
+    "sha256": "aaa5fbc29629175093229b714c6fc07a41f88474a4fca91ad58b777238cc716a",
+    "size": 888
+  },
+  "qnn_output": {
+    "path": "C:\\SnapdragonAI\\research\\r004_epcontext_reproducibility\\build_a\\qnn_output.npy",
+    "sha256": "23cecfcf3a453d6a5964d9bd35f46530f8b98a26359cd94f289077cc4473fd58",
+    "size": 144
+  },
+  "strict_qnn": {
+    "cpu_fallback_disabled": true,
+    "requested_providers": [
+      "QNNExecutionProvider"
+    ],
+    "session_providers": [
+      "QNNExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "toolchain": {
+    "available_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider",
+      "QNNExecutionProvider"
+    ],
+    "onnx": "1.20.0",
+    "onnxruntime": "1.27.0",
+    "onnxruntime_qnn": "2.3.0",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 12:24:25) [MSC v.1938 64 bit (ARM64)]",
+    "python_executable": "C:\\Program Files\\Python311-arm64\\python.exe",
+    "qnn_backend_path": "C:\\Users\\holge\\AppData\\Roaming\\Python\\Python311-arm64\\site-packages\\onnxruntime_qnn\\QnnHtp.dll",
+    "qnn_backend_sha256": "87e99b434e949af79fb907ff539f40e8d79bb92eb7de6a308866576b3735830e",
+    "qnn_backend_size": 3244736,
+    "qnn_provider_library_path": "C:\\Users\\holge\\AppData\\Roaming\\Python\\Python311-arm64\\site-packages\\onnxruntime_qnn\\onnxruntime_providers_qnn.dll",
+    "qnn_provider_library_sha256": "b9706c969c5b6afb08d0b96b5e87562e639b0d3fdf756651ea2bfd250de9796a",
+    "qnn_provider_library_size": 2740432
+  },
+  "wrapper": {
+    "path": "C:\\SnapdragonAI\\research\\r004_epcontext_reproducibility\\build_a\\minimal_qdq_conv_ctx.onnx",
+    "sha256": "e18383d7b44318c8f330a2e1b3306175d1a5e033eb9a10acd3c2e2b6136e5867",
+    "size": 797
+  },
+  "wrapper_validation": {
+    "context_path": "C:\\SnapdragonAI\\research\\r004_epcontext_reproducibility\\build_a\\minimal_qdq_conv_ctx_qnn.bin",
+    "context_relative_path": "minimal_qdq_conv_ctx_qnn.bin",
+    "epcontext_node_count": 1,
+    "epcontext_nodes": [
+      {
+        "attributes": {
+          "embed_mode": 0,
+          "ep_cache_context": "minimal_qdq_conv_ctx_qnn.bin",
+          "ep_sdk_version": "v2.47.0.260601114230",
+          "main_context": 1,
+          "max_size": 0,
+          "partition_name": "QNNExecutionProvider_QNNExecutionProvider_7174009360105272452_1_0",
+          "source": "QNNExecutionProvider"
+        },
+        "domain": "com.microsoft",
+        "inputs": [
+          "input"
+        ],
+        "name": "QNNExecutionProvider_QNNExecutionProvider_7174009360105272452_1_0",
+        "outputs": [
+          "output"
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "element_type": 2,
+        "element_type_name": "UINT8",
+        "name": "input",
+        "shape": [
+          1,
+          1,
+          4,
+          4
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "element_type": 2,
+        "element_type_name": "UINT8",
+        "name": "output",
+        "shape": [
+          1,
+          1,
+          4,
+          4
+        ]
+      }
+    ],
+    "unexpected_nodes": []
+  }
+}
