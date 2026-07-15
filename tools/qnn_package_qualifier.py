@@ -21,6 +21,7 @@ def _parser() -> argparse.ArgumentParser:
         if command == "qualify":
             sub.add_argument("--strict", action="store_true", help="Run strict QNN loads without CPU fallback.")
             sub.add_argument("--allow-build", action="store_true", help="Request an optional safe compile assessment; builds remain disabled unless all gates allow them.")
+            sub.add_argument("--probe-report", type=Path, help="Path to the QNN execution probe JSON report.")
     return parser
 
 
@@ -30,7 +31,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "inspect":
         report = qualifier.inspect(args.package)
     else:
-        report = qualifier.qualify(args.package, strict=args.strict, allow_build=args.allow_build)
+        report = qualifier.qualify(
+            args.package,
+            strict=args.strict,
+            allow_build=args.allow_build,
+            probe_report=args.probe_report
+        )
     payload = deterministic_json(report)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

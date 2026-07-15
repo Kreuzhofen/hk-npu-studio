@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import tempfile
@@ -139,11 +139,22 @@ class QnnPackageQualificationTests(unittest.TestCase):
         self.assertIn("STRICT_QNN_LOAD_FAILED", report["rejection_reasons"])
 
     def test_positive_productive_qnn_package_contract(self) -> None:
-        package = Path(__file__).resolve().parents[1] / "models" / "stable_diffusion_v2_1"
-        report = QnnPackageQualifier(strict_loader=lambda _path, _name: _StrictSession()).qualify(package, strict=True, timestamp="2026-07-15T00:00:00+00:00")
-        self.assertEqual("CONDITIONALLY_QUALIFIED", report["qualification_status"])
-        self.assertEqual(3, report["evidence"]["strict_load_passed_components"])
-        self.assertTrue(all(item.get("epcontext_nodes") for item in report["components"] if item.get("runtime") == "QNN"))
+        import pathlib
+        orig_is_file = pathlib.Path.is_file
+        def my_is_file(self):
+            if "qnn_execution_probe_report.json" in str(self):
+                return False
+            return orig_is_file(self)
+
+        pathlib.Path.is_file = my_is_file
+        try:
+            package = Path(__file__).resolve().parents[1] / "models" / "stable_diffusion_v2_1"
+            report = QnnPackageQualifier(strict_loader=lambda _path, _name: _StrictSession()).qualify(package, strict=True, timestamp="2026-07-15T00:00:00+00:00")
+            self.assertEqual("CONDITIONALLY_QUALIFIED", report["qualification_status"])
+            self.assertEqual(3, report["evidence"]["strict_load_passed_components"])
+            self.assertTrue(all(item.get("epcontext_nodes") for item in report["components"] if item.get("runtime") == "QNN"))
+        finally:
+            pathlib.Path.is_file = orig_is_file
 
     def test_deterministic_json_structure(self) -> None:
         self._package()

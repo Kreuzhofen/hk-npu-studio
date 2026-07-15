@@ -357,6 +357,7 @@ class QnnPackageQualifier:
         strict: bool = True,
         allow_build: bool = False,
         timestamp: str | None = None,
+        probe_report: str | Path | None = None,
     ) -> dict[str, Any]:
         report = self.inspect(package_path, timestamp=timestamp)
         report["build_assessment"] = self._build_assessment(report, allow_build)
@@ -402,6 +403,93 @@ class QnnPackageQualifier:
             report["qualification_status"] = QualificationStatus.INCOMPLETE.value
         report["evidence"]["strict_load_passed_components"] = successes
         report["evidence"]["strict_load_failed_components"] = failures
+
+        # R-006: Integration of the Probe Report
+        has_valid_probe = False
+        evidence = report.setdefault("evidence", {})
+        evidence["qnn_execution_performed"] = False
+        evidence["htp_inference_proven"] = False
+
+        if probe_report is not None:
+            probe_report_path = Path(probe_report)
+            if probe_report_path.is_file():
+                try:
+                    with open(probe_report_path, "r", encoding="utf-8") as f:
+                        probe_data = json.load(f)
+
+                    # Check package ID matching
+                    pkg_model_id = report.get("package", {}).get("model_id")
+                    probe_package_id = probe_data.get("package_id")
+
+                    # Check package path matching
+                    resolved_pkg_path = Path(package_path).resolve()
+                    probe_package_path = probe_data.get("package_path")
+                    resolved_probe_pkg_path = Path(probe_package_path).resolve() if probe_package_path else None
+
+                    sv = probe_data.get("session_verification", {})
+                    hg = probe_data.get("headless_generation", {})
+
+                    sv_success = sv.get("success") is True
+                    hg_success = hg.get("success") is True
+
+                    # Check components real execution
+                    components_run = sv.get("components", {})
+                    te_run = "text_encoder" in components_run
+                    unet_run = "unet" in components_run
+                    vae_run = "vae" in components_run
+
+                    # CPU fallback disabled
+                    cpu_fallback_disabled = (
+                        sv.get("evidence", {}).get("cpu_fallback_disabled") is True and
+                        probe_data.get("memory_assessment", {}).get("cpu_fallback_status") == "DISABLED" and
+                        hg.get("metadata", {}).get("cpu_fallback") is False
+                    )
+
+                    # Determinism check (runs_ms count must be 2, and hashes match)
+                    determinism_ok = True
+                    for comp_name in ["text_encoder", "unet", "vae"]:
+                        comp_info = components_run.get(comp_name, {})
+                        if not comp_info.get("hash") or len(comp_info.get("runs_ms", [])) != 2:
+                            determinism_ok = False
+
+                    # Headless generation check
+                    img_path = hg.get("image_path")
+                    img_hash = hg.get("image_hash")
+                    headless_ok = hg_success and img_path is not None and img_hash is not None
+
+                    # Providers check
+                    providers_ok = True
+                    for comp_name in ["text_encoder", "unet", "vae"]:
+                        providers = components_run.get(comp_name, {}).get("providers", [])
+                        if "QNNExecutionProvider" not in providers:
+                            providers_ok = False
+
+                    # No critical errors check
+                    no_critical_errors = (
+                        probe_data.get("qualification_status") == "QUALIFIED" and
+                        not probe_data.get("rejection_reasons")
+                    )
+
+                    # Validate ID and paths match
+                    id_matches = (pkg_model_id == probe_package_id) if pkg_model_id and probe_package_id else False
+                    path_matches = (resolved_pkg_path == resolved_probe_pkg_path) if resolved_probe_pkg_path else False
+
+                    if (
+                        id_matches and path_matches and
+                        sv_success and hg_success and
+                        te_run and unet_run and vae_run and
+                        cpu_fallback_disabled and determinism_ok and headless_ok and providers_ok and
+                        no_critical_errors
+                    ):
+                        has_valid_probe = True
+                        evidence["qnn_execution_performed"] = True
+                        evidence["htp_inference_proven"] = True
+                except Exception:
+                    has_valid_probe = False
+
+        if has_valid_probe and report["qualification_status"] == QualificationStatus.CONDITIONALLY_QUALIFIED.value:
+            report["qualification_status"] = QualificationStatus.QUALIFIED.value
+
         return report
 
     def _build_assessment(self, report: dict[str, Any], requested: bool) -> dict[str, Any]:
