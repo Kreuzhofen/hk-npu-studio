@@ -7,6 +7,7 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 ## [2.0 Preview] – 2026-07-14 (Laufende Phoenix-Entwicklung)
 
 ### Hinzugefügt
+* **R-005 – QNN Package Qualification Gate:** Headless Paketprüfung mit deterministischem JSON-Bericht, sicherer ONNX-/External-Data-/EPContext-Analyse und optionalem Strict-QNN-Load ohne CPU-Fallback. Das produktive SD2.1-QNN-Paket erreicht `CONDITIONALLY_QUALIFIED`; `sdxl_base` wird ohne Laden großer Gewichte oder Compile-Versuch begründet abgelehnt.
 * **Runtime Header and Scroll Fix (G-008B):**
   * **Dynamischer Header:** Entfernung der festen Header-Höhe und Deaktivierung der Größenunterdrückung (`pack_propagate(True)` und `grid_propagate(True)`). Title- und View-Labels nutzen nun internes Padding (`ipady=2`), wodurch der Header sich dynamisch an seine Kindelemente anpasst und abgeschnittene Slogans und Untertitel bei jeglicher Windows-Skalierung (100% bis 150%) robust verhindert werden.
   * **In-Place Updates & Scroll-Erhaltung:** Treeview-Items und Detail-Labels werden direkt in-place aktualisiert (`_update_label` verhindert Redraws bei identischen Werten). Die Scrollregion des Canvas wird über `_on_content_configure` nur noch dann angepasst, wenn sich die Bounding Box tatsächlich physisch verändert. Die Y-Scrollposition bleibt somit bei periodischen Updates absolut fest, und der Detailbereich springt nur bei einem bewussten Modellwechsel an den Anfang. Dies stellt die dauerhafte Sichtbarkeit und Bedienbarkeit der erweiterten Einstellungen sicher.

@@ -188,12 +188,22 @@ class OnnxProviderService:
             provider_options,
         )
         print(f"[OnnxProviderService] Strict QNN load for {component_name} with options: {provider_options}")
-        session = ort.InferenceSession(
-            str(model_path),
-            sess_options=options,
-            providers=[cls.QNN_PROVIDER],
-            provider_options=[provider_options],
-        )
+        explicit_devices = []
+        if hasattr(ort, "get_ep_devices") and hasattr(options, "add_provider_for_devices"):
+            explicit_devices = [
+                device for device in ort.get_ep_devices()
+                if getattr(device, "ep_name", "") == cls.QNN_PROVIDER
+            ]
+        if explicit_devices:
+            options.add_provider_for_devices(explicit_devices, provider_options)
+            session = ort.InferenceSession(str(model_path), sess_options=options)
+        else:
+            session = ort.InferenceSession(
+                str(model_path),
+                sess_options=options,
+                providers=[cls.QNN_PROVIDER],
+                provider_options=[provider_options],
+            )
         logger.info("[OnnxProviderService] Strict QNN %s session providers: %s", component_name, session.get_providers())
         print(f"[OnnxProviderService] Strict QNN {component_name} session providers: {session.get_providers()}")
         return session

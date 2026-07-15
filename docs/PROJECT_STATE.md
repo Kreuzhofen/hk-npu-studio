@@ -456,6 +456,8 @@ Das Projekt nutzt lokale NPU-Beschleunigung:
 
 ## 3. Nächste Schritte
 
+**R-005 (15.07.2026):** Das automatische headless QNN Package Qualification Gate ist implementiert. `models/sdxl_base` wird wegen dynamischer Verträge, großem FP32-/16-GB-Risiko und fehlender QNN-Freigabe abgelehnt. Das produktive `models/stable_diffusion_v2_1` besteht die statische Prüfung und Strict Loads aller drei EPContext-Wrapper ohne CPU-Fallback (`CONDITIONALLY_QUALIFIED`). Reale QNN-Ausführung und HTP-Profiling bleiben Voraussetzung für die Produktfreigabe.
+
 1. **Manueller Test:** Validierung der Stabilität des Galerie-Grids beim langsamen Resize und Überprüfung der Doppelklick-Funktion.
 2. **Architektur-Reviews:** Abstimmung mit dem Product Owner zur Zusammenführung der QNN-Pfade.
 3. **Erweiterungen:** Vorbereitung der RAM- und Disk-Caches für den `ThumbnailProvider` ohne das bestehende Design zu brechen.
