@@ -64,7 +64,11 @@ class PhoenixWorkspace(tk.Frame):
         from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
 
         self._view_factories = {
-            "home": lambda master: PhoenixHomeView(master, controller=self.controller),
+            "home": lambda master: PhoenixHomeView(
+                master,
+                controller=self.controller,
+                on_navigate=self.show_view,
+            ),
             "dashboard": lambda master: PhoenixDashboard(master, controller=self.controller),
             "plugins": PhoenixPluginView,
             "settings": PhoenixSettingsView,
