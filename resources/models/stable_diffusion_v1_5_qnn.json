@@ -4,7 +4,7 @@
   "author": "Qualcomm",
   "version": "1.5.0-qnn",
   "license": "CreativeML Open RAIL-M",
-  "description": "Qualcomm precompiled Stable Diffusion 1.5 w8a16 model running on Hexagon NPU (HTP V73).",
+  "description": "Qualcomm precompiled Stable Diffusion 1.5 w8a16 model running on Hexagon NPU (HTP V73). Empfohlen für künstlerische, malerische und kontrastreiche Fantasy-Motive.",
   "category": "Text-to-Image",
   "backend": "Qualcomm Stable Diffusion 1.5 (HTP V73)",
   "recommended_backend": "Qualcomm Stable Diffusion 1.5 (HTP V73)",

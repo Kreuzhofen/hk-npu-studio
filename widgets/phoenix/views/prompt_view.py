@@ -246,6 +246,32 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_body, relief="flat", bd=0,
         )
         model_dropdown.grid(row=0, column=1, sticky="ew", pady=2)
+
+        self.model_description_var = tk.StringVar()
+        self.model_description_label = tk.Label(
+            model_frame,
+            textvariable=self.model_description_var,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+            justify="left",
+            wraplength=1,
+        )
+        self.model_description_label.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(PHOENIX_THEME.space_xs, 0),
+        )
+        model_frame.bind(
+            "<Configure>",
+            lambda event: self.model_description_label.configure(
+                wraplength=max(1, event.width)
+            ),
+        )
+        self._update_model_description(default_model)
         r += 1
 
         # ── Group: Prompt ─────────────────────────────
@@ -1524,6 +1550,7 @@ class PhoenixPromptView(WorkspaceFrame):
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""
         new_model = self.model_var.get()
+        self._update_model_description(new_model)
         if hasattr(self, "seed_entry"):
             self._apply_generation_contract(new_model)
 
@@ -1550,6 +1577,12 @@ class PhoenixPromptView(WorkspaceFrame):
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
             input_image_path=self.controller.model.state.input_image_path,
         )
+
+    def _update_model_description(self, model_id: str) -> None:
+        """Display the complete repository description for the selected model."""
+        model = self.controller.repository.get_model(model_id)
+        description = model.get("description", "") if model else ""
+        self.model_description_var.set(str(description))
 
     def _on_image_drop(self, event) -> None:
         """Handle Drag & Drop events for reference images."""

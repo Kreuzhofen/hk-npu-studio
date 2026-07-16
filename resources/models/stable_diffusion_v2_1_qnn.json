@@ -4,7 +4,7 @@
   "author": "Qualcomm / Stability AI",
   "version": "2.1.0-qnn",
   "license": "CreativeML Open RAIL++-M",
-  "description": "Stable Diffusion 2.1 W8A16 über Qualcomm Hexagon HTP V73.",
+  "description": "Stable Diffusion 2.1 W8A16 über Qualcomm Hexagon HTP V73. Empfohlen für fotorealistische Porträts, detailreiche Tieraufnahmen und präzise Architekturzeichnungen.",
   "category": "Text-to-Image",
   "backend": "Qualcomm Stable Diffusion 2.1 (HTP V73)",
   "recommended_backend": "Qualcomm Stable Diffusion 2.1 (HTP V73)",
