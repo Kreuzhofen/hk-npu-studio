@@ -15,10 +15,12 @@ from controllers.generation_result import GenerationResult
 from controllers.generation_session import GenerationSessionModel
 from engine.backends.sd15_qnn_backend_adapter import StableDiffusion15QnnBackendAdapter
 from engine.backends.sd21_qnn_backend_adapter import StableDiffusion21QnnBackendAdapter
+from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
 from engine.generation_response import GenerationResponse
 from engine.local_image_generator_adapter import LocalImageGeneratorAdapter
 import engine.sd15_qnn_backend as sd15
 import engine.sd21_qnn_backend as sd21
+import engine.controlnet_canny_backend as controlnet_canny
 
 
 SD15_MODEL_DIR = Path(
@@ -101,9 +103,14 @@ class ProductionQnnPipelineTests(unittest.TestCase):
         np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=1e-6)
 
     def test_cancel_terminates_qnn_worker(self) -> None:
-        for backend in (sd15.StableDiffusion15QnnBackend(), sd21.StableDiffusion21QnnBackend()):
+        for backend in (sd15.StableDiffusion15QnnBackend(), sd21.StableDiffusion21QnnBackend(), controlnet_canny.ControlNetCannyQnnBackend()):
             session = GenerationSessionModel()
-            session.model_name = "stable_diffusion_v1_5_qnn" if isinstance(backend, sd15.StableDiffusion15QnnBackend) else "stable_diffusion_v2_1_qnn"
+            if isinstance(backend, sd15.StableDiffusion15QnnBackend):
+                session.model_name = "stable_diffusion_v1_5_qnn"
+            elif isinstance(backend, sd21.StableDiffusion21QnnBackend):
+                session.model_name = "stable_diffusion_v2_1_qnn"
+            else:
+                session.model_name = "controlnet_canny_qnn"
             job = GenerationJob(session=session, status="RUNNING")
             process = _FakeProcess()
             backend._active_process = process
@@ -116,7 +123,7 @@ class ProductionQnnPipelineTests(unittest.TestCase):
             self.assertEqual("CANCELLED", response)
 
     def test_cancel_reaches_physical_backend_through_local_adapter(self) -> None:
-        for adapter in (StableDiffusion15QnnBackendAdapter(), StableDiffusion21QnnBackendAdapter()):
+        for adapter in (StableDiffusion15QnnBackendAdapter(), StableDiffusion21QnnBackendAdapter(), ControlNetCannyQnnBackendAdapter()):
             entered = Event()
             released = Event()
 
@@ -181,17 +188,19 @@ class ProductionQnnPipelineTests(unittest.TestCase):
 
     def test_sessions_are_finalized_after_pipeline_error(self) -> None:
         cases = (
-            (sd15, sd15.StableDiffusion15QnnBackend(), "stable_diffusion_v1_5_qnn"),
-            (sd21, sd21.StableDiffusion21QnnBackend(), "stable_diffusion_v2_1_qnn"),
+            (sd15, sd15.StableDiffusion15QnnBackend(), "stable_diffusion_v1_5_qnn", 3),
+            (sd21, sd21.StableDiffusion21QnnBackend(), "stable_diffusion_v2_1_qnn", 3),
+            (controlnet_canny, controlnet_canny.ControlNetCannyQnnBackend(), "controlnet_canny_qnn", 4),
         )
-        for module, backend, model_name in cases:
-            sessions = [_FakeSession(), _FakeSession(), _FakeSession()]
+        real_image = r"C:\SnapdragonAI\output\generate_1784201535_01a65e09.png"
+        for module, backend, model_name, expected_sessions_count in cases:
+            sessions = [_FakeSession() for _ in range(expected_sessions_count)]
             with patch.object(backend, "_setup_sessions", return_value=(*sessions, {})), patch.object(
                 module, "SimpleCLIPTokenizer", side_effect=RuntimeError("injected tokenizer failure")
             ):
-                result = backend._execute_generation_physical({"model_name": model_name})
+                result = backend._execute_generation_physical({"model_name": model_name, "input_image_path": real_image})
             self.assertFalse(result["success"])
-            self.assertEqual([1, 1, 1], [session.finalized for session in sessions])
+            self.assertEqual([1] * expected_sessions_count, [session.finalized for session in sessions])
 
 
 if __name__ == "__main__":

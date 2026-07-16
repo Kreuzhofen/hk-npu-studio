@@ -1,12 +1,16 @@
 # Projektstatus – Snapdragon AI Studio
 
-**Stand:** 14.07.2026
+**Stand:** 16.07.2026
 **Zweig:** `feature/phoenix-rebuild`
 **Zielplattform:** Windows 11 ARM64 (Qualcomm Snapdragon X NPU via QNN)
 
 ---
 
 ## 1. Aktueller Status & Letzte Änderungen
+
+* **Sprint CN-002 – ControlNet Reference Image UI:** Echte Referenzbild-Auswahl und Validierung für ControlNet Canny im AI Generate Workspace integriert. Die Drag & Drop Card und der Subtitle werden bei Modellen ohne ControlNet-Unterstützung (SD1.5, SD2.1) automatisch verborgen und bei Aktivierung eines ControlNet-Modells dynamisch eingeblendet und mit passendem Titel versehen. Die Eingabebilder werden vorab in `GenerationController.validate_session()` auf Existenz und Format geprüft.
+
+* **Sprint CN-001 – ControlNet Canny Backend Integration:** Lokale ControlNet Canny Generierung als produktiver Backendpfad in Snapdragon AI Studio integriert. Die Modelle (Text Encoder, ControlNet, UNet, VAE) laufen vollständig auf der Hexagon HTP NPU (CPU EP Fallback deaktiviert). Der Backend-Adapter führt die Ausführung in einer isolierten virtuellen Umgebung (`temp/controlnet_canny_gate/venv`) aus. Canny-Kantenberechnung erfolgt ressourcenschonend auf der CPU (reines NumPy). Das verwendete Eingabebild wird zur Reproduzierbarkeit kopiert, und ein dreiteiliger Kontaktbogen (Original, Kanten, Generierung) wird zusammen mit dem detaillierten JSON-Sidecar erzeugt.
 
 * **Sprint G-008B – Runtime Header and Scroll Fix:** Erreichen einer perfekten Skalierungs- und Scroll-Robustheit im Phoenix-Design. Durch die Deaktivierung der Größenunterdrückung (`pack_propagate(True)`) und Einführung einer dynamischen Höhenanpassung sowie von internem Label-Padding (`ipady=2`) passt sich der Header (`PhoenixHeader`) automatisch an seine Kindelemente an, was abgeschnittene Workspace-Titel auf allen Skalierungsstufen (100% bis 150%) verhindert. Im AI Model Manager Detailbereich werden Treeview-Items und Labels in-place aktualisiert. Ein Helfer `_update_label` verhindert Redraws bei identischen Werten und die Scrollregion des Canvas wird nur angepasst, wenn sich die Bounding Box strukturell ändert. Das unwillkürliche Scroll-Springen und jegliches Fokus-Stehlen wird dadurch vollständig eliminiert, und die Y-Scrollposition bleibt bei Hintergrund-Updates absolut stabil.
 * **Sprint G-008A – UI-Nachbesserungen:** Behebung von UI-Mängeln zur Optimierung des Phoenix-Designs. Die Header-Höhe des Phoenix-Workspace wurde von 60px auf 72px angehoben, um ein Abschneiden des aktuellen Workspace-Titels auf allen Windows-Skalierungen zu verhindern. Im AI Model Manager wurde das automatische Zurückscrollen nach oben durch einen Modellstatus-Signaturvergleich (verhindert Treeview-Wiederaufbauten bei unveränderten Daten) sowie durch ein proaktives Sichern und Wiederherstellen der Canvas-Scrollposition bei Status-Updates behoben. Die Prompt-Werkzeuge (Vorlagen, Verlauf, Maximieren) wurden in einer zusammengehörigen, kontraststarken Werkzeugleiste (`self.prompt_toolbar`) im Segment-Control-Design mit klaren Symbolen und visuellen Trennlinien konsolidiert.
@@ -26,6 +30,21 @@
 * **Experiment HR-001 – Tiled QNN Diffusion PoC:** Ein isolierter SD2.1-Proof-of-Concept denoisiert einen gemeinsamen 128×128-Latent-Canvas über neun überlappende, feste 64×64-QNN-Fenster. Text Encoder, 360 UNet-Inferenzen pro 20-Step-Lauf und neun gekachelte VAE-Decodes laufen fail-closed über QNN/HTP; Host-Code übernimmt ausschließlich DDIM-Scheduler, Canvas, Cosine-Blending, Akkumulation und PNG-Ausgabe. 1024×1024-Läufe mit 64 px und 128 px Bildüberlappung waren technisch erfolgreich und reproduzierbar, sind wegen noch sichtbarer großräumiger Motiv-/Perspektivwechsel aber ausdrücklich nicht als Produktfunktion freigegeben. Produktiver 512×512-Pfad und GUI bleiben unverändert.
 * **Sprint P4-001A – AI Asset Library Index Foundation:** Eine medienneutrale Asset-Index-Schicht synchronisiert unterstützte Bilder aus dem zentralen Output-Pfad deterministisch in einen lokalen SQLite-Index unter `data/asset_index.sqlite3`. Das Dateisystem bleibt Source of Truth; SQLite enthält ausschließlich reproduzierbare Such- und Metadaten, niemals Asset-Dateien. JSON-Sidecars werden bevorzugt und fehlertolerant ausgewertet, geänderte Assets aktualisiert und entfernte Assets als fehlend markiert. Die Struktur bereitet Video-Assets architektonisch vor, implementiert aber noch keine Videoverarbeitung, GUI-Umschaltung oder Live-Überwachung. Der PO-Abnahme-Bugfix aktualisiert die Gallery-Auswahl bei Einzel- und Doppelklick direkt an bestehenden Karten, sodass kein Grid-Neuaufbau und kein erneuter Thumbnail-Load ausgelöst wird.
 * **Recovery IQ-R01 – IQ-001/IQ-004:** Die SD1.5-/SD2.1-QNN-Backends respektieren die angeforderten Steps und ausdrücklich leere Negative Prompts. Der SD1.5-Euler-Vertrag verwendet `leading`, Offset 1 und epsilon Prediction; kompakte Sidecars dokumentieren Timesteps, Sigmas, Latent Scaling, Tensorstatistiken und Laufzeiten. AI Generate bezieht Auflösung, Steps, CFG, Seed, Sampler, Scheduler und Prediction Type modellunabhängig aus `generation_parameters`; Modellwechsel und Model-Manager-Aktivierung synchronisieren die sichtbaren Controls und den Generation-Job.
+
+Am **16.07.2026** wurden folgende Sprints abgeschlossen:
+
+* **Sprint CN-002 – ControlNet Reference Image UI:**
+  * **Dynamische Sichtbarkeit:** Dynamic grid/removal configuration of the Drag & Drop area (`dnd_card` and `dnd_subtitle`) depending on ControlNet model capabilities.
+  * **Validierung:** Vorabprüfung der Referenzbilddatei im `GenerationController`.
+  * **Unit-Tests:** Umfassende GUI- und Validierungstests in `test_controlnet_ui.py` und `test_generate_ux_state.py`.
+  * **Dateien:** [prompt_view.py](file:///C:/SnapdragonAI/widgets/phoenix/views/prompt_view.py), [generation_controller.py](file:///C:/SnapdragonAI/controllers/generation_controller.py), [test_controlnet_ui.py](file:///C:/SnapdragonAI/tests/test_controlnet_ui.py), [test_generate_ux_state.py](file:///C:/SnapdragonAI/tests/test_generate_ux_state.py)
+
+* **Sprint CN-001 – ControlNet Canny Backend Integration:**
+  * **Inferenz-Backend-Adapter:** Implementierung der physischen Inferenzschritte für ControlNet Canny auf HTP in `controlnet_canny_backend.py`.
+  * **Backend-Adapter:** Erstellung des Adapters `ControlNetCannyQnnBackendAdapter` in `controlnet_canny_backend_adapter.py` zur Steuerung des Subprozesses.
+  * **Factory-Registrierung:** Registrierung in der `InferenceBackendFactory` und im `BackendManager`.
+  * **Modell-Metadaten:** Registrierung der Modelldefinition `controlnet_canny_qnn.json` unter `resources/models`.
+  * **Dateien:** [controlnet_canny_backend.py](file:///C:/SnapdragonAI/engine/controlnet_canny_backend.py), [controlnet_canny_backend_adapter.py](file:///C:/SnapdragonAI/engine/backends/controlnet_canny_backend_adapter.py), [controlnet_canny_qnn.json](file:///C:/SnapdragonAI/resources/models/controlnet_canny_qnn.json), [backend_manager.py](file:///C:/SnapdragonAI/engine/backends/backend_manager.py), [inference_backend_factory.py](file:///C:/SnapdragonAI/engine/inference_backend_factory.py), [test_production_qnn_pipeline.py](file:///C:/SnapdragonAI/tests/test_production_qnn_pipeline.py)
 
 Am **14.07.2026** wurden folgende Sprints abgeschlossen:
 

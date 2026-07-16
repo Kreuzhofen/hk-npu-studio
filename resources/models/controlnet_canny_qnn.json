@@ -1,0 +1,49 @@
+{
+  "id": "controlnet_canny_qnn",
+  "display_name": "ControlNet Canny QNN",
+  "author": "Qualcomm",
+  "version": "0.58.0-qnn",
+  "license": "CreativeML Open RAIL-M",
+  "description": "Qualcomm precompiled ControlNet-Canny w8a16 model running on Hexagon NPU (HTP V73). Ermöglicht bildbasierte Generierung unter Beibehaltung der Canny-Kantenstruktur.",
+  "category": "Image-to-Image",
+  "backend": "Qualcomm ControlNet Canny (HTP V73)",
+  "recommended_backend": "Qualcomm ControlNet Canny (HTP V73)",
+  "minimum_ram_gb": 8,
+  "recommended_ram_gb": 16,
+  "supports": [
+    "txt2img",
+    "img2img",
+    "controlnet"
+  ],
+  "installed": true,
+  "downloaded": true,
+  "path": "C:\\SnapdragonAI\\temp\\controlnet_canny_gate\\controlnet_canny-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite",
+  "status": "Running on Qualcomm Hexagon HTP",
+  "catalog_status": "READY",
+  "product_available": true,
+  "official_qualcomm_package": true,
+  "availability_message": "Qualcomm NPU package ready.",
+  "generation_parameters": {
+    "resolution_locked": true,
+    "width": {"default": 512, "values": [512], "editable": false},
+    "height": {"default": 512, "values": [512], "editable": false},
+    "steps": {"default": 20, "min": 1, "max": 100},
+    "cfg": {"default": 7.5, "min": 1.0, "max": 20.0, "resolution": 0.5},
+    "seed": {"default": -1},
+    "sampler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
+    "scheduler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
+    "prediction_type": "epsilon"
+  },
+  "capabilities": {
+    "txt2img": true,
+    "img2img": true,
+    "inpainting": false,
+    "outpainting": false,
+    "lora": false,
+    "controlnet": true,
+    "image_to_video": false,
+    "batch_generation": false,
+    "onnx_runtime": true,
+    "qnn_runtime": true
+  }
+}

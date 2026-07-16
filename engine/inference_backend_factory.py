@@ -59,6 +59,7 @@ from engine.stub_image_backend import StubImageBackend
 from engine.onnx_image_backend import OnnxImageBackend
 from engine.sd15_qnn_backend import StableDiffusion15QnnBackend
 from engine.sd21_qnn_backend import StableDiffusion21QnnBackend
+from engine.controlnet_canny_backend import ControlNetCannyQnnBackend
 
 InferenceBackendFactory.register_backend("Stub", StubImageBackend, lambda runtime: StubImageBackend("Stub", runtime))
 InferenceBackendFactory.register_backend("Local CPU (Stub)", StubImageBackend, lambda runtime: StubImageBackend("Local CPU (Stub)", runtime))
@@ -67,3 +68,4 @@ InferenceBackendFactory.register_backend("ONNX Runtime CPU", OnnxImageBackend, l
 InferenceBackendFactory.register_backend("ONNX Runtime (Stub)", OnnxImageBackend, lambda runtime: OnnxImageBackend(runtime))
 InferenceBackendFactory.register_backend("Qualcomm Stable Diffusion 1.5 (HTP V73)", StableDiffusion15QnnBackend, lambda runtime: StableDiffusion15QnnBackend())
 InferenceBackendFactory.register_backend("Qualcomm Stable Diffusion 2.1 (HTP V73)", StableDiffusion21QnnBackend, lambda runtime: StableDiffusion21QnnBackend())
+InferenceBackendFactory.register_backend("Qualcomm ControlNet Canny (HTP V73)", ControlNetCannyQnnBackend, lambda runtime: ControlNetCannyQnnBackend())

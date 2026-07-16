@@ -31,7 +31,7 @@ def _model_definition(model_id: str, installed: bool = True) -> dict:
         "path": "test",
         "status": "READY" if installed else "MISSING",
         "product_available": True,
-        "capabilities": {"txt2img": True},
+        "capabilities": {"txt2img": True, "controlnet": "controlnet" in model_id},
         "generation_parameters": {
             "width": {"default": 512},
             "height": {"default": 512},
@@ -128,6 +128,41 @@ class GenerateUxStateTests(unittest.TestCase):
         self.assertEqual("path/to/image.png", session.input_image_path)
         session.reset()
         self.assertIsNone(session.input_image_path)
+
+    def test_controlnet_input_image_validation(self) -> None:
+        self._write_model("c_controlnet.json", "controlnet_canny_qnn")
+        repository = ModelRepository(str(self.models_dir))
+        session = GenerationSessionModel(
+            prompt="Test prompt",
+            model_name="controlnet_canny_qnn"
+        )
+        controller = GenerationController(session=session, repository=repository)
+
+        # 1. Test missing reference image path
+        is_valid, msg = controller.validate_session()
+        self.assertFalse(is_valid)
+        self.assertEqual("Eingabebild für ControlNet Canny fehlt oder ist ungültig.", msg)
+
+        # 2. Test non-existent image path
+        session.update(input_image_path="nonexistent_image.png")
+        is_valid, msg = controller.validate_session()
+        self.assertFalse(is_valid)
+        self.assertEqual("Eingabebild für ControlNet Canny fehlt oder ist ungültig.", msg)
+
+        # 3. Test valid image path
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            temp_img_path = f.name
+        try:
+            session.update(input_image_path=temp_img_path)
+            is_valid, msg = controller.validate_session()
+            # It should pass ControlNet check and proceed to validate_generation_parameters
+            self.assertTrue(is_valid or "Eingabebild" not in msg)
+        finally:
+            import os
+            try:
+                os.unlink(temp_img_path)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ from engine.backends.onnx_backend_adapter import ONNXBackendAdapter
 from engine.backends.remote_backend_adapter import RemoteBackendAdapter
 from engine.backends.sd15_qnn_backend_adapter import StableDiffusion15QnnBackendAdapter
 from engine.backends.sd21_qnn_backend_adapter import StableDiffusion21QnnBackendAdapter
+from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
 from engine.backends.discovery_result import DiscoveryResult
 
 
@@ -29,6 +30,7 @@ class BackendManager:
         self.register_backend(RemoteBackendAdapter())
         self.register_backend(StableDiffusion15QnnBackendAdapter())
         self.register_backend(StableDiffusion21QnnBackendAdapter())
+        self.register_backend(ControlNetCannyQnnBackendAdapter())
 
         # Set default active backend to CPU fallback stub
         self.set_active_backend("CPU (Stub)")
@@ -125,7 +127,8 @@ class BackendManager:
         # Generic fallback priority by adapter capability/type.  Keep CPU last;
         # registry insertion order must not affect execution priority.
         def fallback_priority(adapter: BackendAdapter) -> int:
-            if isinstance(adapter, (StableDiffusion15QnnBackendAdapter, StableDiffusion21QnnBackendAdapter)):
+            from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
+            if isinstance(adapter, (StableDiffusion15QnnBackendAdapter, StableDiffusion21QnnBackendAdapter, ControlNetCannyQnnBackendAdapter)):
                 return 0
             if isinstance(adapter, QNNBackendAdapter):
                 return 1

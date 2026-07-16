@@ -4,6 +4,26 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-16 (Sprint CN-002)
+
+### Hinzugefügt
+* **Sprint CN-002 – ControlNet Reference Image UI:**
+  * **Dynamische Sichtbarkeit:** Die Referenzbild-Drag-&-Drop-Auswahl (`dnd_card` und `dnd_subtitle`) wird für Modelle ohne ControlNet-Unterstützung (SD1.5, SD2.1) automatisch ausgeblendet und bei Aktivierung eines ControlNet-Modells dynamisch eingeblendet.
+  * **Dynamischer Titel:** Der Beschreibungstext wird bei ControlNet-Modellen automatisch auf `"Referenzbild für ControlNet Canny:"` angepasst.
+  * **Echtzeit-Validierung:** Integration einer Vorabprüfung in `GenerationController.validate_session()`. Bei fehlendem oder ungültigem Bild wird die Generierung abgebrochen und eine klare Fehlermeldung per Dialogbox ("Eingabebild für ControlNet Canny fehlt oder ist ungültig.") im UI angezeigt.
+  * **Komplette Testabdeckung:** Erstellung dedizierter UI- und Validierungstests in `tests/test_controlnet_ui.py` und Erweiterung von `tests/test_generate_ux_state.py`.
+
+## [2.0 Preview] – 2026-07-16 (Sprint CN-001)
+
+### Hinzugefügt
+* **Sprint CN-001 – ControlNet Canny Backend Integration:**
+  * **Modell-Registrierung:** Hinzufügen der Modell-Metadaten-Definition `controlnet_canny_qnn.json` unter `resources/models` für das offizielle Qualcomm ControlNet-Canny w8a16-Paket.
+  * **Inferenz-Backend-Adapter:** Implementierung von `ControlNetCannyQnnBackend` in `engine/controlnet_canny_backend.py`. Es führt das komplette ControlNet-Canny-Modellpaket (Text-Encoder, ControlNet, UNet, VAE) vollständig auf der Qualcomm Hexagon HTP NPU aus (CPU EP Fallback komplett deaktiviert via `session.disable_cpu_ep_fallback=1`).
+  * **Isolierter Subprocess-Worker:** Der Backend-Adapter kapselt die QAIRT 2.45 / ORT 1.25.0 Inferenzlaufzeit in einem separaten Subprozess-Worker, welcher das isolierte Virtual Environment `temp/controlnet_canny_gate/venv` nutzt.
+  * **Canny Preprocessing & DDIM Scheduler:** Integration eines reinen NumPy-basierten Canny-Kantendetektors (CPU) und eines DDIM-Schedulers für die passgenaue Tensor-Requantisierung und latente Rauschreduzierung.
+  * **Schnittstellen & Factory-Registrierung:** Registrierung des Backends in der `InferenceBackendFactory` und des Adapters `ControlNetCannyQnnBackendAdapter` im `BackendManager`.
+  * **Reproduzierbarkeit & Diagnostik:** Automatisches Kopieren des verwendeten Eingabebildes in den Test-/Ausgabeordner und Speichern eines 3-teiligen Kontaktbogens (Original, Canny-Kanten, Generierung) zusammen mit einem detaillierten JSON-Diagnose-Sidecar.
+
 ## [2.0 Preview] – 2026-07-16 (Sprint IQ-008 & UI-008)
 
 ### Hinzugefügt

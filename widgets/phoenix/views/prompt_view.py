@@ -490,6 +490,7 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=16,
             pady=(0, PHOENIX_THEME.space_sm),
         )
+        self.dnd_subtitle.row_idx = r
         r += 1
 
         self.dnd_card = tk.Frame(
@@ -506,6 +507,7 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=16,
             pady=(0, 12),
         )
+        self.dnd_card.row_idx = r
         r += 1
 
         # (Group: Image Size - grouped under Generation Parameters)
@@ -822,6 +824,35 @@ class PhoenixPromptView(WorkspaceFrame):
         seed_spec = contract.get("seed")
         if isinstance(seed_spec, dict) and "default" in seed_spec:
             self.seed_var.set(str(seed_spec["default"]))
+
+        # Toggle Reference Image selection visibility based on ControlNet capability (Sprint CN-002)
+        model_meta = self.controller.repository.get_model(model_id)
+        supports_controlnet = False
+        if model_meta:
+            supports_controlnet = model_meta.get("capabilities", {}).get("controlnet", False)
+
+        if supports_controlnet:
+            self.dnd_subtitle.configure(text="Referenzbild für ControlNet Canny:")
+            self.dnd_subtitle.grid(
+                row=self.dnd_subtitle.row_idx,
+                column=0,
+                columnspan=2,
+                sticky="ew",
+                padx=16,
+                pady=(0, PHOENIX_THEME.space_sm),
+            )
+            self.dnd_card.grid(
+                row=self.dnd_card.row_idx,
+                column=0,
+                columnspan=2,
+                sticky="ew",
+                padx=16,
+                pady=(0, 12),
+            )
+        else:
+            self.dnd_subtitle.configure(text="Vorbereitung für Image→Image und Image→Video.")
+            self.dnd_subtitle.grid_remove()
+            self.dnd_card.grid_remove()
 
         # If advanced settings popup is currently open and active, refresh it so it stays synced
         if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
