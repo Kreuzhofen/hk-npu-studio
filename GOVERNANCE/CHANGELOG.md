@@ -4,6 +4,16 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-16 (Sprint IQ-008 & UI-008)
+
+### Hinzugefügt
+* **Sprint IQ-008 – SD1.5 vs. SD2.1 Quality Profile:** Durchführung eines systematischen Qualitätsvergleichs auf der Hexagon NPU (HTP V73). SD2.1 QNN dominiert in Anatomie, Tiertexturen und Architektur, während SD1.5 QNN bei künstlerischen Fantasy-Motiven überlegen ist.
+* **Sprint UI-008 – AI Generate Workspace Polish:**
+  * **Logische Gruppierung:** Strukturierung der Bedienelemente in die vier Kernbereiche: Model, Prompt, Generation Parameters und Actions.
+  * **Modellbeschreibung:** Visuelle Hervorhebung der Modellbeschreibung in einer separaten elevated Card mit dezentem Rahmen und Hintergrund.
+  * **Schreibgeschützte Parameter:** Automatische Visualisierung gesperrter Optionen (z. B. Sampler und Scheduler) mit einem Schloss-Symbol (🔒) im Label und dezent verblasster Textfarbe (`disabledforeground`).
+  * **Konsistentes Layout:** Ausrichtung sämtlicher Abstände und Rahmen zur Etablierung eines vollendeten kommerziellen Standards.
+
 ## [2.0 Preview] – 2026-07-14 (Laufende Phoenix-Entwicklung)
 
 ### Hinzugefügt
