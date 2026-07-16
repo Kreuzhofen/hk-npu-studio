@@ -80,9 +80,9 @@ class QualityPresetsTests(unittest.TestCase):
         self.controller.select_model = lambda mid: locked_contract
         self.view._apply_generation_contract("stable_diffusion_v1_5_qnn")
 
-        # Verify preset frame is visible and scale is hidden
-        self.assertTrue(self.view.steps_preset_frame.winfo_manager() != "")
-        self.assertTrue(self.view.steps_scale.winfo_manager() == "")
+        # Verify scale is visible and preset frame is hidden
+        self.assertTrue(self.view.steps_preset_frame.winfo_manager() == "")
+        self.assertTrue(self.view.steps_scale.winfo_manager() != "")
 
         # Stub select_model to return unlocked contract
         self.controller.select_model = lambda mid: unlocked_contract

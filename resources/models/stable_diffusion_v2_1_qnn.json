@@ -23,7 +23,7 @@
     "resolution_locked": true,
     "width": {"default": 512, "values": [512], "editable": false},
     "height": {"default": 512, "values": [512], "editable": false},
-    "steps": {"default": 20, "min": 1, "max": 100},
+    "steps": {"default": 30, "min": 1, "max": 100},
     "cfg": {"default": 7.5, "min": 1.0, "max": 20.0, "resolution": 0.5},
     "seed": {"default": -1},
     "sampler": {"default": "DDIM", "values": ["DDIM"], "editable": false},

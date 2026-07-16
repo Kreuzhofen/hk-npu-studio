@@ -767,24 +767,8 @@ class PhoenixPromptView(WorkspaceFrame):
             if "default" in spec:
                 widget.set(spec["default"])
 
-        # Layout steps scale or quality presets inside sampling_frame (column 1)
-        if contract.get("resolution_locked") is True:
-            # Hide steps scale and show preset frame
-            self.steps_scale.grid_remove()
-            self.steps_preset_frame.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
-
-            # Re-sync preset based on current step scale value
-            current_steps = self.steps_scale.get()
-            if current_steps == 10:
-                self._select_steps_preset("Schnell")
-            elif current_steps == 30:
-                self._select_steps_preset("Beste Qualität")
-            else:
-                self._select_steps_preset("Standard")
-        else:
-            # Hide steps preset frame and show scale
-            self.steps_preset_frame.grid_remove()
-            self.steps_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
+        self.steps_preset_frame.grid_remove()
+        self.steps_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
 
         # Always configure seed default
         seed_spec = contract.get("seed")
