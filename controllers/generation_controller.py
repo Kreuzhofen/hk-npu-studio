@@ -90,6 +90,19 @@ class GenerationController:
                         img.convert('L')
                 except Exception as e:
                     return False, f"Das Referenzbild ist beschädigt oder ungültig: {e}"
+
+                # Check Canny thresholds and conditioning scale (Sprint CN-004)
+                low = getattr(self.session, "canny_low_threshold", 50)
+                high = getattr(self.session, "canny_high_threshold", 150)
+                cond_scale = getattr(self.session, "controlnet_conditioning_scale", 1.0)
+
+                if not (0 <= low <= 255) or not (0 <= high <= 255):
+                    return False, "Canny-Schwellenwerte müssen zwischen 0 und 255 liegen."
+                if low >= high:
+                    return False, "Der untere Schwellenwert (Low Threshold) muss kleiner als der obere Schwellenwert (High Threshold) sein."
+                if not (0.0 <= cond_scale <= 2.0):
+                    return False, "Die ControlNet-Stärke (Conditioning Strength) muss zwischen 0.0 und 2.0 liegen."
+
         
         return self.repository.validate_generation_parameters(
             self.session.model_name,

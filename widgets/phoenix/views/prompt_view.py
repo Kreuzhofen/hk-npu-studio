@@ -252,8 +252,12 @@ class PhoenixPromptView(WorkspaceFrame):
         self.cfg_var = tk.DoubleVar(value=7.5)
         self.steps_var = tk.IntVar(value=20)
         self.seed_var = tk.StringVar(value="-1")
+        self.canny_low_var = tk.IntVar(value=50)
+        self.canny_high_var = tk.IntVar(value=150)
+        self.conditioning_strength_var = tk.DoubleVar(value=1.0)
 
         p = self.param_content  # shorthand
+
         r = 0
 
         # ── Group: Model ──────────────────────────────
@@ -549,9 +553,55 @@ class PhoenixPromptView(WorkspaceFrame):
         self.dnd_card.row_idx = r
         r += 1
 
+        # ControlNet Canny controls frame (Sprint CN-004)
+        self.controlnet_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
+        self.controlnet_frame.row_idx = r
+        r += 1
+
+        self.controlnet_frame.grid_columnconfigure(0, weight=1)
+        self.controlnet_frame.grid_columnconfigure(1, weight=1)
+
+        low_label = tk.Label(self.controlnet_frame, text="Canny Low Threshold:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        low_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
+        self.low_scale = tk.Scale(
+            self.controlnet_frame, from_=0, to=255, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.canny_low_var
+        )
+        self.low_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
+
+        high_label = tk.Label(self.controlnet_frame, text="Canny High Threshold:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        high_label.grid(row=0, column=1, sticky="w", pady=(0, 1))
+        self.high_scale = tk.Scale(
+            self.controlnet_frame, from_=0, to=255, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.canny_high_var
+        )
+        self.high_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
+
+        strength_label = tk.Label(self.controlnet_frame, text="Conditioning Strength:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        strength_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 1))
+        self.strength_scale = tk.Scale(
+            self.controlnet_frame, from_=0.0, to=2.0, resolution=0.05, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.conditioning_strength_var
+        )
+        self.strength_scale.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+
+        _Tooltip(low_label, lambda: "Unterer Canny-Schwellenwert für die Kantenerkennung (0 - 255).")
+        _Tooltip(high_label, lambda: "Oberer Canny-Schwellenwert für die Kantenerkennung (0 - 255).")
+        _Tooltip(strength_label, lambda: "Einflussstärke von ControlNet auf das generierte Bild (0.0 - 2.0).")
+
         # (Group: Image Size - grouped under Generation Parameters)
 
         self.size_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
+
         self.size_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
         self.size_frame.row_idx = r
         self.size_frame.grid_columnconfigure(0, weight=0)
@@ -888,10 +938,20 @@ class PhoenixPromptView(WorkspaceFrame):
                 padx=16,
                 pady=(0, 12),
             )
+            self.controlnet_frame.grid(
+                row=self.controlnet_frame.row_idx,
+                column=0,
+                columnspan=2,
+                sticky="ew",
+                padx=16,
+                pady=(0, 12),
+            )
         else:
             self.dnd_subtitle.configure(text="Vorbereitung für Image→Image und Image→Video.")
             self.dnd_subtitle.grid_remove()
             self.dnd_card.grid_remove()
+            self.controlnet_frame.grid_remove()
+
 
         # If advanced settings popup is currently open and active, refresh it so it stays synced
         if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
@@ -1250,6 +1310,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         sampler = self.sampler_var.get()
         scheduler = self.scheduler_var.get()
+        canny_low, canny_high, cond_scale = self._get_controlnet_params()
 
         self.controller.update_parameters(
             prompt=prompt, negative_prompt=neg_prompt,
@@ -1257,7 +1318,11 @@ class PhoenixPromptView(WorkspaceFrame):
             width=width, height=height, selected_model=selected_model,
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
             input_image_path=self.controller.model.state.input_image_path,
+            canny_low_threshold=canny_low,
+            canny_high_threshold=canny_high,
+            controlnet_conditioning_scale=cond_scale,
         )
+
 
         # Central validation prior to generation (Sprint CN-003)
         is_valid, msg = self.controller.generation_controller.validate_session()
@@ -1672,10 +1737,14 @@ class PhoenixPromptView(WorkspaceFrame):
             if hasattr(self, "seed_entry"):
                 self._apply_generation_contract(new_model)
 
-            # 2. Reset reference image state
+            # 2. Reset reference image state & ControlNet specific values (Sprint CN-004)
             self._ref_image_path = None
             self._dnd_photo_ref = None
             self._dnd_error_message = None
+
+            self.canny_low_var.set(50)
+            self.canny_high_var.set(150)
+            self.conditioning_strength_var.set(1.0)
 
             # Retrieve current parameters and update controller with input_image_path=None
             try:
@@ -1706,13 +1775,19 @@ class PhoenixPromptView(WorkspaceFrame):
                 seed, steps, cfg, width, height = -1, 20, 7.5, 512, 512
                 sampler, scheduler, batch_size = "Euler", "Euler", 1
 
+            canny_low, canny_high, cond_scale = self._get_controlnet_params()
+
             self.controller.update_parameters(
                 prompt=prompt, negative_prompt=neg_prompt,
                 seed=seed, steps=steps, cfg=cfg,
                 width=width, height=height, selected_model=new_model,
                 sampler=sampler, scheduler=scheduler, batch_size=batch_size,
-                input_image_path=None
+                input_image_path=None,
+                canny_low_threshold=canny_low,
+                canny_high_threshold=canny_high,
+                controlnet_conditioning_scale=cond_scale,
             )
+
 
             # Clear general status if it was validation-related
             current_status = self.controller.model.state.status
@@ -1811,13 +1886,18 @@ class PhoenixPromptView(WorkspaceFrame):
             except ValueError:
                 batch_size = 1
 
+            canny_low, canny_high, cond_scale = self._get_controlnet_params()
+
             # Update state model and session controller
             self.controller.update_parameters(
                 prompt=prompt, negative_prompt=neg_prompt,
                 seed=seed, steps=steps, cfg=cfg,
                 width=width, height=height, selected_model=selected_model,
                 sampler=sampler, scheduler=scheduler, batch_size=batch_size,
-                input_image_path=self._ref_image_path
+                input_image_path=self._ref_image_path,
+                canny_low_threshold=canny_low,
+                canny_high_threshold=canny_high,
+                controlnet_conditioning_scale=cond_scale,
             )
             self.refresh()
         except Exception as e:
@@ -1825,7 +1905,23 @@ class PhoenixPromptView(WorkspaceFrame):
             self._clear_reference_image_state(error_message=f"Fehler: {str(e)}")
             messagebox.showerror("Fehler beim Laden", f"Das Bild konnte nicht geladen werden:\n{e}")
 
+    def _get_controlnet_params(self) -> tuple[int, int, float]:
+        try:
+            canny_low = int(self.canny_low_var.get())
+        except (ValueError, AttributeError):
+            canny_low = 50
+        try:
+            canny_high = int(self.canny_high_var.get())
+        except (ValueError, AttributeError):
+            canny_high = 150
+        try:
+            cond_scale = float(self.conditioning_strength_var.get())
+        except (ValueError, AttributeError):
+            cond_scale = 1.0
+        return canny_low, canny_high, cond_scale
+
     def _remove_reference_image(self) -> None:
+
         """Clear the reference image and reset state parameters."""
         self._clear_reference_image_state()
 
@@ -1866,13 +1962,19 @@ class PhoenixPromptView(WorkspaceFrame):
             seed, steps, cfg, width, height = -1, 20, 7.5, 512, 512
             sampler, scheduler, batch_size = "Euler", "Euler", 1
 
+        canny_low, canny_high, cond_scale = self._get_controlnet_params()
+
         self.controller.update_parameters(
             prompt=prompt, negative_prompt=neg_prompt,
             seed=seed, steps=steps, cfg=cfg,
             width=width, height=height, selected_model=selected_model,
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
-            input_image_path=None
+            input_image_path=None,
+            canny_low_threshold=canny_low,
+            canny_high_threshold=canny_high,
+            controlnet_conditioning_scale=cond_scale,
         )
+
 
         # Clear general status if it was validation-related
         current_status = self.controller.model.state.status

@@ -302,6 +302,205 @@ class ControlNetUITests(unittest.TestCase):
         self.assertEqual(state_mm.height, state_om.height)
         self.assertEqual(state_mm.input_image_path, state_om.input_image_path)
 
+    def test_controlnet_canny_controls(self) -> None:
+        import os
+        import json
+        from PIL import Image
+        from unittest.mock import MagicMock
+        from controllers.generation_job import GenerationJob
+        from engine.inference_backend_factory import InferenceBackendFactory
+
+        # 1. Standardwerte (defaults)
+        self.view.model_var.set("controlnet_canny_qnn")
+        self.view.update()
+        state = self.controller.get_state()
+        self.assertEqual(state.canny_low_threshold, 50)
+        self.assertEqual(state.canny_high_threshold, 150)
+        self.assertEqual(state.controlnet_conditioning_scale, 1.0)
+
+        # 2. Low Threshold kleiner als High Threshold (validation)
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            temp_img = f.name
+        try:
+            img = Image.new("RGB", (16, 16), color="white")
+            img.save(temp_img, "PNG")
+
+            self.controller.update_parameters(
+                prompt="A beautiful city", negative_prompt="", seed=-1, steps=20, cfg=7.5,
+                width=512, height=512, selected_model="controlnet_canny_qnn",
+                sampler="DDIM", scheduler="DDIM", batch_size=1,
+                input_image_path=temp_img,
+                canny_low_threshold=100, canny_high_threshold=50,
+                controlnet_conditioning_scale=1.0
+            )
+            is_valid, msg = self.controller.generation_controller.validate_session()
+            self.assertFalse(is_valid)
+            self.assertEqual("Der untere Schwellenwert (Low Threshold) muss kleiner als der obere Schwellenwert (High Threshold) sein.", msg)
+
+            self.controller.update_parameters(
+                prompt="A beautiful city", negative_prompt="", seed=-1, steps=20, cfg=7.5,
+                width=512, height=512, selected_model="controlnet_canny_qnn",
+                sampler="DDIM", scheduler="DDIM", batch_size=1,
+                input_image_path=temp_img,
+                canny_low_threshold=100, canny_high_threshold=100,
+                controlnet_conditioning_scale=1.0
+            )
+            is_valid, msg = self.controller.generation_controller.validate_session()
+            self.assertFalse(is_valid)
+            self.assertEqual("Der untere Schwellenwert (Low Threshold) muss kleiner als der obere Schwellenwert (High Threshold) sein.", msg)
+
+            # 3. Ungültige Werte blockieren Generation vor Worker-Start (validation bounds)
+            # Low threshold out of bounds
+            self.controller.update_parameters(
+                prompt="A beautiful city", negative_prompt="", seed=-1, steps=20, cfg=7.5,
+                width=512, height=512, selected_model="controlnet_canny_qnn",
+                sampler="DDIM", scheduler="DDIM", batch_size=1,
+                input_image_path=temp_img,
+                canny_low_threshold=-10, canny_high_threshold=150,
+                controlnet_conditioning_scale=1.0
+            )
+            is_valid, msg = self.controller.generation_controller.validate_session()
+            self.assertFalse(is_valid)
+            self.assertEqual("Canny-Schwellenwerte müssen zwischen 0 und 255 liegen.", msg)
+
+            # High threshold out of bounds
+            self.controller.update_parameters(
+                prompt="A beautiful city", negative_prompt="", seed=-1, steps=20, cfg=7.5,
+                width=512, height=512, selected_model="controlnet_canny_qnn",
+                sampler="DDIM", scheduler="DDIM", batch_size=1,
+                input_image_path=temp_img,
+                canny_low_threshold=50, canny_high_threshold=300,
+                controlnet_conditioning_scale=1.0
+            )
+            is_valid, msg = self.controller.generation_controller.validate_session()
+            self.assertFalse(is_valid)
+            self.assertEqual("Canny-Schwellenwerte müssen zwischen 0 und 255 liegen.", msg)
+
+            # Conditioning scale out of bounds
+            self.controller.update_parameters(
+                prompt="A beautiful city", negative_prompt="", seed=-1, steps=20, cfg=7.5,
+                width=512, height=512, selected_model="controlnet_canny_qnn",
+                sampler="DDIM", scheduler="DDIM", batch_size=1,
+                input_image_path=temp_img,
+                canny_low_threshold=50, canny_high_threshold=150,
+                controlnet_conditioning_scale=2.5
+            )
+            is_valid, msg = self.controller.generation_controller.validate_session()
+            self.assertFalse(is_valid)
+            self.assertEqual("Die ControlNet-Stärke (Conditioning Strength) muss zwischen 0.0 und 2.0 liegen.", msg)
+        finally:
+            if os.path.exists(temp_img):
+                os.unlink(temp_img)
+
+        # 4. Controls nur bei ControlNet sichtbar
+        self.view.model_var.set("controlnet_canny_qnn")
+        self.view.update()
+        self.assertEqual(self.view.controlnet_frame.winfo_manager(), "grid")
+
+        self.view.model_var.set("stable_diffusion_v1_5_qnn")
+        self.view.update()
+        self.assertEqual(self.view.controlnet_frame.winfo_manager(), "")
+
+        # 5. Modellwechsel setzt ControlNet-spezifische Werte korrekt zurück
+        self.view.model_var.set("controlnet_canny_qnn")
+        self.view.update()
+        self.view.canny_low_var.set(80)
+        self.view.canny_high_var.set(200)
+        self.view.conditioning_strength_var.set(1.5)
+
+        self.view.model_var.set("stable_diffusion_v2_1_qnn")
+        self.view.update()
+        self.assertEqual(self.view.canny_low_var.get(), 50)
+        self.assertEqual(self.view.canny_high_var.get(), 150)
+        self.assertEqual(self.view.conditioning_strength_var.get(), 1.0)
+
+        # 6. Werte werden bis zum Backend weitergegeben
+        job = GenerationJob(self.controller.generation_controller.session)
+        job.session.canny_low_threshold = 45
+        job.session.canny_high_threshold = 120
+        job.session.controlnet_conditioning_scale = 0.85
+        job.session.input_image_path = "some_path.png"
+
+        backend = InferenceBackendFactory.get_backend("Qualcomm ControlNet Canny (HTP V73)")
+
+        with patch("subprocess.Popen") as mock_popen:
+            fake_proc = MagicMock()
+            fake_proc.poll.return_value = 0
+            fake_proc.stdout.readline.return_value = ""
+            mock_popen.return_value = fake_proc
+
+            try:
+                backend.generate(job)
+            except Exception:
+                pass
+
+            temp_dir = Path(r"C:\SnapdragonAI\temp\controlnet_canny_gate")
+            job_id_str = str(job.job_id)[:8]
+            input_json_path = temp_dir / f"job_input_{job_id_str}.json"
+
+            if input_json_path.exists():
+                with open(input_json_path, "r", encoding="utf-8") as f_json:
+                    serialized_data = json.load(f_json)
+                self.assertEqual(serialized_data["canny_low_threshold"], 45)
+                self.assertEqual(serialized_data["canny_high_threshold"], 120)
+                self.assertEqual(serialized_data["controlnet_conditioning_scale"], 0.85)
+                input_json_path.unlink(missing_ok=True)
+
+        # 7. SD1.5 und SD2.1 bleiben unverändert (validation passes without ControlNet params checks)
+        self.controller.update_parameters(
+            prompt="A fantasy castle", negative_prompt="", seed=-1, steps=20, cfg=7.5,
+            width=512, height=512, selected_model="stable_diffusion_v1_5_qnn",
+            sampler="Euler", scheduler="Euler", batch_size=1,
+            input_image_path=None
+        )
+        is_valid, msg = self.controller.generation_controller.validate_session()
+        self.assertTrue(is_valid)
+
+    def test_requantize_tensor_clipping(self) -> None:
+        import numpy as np
+        from engine.controlnet_canny_backend import ControlNetCannyQnnBackend
+
+        # Create a representative dummy quantized input array (uint16)
+        arr_q = np.array([0, 100, 1000, 32768, 65535], dtype=np.uint16)
+
+        scale_from, zp_from = 0.003, 120
+        scale_to, zp_to = 0.005, 150
+
+        # 1. factor=1.0 matches the baseline requantization output (no factor)
+        arr_f_base = (arr_q.astype(np.float32) - zp_from) * scale_from
+        arr_q_to_base = np.clip(np.round(arr_f_base / scale_to) + zp_to, 0, 65535).astype(np.uint16)
+
+        res_1_0, low_1_0, high_1_0 = ControlNetCannyQnnBackend.requantize_tensor_static(
+            arr_q, scale_from, zp_from, scale_to, zp_to, factor=1.0
+        )
+        np.testing.assert_array_equal(res_1_0, arr_q_to_base)
+
+        # 2. factor=0.0 maps all values exactly to target zero point (zp_to)
+        res_0_0, low_0_0, high_0_0 = ControlNetCannyQnnBackend.requantize_tensor_static(
+            arr_q, scale_from, zp_from, scale_to, zp_to, factor=0.0
+        )
+        expected_0_0 = np.full_like(arr_q, zp_to, dtype=np.uint16)
+        np.testing.assert_array_equal(res_0_0, expected_0_0)
+        self.assertEqual(low_0_0, 0)
+        self.assertEqual(high_0_0, 0)
+
+        # 3. factor=2.0 results remain in uint16 range
+        res_2_0, low_2_0, high_2_0 = ControlNetCannyQnnBackend.requantize_tensor_static(
+            arr_q, scale_from, zp_from, scale_to, zp_to, factor=2.0
+        )
+        self.assertEqual(res_2_0.dtype, np.uint16)
+        self.assertTrue(np.all(res_2_0 >= 0))
+        self.assertTrue(np.all(res_2_0 <= 65535))
+
+        # 4. Clipping/Saturation is counted correctly
+        test_arr = np.array([0, 50, 100, 200, 40000], dtype=np.uint16)
+        res_clip, low_count, high_count = ControlNetCannyQnnBackend.requantize_tensor_static(
+            test_arr, scale_from=1.0, zp_from=100, scale_to=1.0, zp_to=0, factor=2.0
+        )
+        self.assertEqual(low_count, 2)
+        self.assertEqual(high_count, 1)
+        np.testing.assert_array_equal(res_clip, np.array([0, 0, 0, 200, 65535], dtype=np.uint16))
+
 
 if __name__ == "__main__":
     unittest.main()

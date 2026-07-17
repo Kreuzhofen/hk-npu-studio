@@ -82,6 +82,9 @@ class PromptWorkspaceController:
         scheduler: str = "Normal",
         batch_size: int = 1,
         input_image_path: str | None = None,
+        canny_low_threshold: int = 50,
+        canny_high_threshold: int = 150,
+        controlnet_conditioning_scale: float = 1.0,
     ) -> None:
         # Update local UI state model
         self.model.update_state(
@@ -97,6 +100,9 @@ class PromptWorkspaceController:
             scheduler=scheduler,
             batch_count=batch_size,
             input_image_path=input_image_path,
+            canny_low_threshold=canny_low_threshold,
+            canny_high_threshold=canny_high_threshold,
+            controlnet_conditioning_scale=controlnet_conditioning_scale,
         )
         # Update central generation session parameters
         self.generation_controller.update_session(
@@ -112,7 +118,11 @@ class PromptWorkspaceController:
             scheduler=scheduler,
             batch_size=batch_size,
             input_image_path=input_image_path,
+            canny_low_threshold=canny_low_threshold,
+            canny_high_threshold=canny_high_threshold,
+            controlnet_conditioning_scale=controlnet_conditioning_scale,
         )
+
 
     def generate_image(self, notify_workflow: bool = True) -> GenerationResult:
         # Delegate to GenerationController and update status.

@@ -290,8 +290,20 @@ class ControlNetCannyQnnBackend(InferenceBackend):
     Physical backend executing ControlNet Canny on Snapdragon HTP NPU via QNN EP.
     """
 
+    @staticmethod
+    def requantize_tensor_static(arr_q, scale_from, zp_from, scale_to, zp_to, factor=1.0):
+        arr_f = (arr_q.astype(np.float32) - zp_from) * scale_from
+        if factor != 1.0:
+            arr_f = arr_f * factor
+        arr_q_to = np.round(arr_f / scale_to) + zp_to
+        clipped_low = np.sum(arr_q_to < 0)
+        clipped_high = np.sum(arr_q_to > 65535)
+        clipped_arr = np.clip(arr_q_to, 0, 65535).astype(np.uint16)
+        return clipped_arr, int(clipped_low), int(clipped_high)
+
     def __init__(self) -> None:
         self._active_process = None
+
 
     def cancel(self, job: GenerationJob) -> str:
         """Terminate the worker subprocess that owns the active QNN sessions."""
@@ -388,8 +400,12 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             "output_prefix": job.session.output_prefix,
             "model_name": job.session.model_name,
             "job_id": str(job.job_id),
-            "input_image_path": job.session.input_image_path
+            "input_image_path": job.session.input_image_path,
+            "canny_low_threshold": getattr(job.session, "canny_low_threshold", 50),
+            "canny_high_threshold": getattr(job.session, "canny_high_threshold", 150),
+            "controlnet_conditioning_scale": getattr(job.session, "controlnet_conditioning_scale", 1.0)
         }
+
 
         with open(input_json_path, "w", encoding="utf-8") as f:
             json.dump(job_data, f, indent=2)
@@ -594,16 +610,32 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             def quantize_tensor(arr, scale, zp):
                 return np.clip(np.round(arr / scale) + zp, 0, 65535).astype(np.uint16)
 
+            clipped_low_acc = 0
+            clipped_high_acc = 0
+            total_elements_acc = 0
+
             def dequantize_tensor(arr, scale, zp):
                 return (arr.astype(np.float32) - zp) * scale
 
-            def requantize_tensor(arr_q, scale_from, zp_from, scale_to, zp_to):
+            def requantize_tensor(arr_q, scale_from, zp_from, scale_to, zp_to, factor=1.0):
+                nonlocal clipped_low_acc, clipped_high_acc, total_elements_acc
                 arr_f = dequantize_tensor(arr_q, scale_from, zp_from)
-                return quantize_tensor(arr_f, scale_to, zp_to)
+                if factor != 1.0:
+                    arr_f = arr_f * factor
+                arr_q_to = np.round(arr_f / scale_to) + zp_to
+                clipped_low_acc += np.sum(arr_q_to < 0)
+                clipped_high_acc += np.sum(arr_q_to > 65535)
+                total_elements_acc += arr_q_to.size
+                return np.clip(arr_q_to, 0, 65535).astype(np.uint16)
+
 
             # 4. Canny Edge Preprocessing (CPU)
             print("Computing Canny edge image...", flush=True)
-            canny_edges = canny_edge_detector(input_image_path, low_threshold=50, high_threshold=150)
+            low_threshold = int(job_data.get("canny_low_threshold", 50))
+            high_threshold = int(job_data.get("canny_high_threshold", 150))
+            conditioning_scale = float(job_data.get("controlnet_conditioning_scale", 1.0))
+            canny_edges = canny_edge_detector(input_image_path, low_threshold=low_threshold, high_threshold=high_threshold)
+
             
             # Format image condition for ControlNet
             canny_edges_f = canny_edges.astype(np.float32) / 255.0
@@ -684,15 +716,16 @@ class ControlNetCannyQnnBackend(InferenceBackend):
                     unet_in_name = f"controlnet_downblock{idx}"
                     scale_cn_out, zp_cn_out = get_quant_params("controlnet.onnx", cn_out_name, is_input=False)
                     scale_unet_in, zp_unet_in = get_quant_params("unet.onnx", unet_in_name, is_input=True)
-                    q_val = requantize_tensor(cn_outs_cond_dict[cn_out_name], scale_cn_out, zp_cn_out, scale_unet_in, zp_unet_in)
+                    q_val = requantize_tensor(cn_outs_cond_dict[cn_out_name], scale_cn_out, zp_cn_out, scale_unet_in, zp_unet_in, factor=conditioning_scale)
                     unet_inputs_cond[unet_in_name] = q_val
                     unet_inputs_uncond[unet_in_name] = q_val
 
                 scale_cn_mid, zp_cn_mid = get_quant_params("controlnet.onnx", "mid_block", is_input=False)
                 scale_unet_mid, zp_unet_mid = get_quant_params("unet.onnx", "controlnet_midblock", is_input=True)
-                q_mid = requantize_tensor(cn_outs_cond_dict["mid_block"], scale_cn_mid, zp_cn_mid, scale_unet_mid, zp_unet_mid)
+                q_mid = requantize_tensor(cn_outs_cond_dict["mid_block"], scale_cn_mid, zp_cn_mid, scale_unet_mid, zp_unet_mid, factor=conditioning_scale)
                 unet_inputs_cond["controlnet_midblock"] = q_mid
                 unet_inputs_uncond["controlnet_midblock"] = q_mid
+
 
                 # Run UNet
                 t_unet_start = time.perf_counter()
@@ -776,7 +809,11 @@ class ControlNetCannyQnnBackend(InferenceBackend):
                 "backend": "Qualcomm ControlNet Canny (HTP V73)",
                 "device": "Qualcomm Hexagon HTP V73",
                 "seed": seed,
+                "canny_low_threshold": low_threshold,
+                "canny_high_threshold": high_threshold,
+                "controlnet_conditioning_scale": conditioning_scale,
                 "width": 512,
+
                 "height": 512,
                 "steps": steps,
                 "cfg": cfg,
@@ -803,7 +840,14 @@ class ControlNetCannyQnnBackend(InferenceBackend):
                 "provider_diagnostics": provider_diagnostics,
                 "qnn_htp_verified": True,
                 "cpu_fallback_used": False,
+                "quantization_diagnostics": {
+                    "total_elements": int(total_elements_acc),
+                    "clipped_to_zero": int(clipped_low_acc),
+                    "clipped_to_max": int(clipped_high_acc),
+                    "saturation_percentage": float(clipped_low_acc + clipped_high_acc) / float(total_elements_acc) * 100.0 if total_elements_acc > 0 else 0.0
+                },
                 "paths": {
+
                     "input_image": str(input_dest_path),
                     "canny_image": str(canny_dest_path),
                     "output_image": str(output_dest_path),
