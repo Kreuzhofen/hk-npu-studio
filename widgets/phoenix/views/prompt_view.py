@@ -23,6 +23,45 @@ except ImportError:
 logger = logging.getLogger("PhoenixPromptView")
 
 
+class _Tooltip:
+    """Small Tk tooltip helper for reference image name label."""
+
+    def __init__(self, widget: tk.Widget, text_func) -> None:
+        self.widget = widget
+        self.text_func = text_func if callable(text_func) else lambda: text_func
+        self.window: tk.Toplevel | None = None
+        widget.bind("<Enter>", self.show)
+        widget.bind("<Leave>", self.hide)
+
+    def show(self, event: tk.Event | None = None) -> None:
+        if self.window:
+            return
+        text = self.text_func()
+        if not text:
+            return
+        x = self.widget.winfo_rootx() + 12
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 6
+        self.window = tk.Toplevel(self.widget)
+        self.window.wm_overrideredirect(True)
+        self.window.wm_geometry(f"+{x}+{y}")
+        tk.Label(
+            self.window,
+            text=text,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_caption,
+            bd=1,
+            relief="solid",
+            padx=8,
+            pady=4,
+        ).pack()
+
+    def hide(self, event: tk.Event | None = None) -> None:
+        if self.window:
+            self.window.destroy()
+            self.window = None
+
+
 class PhoenixPromptView(WorkspaceFrame):
     """
     Phoenix Workspace View for AI Image Generation.
@@ -1220,6 +1259,14 @@ class PhoenixPromptView(WorkspaceFrame):
             input_image_path=self.controller.model.state.input_image_path,
         )
 
+        # Central validation prior to generation (Sprint CN-003)
+        is_valid, msg = self.controller.generation_controller.validate_session()
+        if not is_valid:
+            self.controller.model.update_state(status=f"Fehler: {msg}")
+            self.refresh()
+            messagebox.showerror("Validierungsfehler", msg)
+            return
+
         self._generation_running = True
         self._progress_total_steps = max(1, steps)
         self._progress_current_step = 0
@@ -1522,9 +1569,15 @@ class PhoenixPromptView(WorkspaceFrame):
 
         # Check if the active model in the single source of truth changed
         active_model_id = self.controller.repository.get_active_model_id()
-        if active_model_id and self.model_var.get() != active_model_id:
+        if (
+            active_model_id
+            and self.model_var.get() != active_model_id
+            and not getattr(self, "_in_model_change", False)
+        ):
             self.model_var.set(active_model_id)
             state = self.controller.get_state()
+
+
 
         # Update Inspector – Generation Status
         self.insp_model.configure(text=state.selected_model if state.selected_model else "-")
@@ -1602,34 +1655,75 @@ class PhoenixPromptView(WorkspaceFrame):
 
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""
+        if getattr(self, "_in_model_change", False):
+            return
         new_model = self.model_var.get()
-        self._update_model_description(new_model)
-        if hasattr(self, "seed_entry"):
-            self._apply_generation_contract(new_model)
+        self._change_active_model(new_model)
 
+    def _change_active_model(self, new_model: str) -> None:
+        """Centralized model change handler to synchronize state and UI without recursion."""
+        if getattr(self, "_in_model_change", False):
+            return
+
+        self._in_model_change = True
         try:
-            prompt = self.prompt_text.get("1.0", "end-1c")
-            neg_prompt = self.neg_prompt_text.get("1.0", "end-1c")
-            seed = int(self.seed_entry.get().strip() or -1)
-            steps = int(self.steps_scale.get())
-            cfg = float(self.cfg_scale.get())
-            width = int(self.width_var.get() or 512)
-            height = int(self.height_var.get() or 512)
-            sampler = self.sampler_var.get()
-            scheduler = self.scheduler_var.get()
-            batch_size = int(self.batch_var.get() or 1)
-        except Exception:
-            prompt, neg_prompt = "", ""
-            seed, steps, cfg, width, height = -1, 20, 7.5, 512, 512
-            sampler, scheduler, batch_size = "Euler", "Euler", 1
+            # 1. Update model description & apply contract (selects model in controller/repository, updates dimensions/ranges)
+            self._update_model_description(new_model)
+            if hasattr(self, "seed_entry"):
+                self._apply_generation_contract(new_model)
 
-        self.controller.update_parameters(
-            prompt=prompt, negative_prompt=neg_prompt,
-            seed=seed, steps=steps, cfg=cfg,
-            width=width, height=height, selected_model=new_model,
-            sampler=sampler, scheduler=scheduler, batch_size=batch_size,
-            input_image_path=self.controller.model.state.input_image_path,
-        )
+            # 2. Reset reference image state
+            self._ref_image_path = None
+            self._dnd_photo_ref = None
+            self._dnd_error_message = None
+
+            # Retrieve current parameters and update controller with input_image_path=None
+            try:
+                prompt = self.prompt_text.get("1.0", "end-1c").strip()
+                neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
+                try:
+                    seed = int(self.seed_entry.get().strip() or -1)
+                except ValueError:
+                    seed = -1
+                steps = int(self.steps_scale.get())
+                cfg = float(self.cfg_scale.get())
+                try:
+                    width = int(self.width_var.get() or 512)
+                except ValueError:
+                    width = 512
+                try:
+                    height = int(self.height_var.get() or 512)
+                except ValueError:
+                    height = 512
+                sampler = self.sampler_var.get()
+                scheduler = self.scheduler_var.get()
+                try:
+                    batch_size = int(self.batch_var.get() or 1)
+                except ValueError:
+                    batch_size = 1
+            except Exception:
+                prompt, neg_prompt = "", ""
+                seed, steps, cfg, width, height = -1, 20, 7.5, 512, 512
+                sampler, scheduler, batch_size = "Euler", "Euler", 1
+
+            self.controller.update_parameters(
+                prompt=prompt, negative_prompt=neg_prompt,
+                seed=seed, steps=steps, cfg=cfg,
+                width=width, height=height, selected_model=new_model,
+                sampler=sampler, scheduler=scheduler, batch_size=batch_size,
+                input_image_path=None
+            )
+
+            # Clear general status if it was validation-related
+            current_status = self.controller.model.state.status
+            if current_status and ("Fehler" in current_status or "Validierung" in current_status):
+                self.controller.model.update_state(status="Bereit")
+
+            # 3. Refresh UI (including dnd preview card visibility and fields)
+            self.refresh()
+        finally:
+            self._in_model_change = False
+
 
     def _update_model_description(self, model_id: str) -> None:
         """Display the complete repository description for the selected model."""
@@ -1643,7 +1737,10 @@ class PhoenixPromptView(WorkspaceFrame):
             return
         dropped_paths = self.tk.splitlist(event.data)
         if dropped_paths:
-            self._load_reference_image(dropped_paths[0])
+            path_str = str(dropped_paths[0])
+            path_str = path_str.strip('{}""\'\'')
+            path_str = str(Path(path_str).resolve())
+            self._load_reference_image(path_str)
 
     def _on_dnd_click(self, event=None) -> None:
         """Open a file dialog to manually select a reference image."""
@@ -1665,10 +1762,12 @@ class PhoenixPromptView(WorkspaceFrame):
         """Load a selected reference image, verify format, extract dimensions, and update state."""
         path = Path(file_path)
         if not path.exists() or not path.is_file():
+            self._clear_reference_image_state(error_message="Datei existiert nicht oder ist kein Bild.")
             return
 
         ext = path.suffix.lower()
         if ext not in (".png", ".jpg", ".jpeg", ".webp"):
+            self._clear_reference_image_state(error_message="Format nicht unterstützt (nur PNG, JPG, JPEG, WebP).")
             messagebox.showerror(
                 "Ungültiges Format",
                 "Es werden nur Bilddateien in den Formaten PNG, JPG, JPEG und WebP unterstützt."
@@ -1677,49 +1776,67 @@ class PhoenixPromptView(WorkspaceFrame):
 
         try:
             from PIL import Image
+            # Try to verify integrity
             with Image.open(path) as img:
-                self._ref_image_path = str(path)
+                img.verify()
+            # Test conversion
+            with Image.open(path) as img:
+                img.convert('L')
 
-                # Retrieve current parameter values safely
-                prompt = self.prompt_text.get("1.0", "end-1c").strip()
-                neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
-                try:
-                    seed = int(self.seed_entry.get().strip() or -1)
-                except ValueError:
-                    seed = -1
-                steps = int(self.steps_scale.get())
-                cfg = float(self.cfg_scale.get())
-                try:
-                    width = int(self.width_var.get() or 512)
-                except ValueError:
-                    width = 512
-                try:
-                    height = int(self.height_var.get() or 512)
-                except ValueError:
-                    height = 512
-                selected_model = self.model_var.get()
-                sampler = self.sampler_var.get()
-                scheduler = self.scheduler_var.get()
-                try:
-                    batch_size = int(self.batch_var.get() or 1)
-                except ValueError:
-                    batch_size = 1
+            self._ref_image_path = str(path)
+            self._dnd_error_message = None
 
-                # Update state model and session controller
-                self.controller.update_parameters(
-                    prompt=prompt, negative_prompt=neg_prompt,
-                    seed=seed, steps=steps, cfg=cfg,
-                    width=width, height=height, selected_model=selected_model,
-                    sampler=sampler, scheduler=scheduler, batch_size=batch_size,
-                    input_image_path=self._ref_image_path
-                )
-                self.refresh()
+            # Retrieve current parameter values safely
+            prompt = self.prompt_text.get("1.0", "end-1c").strip()
+            neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
+            try:
+                seed = int(self.seed_entry.get().strip() or -1)
+            except ValueError:
+                seed = -1
+            steps = int(self.steps_scale.get())
+            cfg = float(self.cfg_scale.get())
+            try:
+                width = int(self.width_var.get() or 512)
+            except ValueError:
+                width = 512
+            try:
+                height = int(self.height_var.get() or 512)
+            except ValueError:
+                height = 512
+            selected_model = self.model_var.get()
+            sampler = self.sampler_var.get()
+            scheduler = self.scheduler_var.get()
+            try:
+                batch_size = int(self.batch_var.get() or 1)
+            except ValueError:
+                batch_size = 1
+
+            # Update state model and session controller
+            self.controller.update_parameters(
+                prompt=prompt, negative_prompt=neg_prompt,
+                seed=seed, steps=steps, cfg=cfg,
+                width=width, height=height, selected_model=selected_model,
+                sampler=sampler, scheduler=scheduler, batch_size=batch_size,
+                input_image_path=self._ref_image_path
+            )
+            self.refresh()
         except Exception as e:
             logger.exception("Failed to load reference image: %s", file_path)
+            self._clear_reference_image_state(error_message=f"Fehler: {str(e)}")
             messagebox.showerror("Fehler beim Laden", f"Das Bild konnte nicht geladen werden:\n{e}")
 
     def _remove_reference_image(self) -> None:
         """Clear the reference image and reset state parameters."""
+        self._clear_reference_image_state()
+
+    def _clear_reference_image_state(self, error_message: str | None = None) -> None:
+        """Central method to clear the reference image path and reset the UI preview.
+        Optionally takes an error message to transition the UI to an error state.
+        """
+        self._ref_image_path = None
+        self._dnd_photo_ref = None
+        self._dnd_error_message = error_message
+
         try:
             prompt = self.prompt_text.get("1.0", "end-1c").strip()
             neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
@@ -1756,26 +1873,50 @@ class PhoenixPromptView(WorkspaceFrame):
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
             input_image_path=None
         )
+
+        # Clear general status if it was validation-related
+        current_status = self.controller.model.state.status
+        if current_status and ("Fehler" in current_status or "Validierung" in current_status):
+            self.controller.model.update_state(status="Bereit")
+
         self.refresh()
 
     def _update_dnd_preview(self) -> None:
-        """Update the Drag & Drop area layout depending on whether an input image is present."""
+        """Update the Drag & Drop area layout depending on whether an input image is present or an error occurred."""
         if not hasattr(self, "dnd_card") or not self.dnd_card.winfo_exists():
             return
 
         input_path = self.controller.model.state.input_image_path
+        error_msg = getattr(self, "_dnd_error_message", None)
+
+        if error_msg:
+            new_state = "error"
+        elif input_path:
+            new_state = "loaded"
+        else:
+            new_state = "empty"
+
         if (
             getattr(self, "_dnd_preview_widgets_ready", False)
             and self._dnd_rendered_input_path == input_path
+            and getattr(self, "_dnd_visible_state", None) == new_state
         ):
             return
 
+        from engine.theme_manager import ThemeManager
+
         if not getattr(self, "_dnd_preview_widgets_ready", False):
             def on_dnd_enter(event):
-                self.dnd_card.configure(highlightbackground=PHOENIX_THEME.accent)
+                if getattr(self, "_dnd_visible_state", None) == "error":
+                    self.dnd_card.configure(highlightbackground=ThemeManager.palette().error)
+                else:
+                    self.dnd_card.configure(highlightbackground=PHOENIX_THEME.accent)
 
             def on_dnd_leave(event):
-                self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
+                if getattr(self, "_dnd_visible_state", None) == "error":
+                    self.dnd_card.configure(highlightbackground=ThemeManager.palette().error)
+                else:
+                    self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
 
             def on_dnd_click(event):
                 if self._dnd_visible_state == "empty":
@@ -1831,6 +1972,10 @@ class PhoenixPromptView(WorkspaceFrame):
                 anchor="w",
             )
             self._dnd_name_label.grid(row=0, column=0, sticky="w", pady=(0, 2))
+
+            # Attach tooltip to name label dynamically (Sprint CN-003)
+            _Tooltip(self._dnd_name_label, lambda: self.controller.model.state.input_image_path or getattr(self, "_dnd_error_message", None))
+
             self._dnd_resolution_label = tk.Label(
                 self._dnd_meta_frame,
                 text="-",
@@ -1864,6 +2009,17 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._dnd_empty_icon,
                 self._dnd_empty_text,
             )
+            dnd_target_widgets = (
+                self.dnd_card,
+                self._dnd_empty_frame,
+                self._dnd_empty_icon,
+                self._dnd_empty_text,
+                self._dnd_loaded_frame,
+                self._dnd_preview_label,
+                self._dnd_meta_frame,
+                self._dnd_name_label,
+                self._dnd_resolution_label,
+            )
             all_widgets = empty_widgets + (
                 self._dnd_loaded_frame,
                 self._dnd_preview_label,
@@ -1879,7 +2035,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 widget.bind("<Leave>", on_dnd_leave, add="+")
 
             if DND_AVAILABLE:
-                for widget in empty_widgets:
+                for widget in dnd_target_widgets:
                     try:
                         widget.drop_target_register(DND_FILES)
                         widget.dnd_bind("<<Drop>>", self._on_image_drop)
@@ -1890,8 +2046,24 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_rendered_input_path = object()
             self._dnd_preview_widgets_ready = True
 
-        new_state = "loaded" if input_path else "empty"
-        if input_path:
+        # Render active state (Sprint CN-003)
+        if new_state == "error":
+            error_color = ThemeManager.palette().error
+            self.dnd_card.configure(highlightbackground=error_color)
+            self._dnd_preview_label.configure(image="", text="⚠️", fg=error_color)
+            self._dnd_name_label.configure(text="Fehler beim Laden", fg=error_color)
+
+            display_err = error_msg
+            if len(display_err) > 35:
+                display_err = display_err[:32] + "..."
+            self._dnd_resolution_label.configure(text=display_err, fg=PHOENIX_THEME.text_muted)
+
+            self._dnd_empty_frame.grid_remove()
+            self._dnd_loaded_frame.grid(row=0, column=0, sticky="nsew")
+
+        elif new_state == "loaded":
+            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
+
             filename = "Unbekannt"
             resolution = "-"
             photo_image = None
@@ -1915,20 +2087,34 @@ class PhoenixPromptView(WorkspaceFrame):
             if photo_image is not None:
                 self._dnd_preview_label.configure(image=photo_image, text="")
             else:
-                self._dnd_preview_label.configure(image="", text="❌")
-            display_filename = filename if len(filename) < 24 else filename[:21] + "..."
-            self._dnd_name_label.configure(text=display_filename)
-            self._dnd_resolution_label.configure(text=resolution)
+                self._dnd_preview_label.configure(image="", text="❌", fg=ThemeManager.palette().error)
 
-        if self._dnd_visible_state != new_state:
-            if new_state == "loaded":
-                self._dnd_empty_frame.grid_remove()
-                self._dnd_loaded_frame.grid(row=0, column=0, sticky="nsew")
-            else:
-                self._dnd_loaded_frame.grid_remove()
-                self._dnd_empty_frame.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
-            self._dnd_visible_state = new_state
+            # Smart filename shortening helper
+            def shorten_filename(name: str, max_len: int = 24) -> str:
+                if len(name) <= max_len:
+                    return name
+                p = Path(name)
+                stem = p.stem
+                suffix = p.suffix
+                stem_len = max_len - len(suffix) - 3
+                if stem_len > 0:
+                    return f"{stem[:stem_len]}...{suffix}"
+                return name[:max_len-3] + "..."
 
+            display_filename = shorten_filename(filename)
+            self._dnd_name_label.configure(text=display_filename, fg=PHOENIX_THEME.text_primary)
+            self._dnd_resolution_label.configure(text=resolution, fg=PHOENIX_THEME.text_muted)
+
+            self._dnd_empty_frame.grid_remove()
+            self._dnd_loaded_frame.grid(row=0, column=0, sticky="nsew")
+
+
+        else: # empty
+            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
+            self._dnd_loaded_frame.grid_remove()
+            self._dnd_empty_frame.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
+
+        self._dnd_visible_state = new_state
         self._dnd_rendered_input_path = input_path
 
     def _show_prompt_history_popup(self) -> None:

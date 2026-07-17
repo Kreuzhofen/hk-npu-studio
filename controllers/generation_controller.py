@@ -71,6 +71,25 @@ class GenerationController:
                 path = Path(img_path)
                 if not path.exists() or not path.is_file():
                     return False, "Eingabebild für ControlNet Canny fehlt oder ist ungültig."
+
+                # Check extension/format
+                ext = path.suffix.lower()
+                if ext not in (".png", ".jpg", ".jpeg", ".webp"):
+                    return False, "Es werden nur Bilddateien in den Formaten PNG, JPG, JPEG und WebP unterstützt."
+
+                # Check file size (no empty files allowed)
+                if path.stat().st_size == 0:
+                    return False, "Das ausgewählte Referenzbild ist leer (0 Byte)."
+
+                # Check readability and loading in the preprocessing path
+                try:
+                    from PIL import Image
+                    with Image.open(path) as img:
+                        img.verify()
+                    with Image.open(path) as img:
+                        img.convert('L')
+                except Exception as e:
+                    return False, f"Das Referenzbild ist beschädigt oder ungültig: {e}"
         
         return self.repository.validate_generation_parameters(
             self.session.model_name,
@@ -84,6 +103,8 @@ class GenerationController:
                 "scheduler": self.session.scheduler,
             },
         )
+
+
 
     def queue_generation(self, notify_workflow: bool = True) -> GenerationResult:
         """

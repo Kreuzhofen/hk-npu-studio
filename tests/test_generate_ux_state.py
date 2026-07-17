@@ -150,9 +150,12 @@ class GenerateUxStateTests(unittest.TestCase):
         self.assertEqual("Eingabebild für ControlNet Canny fehlt oder ist ungültig.", msg)
 
         # 3. Test valid image path
+        from PIL import Image
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             temp_img_path = f.name
         try:
+            img = Image.new("RGB", (16, 16), color="white")
+            img.save(temp_img_path, "PNG")
             session.update(input_image_path=temp_img_path)
             is_valid, msg = controller.validate_session()
             # It should pass ControlNet check and proceed to validate_generation_parameters
@@ -163,6 +166,7 @@ class GenerateUxStateTests(unittest.TestCase):
                 os.unlink(temp_img_path)
             except Exception:
                 pass
+
 
 
 if __name__ == "__main__":
