@@ -2556,7 +2556,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
     def _show_prompt_history_popup(self) -> None:
         """Display the persistent prompt history popup menu under the history button."""
-        history = self.controller.load_prompt_history()
+        history = self.controller.load_prompt_history(return_dicts=True)
         if not history:
             menu = tk.Menu(self, tearoff=0)
             menu.add_command(label="Verlauf leer", state="disabled")
@@ -2576,24 +2576,78 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_body, relief="flat", bd=1,
         )
 
-        for prompt in history:
+        for entry in history:
+            prompt = entry.get("prompt", "") if isinstance(entry, dict) else str(entry)
             display_label = prompt if len(prompt) < 50 else prompt[:47] + "..."
             menu.add_command(
                 label=display_label,
-                command=lambda p=prompt: self._load_prompt_from_history(p)
+                command=lambda e=entry: self._load_prompt_from_history(e)
             )
 
         x = self.history_btn.winfo_rootx()
         y = self.history_btn.winfo_rooty() + self.history_btn.winfo_height()
         menu.post(x, y)
 
-    def _load_prompt_from_history(self, prompt: str) -> None:
-        """Load a selected prompt into the input field."""
-        self.prompt_text.delete("1.0", "end")
-        self.prompt_text.insert("1.0", prompt)
-        if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
-            self._prompt_popup_text.delete("1.0", "end")
-            self._prompt_popup_text.insert("1.0", prompt)
+    def _load_prompt_from_history(self, entry: str | dict) -> None:
+        """Load a selected prompt and configuration from history into the UI fields."""
+        if isinstance(entry, dict):
+            prompt = entry.get("prompt", "")
+            neg_prompt = entry.get("negative_prompt", "")
+            model_name = entry.get("model_name")
+            width = entry.get("width")
+            height = entry.get("height")
+            steps = entry.get("steps")
+            cfg = entry.get("cfg_scale")
+            sampler = entry.get("sampler")
+            scheduler = entry.get("scheduler")
+
+            self.prompt_text.delete("1.0", "end")
+            self.prompt_text.insert("1.0", prompt)
+            if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
+                self._prompt_popup_text.delete("1.0", "end")
+                self._prompt_popup_text.insert("1.0", prompt)
+
+            if neg_prompt is not None:
+                self.neg_prompt_text.delete("1.0", "end")
+                self.neg_prompt_text.insert("1.0", neg_prompt)
+
+            if model_name:
+                self.model_var.set(model_name)
+                self._apply_generation_contract(model_name)
+
+            # If ControlNet parameters exist and are enabled, set them
+            controlnet_enabled = entry.get("controlnet_enabled", False)
+            if controlnet_enabled:
+                self.canny_low_var.set(entry.get("canny_low_threshold", 50))
+                self.canny_high_var.set(entry.get("canny_high_threshold", 150))
+                self.conditioning_strength_var.set(entry.get("controlnet_conditioning_scale", 1.0))
+                ref_path = entry.get("reference_image_path")
+                if ref_path:
+                    self._load_reference_image(ref_path)
+                else:
+                    self._clear_reference_image_state()
+            else:
+                self._clear_reference_image_state()
+
+            # Set other configuration fields
+            if width is not None:
+                self.width_var.set(str(width))
+            if height is not None:
+                self.height_var.set(str(height))
+            if steps is not None:
+                self.steps_var.set(int(steps))
+            if cfg is not None:
+                self.cfg_var.set(float(cfg))
+            if sampler is not None:
+                self.sampler_var.set(sampler)
+            if scheduler is not None:
+                self.scheduler_var.set(scheduler)
+        else:
+            self.prompt_text.delete("1.0", "end")
+            self.prompt_text.insert("1.0", entry)
+            if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
+                self._prompt_popup_text.delete("1.0", "end")
+                self._prompt_popup_text.insert("1.0", entry)
 
     def _ensure_progress_style(self) -> None:
         """Sustainably ensure the custom Phoenix progress bar style is active and correctly colored."""

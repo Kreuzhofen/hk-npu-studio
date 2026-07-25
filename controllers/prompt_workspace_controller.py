@@ -138,7 +138,7 @@ class PromptWorkspaceController:
             self.save_prompt_to_history(self.model.state.prompt)
         return result
 
-    def load_prompt_history(self) -> list[str]:
+    def load_prompt_history(self, return_dicts: bool = False) -> list[Any]:
         """Load prompt history from disk."""
         from config import PROMPT_HISTORY_PATH
         if not PROMPT_HISTORY_PATH.exists():
@@ -147,7 +147,48 @@ class PromptWorkspaceController:
             with open(PROMPT_HISTORY_PATH, "r", encoding="utf-8") as f:
                 history = json.load(f)
             if isinstance(history, list):
-                return [str(p) for p in history if p]
+                result = []
+                for p in history:
+                    if not p:
+                        continue
+                    if return_dicts:
+                        # Normalize entries into dict if they are strings
+                        if isinstance(p, str):
+                            result.append({
+                                "prompt": p,
+                                "negative_prompt": "",
+                                "model_name": "sd_xl_base_1.0",
+                                "width": 512,
+                                "height": 512,
+                                "steps": 20,
+                                "cfg_scale": 7.0,
+                                "seed": -1,
+                                "sampler": "Euler a",
+                                "scheduler": "Normal",
+                                "controlnet_enabled": False,
+                                "controlnet_model": None,
+                                "canny_low_threshold": None,
+                                "canny_high_threshold": None,
+                                "controlnet_conditioning_scale": None,
+                                "reference_image_path": None,
+                            })
+                        else:
+                            # Verify that controlnet keys are present in loaded dicts, fallback to None
+                            # ensuring backward compatibility for entries missing these keys
+                            entry = dict(p)
+                            entry.setdefault("controlnet_enabled", False)
+                            entry.setdefault("controlnet_model", None)
+                            entry.setdefault("canny_low_threshold", None)
+                            entry.setdefault("canny_high_threshold", None)
+                            entry.setdefault("controlnet_conditioning_scale", None)
+                            entry.setdefault("reference_image_path", None)
+                            result.append(entry)
+                    else:
+                        if isinstance(p, dict):
+                            result.append(p.get("prompt", ""))
+                        else:
+                            result.append(str(p))
+                return result
         except Exception as e:
             print(f"[PromptWorkspaceController] Error loading prompt history: {e}")
         return []
@@ -158,22 +199,54 @@ class PromptWorkspaceController:
         if not prompt:
             return
         from config import PROMPT_HISTORY_PATH
-        history = self.load_prompt_history()
+        history = self.load_prompt_history(return_dicts=True)
 
-        # Remove duplicate if exists (newest wins)
-        if prompt in history:
-            history.remove(prompt)
+        controlnet_enabled = False
+        try:
+            model_name = self.model.state.selected_model
+            model_meta = self.generation_controller.repository.get_model(model_name)
+            if model_meta:
+                capabilities = model_meta.get("capabilities", {})
+                controlnet_enabled = capabilities.get("controlnet", False)
+        except Exception:
+            pass
 
-        history.insert(0, prompt)
+        entry = {
+            "prompt": prompt,
+            "negative_prompt": self.model.state.negative_prompt,
+            "model_name": self.model.state.selected_model,
+            "width": self.model.state.width,
+            "height": self.model.state.height,
+            "steps": self.model.state.steps,
+            "cfg_scale": self.model.state.cfg,
+            "seed": self.model.state.seed,
+            "sampler": self.model.state.sampler,
+            "scheduler": self.model.state.scheduler,
+            "controlnet_enabled": controlnet_enabled,
+            "controlnet_model": "canny" if controlnet_enabled else None,
+            "canny_low_threshold": self.model.state.canny_low_threshold if controlnet_enabled else None,
+            "canny_high_threshold": self.model.state.canny_high_threshold if controlnet_enabled else None,
+            "controlnet_conditioning_scale": self.model.state.controlnet_conditioning_scale if controlnet_enabled else None,
+            "reference_image_path": self.model.state.input_image_path if controlnet_enabled else None,
+        }
+
+        # Check duplicates based on prompt string (newest wins)
+        new_history = []
+        for h in history:
+            h_prompt = h.get("prompt", "") if isinstance(h, dict) else str(h)
+            if h_prompt.strip() != prompt:
+                new_history.append(h)
+
+        new_history.insert(0, entry)
 
         # Limit to 20 entries
-        history = history[:20]
+        new_history = new_history[:20]
 
         try:
             PROMPT_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
             temp_path = PROMPT_HISTORY_PATH.with_suffix(PROMPT_HISTORY_PATH.suffix + ".tmp")
             with open(temp_path, "w", encoding="utf-8") as f:
-                json.dump(history, f, indent=2, ensure_ascii=False)
+                json.dump(new_history, f, indent=2, ensure_ascii=False)
             if os.path.exists(PROMPT_HISTORY_PATH):
                 os.remove(PROMPT_HISTORY_PATH)
             os.rename(temp_path, PROMPT_HISTORY_PATH)
