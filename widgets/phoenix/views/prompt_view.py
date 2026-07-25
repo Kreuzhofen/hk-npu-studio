@@ -5,6 +5,7 @@ import queue
 import threading
 import tkinter as tk
 import datetime
+import time
 from tkinter import messagebox, ttk
 from pathlib import Path
 
@@ -86,6 +87,16 @@ class PhoenixPromptView(WorkspaceFrame):
         self._progress_percent = 0
         self._progress_current_step = 0
         self._progress_total_steps = 0
+
+        # Canny edge preview state
+        self._canny_debounce_id = None
+        self._latest_canny_req_id = None
+        self._dnd_canny_photo_ref = None
+        self._canny_rendered_path = None
+        self._canny_rendered_low = None
+        self._canny_rendered_high = None
+        self._canny_queue = queue.Queue()
+        self._canny_poll_id = None
 
         self._build_input_area()
         self._build_inspector()
@@ -255,6 +266,10 @@ class PhoenixPromptView(WorkspaceFrame):
         self.canny_low_var = tk.IntVar(value=50)
         self.canny_high_var = tk.IntVar(value=150)
         self.conditioning_strength_var = tk.DoubleVar(value=1.0)
+
+        # Traces to automatically update Canny preview on threshold changes
+        self.canny_low_var.trace_add("write", self._on_canny_param_changed)
+        self.canny_high_var.trace_add("write", self._on_canny_param_changed)
 
         p = self.param_content  # shorthand
 
@@ -1742,6 +1757,30 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_photo_ref = None
             self._dnd_error_message = None
 
+            # Cancel pending canny debounce and poll timers
+            if getattr(self, "_canny_debounce_id", None) is not None:
+                try:
+                    self.after_cancel(self._canny_debounce_id)
+                except Exception:
+                    pass
+                self._canny_debounce_id = None
+
+            if getattr(self, "_canny_poll_id", None) is not None:
+                try:
+                    self.after_cancel(self._canny_poll_id)
+                except Exception:
+                    pass
+                self._canny_poll_id = None
+
+            # Drain the canny queue
+            while not self._canny_queue.empty():
+                try:
+                    self._canny_queue.get_nowait()
+                except queue.Empty:
+                    break
+
+            self._clear_canny_preview()
+
             self.canny_low_var.set(50)
             self.canny_high_var.set(150)
             self.conditioning_strength_var.set(1.0)
@@ -1933,6 +1972,30 @@ class PhoenixPromptView(WorkspaceFrame):
         self._dnd_photo_ref = None
         self._dnd_error_message = error_message
 
+        # Cancel pending canny debounce and poll timers
+        if getattr(self, "_canny_debounce_id", None) is not None:
+            try:
+                self.after_cancel(self._canny_debounce_id)
+            except Exception:
+                pass
+            self._canny_debounce_id = None
+
+        if getattr(self, "_canny_poll_id", None) is not None:
+            try:
+                self.after_cancel(self._canny_poll_id)
+            except Exception:
+                pass
+            self._canny_poll_id = None
+
+        # Drain the canny queue
+        while not self._canny_queue.empty():
+            try:
+                self._canny_queue.get_nowait()
+            except queue.Empty:
+                break
+
+        self._clear_canny_preview()
+
         try:
             prompt = self.prompt_text.get("1.0", "end-1c").strip()
             neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
@@ -1998,14 +2061,25 @@ class PhoenixPromptView(WorkspaceFrame):
         else:
             new_state = "empty"
 
+        from engine.theme_manager import ThemeManager
+
+        # Toggle Reference Image selection visibility based on ControlNet capability
+        supports_controlnet = False
+        model_id = self.model_var.get()
+        model_meta = self.controller.repository.get_model(model_id)
+        if model_meta:
+            supports_controlnet = model_meta.get("capabilities", {}).get("controlnet", False)
+
         if (
             getattr(self, "_dnd_preview_widgets_ready", False)
             and self._dnd_rendered_input_path == input_path
             and getattr(self, "_dnd_visible_state", None) == new_state
+            and getattr(self, "_dnd_rendered_supports_controlnet", None) == supports_controlnet
         ):
+            # If state is loaded and controlnet parameters have changed, we still want to trigger the calculation update
+            if new_state == "loaded" and supports_controlnet:
+                self._trigger_canny_preview_update()
             return
-
-        from engine.theme_manager import ThemeManager
 
         if not getattr(self, "_dnd_preview_widgets_ready", False):
             def on_dnd_enter(event):
@@ -2051,17 +2125,55 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._dnd_empty_text.grid(row=1, column=0)
 
+            # Loaded Frame with columns 0 (previews) and 1 (metadata)
             self._dnd_loaded_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface)
             self._dnd_loaded_frame.grid_columnconfigure(1, weight=1)
+
+            # Previews container
+            self._dnd_previews_container = tk.Frame(self._dnd_loaded_frame, bg=PHOENIX_THEME.surface)
+            self._dnd_previews_container.grid(row=0, column=0, padx=12, pady=8, sticky="w")
+
+            # Reference Image subframe
+            self._dnd_ref_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
+            self._dnd_ref_title = tk.Label(
+                self._dnd_ref_container,
+                text="Referenzbild",
+                font=PHOENIX_THEME.font_caption,
+                bg=PHOENIX_THEME.surface,
+                fg=PHOENIX_THEME.text_muted,
+            )
+            self._dnd_ref_title.pack(anchor="w")
+
             self._dnd_preview_label = tk.Label(
-                self._dnd_loaded_frame,
+                self._dnd_ref_container,
                 text="❌",
                 font=("Segoe UI", 16),
                 bg=PHOENIX_THEME.surface,
                 fg=PHOENIX_THEME.accent,
             )
-            self._dnd_preview_label.grid(row=0, column=0, padx=12, pady=8, sticky="w")
+            self._dnd_preview_label.pack(anchor="w", pady=(2, 0))
 
+            # Canny subframe
+            self._dnd_canny_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
+            self._dnd_canny_title = tk.Label(
+                self._dnd_canny_container,
+                text="Canny-Kanten",
+                font=PHOENIX_THEME.font_caption,
+                bg=PHOENIX_THEME.surface,
+                fg=PHOENIX_THEME.text_muted,
+            )
+            self._dnd_canny_title.pack(anchor="w")
+
+            self._dnd_canny_preview_label = tk.Label(
+                self._dnd_canny_container,
+                text="-",
+                font=("Segoe UI", 16),
+                bg=PHOENIX_THEME.surface,
+                fg=PHOENIX_THEME.text_muted,
+            )
+            self._dnd_canny_preview_label.pack(anchor="w", pady=(2, 0))
+
+            # Metadata frame
             self._dnd_meta_frame = tk.Frame(self._dnd_loaded_frame, bg=PHOENIX_THEME.surface)
             self._dnd_meta_frame.grid(row=0, column=1, padx=(0, 12), pady=8, sticky="nsew")
             self._dnd_meta_frame.columnconfigure(0, weight=1)
@@ -2075,7 +2187,7 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._dnd_name_label.grid(row=0, column=0, sticky="w", pady=(0, 2))
 
-            # Attach tooltip to name label dynamically (Sprint CN-003)
+            # Attach tooltip to name label dynamically
             _Tooltip(self._dnd_name_label, lambda: self.controller.model.state.input_image_path or getattr(self, "_dnd_error_message", None))
 
             self._dnd_resolution_label = tk.Label(
@@ -2105,6 +2217,18 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_remove_button.grid(row=2, column=0, sticky="w")
             self._add_button_hover(self._dnd_remove_button)
 
+            # Canny status/error label
+            self._dnd_canny_status_label = tk.Label(
+                self._dnd_meta_frame,
+                text="",
+                font=PHOENIX_THEME.font_caption,
+                fg=PHOENIX_THEME.text_muted,
+                bg=PHOENIX_THEME.surface,
+                anchor="w",
+                justify="left",
+            )
+            self._dnd_canny_status_label.grid(row=3, column=0, sticky="w", pady=(4, 0))
+
             empty_widgets = (
                 self.dnd_card,
                 self._dnd_empty_frame,
@@ -2117,14 +2241,22 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._dnd_empty_icon,
                 self._dnd_empty_text,
                 self._dnd_loaded_frame,
+                self._dnd_previews_container,
+                self._dnd_ref_container,
                 self._dnd_preview_label,
+                self._dnd_canny_container,
+                self._dnd_canny_preview_label,
                 self._dnd_meta_frame,
                 self._dnd_name_label,
                 self._dnd_resolution_label,
             )
             all_widgets = empty_widgets + (
                 self._dnd_loaded_frame,
+                self._dnd_previews_container,
+                self._dnd_ref_container,
                 self._dnd_preview_label,
+                self._dnd_canny_container,
+                self._dnd_canny_preview_label,
                 self._dnd_meta_frame,
                 self._dnd_name_label,
                 self._dnd_resolution_label,
@@ -2147,6 +2279,17 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_visible_state = None
             self._dnd_rendered_input_path = object()
             self._dnd_preview_widgets_ready = True
+
+        # Grid visibility of containers depending on ControlNet support
+        if supports_controlnet:
+            self._dnd_ref_title.pack(anchor="w")
+            self._dnd_ref_container.grid(row=0, column=0, padx=(0, 10), sticky="w")
+            self._dnd_canny_container.grid(row=0, column=1, padx=(10, 0), sticky="w")
+        else:
+            self._dnd_ref_title.pack_forget()
+            self._dnd_ref_container.grid(row=0, column=0, padx=0, sticky="w")
+            self._dnd_canny_container.grid_forget()
+            self._clear_canny_preview()
 
         # Render active state (Sprint CN-003)
         if new_state == "error":
@@ -2210,14 +2353,206 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_empty_frame.grid_remove()
             self._dnd_loaded_frame.grid(row=0, column=0, sticky="nsew")
 
+            if supports_controlnet:
+                self._trigger_canny_preview_update()
 
         else: # empty
             self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
             self._dnd_loaded_frame.grid_remove()
             self._dnd_empty_frame.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
+            self._clear_canny_preview()
 
         self._dnd_visible_state = new_state
         self._dnd_rendered_input_path = input_path
+        self._dnd_rendered_supports_controlnet = supports_controlnet
+
+    def _on_canny_param_changed(self, *args) -> None:
+        """Trace callback when Canny threshold variables are modified."""
+        if getattr(self, "_in_model_change", False):
+            return
+        if not self.controller.model.state.input_image_path:
+            return
+
+        # Cancel pending debounce
+        if getattr(self, "_canny_debounce_id", None) is not None:
+            try:
+                self.after_cancel(self._canny_debounce_id)
+            except Exception:
+                pass
+            self._canny_debounce_id = None
+
+        # Schedule debounced update
+        self._canny_debounce_id = self.after(250, self._trigger_canny_preview_update)
+
+    def _trigger_canny_preview_update(self) -> None:
+        """Trigger the background calculation of the Canny edge preview."""
+        self._canny_debounce_id = None
+        input_path = self.controller.model.state.input_image_path
+        if not input_path:
+            self._clear_canny_preview()
+            return
+
+        try:
+            low = int(self.canny_low_var.get())
+            high = int(self.canny_high_var.get())
+        except (ValueError, AttributeError):
+            low, high = 50, 150
+
+        # Don't recalculate if state is identical to current preview
+        if (
+            getattr(self, "_canny_rendered_path", None) == input_path
+            and getattr(self, "_canny_rendered_low", None) == low
+            and getattr(self, "_canny_rendered_high", None) == high
+            and getattr(self, "_dnd_canny_photo_ref", None) is not None
+        ):
+            return
+
+        # Validation checks: Low Threshold >= High Threshold
+        if low >= high:
+            self._show_canny_error("Low Threshold >= High Threshold")
+            return
+
+        self._clear_canny_error()
+        self._set_canny_preview_stale()
+
+        req_id = time.time()
+        self._latest_canny_req_id = req_id
+
+        def worker():
+            try:
+                from engine.controlnet_canny_backend import canny_edge_detector
+                edges = canny_edge_detector(input_path, low_threshold=low, high_threshold=high)
+                from PIL import Image
+                edges_img = Image.fromarray(edges)
+                self._canny_queue.put(("ready", (req_id, input_path, low, high, edges_img)))
+            except Exception as e:
+                logger.exception("Error in Canny background worker thread")
+                self._canny_queue.put(("error", (req_id, str(e))))
+
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+
+        # Start polling the canny queue in the main thread
+        self._poll_canny_queue()
+
+    def _poll_canny_queue(self) -> None:
+        """Poll the Canny queue for results from the background worker thread."""
+        if getattr(self, "_canny_poll_id", None) is not None:
+            try:
+                self.after_cancel(self._canny_poll_id)
+            except Exception:
+                pass
+            self._canny_poll_id = None
+
+        has_more = True
+        while has_more:
+            try:
+                event_type, payload = self._canny_queue.get_nowait()
+                if event_type == "ready":
+                    req_id, path, low, high, edges_img = payload
+                    self._on_canny_preview_ready(req_id, path, low, high, edges_img)
+                elif event_type == "error":
+                    req_id, err_str = payload
+                    self._on_canny_preview_error(req_id, err_str)
+            except queue.Empty:
+                has_more = False
+
+        latest_id = getattr(self, "_latest_canny_req_id", None)
+        rendered_path = getattr(self, "_canny_rendered_path", None)
+        rendered_low = getattr(self, "_canny_rendered_low", None)
+        rendered_high = getattr(self, "_canny_rendered_high", None)
+        input_path = self.controller.model.state.input_image_path
+
+        if not input_path:
+            return
+
+        if latest_id is not None:
+            try:
+                low = int(self.canny_low_var.get())
+                high = int(self.canny_high_var.get())
+            except (ValueError, AttributeError):
+                low, high = 50, 150
+
+            if (
+                rendered_path != input_path
+                or rendered_low != low
+                or rendered_high != high
+            ):
+                self._canny_poll_id = self.after(50, self._poll_canny_queue)
+
+    def _on_canny_preview_ready(self, req_id: float, path: str, low: int, high: int, edges_img) -> None:
+        """Callback from background thread when the Canny edges are successfully computed."""
+        if getattr(self, "_latest_canny_req_id", None) != req_id:
+            return
+        if self.controller.model.state.input_image_path != path:
+            return
+
+        try:
+            from PIL import ImageTk
+            edges_img.thumbnail((70, 70))
+            photo = ImageTk.PhotoImage(edges_img)
+
+            self._dnd_canny_photo_ref = photo
+            self._canny_rendered_path = path
+            self._canny_rendered_low = low
+            self._canny_rendered_high = high
+
+            if hasattr(self, "_dnd_canny_preview_label") and self._dnd_canny_preview_label.winfo_exists():
+                self._dnd_canny_preview_label.configure(image=photo, text="")
+
+            if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
+                self._dnd_canny_status_label.configure(text="Vorschau aktuell", fg=PHOENIX_THEME.text_muted)
+        except Exception as e:
+            logger.error("Failed to render Canny preview thumbnail: %s", e)
+            self._on_canny_preview_error(req_id, str(e))
+
+    def _on_canny_preview_error(self, req_id: float, error_msg: str) -> None:
+        """Callback from background thread if the Canny edge computation failed."""
+        if getattr(self, "_latest_canny_req_id", None) != req_id:
+            return
+        self._show_canny_error(error_msg)
+
+    def _show_canny_error(self, error_msg: str) -> None:
+        """Update UI to display a validation or calculation error for Canny edges."""
+        self._dnd_canny_photo_ref = None
+        self._canny_rendered_path = None
+        self._canny_rendered_low = None
+        self._canny_rendered_high = None
+
+        from engine.theme_manager import ThemeManager
+        error_color = ThemeManager.palette().error
+
+        if hasattr(self, "_dnd_canny_preview_label") and self._dnd_canny_preview_label.winfo_exists():
+            self._dnd_canny_preview_label.configure(image="", text="⚠️", fg=error_color)
+
+        if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
+            display_err = error_msg
+            if len(display_err) > 35:
+                display_err = display_err[:32] + "..."
+            self._dnd_canny_status_label.configure(text=f"⚠️ {display_err}", fg=error_color)
+
+    def _clear_canny_error(self) -> None:
+        """Clear error text and state from the Canny status label."""
+        if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
+            self._dnd_canny_status_label.configure(text="", fg=PHOENIX_THEME.text_muted)
+
+    def _set_canny_preview_stale(self) -> None:
+        """Configure Canny preview label to indicate a recalculation is in progress."""
+        if hasattr(self, "_dnd_canny_preview_label") and self._dnd_canny_preview_label.winfo_exists():
+            self._dnd_canny_preview_label.configure(image="", text="⏳", fg=PHOENIX_THEME.text_secondary)
+        if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
+            self._dnd_canny_status_label.configure(text="Berechne...", fg=PHOENIX_THEME.text_secondary)
+
+    def _clear_canny_preview(self) -> None:
+        """Fully clear the internal Canny preview state and UI elements."""
+        self._dnd_canny_photo_ref = None
+        self._canny_rendered_path = None
+        self._canny_rendered_low = None
+        self._canny_rendered_high = None
+        if hasattr(self, "_dnd_canny_preview_label") and self._dnd_canny_preview_label.winfo_exists():
+            self._dnd_canny_preview_label.configure(image="", text="-")
+        if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
+            self._dnd_canny_status_label.configure(text="")
 
     def _show_prompt_history_popup(self) -> None:
         """Display the persistent prompt history popup menu under the history button."""
