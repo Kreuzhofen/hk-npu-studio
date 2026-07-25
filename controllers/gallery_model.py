@@ -18,6 +18,7 @@ class GalleryImage:
     prompt: str | None = None
     model_id: str | None = None
     seed: int | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def resolution_label(self) -> str:

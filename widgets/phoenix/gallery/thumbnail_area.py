@@ -55,7 +55,8 @@ class GalleryThumbnailArea(tk.Frame):
             highlightthickness=0,
             bd=0,
         )
-        scrollbar = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        from tkinter import ttk
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview, style="Phoenix.Vertical.TScrollbar")
         self.canvas.configure(yscrollcommand=scrollbar.set)
 
         self.canvas.grid(row=0, column=0, sticky="nsew")

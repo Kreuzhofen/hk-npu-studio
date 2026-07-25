@@ -2621,11 +2621,11 @@ class PhoenixPromptView(WorkspaceFrame):
         if isinstance(entry, dict):
             prompt = entry.get("prompt", "")
             neg_prompt = entry.get("negative_prompt", "")
-            model_name = entry.get("model_name")
+            model_name = entry.get("model_name") or entry.get("model")
             width = entry.get("width")
             height = entry.get("height")
             steps = entry.get("steps")
-            cfg = entry.get("cfg_scale")
+            cfg = entry.get("cfg_scale") or entry.get("cfg")
             sampler = entry.get("sampler")
             scheduler = entry.get("scheduler")
 
@@ -2676,6 +2676,10 @@ class PhoenixPromptView(WorkspaceFrame):
             if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
                 self._prompt_popup_text.delete("1.0", "end")
                 self._prompt_popup_text.insert("1.0", entry)
+
+    def apply_generation_settings(self, settings: dict) -> None:
+        """Apply a dictionary of settings (from sidecar or history) to the UI."""
+        self._load_prompt_from_history(settings)
 
     def _ensure_progress_style(self) -> None:
         """Sustainably ensure the custom Phoenix progress bar style is active and correctly colored."""
@@ -3077,7 +3081,8 @@ class PhoenixPromptView(WorkspaceFrame):
         text_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         text_frame.pack(fill="both", expand=True)
 
-        scrollbar = tk.Scrollbar(text_frame, orient="vertical")
+        from tkinter import ttk
+        scrollbar = ttk.Scrollbar(text_frame, orient="vertical", style="Phoenix.Vertical.TScrollbar")
         scrollbar.pack(side="right", fill="y")
 
         popup_text = tk.Text(

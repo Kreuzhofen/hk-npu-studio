@@ -91,3 +91,57 @@ def _create_phoenix_theme() -> PhoenixTheme:
 
 
 PHOENIX_THEME = _create_phoenix_theme()
+
+
+def configure_phoenix_styles(root_or_widget: tk.Misc | None = None) -> None:
+    from tkinter import ttk
+    style = ttk.Style(root_or_widget)
+    try:
+        style.theme_use("clam")
+    except Exception:
+        pass
+
+    style.configure(
+        "Phoenix.Vertical.TScrollbar",
+        troughcolor=PHOENIX_THEME.card_bg,
+        background=PHOENIX_THEME.elevated_bg,
+        bordercolor=PHOENIX_THEME.border,
+        arrowcolor=PHOENIX_THEME.text_muted,
+        gripcount=0,
+        lightcolor=PHOENIX_THEME.elevated_bg,
+        darkcolor=PHOENIX_THEME.elevated_bg,
+        relief="flat",
+        borderwidth=0,
+    )
+    style.map(
+        "Phoenix.Vertical.TScrollbar",
+        background=[("active", PHOENIX_THEME.accent), ("pressed", PHOENIX_THEME.accent_dark)],
+        arrowcolor=[("active", PHOENIX_THEME.text_on_accent)],
+    )
+
+    style.configure(
+        "Phoenix.Horizontal.TScrollbar",
+        troughcolor=PHOENIX_THEME.card_bg,
+        background=PHOENIX_THEME.elevated_bg,
+        bordercolor=PHOENIX_THEME.border,
+        arrowcolor=PHOENIX_THEME.text_muted,
+        gripcount=0,
+        lightcolor=PHOENIX_THEME.elevated_bg,
+        darkcolor=PHOENIX_THEME.elevated_bg,
+        relief="flat",
+        borderwidth=0,
+    )
+    style.map(
+        "Phoenix.Horizontal.TScrollbar",
+        background=[("active", PHOENIX_THEME.accent), ("pressed", PHOENIX_THEME.accent_dark)],
+        arrowcolor=[("active", PHOENIX_THEME.text_on_accent)],
+    )
+
+    style.configure(
+        "Phoenix.Horizontal.TProgressbar",
+        troughcolor=PHOENIX_THEME.elevated_bg,
+        background=PHOENIX_THEME.success,
+        lightcolor=PHOENIX_THEME.success,
+        darkcolor=PHOENIX_THEME.success,
+        bordercolor=PHOENIX_THEME.border,
+    )

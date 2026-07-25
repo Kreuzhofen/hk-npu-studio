@@ -28,6 +28,9 @@ class PhoenixWorkspace(tk.Frame):
         super().__init__(master, bg=PHOENIX_THEME.app_bg)
         self.controller = controller
 
+        from widgets.phoenix.theme import configure_phoenix_styles
+        configure_phoenix_styles(self)
+
         self.header: PhoenixHeader
         self.sidebar: PhoenixSidebar
         self.content_host: tk.Frame
@@ -120,7 +123,7 @@ class PhoenixWorkspace(tk.Frame):
             view.grid_forget()
 
         # Hide global right panel for workspaces with their own inspector (UX-004.1)
-        _VIEWS_WITH_OWN_INSPECTOR = {"models", "prompt"}
+        _VIEWS_WITH_OWN_INSPECTOR = {"models", "prompt", "gallery"}
         if self.right_panel is not None:
             if view_name in _VIEWS_WITH_OWN_INSPECTOR:
                 self.right_panel.grid_forget()

@@ -82,10 +82,12 @@ class QueueCard(tk.Frame):
             expand=True,
         )
 
-        self.scrollbar = tk.Scrollbar(
+        from tkinter import ttk
+        self.scrollbar = ttk.Scrollbar(
             list_frame,
             orient="vertical",
             command=self.listbox.yview,
+            style="Phoenix.Vertical.TScrollbar",
         )
         self.scrollbar.pack(
             side="right",

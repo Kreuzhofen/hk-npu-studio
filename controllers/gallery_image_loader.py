@@ -52,6 +52,7 @@ class ImageLoader:
         prompt: str | None = None
         model_id: str | None = None
         seed: int | None = None
+        metadata: dict[str, Any] = {}
 
         sidecar = path.with_suffix(".json")
         if sidecar.is_file():
@@ -60,10 +61,12 @@ class ImageLoader:
                 with open(sidecar, "r", encoding="utf-8") as f:
                     meta = json.load(f)
                 if "metadata" in meta and isinstance(meta["metadata"], dict):
-                    meta = meta["metadata"]
-                prompt = meta.get("prompt")
-                model_id = meta.get("model_id") or meta.get("model")
-                seed = meta.get("seed")
+                    metadata = meta["metadata"]
+                else:
+                    metadata = meta
+                prompt = metadata.get("prompt")
+                model_id = metadata.get("model_id") or metadata.get("model")
+                seed = metadata.get("seed")
             except Exception:
                 pass
 
@@ -78,4 +81,5 @@ class ImageLoader:
             prompt=prompt,
             model_id=model_id,
             seed=seed,
+            metadata=metadata,
         )

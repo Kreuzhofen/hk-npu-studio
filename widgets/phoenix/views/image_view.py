@@ -352,10 +352,12 @@ class PhoenixImageView(tk.Frame):
         )
         self.gallery_canvas.grid(row=0, column=0, sticky="nsew")
 
-        self.gallery_scrollbar = tk.Scrollbar(
+        from tkinter import ttk
+        self.gallery_scrollbar = ttk.Scrollbar(
             gallery_host,
             orient="vertical",
             command=self.gallery_canvas.yview,
+            style="Phoenix.Vertical.TScrollbar"
         )
         self.gallery_scrollbar.grid(row=0, column=1, sticky="ns")
         self.gallery_canvas.configure(yscrollcommand=self.gallery_scrollbar.set)

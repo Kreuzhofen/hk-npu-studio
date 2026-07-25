@@ -105,8 +105,22 @@ class PhoenixGalleryView(WorkspaceFrame):
         # 4. Build Inspector and place in self.inspector_slot
         if self.inspector_slot:
             from widgets.phoenix.gallery.inspector import GalleryInspector
-            self.inspector = GalleryInspector(self.inspector_slot)
+            self.inspector = GalleryInspector(self.inspector_slot, on_apply_settings=self._apply_image_settings)
             self.inspector.grid(row=0, column=0, sticky="nsew")
+
+    def _apply_image_settings(self, settings: dict) -> None:
+        try:
+            import logging
+            app = self.winfo_toplevel()
+            if hasattr(app, "phoenix_workspace") and app.phoenix_workspace is not None:
+                workspace = app.phoenix_workspace
+                prompt_view = workspace._get_or_create_view("prompt")
+                if hasattr(prompt_view, "apply_generation_settings"):
+                    prompt_view.apply_generation_settings(settings)
+                workspace.show_view("prompt")
+        except Exception as e:
+            import logging
+            logging.getLogger("PhoenixGalleryView").error(f"Failed to apply generation settings: {e}")
 
     def _on_open_folder(self) -> None:
         from tkinter import filedialog

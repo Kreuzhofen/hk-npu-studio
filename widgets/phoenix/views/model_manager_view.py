@@ -192,7 +192,8 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspector_scrollbar = ttk.Scrollbar(
             self.inspector_panel,
             orient="vertical",
-            command=self.inspector_canvas.yview
+            command=self.inspector_canvas.yview,
+            style="Phoenix.Vertical.TScrollbar"
         )
         self.inspector_canvas.configure(yscrollcommand=self.inspector_scrollbar.set)
 

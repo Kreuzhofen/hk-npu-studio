@@ -127,10 +127,12 @@ class ThumbnailGallery(tk.Frame):
             expand=True,
         )
 
-        scrollbar = tk.Scrollbar(
+        from tkinter import ttk
+        scrollbar = ttk.Scrollbar(
             list_frame,
             orient="vertical",
             command=self.listbox.yview,
+            style="Phoenix.Vertical.TScrollbar",
         )
         scrollbar.pack(
             side="right",
@@ -160,10 +162,12 @@ class ThumbnailGallery(tk.Frame):
         canvas = tk.Canvas(self.content_frame, highlightthickness=0)
         canvas.pack(side="left", fill="both", expand=True)
 
-        scrollbar = tk.Scrollbar(
+        from tkinter import ttk
+        scrollbar = ttk.Scrollbar(
             self.content_frame,
             orient="vertical",
             command=canvas.yview,
+            style="Phoenix.Vertical.TScrollbar",
         )
         scrollbar.pack(side="right", fill="y")
 

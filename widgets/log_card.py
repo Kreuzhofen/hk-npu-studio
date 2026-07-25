@@ -32,6 +32,7 @@ class LogCard(BaseCard):
             self,
             orient="vertical",
             command=self.log_text.yview,
+            style="Phoenix.Vertical.TScrollbar"
         )
 
         self.log_text.configure(
