@@ -124,10 +124,10 @@ class PromptWorkspaceController:
         )
 
 
-    def generate_image(self, notify_workflow: bool = True) -> GenerationResult:
+    def generate_image(self, notify_workflow: bool = True, progress_callback: Any = None) -> GenerationResult:
         # Delegate to GenerationController and update status.
         self.model.update_state(status="Generierung läuft")
-        result = self.generation_controller.queue_generation(notify_workflow=notify_workflow)
+        result = self.generation_controller.queue_generation(notify_workflow=notify_workflow, progress_callback=progress_callback)
         if result.status == "CANCELLED":
             status_msg = "CANCELLED"
         else:

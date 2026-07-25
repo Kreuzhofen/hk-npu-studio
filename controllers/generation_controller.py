@@ -119,7 +119,7 @@ class GenerationController:
 
 
 
-    def queue_generation(self, notify_workflow: bool = True) -> GenerationResult:
+    def queue_generation(self, notify_workflow: bool = True, progress_callback: Any = None) -> GenerationResult:
         """
         Queue the generation based on the active session parameters.
         Validates parameters first, creates a GenerationJob and adds it to the queue.
@@ -137,13 +137,10 @@ class GenerationController:
 
         # Create a parameter snapshot for this job
         job_session = GenerationSessionModel(**self.session.to_dict())
-        job = GenerationJob(session=job_session)
+        job = GenerationJob(session=job_session, progress_callback=progress_callback)
         self.queue.enqueue(job)
         self.queue.dequeue()
-
         self.is_generating = True
-        
-        # Log active session setup to stdout
         print("--- [GenerationController: Job Enqueued] ---")
         print(f"Job ID: {job.job_id}")
         for key, val in job_session.to_dict().items():

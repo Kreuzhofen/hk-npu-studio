@@ -1371,7 +1371,10 @@ class PhoenixPromptView(WorkspaceFrame):
 
     def _run_generation_worker(self) -> None:
         try:
-            result = self.controller.generate_image(notify_workflow=False)
+            def progress_cb(percent: float, stage: str) -> None:
+                self._generation_events.put(("progress", (percent, stage)))
+
+            result = self.controller.generate_image(notify_workflow=False, progress_callback=progress_cb)
             self._generation_events.put(("result", result))
         except Exception as error:
             logger.exception("Prompt-to-image generation failed")
@@ -1396,17 +1399,22 @@ class PhoenixPromptView(WorkspaceFrame):
         if not self._is_view_alive():
             return
 
-        try:
-            event, payload = self._generation_events.get_nowait()
-        except queue.Empty:
-            if self._generation_running:
-                self._schedule_result_poll()
-            return
+        has_more = True
+        while has_more:
+            try:
+                event, payload = self._generation_events.get_nowait()
+                if event == "result":
+                    self._handle_generation_result(payload)
+                elif event == "error":
+                    self._handle_generation_error(payload)
+                elif event == "progress":
+                    percent, stage = payload
+                    self._handle_generation_progress(percent, stage)
+            except queue.Empty:
+                has_more = False
 
-        if event == "result":
-            self._handle_generation_result(payload)
-        elif event == "error":
-            self._handle_generation_error(payload)
+        if self._generation_running:
+            self._schedule_result_poll()
 
     def _handle_generation_result(self, result) -> None:
         if not self._is_view_alive():
@@ -1504,9 +1512,28 @@ class PhoenixPromptView(WorkspaceFrame):
             )
 
     def _schedule_progress_tick(self) -> None:
-        if not self._is_view_alive() or not self._generation_running:
+        pass
+
+    def _handle_generation_progress(self, percent: float, stage: str) -> None:
+        if not self._is_view_alive():
             return
-        self._progress_after_id = self.after(1000, self._update_generation_progress)
+
+        # Parse step text for sampling phase
+        step_text = "-"
+        if "Schritt " in stage:
+            try:
+                parts = stage.split("Schritt ")[1].split(")...")[0]
+                step_text = f"Step {parts}"
+            except Exception:
+                step_text = "-"
+
+        # Update progress bar and stage label
+        self._set_progress(percent, stage, step_text)
+
+        # Update workspace state and inspector status labels dynamically
+        self.controller.model.update_state(status=stage)
+        self._configure_if_alive(self.status_label, text=f"Status: {stage}")
+        self._configure_if_alive(self.insp_gen_status, text=stage)
 
     def _cancel_progress_tick(self) -> None:
         if self._progress_after_id and self._is_view_alive():

@@ -65,7 +65,7 @@ class PromptHistoryTests(unittest.TestCase):
     def test_only_successful_generations_saved(self) -> None:
         # Mock GenerationController.queue_generation to return success=False
         class MockGenCtrl:
-            def queue_generation(self, notify_workflow=False):
+            def queue_generation(self, *args, **kwargs):
                 return GenerationResult(success=False, status="FAILED", message="Error")
 
         self.controller.generation_controller = MockGenCtrl()
@@ -77,7 +77,7 @@ class PromptHistoryTests(unittest.TestCase):
 
         # Mock queue_generation to return success=True
         class MockGenCtrlSuccess:
-            def queue_generation(self, notify_workflow=False):
+            def queue_generation(self, *args, **kwargs):
                 return GenerationResult(success=True, status="SUCCESS", message="Done")
 
         self.controller.generation_controller = MockGenCtrlSuccess()

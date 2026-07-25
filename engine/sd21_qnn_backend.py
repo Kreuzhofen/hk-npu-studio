@@ -358,16 +358,53 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 line_str = line.strip()
                 print(f"[QNN Worker] {line_str}")
                 # Keep lifecycle status RUNNING so GenerationQueue can locate the active job.
-                if not job.cancel_requested.is_set() and any(k in line_str for k in ["Preparing", "Loading", "Starting", "Tokenizing", "Running", "Decoding", "Saving", "Step", "Image"]):
+                if not job.cancel_requested.is_set() and any(k in line_str for k in ["Preparing", "Loading", "Starting", "Tokenizing", "Running", "Decoding", "Saving", "Step", "Image", "Computing"]):
                     # Estimate progress based on steps
-                    if "Step " in line_str and "/" in line_str:
+                    percent = None
+                    stage_text = None
+
+                    if "Preparing Qualcomm QNN" in line_str:
+                        percent = 5.0
+                        stage_text = "NPU wird vorbereitet..."
+                    elif "Loading Text Encoder" in line_str:
+                        percent = 10.0
+                        stage_text = "Modell wird geladen (Text Encoder)..."
+                    elif "Loading UNet" in line_str:
+                        percent = 15.0
+                        stage_text = "Modell wird geladen (UNet)..."
+                    elif "Loading VAE" in line_str:
+                        percent = 20.0
+                        stage_text = "Modell wird geladen (VAE)..."
+                    elif "Tokenizing prompt" in line_str:
+                        percent = 25.0
+                        stage_text = "Modell wird geladen..."
+                    elif "Computing Canny edge image" in line_str:
+                        percent = 30.0
+                        stage_text = "ControlNet Vorverarbeitung..."
+                    elif "Step " in line_str and "/" in line_str:
                         try:
                             parts = line_str.split("Step ")[1].split(":")[0].split("/")
                             curr = int(parts[0])
                             total = int(parts[1])
                             job.progress = float(curr) / float(total)
+                            percent = 30.0 + (job.progress * 55.0)
+                            stage_text = f"Sampling Phase (Schritt {curr}/{total})..."
                         except Exception:
                             pass
+                    elif "Decoding image" in line_str:
+                        percent = 90.0
+                        stage_text = "VAE Decoding..."
+                    elif "Saving image" in line_str:
+                        percent = 95.0
+                        stage_text = "Bild wird gespeichert & Metadaten geschrieben..."
+
+                    if percent is not None and stage_text is not None:
+                        callback = getattr(job, "progress_callback", None)
+                        if callback:
+                            try:
+                                callback(percent, stage_text)
+                            except Exception:
+                                pass
 
         process.wait()
         self._active_process = None

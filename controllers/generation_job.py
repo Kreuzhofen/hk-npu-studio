@@ -23,3 +23,4 @@ class GenerationJob:
     result_path: Path | None = None
     error_message: str | None = None
     cancel_requested: Event = field(default_factory=Event, repr=False, compare=False)
+    progress_callback: Any = None
