@@ -12,6 +12,7 @@ from pathlib import Path
 from controllers.prompt_workspace_controller import PromptWorkspaceController
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
 
 try:
     from tkinterdnd2 import DND_FILES
@@ -576,7 +577,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self.controlnet_frame.grid_columnconfigure(0, weight=1)
         self.controlnet_frame.grid_columnconfigure(1, weight=1)
 
-        low_label = tk.Label(self.controlnet_frame, text="Canny Low Threshold:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        low_label = tk.Label(self.controlnet_frame, text=tr("canny_low_threshold_label", "Canny Low Threshold:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         low_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
         self.low_scale = tk.Scale(
             self.controlnet_frame, from_=0, to=255, orient="horizontal",
@@ -587,7 +588,7 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.low_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
 
-        high_label = tk.Label(self.controlnet_frame, text="Canny High Threshold:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        high_label = tk.Label(self.controlnet_frame, text=tr("canny_high_threshold_label", "Canny High Threshold:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         high_label.grid(row=0, column=1, sticky="w", pady=(0, 1))
         self.high_scale = tk.Scale(
             self.controlnet_frame, from_=0, to=255, orient="horizontal",
@@ -598,7 +599,7 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.high_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
 
-        strength_label = tk.Label(self.controlnet_frame, text="Conditioning Strength:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        strength_label = tk.Label(self.controlnet_frame, text=tr("conditioning_strength_label", "Conditioning Strength:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         strength_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 1))
         self.strength_scale = tk.Scale(
             self.controlnet_frame, from_=0.0, to=2.0, resolution=0.05, orient="horizontal",
@@ -1387,7 +1388,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self.controller.cancel_generation()
         self._cancel_progress_tick()
         self._set_progress(self._progress_percent, "CANCELLED", self._step_text())
-        self._configure_if_alive(self.status_label, text="Status: CANCELLED")
+        self._configure_if_alive(self.status_label, text=tr("status_prefix", "Status: {status}", status="CANCELLED"))
         self._configure_if_alive(self.insp_gen_status, text="CANCELLED")
 
     def _schedule_result_poll(self) -> None:
@@ -1532,7 +1533,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         # Update workspace state and inspector status labels dynamically
         self.controller.model.update_state(status=stage)
-        self._configure_if_alive(self.status_label, text=f"Status: {stage}")
+        self._configure_if_alive(self.status_label, text=tr("status_prefix", "Status: {status}", status=stage))
         self._configure_if_alive(self.insp_gen_status, text=stage)
 
     def _cancel_progress_tick(self) -> None:
@@ -1662,7 +1663,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         state = self.controller.get_state()
         if not self._generation_running:
-            self.status_label.configure(text=f"Status: {state.status}")
+            self.status_label.configure(text=tr("status_prefix", "Status: {status}", status=state.status))
 
         active_backend_name = "None"
         queued_count = 0
@@ -1702,9 +1703,9 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_scheduler.configure(text=self.scheduler_var.get())
 
         # Update Status Bar
-        self.model_status_label.configure(text=f"Modell: {state.selected_model if state.selected_model else '-'}")
-        self.backend_status_label.configure(text=f"Backend: {active_backend_name}")
-        self.queue_status_label.configure(text=f"Queue: {queued_count} Job(s)")
+        self.model_status_label.configure(text=tr("model_prefix", "Modell: {model}", model=state.selected_model if state.selected_model else "-"))
+        self.backend_status_label.configure(text=tr("backend_prefix", "Backend: {backend}", backend=active_backend_name))
+        self.queue_status_label.configure(text=tr("queue_prefix", "Queue: {jobs} Job(s)", jobs=queued_count))
 
         # Update environment diagnostics status labels (Sprint P-061)
         env_text = "Environment: -"
@@ -2144,7 +2145,7 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_empty_icon.grid(row=0, column=0, pady=(0, 4))
             self._dnd_empty_text = tk.Label(
                 self._dnd_empty_frame,
-                text="Bild hierher ziehen oder klicken",
+                text=tr("drag_and_drop_text", "Bild hierher ziehen oder klicken"),
                 font=PHOENIX_THEME.font_caption,
                 fg=PHOENIX_THEME.text_muted,
                 bg=PHOENIX_THEME.surface,
@@ -2164,7 +2165,7 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_ref_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
             self._dnd_ref_title = tk.Label(
                 self._dnd_ref_container,
-                text="Referenzbild",
+                text=tr("reference_image", "Referenzbild"),
                 font=PHOENIX_THEME.font_caption,
                 bg=PHOENIX_THEME.surface,
                 fg=PHOENIX_THEME.text_muted,
@@ -2184,7 +2185,7 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_canny_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
             self._dnd_canny_title = tk.Label(
                 self._dnd_canny_container,
-                text="Canny-Kanten",
+                text=tr("canny_edges", "Canny-Kanten"),
                 font=PHOENIX_THEME.font_caption,
                 bg=PHOENIX_THEME.surface,
                 fg=PHOENIX_THEME.text_muted,
@@ -2228,7 +2229,7 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_resolution_label.grid(row=1, column=0, sticky="w", pady=(0, 6))
             self._dnd_remove_button = tk.Button(
                 self._dnd_meta_frame,
-                text="✕ Bild entfernen",
+                text=tr("remove_image", "✕ Bild entfernen"),
                 command=self._remove_reference_image,
                 bg=PHOENIX_THEME.elevated_bg,
                 fg=PHOENIX_THEME.text_secondary,
@@ -2528,7 +2529,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._dnd_canny_preview_label.configure(image=photo, text="")
 
             if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
-                self._dnd_canny_status_label.configure(text="Vorschau aktuell", fg=PHOENIX_THEME.text_muted)
+                self._dnd_canny_status_label.configure(text=tr("preview_current", "Vorschau aktuell"), fg=PHOENIX_THEME.text_muted)
         except Exception as e:
             logger.error("Failed to render Canny preview thumbnail: %s", e)
             self._on_canny_preview_error(req_id, str(e))
@@ -2568,7 +2569,7 @@ class PhoenixPromptView(WorkspaceFrame):
         if hasattr(self, "_dnd_canny_preview_label") and self._dnd_canny_preview_label.winfo_exists():
             self._dnd_canny_preview_label.configure(image="", text="⏳", fg=PHOENIX_THEME.text_secondary)
         if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
-            self._dnd_canny_status_label.configure(text="Berechne...", fg=PHOENIX_THEME.text_secondary)
+            self._dnd_canny_status_label.configure(text=tr("calculating", "Berechne..."), fg=PHOENIX_THEME.text_secondary)
 
     def _clear_canny_preview(self) -> None:
         """Fully clear the internal Canny preview state and UI elements."""

@@ -363,24 +363,26 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                     percent = None
                     stage_text = None
 
+                    from app.i18n import tr
+
                     if "Preparing Qualcomm QNN" in line_str:
                         percent = 5.0
-                        stage_text = "NPU wird vorbereitet..."
+                        stage_text = tr("npu_preparing", "NPU wird vorbereitet...")
                     elif "Loading Text Encoder" in line_str:
                         percent = 10.0
-                        stage_text = "Modell wird geladen (Text Encoder)..."
+                        stage_text = tr("model_loading_text_encoder", "Modell wird geladen (Text Encoder)...")
                     elif "Loading UNet" in line_str:
                         percent = 15.0
-                        stage_text = "Modell wird geladen (UNet)..."
+                        stage_text = tr("model_loading_unet", "Modell wird geladen (UNet)...")
                     elif "Loading VAE" in line_str:
                         percent = 20.0
-                        stage_text = "Modell wird geladen (VAE)..."
+                        stage_text = tr("model_loading_vae", "Modell wird geladen (VAE)...")
                     elif "Tokenizing prompt" in line_str:
                         percent = 25.0
-                        stage_text = "Modell wird geladen..."
+                        stage_text = tr("model_loading", "Modell wird geladen...")
                     elif "Computing Canny edge image" in line_str:
                         percent = 30.0
-                        stage_text = "ControlNet Vorverarbeitung..."
+                        stage_text = tr("controlnet_preprocessing", "ControlNet Vorverarbeitung...")
                     elif "Step " in line_str and "/" in line_str:
                         try:
                             parts = line_str.split("Step ")[1].split(":")[0].split("/")
@@ -388,15 +390,15 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                             total = int(parts[1])
                             job.progress = float(curr) / float(total)
                             percent = 30.0 + (job.progress * 55.0)
-                            stage_text = f"Sampling Phase (Schritt {curr}/{total})..."
+                            stage_text = tr("sampling_phase", "Sampling Phase (Schritt {curr}/{total})...", curr=curr, total=total)
                         except Exception:
                             pass
                     elif "Decoding image" in line_str:
                         percent = 90.0
-                        stage_text = "VAE Decoding..."
+                        stage_text = tr("vae_decoding", "VAE Decoding...")
                     elif "Saving image" in line_str:
                         percent = 95.0
-                        stage_text = "Bild wird gespeichert & Metadaten geschrieben..."
+                        stage_text = tr("saving_image", "Bild wird gespeichert & Metadaten geschrieben...")
 
                     if percent is not None and stage_text is not None:
                         callback = getattr(job, "progress_callback", None)
