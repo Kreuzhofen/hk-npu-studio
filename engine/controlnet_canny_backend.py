@@ -185,10 +185,35 @@ def convolve2d(image, kernel):
     sub_matrices = np.lib.stride_tricks.as_strided(image, view_shape, strides)
     return np.einsum('ij,klij->kl', kernel, sub_matrices)
 
+def preprocess_image_aspect_ratio(img, target_size=(512, 512)):
+    """
+    Resize and crop an image to target_size (512x512) while preserving the original aspect ratio
+    using smart center cropping.
+    """
+    from PIL import Image
+    w, h = img.size
+    target_w, target_h = target_size
+
+    aspect = w / h
+    target_aspect = target_w / target_h
+
+    if aspect > target_aspect:
+        # Image is wider than target aspect ratio: Crop left and right sides
+        new_w = int(h * target_aspect)
+        left = (w - new_w) // 2
+        img = img.crop((left, 0, left + new_w, h))
+    elif aspect < target_aspect:
+        # Image is taller than target aspect ratio: Crop top and bottom sides
+        new_h = int(w / target_aspect)
+        top = (h - new_h) // 2
+        img = img.crop((0, top, w, top + new_h))
+
+    return img.resize(target_size, Image.Resampling.LANCZOS)
+
 def canny_edge_detector(img_path, low_threshold=50, high_threshold=150):
     from PIL import Image
     img = Image.open(img_path).convert('L')
-    img = img.resize((512, 512))
+    img = preprocess_image_aspect_ratio(img, (512, 512))
     img_arr = np.array(img, dtype=np.float32)
     
     # Blur
@@ -789,9 +814,9 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             shutil.copy2(input_image_path, input_dest_path)
 
             # Save contact sheet (Eingang, Canny, Ergebnis)
-            img_in = Image.open(input_image_path).resize((512, 512))
-            img_canny_rgb = canny_img.resize((512, 512)).convert("RGB")
-            img_out_res = out_img.resize((512, 512))
+            img_in = preprocess_image_aspect_ratio(Image.open(input_image_path).convert("RGB"), (512, 512))
+            img_canny_rgb = canny_img.convert("RGB")
+            img_out_res = out_img
 
             contact = Image.new("RGB", (1536, 512))
             contact.paste(img_in, (0, 0))
