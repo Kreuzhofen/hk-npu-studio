@@ -1,0 +1,17 @@
+{
+  "name": "Cyberpunk",
+  "prompt": "Cyberpunk city street, neon glowing signs, futuristic cars, rain, high detail",
+  "negative_prompt": "daylight, natural, old, rustic, low quality",
+  "model_name": "Qualcomm Stable Diffusion 1.5 (HTP V73)",
+  "width": 512,
+  "height": 512,
+  "steps": 25,
+  "cfg_scale": 8.0,
+  "sampler": "Euler",
+  "scheduler": "Euler",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": ""
+}

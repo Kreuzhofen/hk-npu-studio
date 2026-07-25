@@ -55,5 +55,16 @@
   "ctrl_shift_active": "Ctrl/Shift selection active.",
   "multiple_selection": "Multiple Selection",
   "multiple_selection_details": "Individual details not shown.",
-  "one_image_selected": "1 image selected"
+  "one_image_selected": "1 image selected",
+  "presets_section_header": "Presets & Templates",
+  "preset_load_label": "Choose Preset:",
+  "apply_preset_btn": "Apply",
+  "save_preset_btn": "Save Preset",
+  "delete_preset_btn": "Delete",
+  "preset_save_dialog_title": "Save Preset",
+  "preset_save_dialog_prompt": "Enter a name for the preset:",
+  "preset_save_success": "Preset '{name}' saved successfully.",
+  "preset_save_error": "Error saving preset.",
+  "preset_delete_success": "Preset '{name}' deleted.",
+  "preset_delete_confirm": "Are you sure you want to delete preset '{name}'?"
 }

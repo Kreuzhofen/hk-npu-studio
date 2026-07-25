@@ -1,0 +1,17 @@
+{
+  "name": "Default",
+  "prompt": "A beautiful landscape photography",
+  "negative_prompt": "ugly, blurry, distorted, low quality",
+  "model_name": "Qualcomm Stable Diffusion 1.5 (HTP V73)",
+  "width": 512,
+  "height": 512,
+  "steps": 20,
+  "cfg_scale": 7.5,
+  "sampler": "Euler",
+  "scheduler": "Euler",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": ""
+}

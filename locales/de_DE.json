@@ -55,5 +55,16 @@
   "ctrl_shift_active": "Ctrl/Shift-Auswahl aktiv.",
   "multiple_selection": "Mehrfachauswahl",
   "multiple_selection_details": "Einzeldetails werden nicht erzwungen.",
-  "one_image_selected": "1 Bild ausgewählt"
+  "one_image_selected": "1 Bild ausgewählt",
+  "presets_section_header": "Presets & Vorlagen",
+  "preset_load_label": "Preset wählen:",
+  "apply_preset_btn": "Anwenden",
+  "save_preset_btn": "Als Preset speichern",
+  "delete_preset_btn": "Löschen",
+  "preset_save_dialog_title": "Preset speichern",
+  "preset_save_dialog_prompt": "Gib einen Namen für das Preset ein:",
+  "preset_save_success": "Preset '{name}' erfolgreich gespeichert.",
+  "preset_save_error": "Fehler beim Speichern des Presets.",
+  "preset_delete_success": "Preset '{name}' gelöscht.",
+  "preset_delete_confirm": "Möchtest du das Preset '{name}' wirklich löschen?"
 }

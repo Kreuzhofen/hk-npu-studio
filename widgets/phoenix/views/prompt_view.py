@@ -99,6 +99,12 @@ class PhoenixPromptView(WorkspaceFrame):
         self._canny_queue = queue.Queue()
         self._canny_poll_id = None
 
+        # Preset manager initialization
+        from app.preset_manager import PresetManager
+        self.preset_manager = PresetManager()
+        self.selected_preset_var = tk.StringVar()
+        self.available_presets = []
+
         self._build_input_area()
         self._build_inspector()
         self._build_status_bar()
@@ -275,6 +281,84 @@ class PhoenixPromptView(WorkspaceFrame):
         p = self.param_content  # shorthand
 
         r = 0
+
+        # ── Group: Presets ─────────────────────────────
+        r = self._section_header(p, tr("presets_section_header", "Presets & Vorlagen"), r)
+
+        preset_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
+        preset_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+        preset_frame.grid_columnconfigure(0, weight=0)
+        preset_frame.grid_columnconfigure(1, weight=1)
+        preset_frame.grid_columnconfigure(2, weight=0)
+        preset_frame.grid_columnconfigure(3, weight=0)
+        preset_frame.grid_columnconfigure(4, weight=0)
+
+        tk.Label(
+            preset_frame, text=tr("preset_load_label", "Preset wählen:"), bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w"
+        ).grid(row=0, column=0, sticky="w", padx=(0, 8), pady=2)
+
+        self.preset_dropdown = tk.OptionMenu(preset_frame, self.selected_preset_var, "-")
+        self.preset_dropdown.configure(
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_button,
+        )
+        self.preset_dropdown.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+
+        apply_btn = tk.Button(
+            preset_frame,
+            text=tr("apply_preset_btn", "Anwenden"),
+            command=self._on_apply_preset,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=10,
+            pady=4,
+        )
+        apply_btn.grid(row=0, column=2, sticky="e", padx=(0, 4), pady=2)
+
+        save_btn = tk.Button(
+            preset_frame,
+            text=tr("save_preset_btn", "Als Preset speichern"),
+            command=self._on_save_preset,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=10,
+            pady=4,
+        )
+        save_btn.grid(row=0, column=3, sticky="e", padx=(0, 4), pady=2)
+
+        delete_btn = tk.Button(
+            preset_frame,
+            text=tr("delete_preset_btn", "Löschen"),
+            command=self._on_delete_preset,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=10,
+            pady=4,
+        )
+        delete_btn.grid(row=0, column=4, sticky="e", pady=2)
+
+        self._refresh_presets_dropdown()
+        r += 1
 
         # ── Group: Model ──────────────────────────────
         r = self._section_header(p, "Model", r)
@@ -3189,3 +3273,108 @@ class PhoenixPromptView(WorkspaceFrame):
 
         button.bind("<Enter>", on_enter, add="+")
         button.bind("<Leave>", on_leave, add="+")
+
+    def _on_apply_preset(self) -> None:
+        name = self.selected_preset_var.get()
+        if not name or name == "-":
+            return
+        preset = self.preset_manager.get_preset(name)
+        if preset:
+            self.apply_generation_settings(preset)
+
+    def _on_save_preset(self) -> None:
+        from tkinter import simpledialog, messagebox
+        name = simpledialog.askstring(
+            tr("preset_save_dialog_title", "Preset speichern"),
+            tr("preset_save_dialog_prompt", "Gib einen Namen für das Preset ein:")
+        )
+        if not name:
+            return
+
+        model_name = self.model_var.get()
+        repo = self.controller.repository
+        model_meta = repo.get_model(model_name)
+        controlnet_enabled = False
+        if model_meta:
+            capabilities = model_meta.get("capabilities", {})
+            controlnet_enabled = capabilities.get("controlnet", False)
+
+        try:
+            steps = int(self.steps_var.get())
+        except Exception:
+            steps = 20
+
+        try:
+            cfg = float(self.cfg_var.get())
+        except Exception:
+            cfg = 7.5
+
+        data = {
+            "prompt": self.prompt_text.get("1.0", "end-1c").strip(),
+            "negative_prompt": self.neg_prompt_text.get("1.0", "end-1c").strip(),
+            "model_name": model_name,
+            "width": int(self.width_var.get()) if self.width_var.get().isdigit() else 512,
+            "height": int(self.height_var.get()) if self.height_var.get().isdigit() else 512,
+            "steps": steps,
+            "cfg_scale": cfg,
+            "sampler": self.sampler_var.get(),
+            "scheduler": self.scheduler_var.get(),
+            "controlnet_enabled": controlnet_enabled,
+            "canny_low_threshold": int(self.canny_low_var.get()) if isinstance(self.canny_low_var.get(), int) else 50,
+            "canny_high_threshold": int(self.canny_high_var.get()) if isinstance(self.canny_high_var.get(), int) else 150,
+            "controlnet_conditioning_scale": float(self.conditioning_strength_var.get()) if isinstance(self.conditioning_strength_var.get(), (int, float)) else 1.0,
+            "reference_image_path": self._ref_image_path or ""
+        }
+
+        success = self.preset_manager.save_preset(name, data)
+        if success:
+            messagebox.showinfo(
+                tr("preset_save_dialog_title", "Preset speichern"),
+                tr("preset_save_success", "Preset '{name}' erfolgreich gespeichert.", name=name)
+            )
+            self._refresh_presets_dropdown()
+            self.selected_preset_var.set(name.lower().replace(" ", "_"))
+        else:
+            messagebox.showerror(
+                tr("preset_save_dialog_title", "Preset speichern"),
+                tr("preset_save_error", "Fehler beim Speichern des Presets.")
+            )
+
+    def _on_delete_preset(self) -> None:
+        from tkinter import messagebox
+        name = self.selected_preset_var.get()
+        if not name or name == "-":
+            return
+
+        confirm = messagebox.askyesno(
+            tr("delete_preset_btn", "Löschen"),
+            tr("preset_delete_confirm", "Möchtest du das Preset '{name}' wirklich löschen?", name=name)
+        )
+        if not confirm:
+            return
+
+        success = self.preset_manager.delete_preset(name)
+        if success:
+            messagebox.showinfo(
+                tr("delete_preset_btn", "Löschen"),
+                tr("preset_delete_success", "Preset '{name}' gelöscht.", name=name)
+            )
+            self._refresh_presets_dropdown()
+
+    def _refresh_presets_dropdown(self) -> None:
+        self.available_presets = self.preset_manager.list_presets()
+        if not self.available_presets:
+            self.available_presets = ["-"]
+
+        menu = self.preset_dropdown["menu"]
+        menu.delete(0, "end")
+
+        for p in self.available_presets:
+            menu.add_command(
+                label=p,
+                command=lambda value=p: self.selected_preset_var.set(value)
+            )
+
+        curr = self.selected_preset_var.get()
+        if curr not in self.available_presets:
+            self.selected_preset_var.set(self.available_presets[0])

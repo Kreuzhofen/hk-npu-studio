@@ -1,0 +1,17 @@
+{
+  "name": "Photorealistic",
+  "prompt": "Portrait of an astronaut in space, hyperrealistic, 8k resolution, cinematic lighting",
+  "negative_prompt": "cartoon, 3d render, illustration, ugly, bad anatomy",
+  "model_name": "Qualcomm Stable Diffusion 1.5 (HTP V73)",
+  "width": 512,
+  "height": 512,
+  "steps": 30,
+  "cfg_scale": 7.0,
+  "sampler": "Euler",
+  "scheduler": "Euler",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": ""
+}
