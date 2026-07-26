@@ -196,11 +196,6 @@ class PhoenixModelManagerView(tk.Frame):
         )
         self.inspector_panel.grid(row=1, column=1, sticky="nsew", padx=(12, 24), pady=(8, 16))
 
-        # Create and pack the download frame at the bottom of the inspector panel,
-        # so it is always visible without scrolling.
-        self.download_frame = tk.Frame(self.inspector_panel, bg=PHOENIX_THEME.card_bg)
-        self.download_frame.pack(side="bottom", fill="x", padx=16, pady=(10, 16))
-        self.download_frame.columnconfigure(0, weight=1)
 
         # Canvas & Scrollbar for vertical scrolling
         self.inspector_canvas = tk.Canvas(
@@ -280,8 +275,10 @@ class PhoenixModelManagerView(tk.Frame):
             (tr("version_label", "Version:"), 2),
             (tr("backend_label_colon", "Backend:"), 3),
             (tr("status_label_colon", "Status:"), 4),
-            (tr("description_label_colon", "Beschreibung:"), 5),
-            (tr("capabilities_label_colon", "Fähigkeiten:"), 6),
+            ("NPU-Anforderung:", 5),
+            ("Execution Provider:", 6),
+            (tr("description_label_colon", "Beschreibung:"), 7),
+            (tr("capabilities_label_colon", "Fähigkeiten:"), 8),
         ]
         for name, row in base_props:
             tk.Label(
@@ -297,8 +294,10 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspect_version = self._create_value_label(self.inspector_scroll_content, 2, 1)
         self.inspect_backend = self._create_value_label(self.inspector_scroll_content, 3, 1)
         self.inspect_status = self._create_value_label(self.inspector_scroll_content, 4, 1)
-        self.inspect_desc = self._create_value_label(self.inspector_scroll_content, 5, 1, wrap=True)
-        self.inspect_capabilities = self._create_value_label(self.inspector_scroll_content, 6, 1, wrap=True)
+        self.inspect_npu_reqs = self._create_value_label(self.inspector_scroll_content, 5, 1)
+        self.inspect_provider = self._create_value_label(self.inspector_scroll_content, 6, 1)
+        self.inspect_desc = self._create_value_label(self.inspector_scroll_content, 7, 1, wrap=True)
+        self.inspect_capabilities = self._create_value_label(self.inspector_scroll_content, 8, 1, wrap=True)
 
         tk.Label(
             self.inspector_scroll_content,
@@ -307,12 +306,12 @@ class PhoenixModelManagerView(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).grid(row=7, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
+        ).grid(row=9, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
 
         install_props = [
-            (tr("installed_label", "Installiert:"), 8),
-            (tr("download_status_label", "Downloadstatus:"), 9),
-            (tr("path_label_colon", "Pfad:"), 10),
+            (tr("installed_label", "Installiert:"), 10),
+            (tr("download_status_label", "Downloadstatus:"), 11),
+            (tr("path_label_colon", "Pfad:"), 12),
         ]
         for name, row in install_props:
             tk.Label(
@@ -324,9 +323,9 @@ class PhoenixModelManagerView(tk.Frame):
                 anchor="w"
             ).grid(row=row, column=0, sticky="nw", padx=(16, 4), pady=4)
 
-        self.inspect_installed = self._create_value_label(self.inspector_scroll_content, 8, 1)
-        self.inspect_download = self._create_value_label(self.inspector_scroll_content, 9, 1)
-        self.inspect_path = self._create_value_label(self.inspector_scroll_content, 10, 1, wrap=True)
+        self.inspect_installed = self._create_value_label(self.inspector_scroll_content, 10, 1)
+        self.inspect_download = self._create_value_label(self.inspector_scroll_content, 11, 1)
+        self.inspect_path = self._create_value_label(self.inspector_scroll_content, 12, 1, wrap=True)
 
         # Folder size & Samplers details
         tk.Label(
@@ -336,9 +335,9 @@ class PhoenixModelManagerView(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
             anchor="w"
-        ).grid(row=11, column=0, sticky="nw", padx=(16, 4), pady=4)
+        ).grid(row=13, column=0, sticky="nw", padx=(16, 4), pady=4)
         
-        self.inspect_size = self._create_value_label(self.inspector_scroll_content, 11, 1)
+        self.inspect_size = self._create_value_label(self.inspector_scroll_content, 13, 1)
 
         tk.Label(
             self.inspector_scroll_content,
@@ -347,14 +346,15 @@ class PhoenixModelManagerView(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
             anchor="w"
-        ).grid(row=12, column=0, sticky="nw", padx=(16, 4), pady=4)
+        ).grid(row=14, column=0, sticky="nw", padx=(16, 4), pady=4)
 
-        self.inspect_samplers = self._create_value_label(self.inspector_scroll_content, 12, 1, wrap=True)
+        self.inspect_samplers = self._create_value_label(self.inspector_scroll_content, 14, 1, wrap=True)
 
-        self.advanced_settings_button = tk.Button(
+        # Row 15: Activate Model Button (Quick Action)
+        self.activate_btn = tk.Button(
             self.inspector_scroll_content,
-            text=tr("advanced_settings_btn", "⚙️ Erweiterte Einstellungen..."),
-            command=self._open_advanced_settings,
+            text="Modell aktivieren",
+            command=self._activate_selected_model,
             bg=PHOENIX_THEME.accent,
             fg=PHOENIX_THEME.text_on_accent,
             activebackground=PHOENIX_THEME.accent_dark,
@@ -366,16 +366,47 @@ class PhoenixModelManagerView(tk.Frame):
             padx=12,
             pady=9,
         )
-        self.advanced_settings_button.grid(
-            row=13,
+        self.activate_btn.grid(
+            row=15,
             column=0,
             columnspan=2,
             sticky="ew",
             padx=16,
-            pady=(18, 16),
+            pady=(18, 4),
         )
+        self._add_button_hover(self.activate_btn)
 
-        # self.download_frame is already created and packed at the bottom of inspector_panel
+        # Row 16: Verify Paths Button (Quick Action)
+        self.verify_paths_btn = tk.Button(
+            self.inspector_scroll_content,
+            text="Pfade überprüfen",
+            command=self._verify_paths,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent_soft,
+            activeforeground=PHOENIX_THEME.text_primary,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=12,
+            pady=9,
+        )
+        self.verify_paths_btn.grid(
+            row=16,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=16,
+            pady=4,
+        )
+        self._add_button_hover(self.verify_paths_btn)
+
+        # Row 17: Advanced Settings Button
+        # Row 17: Download Frame (stacked quick actions)
+        self.download_frame = tk.Frame(self.inspector_scroll_content, bg=PHOENIX_THEME.card_bg)
+        self.download_frame.grid(row=17, column=0, columnspan=2, sticky="ew", padx=16, pady=4)
+        self.download_frame.columnconfigure(0, weight=1)
 
         self.download_button = tk.Button(
             self.download_frame,
@@ -393,6 +424,7 @@ class PhoenixModelManagerView(tk.Frame):
             pady=9,
         )
         self.download_button.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        self._add_button_hover(self.download_button)
 
         self.download_progress = ttk.Progressbar(
             self.download_frame,
@@ -410,6 +442,32 @@ class PhoenixModelManagerView(tk.Frame):
             anchor="w",
             justify="left"
         )
+
+        # Row 18: Advanced Settings Button
+        self.advanced_settings_button = tk.Button(
+            self.inspector_scroll_content,
+            text=tr("advanced_settings_btn", "⚙️ Erweiterte Einstellungen..."),
+            command=self._open_advanced_settings,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_muted,
+            activebackground=PHOENIX_THEME.accent_soft,
+            activeforeground=PHOENIX_THEME.text_primary,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=12,
+            pady=9,
+        )
+        self.advanced_settings_button.grid(
+            row=18,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=16,
+            pady=(4, 16),
+        )
+        self._add_button_hover(self.advanced_settings_button)
 
         # ==========================================
         # BOTTOM STATUS BAR
@@ -432,6 +490,59 @@ class PhoenixModelManagerView(tk.Frame):
             anchor="w"
         )
         self.status_lbl.pack(side="left", padx=12, pady=4)
+
+    def _add_button_hover(self, button: tk.Button, hover_bg: str | None = None, hover_fg: str | None = None) -> None:
+        original_bg = button.cget("bg")
+        original_fg = button.cget("fg")
+        h_bg = hover_bg or PHOENIX_THEME.accent
+        h_fg = hover_fg or PHOENIX_THEME.text_on_accent
+
+        def on_enter(event):
+            if str(button.cget("state")) != "disabled":
+                button.configure(bg=h_bg, fg=h_fg)
+
+        def on_leave(event):
+            if str(button.cget("state")) != "disabled":
+                button.configure(bg=original_bg, fg=original_fg)
+
+        button.bind("<Enter>", on_enter, add="+")
+        button.bind("<Leave>", on_leave, add="+")
+
+    def _activate_selected_model(self) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showinfo(tr("advanced_settings_title", "Erweiterte Einstellungen"), "Kein Modell ausgewählt.")
+            return
+        model_id = selected[0]
+        scanned = self.scanned_results.get(model_id) if hasattr(self, "scanned_results") else None
+        is_complete = scanned.get("is_complete", False) if scanned else False
+        if not is_complete:
+            messagebox.showwarning("Modell aktivieren", "Modell kann nicht aktiviert werden, da es unvollständig ist oder Dateien fehlen.")
+            return
+
+        self.controller.set_active_model_id(model_id)
+        self.refresh()
+        messagebox.showinfo("Modell aktivieren", f"Modell '{model_id}' wurde erfolgreich aktiviert.")
+
+    def _verify_paths(self) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showinfo("Pfade überprüfen", "Kein Modell ausgewählt.")
+            return
+        model_id = selected[0]
+        result = self.controller.validate_package(model_id)
+        self.refresh()
+
+        title = "Pfad-Validierung"
+        if result.get("is_fully_ready") or result.get("success"):
+            msg = f"Erfolgreich: Modell-Pfade und Manifest sind intakt.\n\nDetails:\n{result.get('message', 'Package ist vollständig.')}"
+            messagebox.showinfo(title, msg)
+        else:
+            issues = "\n".join(f"- {issue}" for issue in result.get("issues", []))
+            if not issues:
+                issues = result.get("message", "Package ist unvollständig oder fehlerhaft.")
+            msg = f"Fehler bei der Validierung:\n\n{issues}"
+            messagebox.showwarning(title, msg)
 
     def _advanced_popup_is_open(self) -> bool:
         try:
@@ -1333,7 +1444,12 @@ class PhoenixModelManagerView(tk.Frame):
             is_active = "✓" if model_id == active_model_id else ""
             
             is_complete = scanned.get("is_complete", False)
-            status_text = tr("einsatzbereit_auf_npu", "Einsatzbereit auf NPU") if is_complete else tr("fehlt_unvollstaendig", "Fehlt / Unvollständig")
+            if model_id == active_model_id:
+                status_text = "Aktiv"
+            elif is_complete:
+                status_text = "Bereit"
+            else:
+                status_text = "Fehlt"
             
             self.tree.insert(
                 "",
@@ -1417,23 +1533,67 @@ class PhoenixModelManagerView(tk.Frame):
         scanned = self.scanned_results.get(model_id) if hasattr(self, "scanned_results") else None
         
         # Check complete status
+        active_model_id = self.controller.get_active_model_id()
         is_complete = scanned.get("is_complete", False) if scanned else False
-        status_text = tr("einsatzbereit_auf_npu", "Einsatzbereit auf NPU") if is_complete else tr("fehlt_unvollstaendig", "Fehlt / Unvollständig")
+        
+        if model_id == active_model_id:
+            status_text = "Aktiv"
+            status_fg = PHOENIX_THEME.success
+        elif is_complete:
+            status_text = "Bereit"
+            status_fg = PHOENIX_THEME.accent
+        else:
+            status_text = "Fehlt"
+            status_fg = PHOENIX_THEME.text_muted
+
+        # Determine NPU requirements and Execution Provider
+        backend_name = str(model.get("backend") or "").lower()
+        if "qnn" in backend_name or "htp" in backend_name or "npu" in backend_name:
+            npu_reqs = "Qualcomm Hexagon HTP V73 (NPU)"
+            provider = "QNN Execution Provider"
+        else:
+            npu_reqs = "Keine (CPU-Inferenz)"
+            provider = "CPU Execution Provider (Stub)"
         
         # Compact inspector values
         self.inspect_name.configure(text=self._safe_text(model.get("display_name")))
         self.inspect_version.configure(text=self._safe_text(model.get("version")))
         self.inspect_backend.configure(text=self._safe_text(model.get("backend")))
+        self.inspect_npu_reqs.configure(text=npu_reqs)
+        self.inspect_provider.configure(text=provider)
         
         # Status badge
         self.inspect_status.configure(
             text=status_text,
             bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.accent if is_complete else PHOENIX_THEME.text_muted,
+            fg=status_fg,
             font=PHOENIX_THEME.font_button,
             padx=6,
             pady=2,
         )
+
+        # Dynamic Activation Button State
+        if model_id == active_model_id:
+            self.activate_btn.configure(
+                text="Bereits aktiv",
+                state="disabled",
+                bg=PHOENIX_THEME.elevated_bg,
+                fg=PHOENIX_THEME.text_disabled,
+            )
+        elif not is_complete:
+            self.activate_btn.configure(
+                text="Aktivieren (Dateien fehlen)",
+                state="disabled",
+                bg=PHOENIX_THEME.elevated_bg,
+                fg=PHOENIX_THEME.text_disabled,
+            )
+        else:
+            self.activate_btn.configure(
+                text="Modell aktivieren",
+                state="normal",
+                bg=PHOENIX_THEME.accent,
+                fg=PHOENIX_THEME.text_on_accent,
+            )
         
         self.inspect_desc.configure(text=self._safe_text(model.get("description")))
         self.inspect_installed.configure(text=self._format_bool(is_complete))
@@ -1470,9 +1630,9 @@ class PhoenixModelManagerView(tk.Frame):
 
         # Download panel visibility and state update
         if is_complete:
-            self.download_frame.pack_forget()
+            self.download_frame.grid_remove()
         else:
-            self.download_frame.pack(side="bottom", fill="x", padx=16, pady=(10, 16))
+            self.download_frame.grid()
             if self.downloader.is_downloading(model_id):
                 self.download_button.configure(
                     text=tr("cancel", "Abbrechen"),
