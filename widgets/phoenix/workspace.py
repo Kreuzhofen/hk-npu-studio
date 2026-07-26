@@ -102,8 +102,6 @@ class PhoenixWorkspace(tk.Frame):
         self.content_host.grid_columnconfigure(0, weight=1)
 
         self.right_panel = self._create_right_panel()
-        if self.right_panel is not None:
-            self.right_panel.grid(row=1, column=2, sticky="nse", padx=(0, 16), pady=16)
 
     def _create_right_panel(self) -> tk.Frame | None:
         try:
@@ -122,13 +120,9 @@ class PhoenixWorkspace(tk.Frame):
         for view in self._views.values():
             view.grid_forget()
 
-        # Hide global right panel for workspaces with their own inspector (UX-004.1)
-        _VIEWS_WITH_OWN_INSPECTOR = {"models", "prompt", "gallery"}
+        # Keep global right panel hidden (CN-020 UI simplify)
         if self.right_panel is not None:
-            if view_name in _VIEWS_WITH_OWN_INSPECTOR:
-                self.right_panel.grid_forget()
-            else:
-                self.right_panel.grid(row=1, column=2, sticky="nse", padx=(0, 16), pady=16)
+            self.right_panel.grid_forget()
 
         view = self._get_or_create_view(view_name)
         view.grid(row=0, column=0, sticky="nsew")

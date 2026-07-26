@@ -28,3 +28,20 @@ TILE_SIZE = 128
 SCALE = 4
 OUT_TILE_SIZE = TILE_SIZE * SCALE
 REALESRGAN_OUTPUT_SHAPE = (1, OUT_TILE_SIZE, OUT_TILE_SIZE, 3)
+
+import json
+import os
+
+HF_TOKEN = ""
+try:
+    if PREFERENCES_PATH.exists():
+        with open(PREFERENCES_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                HF_TOKEN = data.get("hf_token", "")
+except Exception:
+    pass
+
+if HF_TOKEN:
+    os.environ["HF_TOKEN"] = HF_TOKEN
+

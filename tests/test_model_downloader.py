@@ -228,7 +228,99 @@ class ModelDownloaderTests(unittest.TestCase):
         
         # Verify the custom/localized error message
         final_report = progress_reports[-1]
-        self.assertIn("Authentifizierung fehlgeschlagen", final_report["error_message"])
+        msg = final_report["error_message"]
+        self.assertTrue(
+            "Authentifizierung fehlgeschlagen" in msg or "Authentication failed" in msg,
+            f"Expected auth failed message, got: {msg}"
+        )
+
+    @patch("urllib.request.urlopen")
+    def test_404_not_found_error(self, mock_urlopen: MagicMock) -> None:
+        import urllib.error
+        mock_urlopen.side_effect = urllib.error.HTTPError(
+            url="http://example.com/sdxl.zip",
+            code=404,
+            msg="Not Found",
+            hdrs=None,
+            fp=io.BytesIO(b"")
+        )
+
+        progress_reports = []
+        def callback(report: dict[str, Any]) -> None:
+            progress_reports.append(report.copy())
+
+        self.downloader.start_download(
+            model_id="sdxl_base",
+            progress_callback=callback,
+            url="http://example.com/sdxl.zip"
+        )
+
+        thread = self.downloader._active_threads.get("sdxl_base")
+        if thread:
+            thread.join(timeout=5.0)
+
+        # Check that it failed
+        statuses = [r["status"] for r in progress_reports]
+        self.assertIn("failed", statuses)
+        
+        # Verify the custom/localized error message
+        final_report = progress_reports[-1]
+        msg = final_report["error_message"]
+        self.assertTrue(
+            "Modell nicht gefunden" in msg or "Model not found" in msg,
+            f"Expected model not found message, got: {msg}"
+        )
+
+    @patch("urllib.request.urlopen")
+    def test_single_file_download_success(self, mock_urlopen: MagicMock) -> None:
+        dummy_safetensors = b"dummy safetensors bytes"
+        checksum = hashlib.sha256(dummy_safetensors).hexdigest()
+
+        # Mock the network response
+        class MockResponse:
+            def __init__(self, data: bytes) -> None:
+                self.data = io.BytesIO(data)
+                self.headers = {"Content-Length": str(len(data))}
+            def read(self, amt: int | None = None) -> bytes:
+                return self.data.read(amt)
+            def __enter__(self) -> MockResponse:
+                return self
+            def __exit__(self, *args: Any) -> None:
+                pass
+
+        mock_urlopen.return_value = MockResponse(dummy_safetensors)
+
+        # Temporarily override checksum mapping
+        original_checksum = self.downloader.MODEL_CHECKSUMS.get("sdxl_base")
+        self.downloader.MODEL_CHECKSUMS["sdxl_base"] = checksum
+
+        progress_reports = []
+        def callback(report: dict[str, Any]) -> None:
+            progress_reports.append(report.copy())
+
+        self.downloader.start_download(
+            model_id="sdxl_base",
+            progress_callback=callback,
+            url="http://example.com/sd_xl_base_1.0.safetensors"
+        )
+
+        thread = self.downloader._active_threads.get("sdxl_base")
+        if thread:
+            thread.join(timeout=5.0)
+
+        # Verify completion
+        statuses = [r["status"] for r in progress_reports]
+        self.assertIn("completed", statuses)
+        self.assertNotIn("failed", statuses)
+
+        # Restore original checksum mapping
+        if original_checksum:
+            self.downloader.MODEL_CHECKSUMS["sdxl_base"] = original_checksum
+
+        # Check that file was moved to target directory
+        expected_file = self.downloader.MODEL_TARGETS["sdxl_base"] / "sd_xl_base_1.0.safetensors"
+        self.assertTrue(expected_file.exists())
+        self.assertEqual(expected_file.read_bytes(), dummy_safetensors)
 
 
 if __name__ == "__main__":

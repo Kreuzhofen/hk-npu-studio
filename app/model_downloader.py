@@ -28,14 +28,14 @@ class ModelDownloader:
         "stable_diffusion_v1_5_qnn": "https://huggingface.co/qualcomm/stable-diffusion-v1-5-qnn/resolve/main/stable_diffusion_v1_5_qnn.zip",
         "controlnet_canny_qnn": "https://huggingface.co/qualcomm/controlnet-canny-qnn/resolve/main/controlnet_canny_qnn.zip",
         "stable_diffusion_v2_1_qnn": "https://huggingface.co/qualcomm/stable-diffusion-v2-1-qnn/resolve/main/stable_diffusion_v2_1_qnn.zip",
-        "sdxl_base": "https://huggingface.co/qualcomm/sdxl-base-qnn/resolve/main/sdxl_base.zip",
+        "sdxl_base": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors",
     }
 
     MODEL_CHECKSUMS = {
         "stable_diffusion_v1_5_qnn": "a1b2c3d4e5f60708090a0b0c0d0e0f1213141516171819202122232425262728",
         "controlnet_canny_qnn": "b2c3d4e5f6a708090a0b0c0d0e0f121314151617181920212223242526272829",
         "stable_diffusion_v2_1_qnn": "c3d4e5f6a7b8090a0b0c0d0e0f12131415161718192021222324252627282930",
-        "sdxl_base": "d4e5f6a7b8c9090a0b0c0d0e0f1213141516171819202122232425262728293031",
+        "sdxl_base": "31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b",
     }
 
     def __init__(self) -> None:
@@ -178,14 +178,20 @@ class ModelDownloader:
             if zipfile.is_zipfile(download_path):
                 with zipfile.ZipFile(download_path, "r") as zip_ref:
                     zip_ref.extractall(target_dir)
+                self._cleanup_file(download_path)
             elif tarfile.is_tarfile(download_path):
                 with tarfile.open(download_path, "r:*") as tar_ref:
                     tar_ref.extractall(target_dir)
+                self._cleanup_file(download_path)
+            elif download_path.suffix.lower() in {".safetensors", ".bin", ".onnx", ".json"}:
+                import shutil
+                dest_path = target_dir / download_path.name
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                if dest_path.exists():
+                    dest_path.unlink()
+                shutil.move(str(download_path), str(dest_path))
             else:
                 raise ValueError("Unsupported archive format. Expected ZIP or TAR.")
-
-            # Cleanup download archive
-            self._cleanup_file(download_path)
 
             progress_callback({
                 "status": "completed",
@@ -201,6 +207,9 @@ class ModelDownloader:
             if exc.code == 401:
                 from app.i18n import tr
                 error_msg = tr("auth_failed_hf_token", "Authentifizierung fehlgeschlagen: Bitte Hugging Face Token hinterlegen")
+            elif exc.code == 404:
+                from app.i18n import tr
+                error_msg = tr("model_not_found_404", "Modell nicht gefunden: Die angeforderte Datei existiert nicht auf dem Server (404 Not Found).")
             else:
                 error_msg = f"HTTP Error {exc.code}: {exc.reason}"
             progress_callback({

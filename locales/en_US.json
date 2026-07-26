@@ -174,5 +174,21 @@
   "download_starting": "Starting download...",
   "download_cancelling": "Cancelling download...",
   "cancel": "Cancel",
-  "auth_failed_hf_token": "Authentication failed: Please provide a Hugging Face Token"
+  "auth_failed_hf_token": "Authentication failed: Please provide a Hugging Face Token",
+  "settings_title": "Settings",
+  "settings_subtitle": "Configure application preferences, paths, and API access",
+  "hf_integration_title": "Hugging Face Integration",
+  "hf_integration_desc": "Provide your Hugging Face User Access Token (HF_TOKEN) to unlock access to restricted models (e.g., SDXL).",
+  "hf_token_label": "Hugging Face Access Token (HF_TOKEN):",
+  "show_token": "Show",
+  "hide_token": "Hide",
+  "save_settings": "Save",
+  "test_token_btn": "Test Token",
+  "settings_save_success": "Settings saved successfully.",
+  "settings_save_failed": "Error saving settings.",
+  "testing_token_progress": "Checking connection to Hugging Face...",
+  "no_token_provided": "No token provided.",
+  "token_test_success": "Token is valid.",
+  "token_test_unauthorized": "Invalid token (401 Unauthorized).",
+  "model_not_found_404": "Model not found: The requested file does not exist on the server (404 Not Found)."
 }

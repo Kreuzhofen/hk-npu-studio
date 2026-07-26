@@ -196,6 +196,12 @@ class PhoenixModelManagerView(tk.Frame):
         )
         self.inspector_panel.grid(row=1, column=1, sticky="nsew", padx=(12, 24), pady=(8, 16))
 
+        # Create and pack the download frame at the bottom of the inspector panel,
+        # so it is always visible without scrolling.
+        self.download_frame = tk.Frame(self.inspector_panel, bg=PHOENIX_THEME.card_bg)
+        self.download_frame.pack(side="bottom", fill="x", padx=16, pady=(10, 16))
+        self.download_frame.columnconfigure(0, weight=1)
+
         # Canvas & Scrollbar for vertical scrolling
         self.inspector_canvas = tk.Canvas(
             self.inspector_panel,
@@ -369,9 +375,7 @@ class PhoenixModelManagerView(tk.Frame):
             pady=(18, 16),
         )
 
-        self.download_frame = tk.Frame(self.inspector_scroll_content, bg=PHOENIX_THEME.card_bg)
-        self.download_frame.grid(row=14, column=0, columnspan=2, sticky="ew", padx=16, pady=(10, 16))
-        self.download_frame.columnconfigure(0, weight=1)
+        # self.download_frame is already created and packed at the bottom of inspector_panel
 
         self.download_button = tk.Button(
             self.download_frame,
@@ -1466,9 +1470,9 @@ class PhoenixModelManagerView(tk.Frame):
 
         # Download panel visibility and state update
         if is_complete:
-            self.download_frame.grid_remove()
+            self.download_frame.pack_forget()
         else:
-            self.download_frame.grid()
+            self.download_frame.pack(side="bottom", fill="x", padx=16, pady=(10, 16))
             if self.downloader.is_downloading(model_id):
                 self.download_button.configure(
                     text=tr("cancel", "Abbrechen"),

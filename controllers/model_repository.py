@@ -189,8 +189,17 @@ class ModelRepository:
         temporary_path = path.with_suffix(path.suffix + ".tmp")
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
+            data = {}
+            if path.exists():
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+            if not isinstance(data, dict):
+                data = {}
+            data["active_model_id"] = model_id
             temporary_path.write_text(
-                json.dumps({"active_model_id": model_id}, indent=2),
+                json.dumps(data, indent=2),
                 encoding="utf-8",
             )
             temporary_path.replace(path)
