@@ -160,5 +160,19 @@
   "einsatzbereit_auf_npu": "Ready on NPU",
   "fehlt_unvollstaendig": "Missing / Incomplete",
   "folder_size_label": "File Size:",
-  "supported_samplers_label": "Supported Samplers:"
+  "supported_samplers_label": "Supported Samplers:",
+  "download_model_btn": "Download Model",
+  "downloading_status": "Downloading... {percent:.1f}% ({speed})",
+  "verifying_status": "Verifying checksum...",
+  "extracting_status": "Extracting model package...",
+  "download_completed_title": "Download Completed",
+  "download_completed_msg": "The model was successfully downloaded and extracted.",
+  "download_failed_title": "Download Failed",
+  "download_failed_msg": "Download failed: {error}",
+  "download_cancelled_title": "Download Cancelled",
+  "download_cancelled_msg": "The download was cancelled.",
+  "download_starting": "Starting download...",
+  "download_cancelling": "Cancelling download...",
+  "cancel": "Cancel",
+  "auth_failed_hf_token": "Authentication failed: Please provide a Hugging Face Token"
 }

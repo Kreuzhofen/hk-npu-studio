@@ -58,6 +58,9 @@ class PhoenixModelManagerView(tk.Frame):
         self._advanced_popup: tk.Toplevel | None = None
         self._advanced_return_focus: tk.Misc | None = None
 
+        from app.model_downloader import ModelDownloader
+        self.downloader = ModelDownloader()
+
         self._build()
         self.refresh()
 
@@ -127,6 +130,15 @@ class PhoenixModelManagerView(tk.Frame):
             font=PHOENIX_THEME.font_button,
             borderwidth=0,
             relief="flat",
+        )
+        style.configure(
+            "Phoenix.Horizontal.TProgressbar",
+            thickness=10,
+            troughcolor=PHOENIX_THEME.elevated_bg,
+            background=PHOENIX_THEME.accent,
+            bordercolor=PHOENIX_THEME.border,
+            lightcolor=PHOENIX_THEME.border,
+            darkcolor=PHOENIX_THEME.border,
         )
         style.map(
             "Phoenix.Treeview",
@@ -355,6 +367,44 @@ class PhoenixModelManagerView(tk.Frame):
             sticky="ew",
             padx=16,
             pady=(18, 16),
+        )
+
+        self.download_frame = tk.Frame(self.inspector_scroll_content, bg=PHOENIX_THEME.card_bg)
+        self.download_frame.grid(row=14, column=0, columnspan=2, sticky="ew", padx=16, pady=(10, 16))
+        self.download_frame.columnconfigure(0, weight=1)
+
+        self.download_button = tk.Button(
+            self.download_frame,
+            text=tr("download_model_btn", "Modell herunterladen"),
+            command=self._start_model_download,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent_dark,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=12,
+            pady=9,
+        )
+        self.download_button.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+
+        self.download_progress = ttk.Progressbar(
+            self.download_frame,
+            orient="horizontal",
+            mode="determinate",
+            style="Phoenix.Horizontal.TProgressbar"
+        )
+
+        self.download_status_lbl = tk.Label(
+            self.download_frame,
+            text="",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            justify="left"
         )
 
         # ==========================================
@@ -1413,6 +1463,108 @@ class PhoenixModelManagerView(tk.Frame):
 
         # Update status bar feedback: "Modell ausgewählt: <Modellname>"
         self.status_lbl.configure(text=tr("model_selected_status", "Modell ausgewählt: {name}", name=self._safe_text(model.get('display_name'))))
+
+        # Download panel visibility and state update
+        if is_complete:
+            self.download_frame.grid_remove()
+        else:
+            self.download_frame.grid()
+            if self.downloader.is_downloading(model_id):
+                self.download_button.configure(
+                    text=tr("cancel", "Abbrechen"),
+                    command=self._cancel_model_download,
+                    bg=PHOENIX_THEME.elevated_bg,
+                    fg=PHOENIX_THEME.text_primary,
+                )
+                self.download_progress.grid(row=1, column=0, sticky="ew", pady=4)
+                self.download_status_lbl.grid(row=2, column=0, sticky="ew")
+            else:
+                self.download_button.configure(
+                    text=tr("download_model_btn", "Modell herunterladen"),
+                    command=self._start_model_download,
+                    bg=PHOENIX_THEME.accent,
+                    fg=PHOENIX_THEME.text_on_accent,
+                )
+                self.download_progress.grid_remove()
+                self.download_status_lbl.grid_remove()
+
+    def _start_model_download(self) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            return
+        model_id = selected[0]
+        
+        # Show progress widgets immediately
+        self.download_button.configure(
+            text=tr("cancel", "Abbrechen"),
+            command=self._cancel_model_download,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+        )
+        self.download_progress.configure(value=0.0)
+        self.download_progress.grid(row=1, column=0, sticky="ew", pady=4)
+        self.download_status_lbl.configure(text=tr("download_starting", "Download wird gestartet..."))
+        self.download_status_lbl.grid(row=2, column=0, sticky="ew")
+
+        # Start download using ModelDownloader
+        self.downloader.start_download(
+            model_id=model_id,
+            progress_callback=lambda report: self._on_download_progress(model_id, report)
+        )
+
+    def _cancel_model_download(self) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            return
+        model_id = selected[0]
+        self.downloader.cancel_download(model_id)
+        self.download_status_lbl.configure(text=tr("download_cancelling", "Download wird abgebrochen..."))
+
+    def _on_download_progress(self, model_id: str, report: dict[str, Any]) -> None:
+        self.after_idle(self._update_download_ui, model_id, report)
+
+    def _update_download_ui(self, model_id: str, report: dict[str, Any]) -> None:
+        # Check if the model is still selected
+        selected = self.tree.selection()
+        if not selected or selected[0] != model_id:
+            # If the user changed selection, we still want to refresh the table once completed
+            if report["status"] in {"completed", "failed", "cancelled"}:
+                self.refresh()
+            return
+
+        status = report["status"]
+        percent = report["percent"]
+        speed = report.get("speed", 0.0)
+        error_msg = report.get("error_message")
+
+        if status == "downloading":
+            self.download_progress.configure(value=percent)
+            self.download_progress.grid(row=1, column=0, sticky="ew", pady=4)
+            
+            speed_text = f"{speed:.2f} MB/s" if speed > 0 else "— MB/s"
+            status_text = tr("downloading_status", "Lade herunter... {percent:.1f}% ({speed})", percent=percent, speed=speed_text)
+            self.download_status_lbl.configure(text=status_text)
+            self.download_status_lbl.grid(row=2, column=0, sticky="ew")
+        
+        elif status == "verifying":
+            self.download_progress.configure(value=100.0)
+            self.download_status_lbl.configure(text=tr("verifying_status", "Prüfsumme wird verifiziert..."))
+        
+        elif status == "extracting":
+            self.download_progress.configure(value=100.0)
+            self.download_status_lbl.configure(text=tr("extracting_status", "Modell wird entpackt..."))
+            
+        elif status == "completed":
+            self.refresh()
+            messagebox.showinfo(tr("download_completed_title", "Download abgeschlossen"), tr("download_completed_msg", "Das Modell wurde erfolgreich heruntergeladen und entpackt."))
+            
+        elif status == "failed":
+            self.refresh()
+            messagebox.showerror(tr("download_failed_title", "Download fehlgeschlagen"), tr("download_failed_msg", "Download fehlgeschlagen: {error}", error=error_msg or "Unbekannter Fehler"))
+            
+        elif status == "cancelled":
+            self.refresh()
+            messagebox.showinfo(tr("download_cancelled_title", "Download abgebrochen"), tr("download_cancelled_msg", "Der Download wurde abgebrochen."))
 
     def _format_validation_summary(self, validation: dict[str, object]) -> str:
         issues = validation.get("issues") if isinstance(validation, dict) else []

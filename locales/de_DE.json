@@ -160,5 +160,19 @@
   "einsatzbereit_auf_npu": "Einsatzbereit auf NPU",
   "fehlt_unvollstaendig": "Fehlt / Unvollständig",
   "folder_size_label": "Dateigröße:",
-  "supported_samplers_label": "Unterstützte Sampler:"
+  "supported_samplers_label": "Unterstützte Sampler:",
+  "download_model_btn": "Modell herunterladen",
+  "downloading_status": "Lade herunter... {percent:.1f}% ({speed})",
+  "verifying_status": "Prüfsumme wird verifiziert...",
+  "extracting_status": "Modell wird entpackt...",
+  "download_completed_title": "Download abgeschlossen",
+  "download_completed_msg": "Das Modell wurde erfolgreich heruntergeladen und entpackt.",
+  "download_failed_title": "Download fehlgeschlagen",
+  "download_failed_msg": "Download failed: {error}",
+  "download_cancelled_title": "Download abgebrochen",
+  "download_cancelled_msg": "Der Download wurde abgebrochen.",
+  "download_starting": "Download wird gestartet...",
+  "download_cancelling": "Download wird abgebrochen...",
+  "cancel": "Abbrechen",
+  "auth_failed_hf_token": "Authentifizierung fehlgeschlagen: Bitte Hugging Face Token hinterlegen"
 }
