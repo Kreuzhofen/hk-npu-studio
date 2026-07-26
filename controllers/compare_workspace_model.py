@@ -14,6 +14,9 @@ class CompareImageMetadata:
     image_format: str
     color_mode: str
     file_size: str
+    prompt: str = "-"
+    seed: str = "-"
+    sampler: str = "-"
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,19 @@ class CompareWorkspaceModel:
             status=self.state.status,
             original_metadata=self.state.original_metadata,
             output_metadata=None,
+        )
+
+    def clear_original(self) -> None:
+        self.original_image = None
+        self.state = CompareWorkspaceState(
+            original_loaded=False,
+            output_loaded=self.state.output_loaded,
+            zoom_label=self.state.zoom_label,
+            zoom_scale=self.state.zoom_scale,
+            sync_label=self.state.sync_label,
+            status=self.state.status,
+            original_metadata=None,
+            output_metadata=self.state.output_metadata,
         )
 
     def swap_images(self) -> None:

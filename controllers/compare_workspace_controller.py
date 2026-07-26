@@ -49,6 +49,9 @@ class CompareWorkspaceController:
     def clear_output(self) -> None:
         self.model.clear_output()
 
+    def clear_original(self) -> None:
+        self.model.clear_original()
+
     def get_original_image(self) -> Image.Image | None:
         return self.model.original_image
 
@@ -121,6 +124,22 @@ class CompareWorkspaceController:
 
             display_image = image.convert("RGB")
 
+        # Check for sidecar JSON
+        prompt = "-"
+        seed = "-"
+        sampler = "-"
+        sidecar = path.with_suffix(".json")
+        if sidecar.exists():
+            try:
+                import json
+                with open(sidecar, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    prompt = data.get("prompt", "-")
+                    seed = str(data.get("seed", "-"))
+                    sampler = data.get("sampler", "-")
+            except Exception:
+                pass
+
         metadata = CompareImageMetadata(
             path=path,
             filename=path.name,
@@ -128,6 +147,9 @@ class CompareWorkspaceController:
             image_format=image_format,
             color_mode=color_mode,
             file_size=self._format_file_size(path.stat().st_size),
+            prompt=prompt,
+            seed=seed,
+            sampler=sampler,
         )
         return display_image, metadata
 

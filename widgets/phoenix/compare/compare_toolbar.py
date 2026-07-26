@@ -26,6 +26,7 @@ class CompareToolbar(WorkspaceToolbarBase):
         on_zoom_200: Callable[[], None],
         on_sync: Callable[[], None],
         on_swap: Callable[[], None],
+        on_compare_metadata: Callable[[], None],
     ) -> None:
         super().__init__(master)
         self.on_open_original = on_open_original
@@ -36,6 +37,7 @@ class CompareToolbar(WorkspaceToolbarBase):
         self.on_zoom_200 = on_zoom_200
         self.on_sync = on_sync
         self.on_swap = on_swap
+        self.on_compare_metadata = on_compare_metadata
         self._build()
 
     def _build(self) -> None:
@@ -133,5 +135,12 @@ class CompareToolbar(WorkspaceToolbarBase):
             IconManager.get_label("compare", "Swap"),
             self.on_swap,
             self.BUTTON_WIDTH_MEDIUM,
+        ).pack(side="left")
+        self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
+        self.toolbar_button(
+            group,
+            "Metadaten vergleichen",
+            self.on_compare_metadata,
+            160,
         ).pack(side="left")
         return group
