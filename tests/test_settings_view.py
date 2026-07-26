@@ -68,7 +68,9 @@ class SettingsViewTests(unittest.TestCase):
         self.view._save_settings()
         
         # Verify save_settings called with correct argument
-        mock_save.assert_called_once_with({"hf_token": "new_secret_token"})
+        mock_save.assert_called_once()
+        saved_data = mock_save.call_args[0][0]
+        self.assertEqual(saved_data.get("hf_token"), "new_secret_token")
         status_text = self.view.status_lbl.cget("text")
         self.assertTrue(
             "erfolgreich gespeichert" in status_text or "Settings saved successfully" in status_text,

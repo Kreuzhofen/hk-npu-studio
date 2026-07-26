@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import os
 import threading
 import tkinter as tk
 import webbrowser
-from tkinter import messagebox
+from tkinter import ttk, filedialog, messagebox
 
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
@@ -13,13 +14,61 @@ from app.settings_manager import SettingsManager
 class PhoenixSettingsView(tk.Frame):
     def __init__(self, master: tk.Misc) -> None:
         super().__init__(master, bg=PHOENIX_THEME.content_bg)
+        
+        # Configure variables
+        self.thread_var = tk.StringVar(value="Auto")
+        self.ep_var = tk.StringVar(value="QNN EP")
+        self.hw_acc_var = tk.BooleanVar(value=True)
+        self.theme_var = tk.StringVar(value="Dunkel")
+        self.language_var = tk.StringVar(value="Deutsch")
+        
         self._build()
+        self._load_values()
         self._setup_context_menus()
+
+    def _add_button_hover(self, button: tk.Button, hover_bg: str | None = None, hover_fg: str | None = None) -> None:
+        original_bg = button.cget("bg")
+        original_fg = button.cget("fg")
+        h_bg = hover_bg or PHOENIX_THEME.accent
+        h_fg = hover_fg or PHOENIX_THEME.text_on_accent
+
+        def on_enter(event):
+            if str(button.cget("state")) != "disabled":
+                button.configure(bg=h_bg, fg=h_fg)
+
+        def on_leave(event):
+            if str(button.cget("state")) != "disabled":
+                button.configure(bg=original_bg, fg=original_fg)
+
+        button.bind("<Enter>", on_enter, add="+")
+        button.bind("<Leave>", on_leave, add="+")
+
+    def _create_card(self, parent: tk.Widget, title: str, row: int, col: int) -> tk.Frame:
+        card = tk.Frame(
+            parent,
+            bg=PHOENIX_THEME.card_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+            bd=0,
+        )
+        card.grid(row=row, column=col, sticky="nsew", padx=8, pady=8)
+        
+        # Title Label
+        tk.Label(
+            card,
+            text=title,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        ).pack(fill="x", padx=16, pady=(16, 12))
+        
+        return card
 
     def _build(self) -> None:
         # Title Block
         title_frame = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
-        title_frame.pack(fill="x", padx=24, pady=(24, 16))
+        title_frame.pack(fill="x", padx=24, pady=(24, 12))
 
         tk.Label(
             title_frame,
@@ -37,128 +86,30 @@ class PhoenixSettingsView(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
             anchor="w",
-        ).pack(fill="x", pady=(4, 0))
+        ).pack(fill="x", pady=(2, 0))
 
-        # Main Settings Container Card
-        self.card = tk.Frame(
-            self,
-            bg=PHOENIX_THEME.card_bg,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
-            bd=0,
-        )
-        self.card.pack(fill="both", expand=True, padx=24, pady=(0, 24))
-
-        # Hugging Face Settings Section
-        section_frame = tk.Frame(self.card, bg=PHOENIX_THEME.card_bg)
-        section_frame.pack(fill="x", padx=20, pady=20)
-
-        tk.Label(
-            section_frame,
-            text=tr("hf_integration_title", "Hugging Face Integration"),
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_button,
-            anchor="w",
-        ).pack(fill="x", pady=(0, 4))
-
-        tk.Label(
-            section_frame,
-            text=tr("hf_integration_desc", "Geben Sie Ihren Hugging Face User Access Token (HF_TOKEN) an, um Zugriff auf eingeschränkte Modelle (z.B. SDXL) freizuschalten."),
-            bg=PHOENIX_THEME.card_bg,
+        # Footer Action Bar (Fixed at the bottom)
+        footer_frame = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        footer_frame.pack(side="bottom", fill="x", padx=24, pady=(8, 24))
+        
+        # Left-aligned status message
+        self.status_lbl = tk.Label(
+            footer_frame,
+            text="",
+            bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption,
             anchor="w",
-            justify="left",
-            wraplength=700,
-        ).pack(fill="x", pady=(0, 16))
-
-        # Token Form Row
-        form_frame = tk.Frame(section_frame, bg=PHOENIX_THEME.card_bg)
-        form_frame.pack(fill="x", pady=(0, 16))
-        form_frame.columnconfigure(0, weight=1)
-
-        tk.Label(
-            form_frame,
-            text=tr("hf_token_label", "Hugging Face Access Token (HF_TOKEN):"),
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_secondary,
-            font=PHOENIX_THEME.font_body,
-            anchor="w",
-        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
-
-        # Entry field
-        self.token_entry = tk.Entry(
-            form_frame,
-            show="*",
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            insertbackground=PHOENIX_THEME.text_primary,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
-            bd=0,
-            font=PHOENIX_THEME.font_body,
         )
-        self.token_entry.grid(row=1, column=0, sticky="ew", ipady=8, ipadx=8, padx=(0, 8))
+        self.status_lbl.pack(side="left", fill="x", expand=True)
 
-        # Populate with existing token
-        self.token_entry.insert(0, SettingsManager.get_hf_token())
-
-        # Toggle Show/Hide Button
-        self.show_toggle = False
-        self.toggle_btn = tk.Button(
-            form_frame,
-            text=tr("show_token", "Anzeigen"),
-            command=self._toggle_token_visibility,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.border,
-            activeforeground=PHOENIX_THEME.text_primary,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=12,
-            pady=6,
-        )
-        self.toggle_btn.grid(row=1, column=1, sticky="ns")
-
-        # Dynamic Token Help Label (clickable instruction link)
-        self.token_help_lbl = tk.Label(
-            form_frame,
-            text="Token erstellen unter: https://huggingface.co/settings/tokens ↗",
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.accent,
-            font=PHOENIX_THEME.font_caption,
-            anchor="w",
-            justify="left",
-            cursor="hand2"
-        )
-        self.token_help_lbl.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
-        self.token_help_lbl.bind("<Button-1>", lambda e: webbrowser.open("https://huggingface.co/settings/tokens"))
-
-        # Dynamic Format/Status check label
-        self.token_format_lbl = tk.Label(
-            form_frame,
-            text="",
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_secondary,
-            font=PHOENIX_THEME.font_caption,
-            anchor="w",
-            justify="left"
-        )
-        self.token_format_lbl.grid(row=3, column=0, columnspan=2, sticky="w", pady=(4, 0))
-
-        # Bind validation update to typing events
-        self.token_entry.bind("<KeyRelease>", self._update_token_format_status)
-
-        # Action Buttons Row
-        actions_frame = tk.Frame(section_frame, bg=PHOENIX_THEME.card_bg)
-        actions_frame.pack(fill="x", pady=10)
+        # Right-aligned actions
+        btn_frame = tk.Frame(footer_frame, bg=PHOENIX_THEME.content_bg)
+        btn_frame.pack(side="right")
 
         # Save Button
         self.save_btn = tk.Button(
-            actions_frame,
+            btn_frame,
             text=tr("save_settings", "Speichern"),
             command=self._save_settings,
             bg=PHOENIX_THEME.accent,
@@ -169,16 +120,172 @@ class PhoenixSettingsView(tk.Frame):
             relief="flat",
             font=PHOENIX_THEME.font_button,
             cursor="hand2",
-            padx=16,
+            padx=18,
             pady=8,
         )
-        self.save_btn.pack(side="left", padx=(0, 10))
+        self.save_btn.pack(side="left", padx=6)
+        self._add_button_hover(self.save_btn)
 
-        # Test Button
-        self.test_btn = tk.Button(
-            actions_frame,
-            text=tr("test_token_btn", "Token testen"),
-            command=self._test_token,
+        # Reset Button
+        self.reset_btn = tk.Button(
+            btn_frame,
+            text="Zurücksetzen",
+            command=self._reset_defaults,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent_soft,
+            activeforeground=PHOENIX_THEME.text_primary,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=18,
+            pady=8,
+        )
+        self.reset_btn.pack(side="left", padx=6)
+        self._add_button_hover(self.reset_btn)
+
+        # Style TTK Combobox for Dark Theme integration
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure(
+            "Phoenix.TCombobox",
+            background=PHOENIX_THEME.elevated_bg,
+            foreground=PHOENIX_THEME.text_primary,
+            fieldbackground=PHOENIX_THEME.elevated_bg,
+            bordercolor=PHOENIX_THEME.border,
+            lightcolor=PHOENIX_THEME.border,
+            darkcolor=PHOENIX_THEME.border,
+            arrowcolor=PHOENIX_THEME.text_muted,
+            borderwidth=1,
+            relief="flat",
+        )
+        style.map(
+            "Phoenix.TCombobox",
+            background=[("readonly", PHOENIX_THEME.elevated_bg)],
+            foreground=[("readonly", PHOENIX_THEME.text_primary)],
+            fieldbackground=[("readonly", PHOENIX_THEME.elevated_bg)],
+            bordercolor=[("readonly", PHOENIX_THEME.border)],
+        )
+
+        # Style the dropdown popdown list using options database
+        self.option_add("*TCombobox*Listbox.background", PHOENIX_THEME.elevated_bg)
+        self.option_add("*TCombobox*Listbox.foreground", PHOENIX_THEME.text_primary)
+        self.option_add("*TCombobox*Listbox.selectBackground", PHOENIX_THEME.accent)
+        self.option_add("*TCombobox*Listbox.selectForeground", PHOENIX_THEME.text_on_accent)
+        self.option_add("*TCombobox*Listbox.font", PHOENIX_THEME.font_body)
+        self.option_add("*TCombobox*Listbox.relief", "flat")
+        self.option_add("*TCombobox*Listbox.borderWidth", 0)
+        self.option_add("*TCombobox*Listbox.highlightThickness", 0)
+
+        # Main Category Cards Grid Container
+        grid_frame = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        grid_frame.pack(fill="both", expand=True, padx=16, pady=0)
+        grid_frame.rowconfigure(0, weight=1)
+        grid_frame.rowconfigure(1, weight=1)
+        grid_frame.columnconfigure(0, weight=1)
+        grid_frame.columnconfigure(1, weight=1)
+
+        # ==========================================
+        # CARD 1: SYSTEM & NPU
+        # ==========================================
+        sys_card = self._create_card(grid_frame, "System & NPU", 0, 0)
+        
+        sys_form = tk.Frame(sys_card, bg=PHOENIX_THEME.card_bg)
+        sys_form.pack(fill="both", expand=True, padx=16, pady=0)
+        sys_form.columnconfigure(1, weight=1)
+
+        # Thread count
+        tk.Label(
+            sys_form,
+            text="Thread-Anzahl:",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
+        
+        self.thread_cb = ttk.Combobox(
+            sys_form,
+            textvariable=self.thread_var,
+            values=["Auto", "2", "4", "8", "12", "16"],
+            state="readonly",
+            style="Phoenix.TCombobox",
+            font=PHOENIX_THEME.font_body,
+        )
+        self.thread_cb.grid(row=0, column=1, sticky="ew", pady=8)
+
+        # EP Preference
+        tk.Label(
+            sys_form,
+            text="Execution Provider:",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).grid(row=1, column=0, sticky="w", pady=8, padx=(0, 10))
+        
+        self.ep_cb = ttk.Combobox(
+            sys_form,
+            textvariable=self.ep_var,
+            values=["QNN EP", "CPU EP"],
+            state="readonly",
+            style="Phoenix.TCombobox",
+            font=PHOENIX_THEME.font_body,
+        )
+        self.ep_cb.grid(row=1, column=1, sticky="ew", pady=8)
+
+        # Hardware Acceleration
+        self.hw_acc_cb = tk.Checkbutton(
+            sys_form,
+            text="Qualcomm Snapdragon NPU-Beschleunigung aktivieren",
+            variable=self.hw_acc_var,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            selectcolor=PHOENIX_THEME.elevated_bg,
+            activebackground=PHOENIX_THEME.card_bg,
+            activeforeground=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_caption,
+            bd=0,
+            highlightthickness=0,
+        )
+        self.hw_acc_cb.grid(row=2, column=0, columnspan=2, sticky="w", pady=(12, 8))
+
+        # ==========================================
+        # CARD 2: PFADE & SPEICHER
+        # ==========================================
+        paths_card = self._create_card(grid_frame, "Pfade & Speicher", 0, 1)
+        
+        paths_form = tk.Frame(paths_card, bg=PHOENIX_THEME.card_bg)
+        paths_form.pack(fill="both", expand=True, padx=16, pady=0)
+        paths_form.columnconfigure(0, weight=1)
+
+        # Output folder
+        tk.Label(
+            paths_form,
+            text="Standard-Ausgabeordner:",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(4, 2))
+
+        self.out_dir_entry = tk.Entry(
+            paths_form,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+            bd=0,
+            font=PHOENIX_THEME.font_body,
+        )
+        self.out_dir_entry.grid(row=1, column=0, sticky="ew", ipady=5, pady=(0, 10))
+
+        self.out_dir_btn = tk.Button(
+            paths_form,
+            text="...",
+            command=self._browse_output_dir,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.border,
@@ -187,24 +294,201 @@ class PhoenixSettingsView(tk.Frame):
             relief="flat",
             font=PHOENIX_THEME.font_button,
             cursor="hand2",
-            padx=16,
-            pady=8,
+            padx=10,
         )
-        self.test_btn.pack(side="left")
+        self.out_dir_btn.grid(row=1, column=1, sticky="ns", padx=(6, 0), pady=(0, 10))
+        self._add_button_hover(self.out_dir_btn)
 
-        # Status Label
-        self.status_lbl = tk.Label(
-            section_frame,
-            text="",
+        # Model directory
+        tk.Label(
+            paths_form,
+            text="Modell-Verzeichnis:",
             bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_muted,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 2))
+
+        self.models_dir_entry = tk.Entry(
+            paths_form,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+            bd=0,
+            font=PHOENIX_THEME.font_body,
+        )
+        self.models_dir_entry.grid(row=3, column=0, sticky="ew", ipady=5, pady=(0, 10))
+
+        self.models_dir_btn = tk.Button(
+            paths_form,
+            text="...",
+            command=self._browse_models_dir,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.border,
+            activeforeground=PHOENIX_THEME.text_primary,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=10,
+        )
+        self.models_dir_btn.grid(row=3, column=1, sticky="ns", padx=(6, 0), pady=(0, 10))
+        self._add_button_hover(self.models_dir_btn)
+
+        # ==========================================
+        # CARD 3: UI & SPRACHE
+        # ==========================================
+        ui_card = self._create_card(grid_frame, "UI & Sprache", 1, 0)
+        
+        ui_form = tk.Frame(ui_card, bg=PHOENIX_THEME.card_bg)
+        ui_form.pack(fill="both", expand=True, padx=16, pady=0)
+        ui_form.columnconfigure(1, weight=1)
+
+        # Theme option
+        tk.Label(
+            ui_form,
+            text="Theme-Optionen:",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
+        
+        self.theme_cb = ttk.Combobox(
+            ui_form,
+            textvariable=self.theme_var,
+            values=["Dunkel", "Hell"],
+            state="readonly",
+            style="Phoenix.TCombobox",
+            font=PHOENIX_THEME.font_body,
+        )
+        self.theme_cb.grid(row=0, column=1, sticky="ew", pady=8)
+
+        # Language
+        tk.Label(
+            ui_form,
+            text="Sprache:",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).grid(row=1, column=0, sticky="w", pady=8, padx=(0, 10))
+        
+        self.language_cb = ttk.Combobox(
+            ui_form,
+            textvariable=self.language_var,
+            values=["Deutsch", "English"],
+            state="readonly",
+            style="Phoenix.TCombobox",
+            font=PHOENIX_THEME.font_body,
+        )
+        self.language_cb.grid(row=1, column=1, sticky="ew", pady=8)
+
+        # ==========================================
+        # CARD 4: HUGGING FACE INTEGRATION
+        # ==========================================
+        hf_card = self._create_card(grid_frame, "Hugging Face Integration", 1, 1)
+        
+        hf_form = tk.Frame(hf_card, bg=PHOENIX_THEME.card_bg)
+        hf_form.pack(fill="both", expand=True, padx=16, pady=0)
+        hf_form.columnconfigure(0, weight=1)
+
+        # Access Token Label
+        tk.Label(
+            hf_form,
+            text="Hugging Face Access Token (HF_TOKEN):",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 2))
+
+        # Entry Row
+        self.token_entry = tk.Entry(
+            hf_form,
+            show="*",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+            bd=0,
+            font=PHOENIX_THEME.font_body,
+        )
+        self.token_entry.grid(row=1, column=0, sticky="ew", ipady=5, pady=(0, 4))
+        self.token_entry.bind("<KeyRelease>", self._update_token_format_status)
+
+        # Toggle Show/Hide Button
+        self.show_toggle = False
+        self.toggle_btn = tk.Button(
+            hf_form,
+            text=tr("show_token", "Anzeigen"),
+            command=self._toggle_token_visibility,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.border,
+            activeforeground=PHOENIX_THEME.text_primary,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=10,
+        )
+        self.toggle_btn.grid(row=1, column=1, sticky="ns", padx=(6, 0), pady=(0, 4))
+        self._add_button_hover(self.toggle_btn)
+
+        # Format & Helper links stacked
+        links_frame = tk.Frame(hf_form, bg=PHOENIX_THEME.card_bg)
+        links_frame.grid(row=2, column=0, columnspan=2, sticky="ew")
+
+        self.token_help_lbl = tk.Label(
+            links_frame,
+            text="Token erstellen unter: huggingface.co/settings/tokens ↗",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_caption,
             anchor="w",
+            justify="left",
+            cursor="hand2"
         )
-        self.status_lbl.pack(fill="x", pady=(12, 0))
+        self.token_help_lbl.pack(anchor="w", pady=(2, 0))
+        self.token_help_lbl.bind("<Button-1>", lambda e: webbrowser.open("https://huggingface.co/settings/tokens"))
 
-        # Perform initial format check
-        self._update_token_format_status()
+        self.token_format_lbl = tk.Label(
+            links_frame,
+            text="",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            justify="left"
+        )
+        self.token_format_lbl.pack(anchor="w", pady=(2, 0))
+
+        # Horizontal buttons panel inside HF Integration Card
+        hf_actions = tk.Frame(hf_form, bg=PHOENIX_THEME.card_bg)
+        hf_actions.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+
+        self.test_btn = tk.Button(
+            hf_actions,
+            text=tr("test_token_btn", "Token testen"),
+            command=self._test_token,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.border,
+            activeforeground=PHOENIX_THEME.text_primary,
+            bd=0,
+            relief="flat",
+            font=PHOENIX_THEME.font_caption,
+            cursor="hand2",
+            padx=12,
+            pady=6,
+        )
+        self.test_btn.pack(side="left")
+        self._add_button_hover(self.test_btn)
 
     def _toggle_token_visibility(self) -> None:
         self.show_toggle = not self.show_toggle
@@ -215,9 +499,62 @@ class PhoenixSettingsView(tk.Frame):
             self.token_entry.configure(show="*")
             self.toggle_btn.configure(text=tr("show_token", "Anzeigen"))
 
+    def _browse_output_dir(self) -> None:
+        initial = self.out_dir_entry.get().strip() or r"C:\SnapdragonAI"
+        folder = filedialog.askdirectory(title="Standard-Ausgabeordner wählen", initialdir=initial)
+        if folder:
+            self.out_dir_entry.delete(0, tk.END)
+            self.out_dir_entry.insert(0, os.path.normpath(folder))
+
+    def _browse_models_dir(self) -> None:
+        initial = self.models_dir_entry.get().strip() or r"C:\SnapdragonAI"
+        folder = filedialog.askdirectory(title="Modell-Verzeichnis wählen", initialdir=initial)
+        if folder:
+            self.models_dir_entry.delete(0, tk.END)
+            self.models_dir_entry.insert(0, os.path.normpath(folder))
+
+    def _load_values(self) -> None:
+        prefs = SettingsManager.load_settings()
+        
+        # System & NPU
+        self.thread_var.set(prefs.get("thread_count", "Auto"))
+        self.ep_var.set(prefs.get("execution_provider", "QNN EP"))
+        self.hw_acc_var.set(prefs.get("hardware_accel", "True") == "True")
+        
+        # Paths & Storage
+        out_dir = prefs.get("output_dir", r"C:\SnapdragonAI\output")
+        self.out_dir_entry.delete(0, tk.END)
+        self.out_dir_entry.insert(0, out_dir)
+        
+        models_dir = prefs.get("models_dir", r"C:\SnapdragonAI\models")
+        self.models_dir_entry.delete(0, tk.END)
+        self.models_dir_entry.insert(0, models_dir)
+        
+        # UI & Language
+        self.theme_var.set(prefs.get("theme", "Dunkel"))
+        self.language_var.set(prefs.get("language", "Deutsch"))
+        
+        # Hugging Face Access Token
+        token = SettingsManager.get_hf_token()
+        self.token_entry.delete(0, tk.END)
+        self.token_entry.insert(0, token)
+        
+        self._update_token_format_status()
+
     def _save_settings(self) -> None:
         token = self.token_entry.get().strip()
-        success = SettingsManager.save_settings({"hf_token": token})
+        settings = {
+            "thread_count": self.thread_var.get(),
+            "execution_provider": self.ep_var.get(),
+            "hardware_accel": str(self.hw_acc_var.get()),
+            "output_dir": self.out_dir_entry.get().strip(),
+            "models_dir": self.models_dir_entry.get().strip(),
+            "theme": self.theme_var.get(),
+            "language": self.language_var.get(),
+            "hf_token": token,
+        }
+        
+        success = SettingsManager.save_settings(settings)
         if success:
             self.status_lbl.configure(
                 text=tr("settings_save_success", "Einstellungen erfolgreich gespeichert."),
@@ -228,6 +565,29 @@ class PhoenixSettingsView(tk.Frame):
                 text=tr("settings_save_failed", "Fehler beim Speichern der Einstellungen."),
                 fg="#f87171"
             )
+
+    def _reset_defaults(self) -> None:
+        self.thread_var.set("Auto")
+        self.ep_var.set("QNN EP")
+        self.hw_acc_var.set(True)
+        
+        self.out_dir_entry.delete(0, tk.END)
+        self.out_dir_entry.insert(0, r"C:\SnapdragonAI\output")
+        
+        self.models_dir_entry.delete(0, tk.END)
+        self.models_dir_entry.insert(0, r"C:\SnapdragonAI\models")
+        
+        self.theme_var.set("Dunkel")
+        self.language_var.set("Deutsch")
+        
+        self.token_entry.delete(0, tk.END)
+        self.token_entry.insert(0, "")
+        self._update_token_format_status()
+        
+        self.status_lbl.configure(
+            text="Einstellungen auf Standardwerte zurückgesetzt.",
+            fg=PHOENIX_THEME.text_secondary
+        )
 
     def _test_token(self) -> None:
         self.status_lbl.configure(

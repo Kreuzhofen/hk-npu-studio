@@ -197,72 +197,22 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspector_panel.grid(row=1, column=1, sticky="nsew", padx=(12, 24), pady=(8, 16))
 
 
-        # Canvas & Scrollbar for vertical scrolling
-        self.inspector_canvas = tk.Canvas(
-            self.inspector_panel,
-            bg=PHOENIX_THEME.card_bg,
-            bd=0,
-            highlightthickness=0,
-        )
-        self.inspector_scrollbar = ttk.Scrollbar(
-            self.inspector_panel,
-            orient="vertical",
-            command=self.inspector_canvas.yview,
-            style="Phoenix.Vertical.TScrollbar"
-        )
-        self.inspector_canvas.configure(yscrollcommand=self.inspector_scrollbar.set)
+        # 1. Action-Buttons IMMER UNTEN fixieren
+        self.action_frame = tk.Frame(self.inspector_panel, bg=PHOENIX_THEME.card_bg)
+        self.action_frame.pack(side="bottom", fill="x", padx=16, pady=(10, 16))
 
-        self.inspector_scrollbar.pack(side="right", fill="y")
-        self.inspector_canvas.pack(side="left", fill="both", expand=True)
+        # 2. Info-Bereich darüber legen (nimmt Restplatz ein)
+        self.info_frame = tk.Frame(self.inspector_panel, bg=PHOENIX_THEME.card_bg)
+        self.info_frame.pack(side="top", fill="both", expand=True, padx=16, pady=(12, 0))
 
-        # Scroll content frame inside Canvas
-        self.inspector_scroll_content = tk.Frame(
-            self.inspector_canvas,
-            bg=PHOENIX_THEME.card_bg,
-        )
-        self.canvas_window_id = self.inspector_canvas.create_window(
-            (0, 0),
-            window=self.inspector_scroll_content,
-            anchor="nw"
-        )
-
-        # Configure columns inside scroll content
-        self.inspector_scroll_content.columnconfigure(0, weight=1)
-        self.inspector_scroll_content.columnconfigure(1, weight=1)
-
-        # Update scrollregion on configure
-        self.inspector_scroll_content.bind(
-            "<Configure>",
-            lambda e: self.inspector_canvas.configure(
-                scrollregion=self.inspector_canvas.bbox("all")
-            )
-        )
-        # Keep width of inner frame matched to canvas width
-        self.inspector_canvas.bind(
-            "<Configure>",
-            lambda e: self.inspector_canvas.itemconfig(
-                self.canvas_window_id,
-                width=e.width
-            )
-        )
-
-        # Bind MouseWheel locally when mouse enters the inspector panel
-        def _on_mousewheel(event: tk.Event) -> None:
-            self.inspector_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        def _bind_mousewheel(event: tk.Event) -> None:
-            self.inspector_canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
-        def _unbind_mousewheel(event: tk.Event) -> None:
-            self.inspector_canvas.unbind_all("<MouseWheel>")
-
-        self.inspector_panel.bind("<Enter>", _bind_mousewheel)
-        self.inspector_panel.bind("<Leave>", _unbind_mousewheel)
+        # Configure columns inside info frame
+        self.info_frame.columnconfigure(0, weight=1)
+        self.info_frame.columnconfigure(1, weight=1)
 
         # Compact model information. Operational and diagnostic controls live in
         # the modal Advanced Settings popup below.
         tk.Label(
-            self.inspector_scroll_content,
+            self.info_frame,
             text=tr("model_info_title", "Modellinformationen"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -282,7 +232,7 @@ class PhoenixModelManagerView(tk.Frame):
         ]
         for name, row in base_props:
             tk.Label(
-                self.inspector_scroll_content,
+                self.info_frame,
                 text=name,
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_muted,
@@ -290,17 +240,17 @@ class PhoenixModelManagerView(tk.Frame):
                 anchor="w"
             ).grid(row=row, column=0, sticky="nw", padx=(16, 4), pady=4)
 
-        self.inspect_name = self._create_value_label(self.inspector_scroll_content, 1, 1)
-        self.inspect_version = self._create_value_label(self.inspector_scroll_content, 2, 1)
-        self.inspect_backend = self._create_value_label(self.inspector_scroll_content, 3, 1)
-        self.inspect_status = self._create_value_label(self.inspector_scroll_content, 4, 1)
-        self.inspect_npu_reqs = self._create_value_label(self.inspector_scroll_content, 5, 1)
-        self.inspect_provider = self._create_value_label(self.inspector_scroll_content, 6, 1)
-        self.inspect_desc = self._create_value_label(self.inspector_scroll_content, 7, 1, wrap=True)
-        self.inspect_capabilities = self._create_value_label(self.inspector_scroll_content, 8, 1, wrap=True)
+        self.inspect_name = self._create_value_label(self.info_frame, 1, 1)
+        self.inspect_version = self._create_value_label(self.info_frame, 2, 1)
+        self.inspect_backend = self._create_value_label(self.info_frame, 3, 1)
+        self.inspect_status = self._create_value_label(self.info_frame, 4, 1)
+        self.inspect_npu_reqs = self._create_value_label(self.info_frame, 5, 1)
+        self.inspect_provider = self._create_value_label(self.info_frame, 6, 1)
+        self.inspect_desc = self._create_value_label(self.info_frame, 7, 1, wrap=True)
+        self.inspect_capabilities = self._create_value_label(self.info_frame, 8, 1, wrap=True)
 
         tk.Label(
-            self.inspector_scroll_content,
+            self.info_frame,
             text=tr("install_info_title", "Installationsinformationen"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -315,7 +265,7 @@ class PhoenixModelManagerView(tk.Frame):
         ]
         for name, row in install_props:
             tk.Label(
-                self.inspector_scroll_content,
+                self.info_frame,
                 text=name,
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_muted,
@@ -323,13 +273,13 @@ class PhoenixModelManagerView(tk.Frame):
                 anchor="w"
             ).grid(row=row, column=0, sticky="nw", padx=(16, 4), pady=4)
 
-        self.inspect_installed = self._create_value_label(self.inspector_scroll_content, 10, 1)
-        self.inspect_download = self._create_value_label(self.inspector_scroll_content, 11, 1)
-        self.inspect_path = self._create_value_label(self.inspector_scroll_content, 12, 1, wrap=True)
+        self.inspect_installed = self._create_value_label(self.info_frame, 10, 1)
+        self.inspect_download = self._create_value_label(self.info_frame, 11, 1)
+        self.inspect_path = self._create_value_label(self.info_frame, 12, 1, wrap=True)
 
         # Folder size & Samplers details
         tk.Label(
-            self.inspector_scroll_content,
+            self.info_frame,
             text=tr("folder_size_label", "Dateigröße:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -337,10 +287,10 @@ class PhoenixModelManagerView(tk.Frame):
             anchor="w"
         ).grid(row=13, column=0, sticky="nw", padx=(16, 4), pady=4)
         
-        self.inspect_size = self._create_value_label(self.inspector_scroll_content, 13, 1)
+        self.inspect_size = self._create_value_label(self.info_frame, 13, 1)
 
         tk.Label(
-            self.inspector_scroll_content,
+            self.info_frame,
             text=tr("supported_samplers_label", "Unterstützte Sampler:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -348,11 +298,11 @@ class PhoenixModelManagerView(tk.Frame):
             anchor="w"
         ).grid(row=14, column=0, sticky="nw", padx=(16, 4), pady=4)
 
-        self.inspect_samplers = self._create_value_label(self.inspector_scroll_content, 14, 1, wrap=True)
+        self.inspect_samplers = self._create_value_label(self.info_frame, 14, 1, wrap=True)
 
-        # Row 15: Activate Model Button (Quick Action)
+        # Action Buttons (packed inside action_frame)
         self.activate_btn = tk.Button(
-            self.inspector_scroll_content,
+            self.action_frame,
             text="Modell aktivieren",
             command=self._activate_selected_model,
             bg=PHOENIX_THEME.accent,
@@ -366,19 +316,11 @@ class PhoenixModelManagerView(tk.Frame):
             padx=12,
             pady=9,
         )
-        self.activate_btn.grid(
-            row=15,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=16,
-            pady=(18, 4),
-        )
+        self.activate_btn.pack(fill="x", pady=4)
         self._add_button_hover(self.activate_btn)
 
-        # Row 16: Verify Paths Button (Quick Action)
         self.verify_paths_btn = tk.Button(
-            self.inspector_scroll_content,
+            self.action_frame,
             text="Pfade überprüfen",
             command=self._verify_paths,
             bg=PHOENIX_THEME.elevated_bg,
@@ -392,20 +334,11 @@ class PhoenixModelManagerView(tk.Frame):
             padx=12,
             pady=9,
         )
-        self.verify_paths_btn.grid(
-            row=16,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=16,
-            pady=4,
-        )
+        self.verify_paths_btn.pack(fill="x", pady=4)
         self._add_button_hover(self.verify_paths_btn)
 
-        # Row 17: Advanced Settings Button
-        # Row 17: Download Frame (stacked quick actions)
-        self.download_frame = tk.Frame(self.inspector_scroll_content, bg=PHOENIX_THEME.card_bg)
-        self.download_frame.grid(row=17, column=0, columnspan=2, sticky="ew", padx=16, pady=4)
+        self.download_frame = tk.Frame(self.action_frame, bg=PHOENIX_THEME.card_bg)
+        self.download_frame.pack(fill="x", pady=4)
         self.download_frame.columnconfigure(0, weight=1)
 
         self.download_button = tk.Button(
@@ -443,9 +376,8 @@ class PhoenixModelManagerView(tk.Frame):
             justify="left"
         )
 
-        # Row 18: Advanced Settings Button
         self.advanced_settings_button = tk.Button(
-            self.inspector_scroll_content,
+            self.action_frame,
             text=tr("advanced_settings_btn", "⚙️ Erweiterte Einstellungen..."),
             command=self._open_advanced_settings,
             bg=PHOENIX_THEME.elevated_bg,
@@ -459,14 +391,7 @@ class PhoenixModelManagerView(tk.Frame):
             padx=12,
             pady=9,
         )
-        self.advanced_settings_button.grid(
-            row=18,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=16,
-            pady=(4, 16),
-        )
+        self.advanced_settings_button.pack(fill="x", pady=4)
         self._add_button_hover(self.advanced_settings_button)
 
         # ==========================================
@@ -1075,6 +1000,25 @@ class PhoenixModelManagerView(tk.Frame):
         return text if text else fallback
 
     @staticmethod
+    def _truncate_path(path_str: str, max_len: int = 40) -> str:
+        if not path_str or len(path_str) <= max_len:
+            return path_str
+        try:
+            from pathlib import Path
+            p = Path(path_str)
+            parts = p.parts
+            if len(parts) >= 3:
+                drive = parts[0]
+                last = parts[-1]
+                mid = parts[-2] if len(parts) >= 4 else "..."
+                truncated = os.path.join(drive, "...", mid, last)
+                if len(truncated) <= max_len:
+                    return truncated
+            return path_str[:max_len-10] + "..." + path_str[-7:]
+        except Exception:
+            return path_str[:max_len-3] + "..."
+
+    @staticmethod
     def _format_bool(value: object) -> str:
         return tr("yes", "Ja") if bool(value) else tr("no", "Nein")
 
@@ -1352,7 +1296,10 @@ class PhoenixModelManagerView(tk.Frame):
         model_id = self._safe_text(model.get("id"))
         package = self._get_catalog_package(model_id)
         capabilities = package.get("capabilities") if package else model.get("capabilities")
-        self.inspect_capabilities.configure(text=self._format_capabilities(capabilities))
+        caps = self._format_capabilities(capabilities)
+        if len(caps) > 85:
+            caps = caps[:82] + "..."
+        self.inspect_capabilities.configure(text=caps)
 
         if not self._advanced_popup_is_open():
             return
@@ -1595,12 +1542,16 @@ class PhoenixModelManagerView(tk.Frame):
                 fg=PHOENIX_THEME.text_on_accent,
             )
         
-        self.inspect_desc.configure(text=self._safe_text(model.get("description")))
+        desc = self._safe_text(model.get("description"))
+        if len(desc) > 85:
+            desc = desc[:82] + "..."
+        self.inspect_desc.configure(text=desc)
         self.inspect_installed.configure(text=self._format_bool(is_complete))
         self.inspect_download.configure(text=tr("found", "Gefunden") if is_complete else tr("not_found", "Nicht gefunden"))
         
         path_str = scanned.get("path") if scanned else model.get("path")
-        self.inspect_path.configure(text=self._safe_text(path_str, tr("not_available", "Nicht verfügbar")))
+        truncated_path = self._truncate_path(self._safe_text(path_str, ""))
+        self.inspect_path.configure(text=truncated_path if truncated_path else tr("not_available", "Nicht verfügbar"))
         
         # Folder size
         size_str = scanned.get("size_str", "—") if scanned else "—"
@@ -1630,9 +1581,9 @@ class PhoenixModelManagerView(tk.Frame):
 
         # Download panel visibility and state update
         if is_complete:
-            self.download_frame.grid_remove()
+            self.download_frame.pack_forget()
         else:
-            self.download_frame.grid()
+            self.download_frame.pack(fill="x", pady=4, before=self.advanced_settings_button)
             if self.downloader.is_downloading(model_id):
                 self.download_button.configure(
                     text=tr("cancel", "Abbrechen"),

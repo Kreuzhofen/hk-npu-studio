@@ -1276,21 +1276,30 @@ class PhoenixPromptView(WorkspaceFrame):
             self.insp_content, bg=PHOENIX_THEME.content_bg,
             highlightbackground=PHOENIX_THEME.border, highlightthickness=1
         )
-        preview_frame.grid(row=row, column=0, columnspan=4, sticky="ew", padx=16, pady=(0, 4))
+        preview_frame.grid(row=row, column=0, columnspan=4, sticky="nsew", padx=16, pady=(0, 4))
         preview_frame.grid_columnconfigure(0, weight=1)
+        preview_frame.grid_rowconfigure(0, weight=1)
+        self.insp_content.grid_rowconfigure(row, weight=1)
 
         self.preview_center = tk.Frame(preview_frame, bg=PHOENIX_THEME.content_bg)
-        self.preview_center.grid(row=0, column=0, sticky="", pady=8)
+        self.preview_center.grid(row=0, column=0, sticky="nsew", pady=8)
+        self.preview_center.grid_columnconfigure(0, weight=1)
+        self.preview_center.grid_rowconfigure(0, weight=1)
+        self.preview_center.bind("<Configure>", self._on_preview_resize)
+
+        # Place placeholder elements centered
+        self.placeholder_container = tk.Frame(self.preview_center, bg=PHOENIX_THEME.content_bg)
+        self.placeholder_container.place(relx=0.5, rely=0.5, anchor="center")
 
         from resources.icons import IconManager
         tk.Label(
-            self.preview_center, text=IconManager.get_symbol("image"),
+            self.placeholder_container, text=IconManager.get_symbol("image"),
             bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.accent,
             font=(PHOENIX_THEME.font_title[0], 20, "bold"),
         ).pack(anchor="center", pady=(0, 2))
 
         tk.Label(
-            self.preview_center, text="No image generated",
+            self.placeholder_container, text="No image generated",
             bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small, justify="center"
         ).pack(anchor="center")
@@ -1921,30 +1930,44 @@ class PhoenixPromptView(WorkspaceFrame):
         has_preview = False
         if last_resp and last_resp.success and last_resp.image_path:
             img_path = Path(last_resp.image_path)
+            self._current_preview_image_path = img_path
             if img_path.exists():
                 try:
                     from PIL import Image, ImageTk
+                    w = self.preview_center.winfo_width()
+                    h = self.preview_center.winfo_height()
+                    if w < 50 or h < 50:
+                        w, h = 250, 250
                     with Image.open(img_path) as pil_img:
-                        pil_img.thumbnail((250, 250))
-                        self._preview_photo = ImageTk.PhotoImage(pil_img)
+                        img_w, img_h = pil_img.size
+                        scale = min(w / img_w, h / img_h)
+                        new_w = max(10, int(img_w * scale))
+                        new_h = max(10, int(img_h * scale))
+                        resized_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                        self._preview_photo = ImageTk.PhotoImage(resized_img)
                         
                     img_label = tk.Label(self.preview_center, image=self._preview_photo, bg=PHOENIX_THEME.content_bg)
-                    img_label.pack(anchor="center")
+                    img_label.is_image_label = True
+                    img_label.place(relx=0.5, rely=0.5, anchor="center")
                     has_preview = True
                 except Exception as e:
                     logger.error(f"Failed to load preview image: {e}")
                     print(f"Failed to load preview image: {e}")
 
         if not has_preview:
+            self._current_preview_image_path = None
             from resources.icons import IconManager
+            placeholder_container = tk.Frame(self.preview_center, bg=PHOENIX_THEME.content_bg)
+            placeholder_container.place(relx=0.5, rely=0.5, anchor="center")
+            
             tk.Label(
-                self.preview_center, text=IconManager.get_symbol("image"),
+                placeholder_container, text=IconManager.get_symbol("image"),
                 bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.accent,
                 font=(PHOENIX_THEME.font_title[0], 20, "bold"),
             ).pack(anchor="center", pady=(0, 2))
 
             tk.Label(
-                self.preview_center, text="No image generated",
+                placeholder_container, text="No image generated",
                 bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_small, justify="center"
             ).pack(anchor="center")
@@ -1954,6 +1977,36 @@ class PhoenixPromptView(WorkspaceFrame):
 
         # Update Drag & Drop reference image preview
         self._update_dnd_preview()
+
+    def _on_preview_resize(self, event: tk.Event = None) -> None:
+        # Prevent zero or tiny dimensions
+        w = self.preview_center.winfo_width()
+        h = self.preview_center.winfo_height()
+        if w < 50 or h < 50:
+            return
+            
+        # Get path
+        img_path = getattr(self, "_current_preview_image_path", None)
+        if not img_path or not img_path.exists():
+            return
+            
+        try:
+            from PIL import Image, ImageTk
+            with Image.open(img_path) as pil_img:
+                img_w, img_h = pil_img.size
+                scale = min(w / img_w, h / img_h)
+                new_w = max(10, int(img_w * scale))
+                new_h = max(10, int(img_h * scale))
+                resized_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                self._preview_photo = ImageTk.PhotoImage(resized_img)
+                
+            # Update the label image
+            for widget in self.preview_center.winfo_children():
+                if isinstance(widget, tk.Label) and getattr(widget, "is_image_label", False):
+                    widget.configure(image=self._preview_photo)
+                    break
+        except Exception:
+            pass
 
     def _on_model_changed(self, *args) -> None:
         """Trace callback when the model variable is updated in the UI."""
