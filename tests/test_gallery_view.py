@@ -91,4 +91,4 @@ class GalleryInspectorTests(unittest.TestCase):
         """4. Sprachumstellung (de -> en) aktualisiert Inspector-Labels."""
         set_language("en_US")
         inspector_en = GalleryInspector(self.root)
-        self.assertEqual(inspector_en.apply_btn.cget("text"), "Apply Prompt & Settings")
+        self.assertEqual(inspector_en.apply_btn.cget("text"), "Open in AI Generate")

@@ -31,7 +31,7 @@
   "inspector_file": "Datei",
   "inspector_generation": "Generierung",
   "inspector_path": "Pfad",
-  "apply_settings_btn": "Prompt & Settings übernehmen",
+  "apply_settings_btn": "In AI Generate öffnen",
   "no_selection": "Keine Auswahl",
   "select_thumbnail_instruction": "Klicke ein Thumbnail an.",
   "name_label": "Name: {name}",
@@ -190,5 +190,9 @@
   "no_token_provided": "Kein Token angegeben.",
   "token_test_success": "Token ist gültig.",
   "token_test_unauthorized": "Ungültiger Token (401 Unauthorized).",
-  "model_not_found_404": "Modell nicht gefunden: Die angeforderte Datei existiert nicht auf dem Server (404 Not Found)."
+  "model_not_found_404": "Modell nicht gefunden: Die angeforderte Datei existiert nicht auf dem Server (404 Not Found).",
+  "confirm_delete_title": "Bild löschen",
+  "confirm_delete_message": "Möchtest du das ausgewählte Bild wirklich dauerhaft von der Festplatte löschen?",
+  "show_in_explorer_btn": "Im Explorer anzeigen",
+  "delete_btn": "Löschen"
 }

@@ -31,7 +31,7 @@
   "inspector_file": "File",
   "inspector_generation": "Generation",
   "inspector_path": "Path",
-  "apply_settings_btn": "Apply Prompt & Settings",
+  "apply_settings_btn": "Open in AI Generate",
   "no_selection": "No Selection",
   "select_thumbnail_instruction": "Click a thumbnail to view details.",
   "name_label": "Name: {name}",
@@ -190,5 +190,9 @@
   "no_token_provided": "No token provided.",
   "token_test_success": "Token is valid.",
   "token_test_unauthorized": "Invalid token (401 Unauthorized).",
-  "model_not_found_404": "Model not found: The requested file does not exist on the server (404 Not Found)."
+  "model_not_found_404": "Model not found: The requested file does not exist on the server (404 Not Found).",
+  "confirm_delete_title": "Delete Image",
+  "confirm_delete_message": "Do you really want to permanently delete the selected image from your disk?",
+  "show_in_explorer_btn": "Show in Explorer",
+  "delete_btn": "Delete"
 }

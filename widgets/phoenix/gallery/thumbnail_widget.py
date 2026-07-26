@@ -150,10 +150,22 @@ class ThumbnailWidget(tk.Frame):
         widget.bind("<Leave>", self._on_leave)
 
     def _on_click(self, event: tk.Event) -> str:
+        try:
+            if hasattr(self, "_hover_preview") and self._hover_preview:
+                self._hover_preview.destroy()
+                self._hover_preview = None
+        except Exception:
+            pass
         self.command(self.image, event)
         return "break"
 
     def _on_double_click(self, _event: tk.Event) -> str:
+        try:
+            if hasattr(self, "_hover_preview") and self._hover_preview:
+                self._hover_preview.destroy()
+                self._hover_preview = None
+        except Exception:
+            pass
         self.double_command(self.image)
         return "break"
 
@@ -162,13 +174,74 @@ class ThumbnailWidget(tk.Frame):
             self.right_click_command(self.image, event)
         return "break"
 
-    def _on_enter(self, _event: tk.Event) -> None:
+    def _on_enter(self, event: tk.Event) -> None:
         if not self.selected:
-            self.configure(highlightbackground=PHOENIX_THEME.text_muted)
+            self.configure(highlightbackground=PHOENIX_THEME.accent)
+
+        try:
+            if hasattr(self, "_hover_preview") and self._hover_preview:
+                self._hover_preview.destroy()
+        except Exception:
+            pass
+        self._hover_preview = None
+
+        if self.thumbnail_image is None or not self.image.path.is_file():
+            return
+
+        try:
+            preview_win = tk.Toplevel(self)
+            preview_win.withdraw()
+            preview_win.overrideredirect(True)
+            preview_win.configure(bg=PHOENIX_THEME.border, padx=1, pady=1)
+
+            from PIL import Image, ImageTk
+            with Image.open(self.image.path) as img:
+                img.thumbnail((480, 480))
+                thumb_w, thumb_h = img.size
+                zoom_photo = ImageTk.PhotoImage(img.copy())
+
+            preview_win.zoom_photo = zoom_photo
+            lbl = tk.Label(preview_win, image=zoom_photo, bg=PHOENIX_THEME.card_bg, bd=0)
+            lbl.pack()
+
+            # Calculate safe placement within screen boundaries
+            screen_w = self.winfo_screenwidth()
+            screen_h = self.winfo_screenheight()
+            win_w = thumb_w + 2
+            win_h = thumb_h + 2
+
+            # Offset position relative to cursor
+            x = event.x_root + 20
+            y = event.y_root + 20
+
+            # Wrap horizontally
+            if x + win_w > screen_w:
+                x = event.x_root - win_w - 20
+            if x < 0:
+                x = 10
+
+            # Wrap vertically
+            if y + win_h > screen_h:
+                y = event.y_root - win_h - 20
+            if y < 0:
+                y = 10
+
+            preview_win.geometry(f"{win_w}x{win_h}+{x}+{y}")
+            preview_win.deiconify()
+            self._hover_preview = preview_win
+        except Exception:
+            pass
 
     def _on_leave(self, _event: tk.Event) -> None:
         if not self.selected:
             self.configure(highlightbackground=PHOENIX_THEME.border)
+
+        try:
+            if hasattr(self, "_hover_preview") and self._hover_preview:
+                self._hover_preview.destroy()
+        except Exception:
+            pass
+        self._hover_preview = None
 
     def _short_filename(self, filename: str) -> str:
         if len(filename) <= self.MAX_FILENAME_DISPLAY_LENGTH:
@@ -200,6 +273,12 @@ class ThumbnailWidget(tk.Frame):
 
     def destroy(self) -> None:
         """Releases the PhotoImage reference immediately to free memory."""
+        try:
+            if hasattr(self, "_hover_preview") and self._hover_preview:
+                self._hover_preview.destroy()
+        except Exception:
+            pass
+        self._hover_preview = None
         self.thumbnail_image = None
         if hasattr(self, "image_label"):
             self.image_label = None

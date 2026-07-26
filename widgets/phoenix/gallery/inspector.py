@@ -13,8 +13,16 @@ from app.i18n import tr
 class GalleryInspector(WorkspacePanel):
     """Inspector area for selected Gallery image metadata."""
 
-    def __init__(self, master: tk.Misc, on_apply_settings: Callable[[dict], None] | None = None) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        on_apply_settings: Callable[[dict], None] | None = None,
+        on_show_in_explorer: Callable[[GalleryImage], None] | None = None,
+        on_delete_image: Callable[[GalleryImage], None] | None = None,
+    ) -> None:
         self.on_apply_settings = on_apply_settings
+        self.on_show_in_explorer = on_show_in_explorer
+        self.on_delete_image = on_delete_image
         self._current_image: GalleryImage | None = None
         super().__init__(
             master,
@@ -35,8 +43,33 @@ class GalleryInspector(WorkspacePanel):
         self._build()
         self.update_selection([])
 
+    def _add_button_hover(self, button: tk.Button, hover_bg: str | None = None, hover_fg: str | None = None) -> None:
+        original_bg = button.cget("bg")
+        original_fg = button.cget("fg")
+        h_bg = hover_bg or PHOENIX_THEME.accent
+        h_fg = hover_fg or PHOENIX_THEME.text_on_accent
+
+        def on_enter(event):
+            if str(button.cget("state")) != "disabled":
+                button.configure(bg=h_bg, fg=h_fg)
+
+        def on_leave(event):
+            if str(button.cget("state")) != "disabled":
+                button.configure(bg=original_bg, fg=original_fg)
+
+        button.bind("<Enter>", on_enter, add="+")
+        button.bind("<Leave>", on_leave, add="+")
+
+    def _show_in_explorer(self) -> None:
+        if self._current_image and self.on_show_in_explorer:
+            self.on_show_in_explorer(self._current_image)
+
+    def _delete_image(self) -> None:
+        if self._current_image and self.on_delete_image:
+            self.on_delete_image(self._current_image)
+
     def _build(self) -> None:
-        # Fixed area in self.content for Apply Button (row 0)
+        # Fixed area in self.content for Quick Actions (row 0)
         self.fixed_header = tk.Frame(self.content, bg=PHOENIX_THEME.card_bg)
         self.fixed_header.grid(row=0, column=0, sticky="ew")
         self.fixed_header.grid_columnconfigure(0, weight=1)
@@ -61,9 +94,61 @@ class GalleryInspector(WorkspacePanel):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.card_pad_x,
-            pady=(0, PHOENIX_THEME.space_md),
+            pady=(0, 4),
         )
-        self.apply_btn.grid_remove()
+        self._add_button_hover(self.apply_btn)
+
+        self.explorer_btn = tk.Button(
+            self.fixed_header,
+            text=tr("show_in_explorer_btn", "Im Explorer anzeigen"),
+            command=self._show_in_explorer,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=16,
+            pady=8,
+        )
+        self.explorer_btn.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=PHOENIX_THEME.card_pad_x,
+            pady=4,
+        )
+        self._add_button_hover(self.explorer_btn)
+
+        from engine.theme_manager import ThemeManager
+        danger_color = getattr(ThemeManager.palette(), "error", "#cf6679")
+        self.delete_btn = tk.Button(
+            self.fixed_header,
+            text=tr("delete_btn", "Löschen"),
+            command=self._delete_image,
+            bg=danger_color,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=danger_color,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+            padx=16,
+            pady=8,
+        )
+        self.delete_btn.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=PHOENIX_THEME.card_pad_x,
+            pady=(4, PHOENIX_THEME.space_md),
+        )
+        self._add_button_hover(self.delete_btn, hover_bg="#b00020")
+
+        self.fixed_header.grid_remove()
 
         # Scrollable container under fixed_header
         self.content.grid_rowconfigure(1, weight=1)
@@ -134,6 +219,7 @@ class GalleryInspector(WorkspacePanel):
         if not images:
             self._current_image = None
             self.apply_btn.grid_remove()
+            self.fixed_header.grid_remove()
             self._set_section(self.selection_card, (tr("no_selection", "Keine Auswahl"), tr("select_thumbnail_instruction", "Klicke ein Thumbnail an.")))
             self._set_section(
                 self.file_card,
@@ -159,6 +245,7 @@ class GalleryInspector(WorkspacePanel):
         if len(images) > 1:
             self._current_image = None
             self.apply_btn.grid_remove()
+            self.fixed_header.grid_remove()
             self._set_section(
                 self.selection_card,
                 (
@@ -174,6 +261,7 @@ class GalleryInspector(WorkspacePanel):
         image = images[0]
         self._current_image = image
         self.apply_btn.grid()
+        self.fixed_header.grid()
 
         self._set_section(self.selection_card, (tr("one_image_selected", "1 Bild ausgewählt"), image.filename))
         self._set_section(

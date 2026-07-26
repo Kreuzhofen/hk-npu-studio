@@ -105,7 +105,12 @@ class PhoenixGalleryView(WorkspaceFrame):
         # 4. Build Inspector and place in self.inspector_slot
         if self.inspector_slot:
             from widgets.phoenix.gallery.inspector import GalleryInspector
-            self.inspector = GalleryInspector(self.inspector_slot, on_apply_settings=self._apply_image_settings)
+            self.inspector = GalleryInspector(
+                self.inspector_slot,
+                on_apply_settings=self._apply_image_settings,
+                on_show_in_explorer=self._on_show_in_explorer,
+                on_delete_image=self._on_delete_image,
+            )
             self.inspector.grid(row=0, column=0, sticky="nsew")
 
     def _apply_image_settings(self, settings: dict) -> None:
@@ -121,6 +126,34 @@ class PhoenixGalleryView(WorkspaceFrame):
         except Exception as e:
             import logging
             logging.getLogger("PhoenixGalleryView").error(f"Failed to apply generation settings: {e}")
+
+    def _on_show_in_explorer(self, image: GalleryImage) -> None:
+        try:
+            import subprocess
+            subprocess.run(["explorer", "/select,", str(image.path)])
+        except Exception as e:
+            import logging
+            logging.getLogger("PhoenixGalleryView").error(f"Failed to show in explorer: {e}")
+
+    def _on_delete_image(self, image: GalleryImage) -> None:
+        from tkinter import messagebox
+        from app.i18n import tr
+        if messagebox.askyesno(
+            tr("confirm_delete_title", "Bild löschen"),
+            tr("confirm_delete_message", "Möchtest du das ausgewählte Bild wirklich dauerhaft von der Festplatte löschen?")
+        ):
+            try:
+                # Delete image and sidecar json
+                image.path.unlink(missing_ok=True)
+                image.path.with_suffix(".json").unlink(missing_ok=True)
+                
+                # Refresh
+                self.controller.clear_selection()
+                self.controller.refresh()
+                self._refresh_ui()
+            except Exception as e:
+                import logging
+                logging.getLogger("PhoenixGalleryView").error(f"Failed to delete image: {e}")
 
     def _on_open_folder(self) -> None:
         from tkinter import filedialog
