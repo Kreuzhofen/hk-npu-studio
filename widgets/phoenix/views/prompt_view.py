@@ -70,7 +70,7 @@ class PhoenixPromptView(WorkspaceFrame):
     Professional two-column layout with grouped parameters on the left
     and a unified AI Generation Inspector on the right.
     """
-    COMPACT_PREVIEW_MODE = True
+    COMPACT_PREVIEW_MODE = False
 
     def __init__(self, master: tk.Misc, controller: PromptWorkspaceController | None = None) -> None:
         super().__init__(
@@ -105,6 +105,10 @@ class PhoenixPromptView(WorkspaceFrame):
         self.selected_preset_var = tk.StringVar()
         self.available_presets = []
 
+        # Configure 60/40 proportional column weights for compact zero-scroll layout
+        self.grid_columnconfigure(0, weight=6, uniform="generate_cols")
+        self.grid_columnconfigure(1, weight=4, uniform="generate_cols")
+
         self._build_input_area()
         self._build_inspector()
         self._build_status_bar()
@@ -125,9 +129,8 @@ class PhoenixPromptView(WorkspaceFrame):
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1
         )
-        self.input_card.grid(row=0, column=0, sticky="nsew", padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm)
-        self.input_card.grid_rowconfigure(0, weight=1)   # Scrollable parameters
-        self.input_card.grid_rowconfigure(1, weight=0)   # Fixed generate button
+        self.input_card.grid(row=0, column=0, sticky="nsew", padx=PHOENIX_THEME.space_xs, pady=PHOENIX_THEME.space_xs)
+        self.input_card.grid_rowconfigure(0, weight=1)
         self.input_card.grid_columnconfigure(0, weight=1)
 
         # ── Scrollable parameter area (Canvas) ────────
@@ -163,102 +166,6 @@ class PhoenixPromptView(WorkspaceFrame):
         # Build all parameter groups inside param_content
         self._build_parameters()
 
-        # ── Fixed primary action (always visible) ─────
-        action_bar = tk.Frame(
-            self.input_card,
-            bg=PHOENIX_THEME.surface,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
-        )
-        action_bar.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            padx=PHOENIX_THEME.space_md,
-            pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_md),
-        )
-        action_bar.grid_columnconfigure(0, weight=1, uniform="generation_actions")
-        action_bar.grid_columnconfigure(1, weight=1, uniform="generation_actions")
-
-        tk.Label(
-            action_bar,
-            text="Actions",
-            bg=PHOENIX_THEME.surface,
-            fg=PHOENIX_THEME.accent,
-            font=PHOENIX_THEME.font_card_title,
-            anchor="w",
-        ).grid(
-            row=0,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=PHOENIX_THEME.space_md,
-            pady=(PHOENIX_THEME.space_sm, 0),
-        )
-        tk.Label(
-            action_bar,
-            text="Bereit für deine nächste Idee – Ausführung erfolgt lokal auf der NPU.",
-            bg=PHOENIX_THEME.surface,
-            fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_caption,
-            anchor="w",
-        ).grid(
-            row=1,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=PHOENIX_THEME.space_md,
-            pady=(0, PHOENIX_THEME.space_sm),
-        )
-
-        self.gen_btn = tk.Button(
-            action_bar,
-            text="BILD GENERIEREN  →",
-            command=self._on_generate,
-            bg=PHOENIX_THEME.accent,
-            fg=PHOENIX_THEME.text_on_accent,
-            activebackground=PHOENIX_THEME.accent_dark,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_section,
-            cursor="hand2",
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.button_pad_y,
-        )
-        self.gen_btn.grid(
-            row=2,
-            column=0,
-            sticky="nsew",
-            padx=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_xs),
-            pady=(0, PHOENIX_THEME.space_md),
-        )
-        self.cancel_btn = tk.Button(
-            action_bar,
-            text="ABBRECHEN",
-            command=self._on_cancel_generation,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_disabled,
-            activebackground=PHOENIX_THEME.button_active,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            disabledforeground=PHOENIX_THEME.text_disabled,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_section,
-            cursor="hand2",
-            state="disabled",
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.button_pad_y,
-        )
-        self.cancel_btn.grid(
-            row=2,
-            column=1,
-            sticky="nsew",
-            padx=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md),
-            pady=(0, PHOENIX_THEME.space_md),
-        )
-        self._layout_generation_actions(False)
-
     def _build_parameters(self) -> None:
         """Build all parameter groups inside the scrollable param_content frame."""
         # Shared variables for layout synchronization
@@ -286,7 +193,7 @@ class PhoenixPromptView(WorkspaceFrame):
         r = self._section_header(p, tr("presets_section_header", "Presets & Vorlagen"), r)
 
         preset_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        preset_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+        preset_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
         preset_frame.grid_columnconfigure(0, weight=0)
         preset_frame.grid_columnconfigure(1, weight=1)
         preset_frame.grid_columnconfigure(2, weight=0)
@@ -321,14 +228,15 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=10,
             pady=4,
         )
-        apply_btn.grid(row=0, column=2, sticky="e", padx=(0, 4), pady=2)
+        apply_btn.grid(row=0, column=2, sticky="ew", padx=(0, 4), pady=2)
+        self._add_button_hover(apply_btn)
 
-        save_btn = tk.Button(
+        save_preset_btn = tk.Button(
             preset_frame,
-            text=tr("save_preset_btn", "Als Preset speichern"),
+            text=tr("save_preset_btn", "Speichern"),
             command=self._on_save_preset,
-            bg=PHOENIX_THEME.accent,
-            fg=PHOENIX_THEME.text_on_accent,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.accent,
             activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat",
@@ -338,14 +246,15 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=10,
             pady=4,
         )
-        save_btn.grid(row=0, column=3, sticky="e", padx=(0, 4), pady=2)
+        save_preset_btn.grid(row=0, column=3, sticky="ew", padx=(0, 4), pady=2)
+        self._add_button_hover(save_preset_btn)
 
-        delete_btn = tk.Button(
+        delete_preset_btn = tk.Button(
             preset_frame,
             text=tr("delete_preset_btn", "Löschen"),
             command=self._on_delete_preset,
-            bg=PHOENIX_THEME.accent,
-            fg=PHOENIX_THEME.text_on_accent,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.accent,
             activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat",
@@ -355,7 +264,8 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=10,
             pady=4,
         )
-        delete_btn.grid(row=0, column=4, sticky="e", pady=2)
+        delete_preset_btn.grid(row=0, column=4, sticky="ew", pady=2)
+        self._add_button_hover(delete_preset_btn)
 
         self._refresh_presets_dropdown()
         r += 1
@@ -364,7 +274,7 @@ class PhoenixPromptView(WorkspaceFrame):
         r = self._section_header(p, "Model", r)
 
         model_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        model_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+        model_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
         model_frame.grid_columnconfigure(0, weight=0)
         model_frame.grid_columnconfigure(1, weight=1)
 
@@ -396,15 +306,15 @@ class PhoenixPromptView(WorkspaceFrame):
             bg=PHOENIX_THEME.elevated_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
-            padx=10,
-            pady=8
+            padx=6,
+            pady=4
         )
         self.model_desc_frame.grid(
             row=1,
             column=0,
             columnspan=2,
             sticky="ew",
-            pady=(PHOENIX_THEME.space_sm, 0),
+            pady=(2, 0),
         )
         self.model_desc_frame.grid_columnconfigure(0, weight=1)
 
@@ -437,7 +347,7 @@ class PhoenixPromptView(WorkspaceFrame):
             p,
             bg=PHOENIX_THEME.surface,
             highlightbackground=PHOENIX_THEME.accent,
-            highlightthickness=2,
+            highlightthickness=1,
         )
         prompt_card.grid(
             row=r,
@@ -445,7 +355,7 @@ class PhoenixPromptView(WorkspaceFrame):
             columnspan=2,
             sticky="ew",
             padx=16,
-            pady=(0, 12),
+            pady=(0, 4),
         )
         r += 1
         prompt_card.grid_columnconfigure(0, weight=1)
@@ -457,7 +367,7 @@ class PhoenixPromptView(WorkspaceFrame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(PHOENIX_THEME.space_md, 0),
+            pady=(4, 0),
         )
         prompt_header_frame.grid_columnconfigure(0, weight=1)
         prompt_header_frame.grid_columnconfigure(1, weight=0)
@@ -545,22 +455,22 @@ class PhoenixPromptView(WorkspaceFrame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(0, PHOENIX_THEME.space_sm),
+            pady=(0, 2),
         )
 
         self.prompt_text = tk.Text(
-            prompt_card, height=5, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            prompt_card, height=3, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
             insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border, highlightcolor=PHOENIX_THEME.accent,
             highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body, wrap="word",
-            padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm,
+            padx=6, pady=4,
         )
         self.prompt_text.grid(
             row=2,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(0, PHOENIX_THEME.space_xs),
+            pady=(0, 2),
         )
         self.prompt_text.insert("1.0", "A futuristic cyberpunk cityscape, neon lights, high resolution, highly detailed")
         self.prompt_text.bind("<KeyRelease>", lambda e: self._on_main_prompt_key())
@@ -579,7 +489,7 @@ class PhoenixPromptView(WorkspaceFrame):
             column=0,
             sticky="e",
             padx=PHOENIX_THEME.space_md,
-            pady=(0, PHOENIX_THEME.space_sm)
+            pady=(0, 2)
         )
 
         tk.Label(
@@ -594,7 +504,7 @@ class PhoenixPromptView(WorkspaceFrame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(0, PHOENIX_THEME.space_xs),
+            pady=(0, 2),
         )
 
         self.neg_prompt_text = tk.Text(
@@ -602,14 +512,14 @@ class PhoenixPromptView(WorkspaceFrame):
             insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border, highlightcolor=PHOENIX_THEME.accent,
             highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body, wrap="word",
-            padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm,
+            padx=6, pady=4,
         )
         self.neg_prompt_text.grid(
             row=5,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(0, PHOENIX_THEME.space_md),
+            pady=(0, 4),
         )
         self.neg_prompt_text.insert("1.0", "blurry, low quality, distorted, extra limbs, bad anatomy")
         self._update_prompt_counters()
@@ -617,8 +527,91 @@ class PhoenixPromptView(WorkspaceFrame):
 
         # ── Group: Generation Parameters ──────────────
         r = self._section_header(p, "Generation Parameters", r)
-        self.dnd_subtitle = tk.Label(
+
+        self.active_tab = "basic"
+        self.canny_supported = False
+
+        # Segmented Button Bar Frame (CN-023)
+        self.tab_bar = tk.Frame(p, bg=PHOENIX_THEME.elevated_bg, padx=2, pady=2, bd=0, highlightthickness=0)
+        self.tab_bar.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(8, 6))
+        r += 1
+
+        for col_idx in range(3):
+            self.tab_bar.columnconfigure(col_idx, weight=1)
+
+        self.btn_tab_basic = tk.Button(
+            self.tab_bar,
+            text="Basic",
+            font=PHOENIX_THEME.font_small,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+            padx=12,
+            pady=4,
+            command=lambda: self._switch_tab("basic")
+        )
+        self.btn_tab_basic.grid(row=0, column=0, sticky="ew", padx=1)
+        self._add_button_hover(self.btn_tab_basic)
+
+        self.btn_tab_canny = tk.Button(
+            self.tab_bar,
+            text="ControlNet/Canny",
+            font=PHOENIX_THEME.font_small,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+            padx=12,
+            pady=4,
+            command=lambda: self._switch_tab("canny")
+        )
+        self.btn_tab_canny.grid(row=0, column=1, sticky="ew", padx=1)
+        self._add_button_hover(self.btn_tab_canny)
+
+        self.btn_tab_advanced = tk.Button(
+            self.tab_bar,
+            text="Advanced",
+            font=PHOENIX_THEME.font_small,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+            padx=12,
+            pady=4,
+            command=lambda: self._switch_tab("advanced")
+        )
+        self.btn_tab_advanced.grid(row=0, column=2, sticky="ew", padx=1)
+        self._add_button_hover(self.btn_tab_advanced)
+
+        # Tab Content Container (styled exactly like dark Phoenix cards)
+        self.tab_container = tk.Frame(
             p,
+            bg=PHOENIX_THEME.card_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+            bd=0,
+        )
+        self.tab_container.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+        self.tab_container.columnconfigure(0, weight=1)
+        self.tab_container.columnconfigure(1, weight=1)
+        r += 1
+
+        self.tab_basic_content = tk.Frame(self.tab_container, bg=PHOENIX_THEME.card_bg, bd=0, highlightthickness=0)
+        self.tab_basic_content.columnconfigure(0, weight=1)
+        self.tab_basic_content.columnconfigure(1, weight=1)
+
+        self.tab_canny_content = tk.Frame(self.tab_container, bg=PHOENIX_THEME.card_bg, bd=0, highlightthickness=0)
+        self.tab_canny_content.columnconfigure(0, weight=1)
+        self.tab_canny_content.columnconfigure(1, weight=1)
+
+        self.tab_advanced_content = tk.Frame(self.tab_container, bg=PHOENIX_THEME.card_bg, bd=0, highlightthickness=0)
+        self.tab_advanced_content.columnconfigure(0, weight=1)
+        self.tab_advanced_content.columnconfigure(1, weight=1)
+
+        # Show initial tab with clean padding inside container card
+        self.tab_basic_content.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=8)
+
+        # ── Group: ControlNet/Canny (inside tab_canny_content) ──
+        self.dnd_subtitle = tk.Label(
+            self.tab_canny_content,
             text="Vorbereitung für Image→Image und Image→Video.",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -626,37 +619,42 @@ class PhoenixPromptView(WorkspaceFrame):
             anchor="w",
         )
         self.dnd_subtitle.grid(
-            row=r,
+            row=0,
             column=0,
             columnspan=2,
             sticky="ew",
             padx=16,
-            pady=(0, PHOENIX_THEME.space_sm),
+            pady=(0, 2),
         )
-        self.dnd_subtitle.row_idx = r
-        r += 1
+        self.dnd_subtitle.row_idx = 0
 
         self.dnd_card = tk.Frame(
-            p,
+            self.tab_canny_content,
             bg=PHOENIX_THEME.surface,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
         self.dnd_card.grid(
-            row=r,
+            row=1,
             column=0,
             columnspan=2,
             sticky="ew",
             padx=16,
-            pady=(0, 12),
+            pady=(0, 4),
         )
-        self.dnd_card.row_idx = r
-        r += 1
+        self.dnd_card.row_idx = 1
 
         # ControlNet Canny controls frame (Sprint CN-004)
-        self.controlnet_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        self.controlnet_frame.row_idx = r
-        r += 1
+        self.controlnet_frame = tk.Frame(self.tab_canny_content, bg=PHOENIX_THEME.card_bg)
+        self.controlnet_frame.grid(
+            row=2,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=16,
+            pady=(0, 4),
+        )
+        self.controlnet_frame.row_idx = 2
 
         self.controlnet_frame.grid_columnconfigure(0, weight=1)
         self.controlnet_frame.grid_columnconfigure(1, weight=1)
@@ -684,7 +682,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self.high_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
 
         strength_label = tk.Label(self.controlnet_frame, text=tr("conditioning_strength_label", "Conditioning Strength:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
-        strength_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 1))
+        strength_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(2, 1))
         self.strength_scale = tk.Scale(
             self.controlnet_frame, from_=0.0, to=2.0, resolution=0.05, orient="horizontal",
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
@@ -692,18 +690,16 @@ class PhoenixPromptView(WorkspaceFrame):
             activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
             width=12, variable=self.conditioning_strength_var
         )
-        self.strength_scale.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        self.strength_scale.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 4))
 
         _Tooltip(low_label, lambda: "Unterer Canny-Schwellenwert für die Kantenerkennung (0 - 255).")
         _Tooltip(high_label, lambda: "Oberer Canny-Schwellenwert für die Kantenerkennung (0 - 255).")
         _Tooltip(strength_label, lambda: "Einflussstärke von ControlNet auf das generierte Bild (0.0 - 2.0).")
 
-        # (Group: Image Size - grouped under Generation Parameters)
-
-        self.size_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-
-        self.size_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
-        self.size_frame.row_idx = r
+        # ── Group: Image Size (inside tab_basic_content) ──
+        self.size_frame = tk.Frame(self.tab_basic_content, bg=PHOENIX_THEME.card_bg)
+        self.size_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+        self.size_frame.row_idx = 0
         self.size_frame.grid_columnconfigure(0, weight=0)
         self.size_frame.grid_columnconfigure(1, weight=1)
         self.size_frame.grid_columnconfigure(2, weight=0)
@@ -742,9 +738,13 @@ class PhoenixPromptView(WorkspaceFrame):
             state="normal",
             cursor="arrow",
             padx=10,
-            pady=8
+            pady=4
         )
-        self.res_512_btn.grid(row=0, column=0, sticky="ew", padx=(0, 6), pady=(4, 4))
+        self.res_512_btn.grid(row=0, column=0, sticky="ew", padx=(0, 6), pady=(2, 2))
+        self.res_512_btn.is_active = True
+        self.res_512_btn.normal_bg = PHOENIX_THEME.accent
+        self.res_512_btn.normal_fg = PHOENIX_THEME.text_on_accent
+        self._add_button_hover(self.res_512_btn)
 
         lock_symbol = IconManager.get_symbol("lock")
         self.res_1024_btn = tk.Button(
@@ -760,9 +760,13 @@ class PhoenixPromptView(WorkspaceFrame):
             state="disabled",
             disabledforeground=PHOENIX_THEME.text_disabled,
             padx=10,
-            pady=8
+            pady=4
         )
-        self.res_1024_btn.grid(row=0, column=1, sticky="ew", padx=(6, 0), pady=(4, 4))
+        self.res_1024_btn.grid(row=0, column=1, sticky="ew", padx=(6, 0), pady=(2, 2))
+        self.res_1024_btn.is_active = False
+        self.res_1024_btn.normal_bg = PHOENIX_THEME.elevated_bg
+        self.res_1024_btn.normal_fg = PHOENIX_THEME.text_disabled
+        self._add_button_hover(self.res_1024_btn)
 
         self.locked_hint_lbl = tk.Label(
             self.locked_res_frame,
@@ -774,19 +778,18 @@ class PhoenixPromptView(WorkspaceFrame):
             justify="left",
             wraplength=280
         )
-        self.locked_hint_lbl.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self.locked_hint_lbl.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(2, 0))
 
-        r += 1
+        # ── Group: Sampling Frame (inside tab_basic_content) ──
+        self.sampling_frame = tk.Frame(self.tab_basic_content, bg=PHOENIX_THEME.card_bg)
+        self.sampling_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 2))
+        self.sampling_frame.grid_columnconfigure(0, weight=1)
+        self.sampling_frame.grid_columnconfigure(1, weight=1)
 
-        sampling_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        sampling_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
-        sampling_frame.grid_columnconfigure(0, weight=1)
-        sampling_frame.grid_columnconfigure(1, weight=1)
-
-        self.cfg_label = tk.Label(sampling_frame, text="CFG Scale:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        self.cfg_label = tk.Label(self.sampling_frame, text="CFG Scale:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         self.cfg_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
         self.cfg_scale = tk.Scale(
-            sampling_frame, from_=1.0, to=20.0, resolution=0.5, orient="horizontal",
+            self.sampling_frame, from_=1.0, to=20.0, resolution=0.5, orient="horizontal",
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             highlightthickness=0, font=PHOENIX_THEME.font_caption,
             activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
@@ -795,19 +798,19 @@ class PhoenixPromptView(WorkspaceFrame):
         self.cfg_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
 
         # Advanced settings button for compact mode
-        self.adv_label = tk.Label(sampling_frame, text="Einstellungen:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        self.adv_label = tk.Label(self.sampling_frame, text="Einstellungen:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         self.adv_settings_btn = tk.Button(
-            sampling_frame, text="Erweiterte Einstellungen ⚙️",
-            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
+            self.sampling_frame, text="Erweiterte Einstellungen ⚙️",
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=3,
             bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_secondary,
             activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
             command=self._open_advanced_settings_popup
         )
         self._add_button_hover(self.adv_settings_btn)
 
-        tk.Label(sampling_frame, text="Steps:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=1, sticky="w", pady=(0, 1))
+        tk.Label(self.sampling_frame, text="Steps:", bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=1, sticky="w", pady=(0, 1))
         self.steps_scale = tk.Scale(
-            sampling_frame, from_=1, to=100, orient="horizontal",
+            self.sampling_frame, from_=1, to=100, orient="horizontal",
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             highlightthickness=0, font=PHOENIX_THEME.font_caption,
             activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
@@ -817,37 +820,38 @@ class PhoenixPromptView(WorkspaceFrame):
 
         # Quality presets for standard mode (locked resolution models)
         self.active_steps_preset = "Standard"
-        self.steps_preset_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
+        self.steps_preset_frame = tk.Frame(self.sampling_frame, bg=PHOENIX_THEME.card_bg)
         self.steps_preset_frame.grid_columnconfigure(0, weight=1)
 
         self.btn_preset_schnell = tk.Button(
             self.steps_preset_frame, text="⚡ Schnell",
-            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=2,
             command=lambda: self._select_steps_preset("Schnell")
         )
-        self.btn_preset_schnell.grid(row=0, column=0, sticky="ew", pady=2)
+        self.btn_preset_schnell.grid(row=0, column=0, sticky="ew", pady=1)
         self._add_button_hover(self.btn_preset_schnell)
 
         self.btn_preset_standard = tk.Button(
             self.steps_preset_frame, text="⭐ Standard",
-            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=2,
             command=lambda: self._select_steps_preset("Standard")
         )
-        self.btn_preset_standard.grid(row=1, column=0, sticky="ew", pady=2)
+        self.btn_preset_standard.grid(row=1, column=0, sticky="ew", pady=1)
         self._add_button_hover(self.btn_preset_standard)
 
         self.btn_preset_beste = tk.Button(
             self.steps_preset_frame, text="💎 Beste Qualität",
-            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=6,
+            font=PHOENIX_THEME.font_caption, cursor="hand2", relief="flat", bd=0, padx=8, pady=2,
             command=lambda: self._select_steps_preset("Beste Qualität")
         )
-        self.btn_preset_beste.grid(row=2, column=0, sticky="ew", pady=2)
+        self.btn_preset_beste.grid(row=2, column=0, sticky="ew", pady=1)
         self._add_button_hover(self.btn_preset_beste)
 
         self._update_steps_preset_colors()
 
-        self.dropdown_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
-        self.dropdown_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        # ── Group: Advanced Dropdown Frame (inside tab_advanced_content) ──
+        self.dropdown_frame = tk.Frame(self.tab_advanced_content, bg=PHOENIX_THEME.card_bg)
+        self.dropdown_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(2, 0))
         self.dropdown_frame.grid_columnconfigure(0, weight=0)
         self.dropdown_frame.grid_columnconfigure(1, weight=1)
         self.dropdown_frame.grid_columnconfigure(2, weight=0)
@@ -866,12 +870,11 @@ class PhoenixPromptView(WorkspaceFrame):
         self.scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, disabledforeground=PHOENIX_THEME.text_disabled, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         self.scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         self.scheduler_menu.grid(row=0, column=3, sticky="ew", pady=2)
-        r += 1
 
-        # (Group: Output - grouped under Generation Parameters)
-        self.output_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
-        self.output_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
-        self.output_frame.row_idx = r
+        # ── Group: Output (inside tab_advanced_content) ──
+        self.output_frame = tk.Frame(self.tab_advanced_content, bg=PHOENIX_THEME.card_bg)
+        self.output_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 2))
+        self.output_frame.row_idx = 1
         self.output_frame.grid_columnconfigure(0, weight=0)
         self.output_frame.grid_columnconfigure(1, weight=1)
         self.output_frame.grid_columnconfigure(2, weight=0)
@@ -893,6 +896,7 @@ class PhoenixPromptView(WorkspaceFrame):
         batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
 
+        self._update_tab_bar_visuals()
         self._apply_generation_contract(self.model_var.get())
 
     @staticmethod
@@ -933,9 +937,12 @@ class PhoenixPromptView(WorkspaceFrame):
         if isinstance(contract.get("scheduler"), dict):
             self._configure_option_contract(self.scheduler_menu, self.scheduler_var, contract["scheduler"], self.scheduler_lbl, "Sched.:")
 
+        # Always ensure self.sampling_frame is gridded inside tab_basic_content (CN-022)
+        self.sampling_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+
         # Manage visibility based on COMPACT_PREVIEW_MODE
         if self.COMPACT_PREVIEW_MODE:
-            # Hide the entire Image Size group, dropdown frame, and Output group from main panel
+            # Hide the entire Image Size group, dropdown frame, and Output group from basic/advanced tabs
             self.size_frame.grid_remove()
             self.dropdown_frame.grid_remove()
             self.output_frame.grid_remove()
@@ -945,7 +952,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 if "Output" in self._section_labels:
                     self._section_labels["Output"].grid_remove()
 
-            # Hide standard CFG scale and show advanced settings button
+            # Hide standard CFG scale and show advanced settings button inside sampling_frame
             self.cfg_label.grid_remove()
             self.cfg_scale.grid_remove()
             self.adv_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
@@ -957,18 +964,18 @@ class PhoenixPromptView(WorkspaceFrame):
             self.cfg_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
             self.cfg_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
 
-            # Show the entire Image Size group, dropdown frame, and Output group in main panel
+            # Show the entire Image Size group, dropdown frame, and Output group in basic/advanced tabs
             if hasattr(self, "_section_labels"):
                 if "Image Size" in self._section_labels:
                     lbl = self._section_labels["Image Size"]
-                    lbl.grid(row=lbl.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(4, 1))
+                    lbl.grid_remove()
                 if "Output" in self._section_labels:
                     lbl = self._section_labels["Output"]
-                    lbl.grid(row=lbl.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(4, 1))
+                    lbl.grid_remove()
 
-            self.size_frame.grid(row=self.size_frame.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
-            self.dropdown_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
-            self.output_frame.grid(row=self.output_frame.row_idx, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+            self.size_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
+            self.dropdown_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(2, 0))
+            self.output_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
 
             # Layout resolution inside size_frame
             if contract.get("resolution_locked") is True:
@@ -1020,6 +1027,8 @@ class PhoenixPromptView(WorkspaceFrame):
         if model_meta:
             supports_controlnet = model_meta.get("capabilities", {}).get("controlnet", False)
 
+        self.canny_supported = supports_controlnet
+
         if supports_controlnet:
             self.dnd_subtitle.configure(text="Referenzbild für ControlNet Canny:")
             self.dnd_subtitle.grid(
@@ -1028,7 +1037,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 columnspan=2,
                 sticky="ew",
                 padx=16,
-                pady=(0, PHOENIX_THEME.space_sm),
+                pady=(0, 2),
             )
             self.dnd_card.grid(
                 row=self.dnd_card.row_idx,
@@ -1036,7 +1045,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 columnspan=2,
                 sticky="ew",
                 padx=16,
-                pady=(0, 12),
+                pady=(0, 4),
             )
             self.controlnet_frame.grid(
                 row=self.controlnet_frame.row_idx,
@@ -1044,14 +1053,18 @@ class PhoenixPromptView(WorkspaceFrame):
                 columnspan=2,
                 sticky="ew",
                 padx=16,
-                pady=(0, 12),
+                pady=(0, 4),
             )
         else:
             self.dnd_subtitle.configure(text="Vorbereitung für Image→Image und Image→Video.")
             self.dnd_subtitle.grid_remove()
             self.dnd_card.grid_remove()
             self.controlnet_frame.grid_remove()
+            # Fallback to basic tab if canny becomes unsupported
+            if self.active_tab == "canny":
+                self._switch_tab("basic")
 
+        self._update_tab_bar_visuals()
 
         # If advanced settings popup is currently open and active, refresh it so it stays synced
         if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
@@ -1087,8 +1100,9 @@ class PhoenixPromptView(WorkspaceFrame):
             self.inspector_slot, bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border, highlightthickness=1,
         )
-        self.inspector_panel.grid(row=0, column=0, sticky="nsew", padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm)
+        self.inspector_panel.grid(row=0, column=0, sticky="nsew", padx=PHOENIX_THEME.space_xs, pady=PHOENIX_THEME.space_xs)
         self.inspector_panel.grid_rowconfigure(0, weight=1)
+        self.inspector_panel.grid_rowconfigure(1, weight=0)
         self.inspector_panel.grid_columnconfigure(0, weight=1)
 
         self.insp_content = tk.Frame(self.inspector_panel, bg=PHOENIX_THEME.card_bg)
@@ -1302,6 +1316,102 @@ class PhoenixPromptView(WorkspaceFrame):
         
         self.btn_save_as = tk.Button(btn_frame, text="Save As", command=self._on_save_as, **btn_style)
         self.btn_save_as.grid(row=0, column=2, sticky="ew", padx=1, pady=1)
+
+        # ── Fixed primary action (always visible) ─────
+        self.action_bar = tk.Frame(
+            self.inspector_panel,
+            bg=PHOENIX_THEME.surface,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+        )
+        self.action_bar.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=16,
+            pady=(0, 16),
+        )
+        self.action_bar.grid_columnconfigure(0, weight=1, uniform="generation_actions")
+        self.action_bar.grid_columnconfigure(1, weight=1, uniform="generation_actions")
+
+        tk.Label(
+            self.action_bar,
+            text="Actions",
+            bg=PHOENIX_THEME.surface,
+            fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        ).grid(
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=12,
+            pady=(4, 0),
+        )
+        tk.Label(
+            self.action_bar,
+            text="Bereit für deine nächste Idee – Ausführung erfolgt lokal auf der NPU.",
+            bg=PHOENIX_THEME.surface,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+        ).grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=12,
+            pady=(0, 4),
+        )
+
+        self.gen_btn = tk.Button(
+            self.action_bar,
+            text="BILD GENERIEREN  →",
+            command=self._on_generate,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent_dark,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_section,
+            cursor="hand2",
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.button_pad_y,
+        )
+        self.gen_btn.grid(
+            row=2,
+            column=0,
+            sticky="nsew",
+            padx=(12, 4),
+            pady=(0, 12),
+        )
+        self.cancel_btn = tk.Button(
+            self.action_bar,
+            text="ABBRECHEN",
+            command=self._on_cancel_generation,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_disabled,
+            activebackground=PHOENIX_THEME.button_active,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            disabledforeground=PHOENIX_THEME.text_disabled,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_section,
+            cursor="hand2",
+            state="disabled",
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.button_pad_y,
+        )
+        self.cancel_btn.grid(
+            row=2,
+            column=1,
+            sticky="nsew",
+            padx=(4, 12),
+            pady=(0, 12),
+        )
+        self._layout_generation_actions(False)
 
     def _inspector_section_header(self, title: str, row: int) -> int:
         tk.Label(
@@ -2815,6 +2925,65 @@ class PhoenixPromptView(WorkspaceFrame):
                 )
             ],
         )
+
+    def _switch_tab(self, tab_name: str) -> None:
+        if tab_name == "canny" and not self.canny_supported:
+            return
+        self.active_tab = tab_name
+
+        # Hide all content frames
+        self.tab_basic_content.grid_remove()
+        self.tab_canny_content.grid_remove()
+        self.tab_advanced_content.grid_remove()
+
+        # Show active content frame with clean spacing
+        if tab_name == "basic":
+            self.tab_basic_content.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=8)
+        elif tab_name == "canny":
+            self.tab_canny_content.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=8)
+        elif tab_name == "advanced":
+            self.tab_advanced_content.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=8)
+
+        self._update_tab_bar_visuals()
+
+    def _update_tab_bar_visuals(self) -> None:
+        buttons = [
+            ("basic", self.btn_tab_basic),
+            ("canny", self.btn_tab_canny),
+            ("advanced", self.btn_tab_advanced),
+        ]
+        for name, btn in buttons:
+            if name == self.active_tab:
+                btn.is_active = True
+                btn.normal_bg = PHOENIX_THEME.accent
+                btn.normal_fg = PHOENIX_THEME.text_on_accent
+                btn.configure(
+                    bg=PHOENIX_THEME.accent,
+                    fg=PHOENIX_THEME.text_on_accent,
+                    activebackground=PHOENIX_THEME.accent,
+                    activeforeground=PHOENIX_THEME.text_on_accent,
+                    state="normal"
+                )
+            else:
+                btn.is_active = False
+                if name == "canny" and not self.canny_supported:
+                    btn.configure(
+                        bg=PHOENIX_THEME.elevated_bg,
+                        fg=PHOENIX_THEME.text_disabled,
+                        activebackground=PHOENIX_THEME.elevated_bg,
+                        activeforeground=PHOENIX_THEME.text_disabled,
+                        state="disabled"
+                    )
+                else:
+                    btn.normal_bg = PHOENIX_THEME.elevated_bg
+                    btn.normal_fg = PHOENIX_THEME.text_secondary
+                    btn.configure(
+                        bg=PHOENIX_THEME.elevated_bg,
+                        fg=PHOENIX_THEME.text_secondary,
+                        activebackground=PHOENIX_THEME.accent,
+                        activeforeground=PHOENIX_THEME.text_on_accent,
+                        state="normal"
+                    )
 
     def _show_templates_popup(self) -> None:
         """Display a hierarchical popup menu with prompt templates categories and presets."""
