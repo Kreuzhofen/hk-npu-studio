@@ -5,6 +5,8 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from controllers.model_manager_controller import ModelManagerController
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
+
 
 
 class _Tooltip:
@@ -75,7 +77,7 @@ class PhoenixModelManagerView(tk.Frame):
 
         tk.Label(
             header_frame,
-            text="Model Repository Manager",
+            text=tr("model_repository_manager", "Model Repository Manager"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_title,
@@ -84,7 +86,7 @@ class PhoenixModelManagerView(tk.Frame):
 
         tk.Label(
             header_frame,
-            text="Lokale Modelldatenbank (Datenbasiert über resources/models/*.json)",
+            text=tr("local_model_db_subtitle", "Lokale Modelldatenbank (Datenbasiert über resources/models/*.json)"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
@@ -154,11 +156,11 @@ class PhoenixModelManagerView(tk.Frame):
             style="Phoenix.Treeview",
             selectmode="browse",
         )
-        self.tree.heading("active", text="Aktiv")
-        self.tree.heading("name", text="Modellname")
-        self.tree.heading("category", text="Kategorie")
-        self.tree.heading("backend", text="Ziel-Backend")
-        self.tree.heading("status", text="Status")
+        self.tree.heading("active", text=tr("active", "Aktiv"))
+        self.tree.heading("name", text=tr("model_name", "Modellname"))
+        self.tree.heading("category", text=tr("category", "Kategorie"))
+        self.tree.heading("backend", text=tr("target_backend", "Ziel-Backend"))
+        self.tree.heading("status", text=tr("status", "Status"))
 
         self.tree.column("active", width=45, anchor="center", stretch=False)
         self.tree.column("name", width=240, anchor="w", stretch=True)
@@ -248,7 +250,7 @@ class PhoenixModelManagerView(tk.Frame):
         # the modal Advanced Settings popup below.
         tk.Label(
             self.inspector_scroll_content,
-            text="Modellinformationen",
+            text=tr("model_info_title", "Modellinformationen"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
@@ -256,12 +258,12 @@ class PhoenixModelManagerView(tk.Frame):
         ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(12, 8))
 
         base_props = [
-            ("Modellname:", 1),
-            ("Version:", 2),
-            ("Backend:", 3),
-            ("Status:", 4),
-            ("Beschreibung:", 5),
-            ("Fähigkeiten:", 6),
+            (tr("model_name_label", "Modellname:"), 1),
+            (tr("version_label", "Version:"), 2),
+            (tr("backend_label_colon", "Backend:"), 3),
+            (tr("status_label_colon", "Status:"), 4),
+            (tr("description_label_colon", "Beschreibung:"), 5),
+            (tr("capabilities_label_colon", "Fähigkeiten:"), 6),
         ]
         for name, row in base_props:
             tk.Label(
@@ -282,7 +284,7 @@ class PhoenixModelManagerView(tk.Frame):
 
         tk.Label(
             self.inspector_scroll_content,
-            text="Installationsinformationen",
+            text=tr("install_info_title", "Installationsinformationen"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
@@ -290,9 +292,9 @@ class PhoenixModelManagerView(tk.Frame):
         ).grid(row=7, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 8))
 
         install_props = [
-            ("Installiert:", 8),
-            ("Downloadstatus:", 9),
-            ("Pfad:", 10),
+            (tr("installed_label", "Installiert:"), 8),
+            (tr("download_status_label", "Downloadstatus:"), 9),
+            (tr("path_label_colon", "Pfad:"), 10),
         ]
         for name, row in install_props:
             tk.Label(
@@ -308,9 +310,32 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspect_download = self._create_value_label(self.inspector_scroll_content, 9, 1)
         self.inspect_path = self._create_value_label(self.inspector_scroll_content, 10, 1, wrap=True)
 
+        # Folder size & Samplers details
+        tk.Label(
+            self.inspector_scroll_content,
+            text=tr("folder_size_label", "Dateigröße:"),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_body,
+            anchor="w"
+        ).grid(row=11, column=0, sticky="nw", padx=(16, 4), pady=4)
+        
+        self.inspect_size = self._create_value_label(self.inspector_scroll_content, 11, 1)
+
+        tk.Label(
+            self.inspector_scroll_content,
+            text=tr("supported_samplers_label", "Unterstützte Sampler:"),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_body,
+            anchor="w"
+        ).grid(row=12, column=0, sticky="nw", padx=(16, 4), pady=4)
+
+        self.inspect_samplers = self._create_value_label(self.inspector_scroll_content, 12, 1, wrap=True)
+
         self.advanced_settings_button = tk.Button(
             self.inspector_scroll_content,
-            text="⚙️ Erweiterte Einstellungen...",
+            text=tr("advanced_settings_btn", "⚙️ Erweiterte Einstellungen..."),
             command=self._open_advanced_settings,
             bg=PHOENIX_THEME.accent,
             fg=PHOENIX_THEME.text_on_accent,
@@ -324,7 +349,7 @@ class PhoenixModelManagerView(tk.Frame):
             pady=9,
         )
         self.advanced_settings_button.grid(
-            row=11,
+            row=13,
             column=0,
             columnspan=2,
             sticky="ew",
@@ -346,7 +371,7 @@ class PhoenixModelManagerView(tk.Frame):
 
         self.status_lbl = tk.Label(
             self.status_bar,
-            text="Bereit",
+            text=tr("ready", "Bereit"),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption,
@@ -367,14 +392,14 @@ class PhoenixModelManagerView(tk.Frame):
             return
 
         if not self.tree.selection():
-            messagebox.showinfo("Erweiterte Einstellungen", "Kein Modell ausgewählt.")
+            messagebox.showinfo(tr("advanced_settings_title", "Erweiterte Einstellungen"), tr("no_model_selected", "Kein Modell ausgewählt."))
             return
 
         self._advanced_return_focus = self.focus_get()
         popup = tk.Toplevel(self.winfo_toplevel(), bg=PHOENIX_THEME.app_bg)
         self._advanced_popup = popup
         popup.withdraw()
-        popup.title("AI Model Manager – Erweiterte Einstellungen")
+        popup.title(tr("advanced_settings_popup_title", "AI Model Manager – Erweiterte Einstellungen"))
         popup.transient(self.winfo_toplevel())
         popup.protocol("WM_DELETE_WINDOW", self._close_advanced_settings)
         popup.bind("<Escape>", lambda _event: self._close_advanced_settings())
@@ -387,7 +412,7 @@ class PhoenixModelManagerView(tk.Frame):
         )
         tk.Label(
             heading,
-            text="Erweiterte Einstellungen",
+            text=tr("advanced_settings_title", "Erweiterte Einstellungen"),
             bg=PHOENIX_THEME.app_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_title,
@@ -395,7 +420,7 @@ class PhoenixModelManagerView(tk.Frame):
         ).pack(fill="x")
         tk.Label(
             heading,
-            text="Modell-, Package-, Validierungs- und Diagnoseoptionen des ausgewählten Modells",
+            text=tr("advanced_settings_popup_subtitle", "Modell-, Package-, Validierungs- und Diagnoseoptionen des ausgewählten Modells"),
             bg=PHOENIX_THEME.app_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
@@ -426,7 +451,7 @@ class PhoenixModelManagerView(tk.Frame):
         package_tab = tk.Frame(tab_host, bg=PHOENIX_THEME.card_bg)
         system_tab = tk.Frame(tab_host, bg=PHOENIX_THEME.card_bg)
         tab_frames = (model_tab, package_tab, system_tab)
-        tab_titles = ("Modell", "Package & Validierung", "System & Diagnose")
+        tab_titles = (tr("tab_model", "Modell"), tr("tab_package", "Package & Validierung"), tr("tab_system", "System & Diagnose"))
         for tab_frame in tab_frames:
             tab_frame.grid(row=0, column=0, sticky="nsew")
 
@@ -517,7 +542,7 @@ class PhoenixModelManagerView(tk.Frame):
         )
         close_button = tk.Button(
             footer,
-            text="Schließen",
+            text=tr("close", "Schließen"),
             command=self._close_advanced_settings,
             bg=PHOENIX_THEME.accent,
             fg=PHOENIX_THEME.text_on_accent,
@@ -606,14 +631,14 @@ class PhoenixModelManagerView(tk.Frame):
 
     def _build_advanced_model_tab(self, parent: tk.Frame) -> None:
         parent.columnconfigure(1, weight=1)
-        self._advanced_section(parent, "Modellparameter", 0)
+        self._advanced_section(parent, tr("model_parameters_section", "Modellparameter"), 0)
 
         properties = [
-            ("Kategorie:", 1),
-            ("Autor:", 2),
-            ("Lizenz:", 3),
-            ("Min. RAM:", 4),
-            ("Empf. RAM:", 5),
+            (tr("category_label_colon", "Kategorie:"), 1),
+            (tr("author_label_colon", "Autor:"), 2),
+            (tr("license_label_colon", "Lizenz:"), 3),
+            (tr("min_ram_label", "Min. RAM:"), 4),
+            (tr("rec_ram_label", "Empf. RAM:"), 5),
         ]
         for name, row in properties:
             tk.Label(
@@ -639,20 +664,20 @@ class PhoenixModelManagerView(tk.Frame):
 
     def _build_advanced_package_tab(self, parent: tk.Frame) -> None:
         parent.columnconfigure(1, weight=1)
-        self._advanced_section(parent, "Package Details & Validierung", 0)
+        self._advanced_section(parent, tr("package_details_section", "Package Details & Validierung"), 0)
 
         properties = [
-            ("Package Status:", 1),
-            ("Package-Typ:", 2),
-            ("Package-Version:", 3),
-            ("Installierte Version:", 4),
-            ("Update-Hinweis:", 5),
-            ("Erforderliche Runtime:", 6),
-            ("Installierte Runtime:", 7),
-            ("Runtime-Verfügbarkeit:", 8),
-            ("Package-Größe:", 9),
-            ("Download-URL:", 10),
-            ("Checksum:", 11),
+            (tr("package_status_label", "Package Status:"), 1),
+            (tr("package_type_label", "Package-Typ:"), 2),
+            (tr("package_version_label", "Package-Version:"), 3),
+            (tr("installed_version_label", "Installierte Version:"), 4),
+            (tr("update_hint_label", "Update-Hinweis:"), 5),
+            (tr("required_runtime_label", "Erforderliche Runtime:"), 6),
+            (tr("installed_runtime_label", "Installierte Runtime:"), 7),
+            (tr("runtime_avail_label", "Runtime-Verfügbarkeit:"), 8),
+            (tr("package_size_label", "Package-Größe:"), 9),
+            (tr("download_url_label", "Download-URL:"), 10),
+            (tr("checksum_label_colon", "Checksum:"), 11),
         ]
         for name, row in properties:
             tk.Label(
@@ -711,25 +736,25 @@ class PhoenixModelManagerView(tk.Frame):
         }
         self.btn_install = tk.Button(
             self.buttons_frame,
-            text="Install",
+            text=tr("install", "Install"),
             command=lambda: self._on_package_action("install"),
             **button_style,
         )
         self.btn_validate = tk.Button(
             self.buttons_frame,
-            text="Validate",
+            text=tr("validate", "Validate"),
             command=lambda: self._on_package_action("validate"),
             **button_style,
         )
         self.btn_update = tk.Button(
             self.buttons_frame,
-            text="Update",
+            text=tr("update", "Update"),
             command=lambda: self._on_package_action("update"),
             **button_style,
         )
         self.btn_remove = tk.Button(
             self.buttons_frame,
-            text="Remove",
+            text=tr("remove", "Remove"),
             command=lambda: self._on_package_action("remove"),
             **button_style,
         )
@@ -737,23 +762,23 @@ class PhoenixModelManagerView(tk.Frame):
         self.btn_validate.grid(row=0, column=1, sticky="ew", padx=(PHOENIX_THEME.space_xs, 0), pady=PHOENIX_THEME.space_xs)
         self.btn_update.grid(row=1, column=0, sticky="ew", padx=(0, PHOENIX_THEME.space_xs), pady=PHOENIX_THEME.space_xs)
         self.btn_remove.grid(row=1, column=1, sticky="ew", padx=(PHOENIX_THEME.space_xs, 0), pady=PHOENIX_THEME.space_xs)
-        _Tooltip(self.btn_install, "Install local SMP package.")
-        _Tooltip(self.btn_validate, "Validate installed package locally.")
-        _Tooltip(self.btn_update, "Update from local SMP package.")
-        _Tooltip(self.btn_remove, "Remove local package files safely.")
+        _Tooltip(self.btn_install, tr("install_tooltip", "Install local SMP package."))
+        _Tooltip(self.btn_validate, tr("validate_tooltip", "Validate installed package locally."))
+        _Tooltip(self.btn_update, tr("update_tooltip", "Update from local SMP package."))
+        _Tooltip(self.btn_remove, tr("remove_tooltip", "Remove local package files safely."))
 
     def _build_advanced_system_tab(self, parent: tk.Frame) -> None:
         parent.columnconfigure(1, weight=1)
-        self._advanced_section(parent, "System-Umgebung", 0)
+        self._advanced_section(parent, tr("system_environment_section", "System-Umgebung"), 0)
 
         environment_properties = [
-            ("Betriebssystem:", 1),
-            ("Architektur:", 2),
-            ("Python:", 3),
-            ("CPU:", 4),
-            ("ONNX Runtime:", 5),
-            ("QNN SDK:", 6),
-            ("QNN Tools:", 7),
+            (tr("os_label", "Betriebssystem:"), 1),
+            (tr("arch_label", "Architektur:"), 2),
+            (tr("python_label", "Python:"), 3),
+            (tr("cpu_label_colon", "CPU:"), 4),
+            (tr("onnx_runtime_label", "ONNX Runtime:"), 5),
+            (tr("qnn_sdk_label", "QNN SDK:"), 6),
+            (tr("qnn_tools_label", "QNN Tools:"), 7),
         ]
         for name, row in environment_properties:
             tk.Label(
@@ -781,7 +806,7 @@ class PhoenixModelManagerView(tk.Frame):
 
         self.npu_diag_button = tk.Button(
             parent,
-            text="Run NPU Diagnostic",
+            text=tr("run_npu_diag_btn", "Run NPU Diagnostic"),
             command=self._run_npu_diagnostic,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -804,17 +829,17 @@ class PhoenixModelManagerView(tk.Frame):
             padx=PHOENIX_THEME.space_lg,
             pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md),
         )
-        _Tooltip(self.npu_diag_button, "Run local MobileNetV2 DLC smoke test through qnn-net-run.")
+        _Tooltip(self.npu_diag_button, tr("run_npu_diag_tooltip", "Run local MobileNetV2 DLC smoke test through qnn-net-run."))
 
-        self._advanced_section(parent, "Diagnoseergebnis", 9)
+        self._advanced_section(parent, tr("diagnostic_result_section", "Diagnoseergebnis"), 9)
         diagnostic_properties = [
-            ("QNN verfügbar:", 10),
-            ("DLC-Test:", 11),
-            ("Exit Code:", 12),
-            ("Output-Datei:", 13),
-            ("Profiling:", 14),
-            ("Bericht:", 15),
-            ("Warnungen:", 16),
+            (tr("qnn_avail_label", "QNN verfügbar:"), 10),
+            (tr("dlc_test_label", "DLC-Test:"), 11),
+            (tr("exit_code_label", "Exit Code:"), 12),
+            (tr("output_file_label", "Output-Datei:"), 13),
+            (tr("profiling_label", "Profiling:"), 14),
+            (tr("report_label", "Bericht:"), 15),
+            (tr("warnings_label", "Warnungen:"), 16),
         ]
         for name, row in diagnostic_properties:
             tk.Label(
@@ -886,7 +911,7 @@ class PhoenixModelManagerView(tk.Frame):
 
     @staticmethod
     def _format_bool(value: object) -> str:
-        return "Ja" if bool(value) else "Nein"
+        return tr("yes", "Ja") if bool(value) else tr("no", "Nein")
 
     @staticmethod
     def _format_ram(value: object) -> str:
@@ -897,7 +922,7 @@ class PhoenixModelManagerView(tk.Frame):
     @staticmethod
     def _format_size(package: dict[str, object] | None) -> str:
         if not package:
-            return "Nicht verfügbar"
+            return tr("not_available", "Nicht verfügbar")
         raw_bytes = package.get("estimated_size_bytes")
         raw_gb = package.get("estimated_size_gb")
         size_bytes = 0.0
@@ -907,9 +932,9 @@ class PhoenixModelManagerView(tk.Frame):
             elif raw_gb not in (None, ""):
                 size_bytes = float(raw_gb) * 1024 * 1024 * 1024
         except (TypeError, ValueError):
-            return "Nicht verfügbar"
+            return tr("not_available", "Nicht verfügbar")
         if size_bytes <= 0:
-            return "Nicht verfügbar"
+            return tr("not_available", "Nicht verfügbar")
         if size_bytes < 1024 * 1024:
             return f"{size_bytes / 1024:.1f} KB"
         if size_bytes < 1024 * 1024 * 1024:
@@ -956,7 +981,9 @@ class PhoenixModelManagerView(tk.Frame):
         return ""
 
     @staticmethod
-    def _format_runtime_badge(runtime: object, fallback: str = "Nicht verfügbar") -> str:
+    def _format_runtime_badge(runtime: object, fallback: str | None = None) -> str:
+        if fallback is None:
+            fallback = tr("not_available", "Nicht verfügbar")
         runtime_text = PhoenixModelManagerView._safe_text(runtime, fallback)
         family = PhoenixModelManagerView._runtime_family(runtime_text)
         if family:
@@ -1076,7 +1103,7 @@ class PhoenixModelManagerView(tk.Frame):
 
     def _run_npu_diagnostic(self) -> None:
         self.npu_diag_button.configure(state="disabled", fg=PHOENIX_THEME.text_disabled)
-        self.status_lbl.configure(text="NPU Diagnostic läuft...")
+        self.status_lbl.configure(text=tr("npu_diag_running", "NPU-Diagnose läuft..."))
         self.update_idletasks()
         try:
             report = self.controller.run_npu_diagnostic()
@@ -1096,18 +1123,19 @@ class PhoenixModelManagerView(tk.Frame):
 
         self._apply_npu_diagnostic_result(report)
         success = report.get("status") == "success"
-        label = "QNN DLC Diagnostic: Success" if success else "QNN DLC Diagnostic: Failed"
+        label = tr("npu_diag_success", "QNN DLC-Diagnose: Erfolgreich") if success else tr("npu_diag_failed", "QNN DLC-Diagnose: Fehlgeschlagen")
         self.status_lbl.configure(text=f"{label} - {self._safe_text(report.get('report_path'))}")
         summary = self._format_npu_diagnostic_summary(report)
+        title = tr("run_npu_diag_btn", "NPU-Diagnose ausführen")
         if success:
-            messagebox.showinfo("NPU Diagnostic", summary)
+            messagebox.showinfo(title, summary)
         else:
-            messagebox.showwarning("NPU Diagnostic", summary)
+            messagebox.showwarning(title, summary)
 
     @staticmethod
     def _format_capabilities(capabilities: object) -> str:
         if not isinstance(capabilities, dict) or not capabilities:
-            return "Nicht verfügbar"
+            return tr("not_available", "Nicht verfügbar")
         enabled = sorted(str(name) for name, active in capabilities.items() if bool(active))
         if not enabled:
             return "Keine Capabilities angegeben"
@@ -1138,22 +1166,22 @@ class PhoenixModelManagerView(tk.Frame):
 
     def _runtime_availability(self, required_runtime: str) -> str:
         if not required_runtime or required_runtime == "—":
-            return "Nicht verfügbar"
+            return tr("not_available", "Nicht verfügbar")
         result = self.controller.get_discovery_result()
         runtime = required_runtime.lower()
         if "qnn" in runtime:
             if result and result.qnn_sdk_found and result.qnn_tools_found:
-                return "Verfügbar"
-            return "Fehlt: QNN Runtime nicht gefunden"
+                return tr("available", "Verfügbar")
+            return tr("missing_qnn", "Fehlt: QNN Runtime nicht gefunden")
         if "onnx" in runtime:
             if result and result.onnx_available:
-                return "Verfügbar"
-            return "Fehlt: ONNX Runtime nicht installiert"
+                return tr("available", "Verfügbar")
+            return tr("missing_onnx", "Fehlt: ONNX Runtime nicht installiert")
         if "cpu" in runtime:
             if result and result.cpu_available:
-                return "Verfügbar"
-            return "Fehlt: CPU Runtime nicht verfügbar"
-        return "Nicht verfügbar"
+                return tr("available", "Verfügbar")
+            return tr("missing_cpu", "Fehlt: CPU Runtime nicht verfügbar")
+        return tr("not_available", "Nicht verfügbar")
 
     def _set_package_detail_values(self, model: dict[str, object]) -> None:
         model_id = self._safe_text(model.get("id"))
@@ -1166,11 +1194,11 @@ class PhoenixModelManagerView(tk.Frame):
 
         status = self._resolved_package_status(model_id)
         package_version = self._safe_text(package.get("version") if package else model.get("version"))
-        installed_version = self._safe_text(model.get("version"), "Nicht verfügbar") if model.get("installed") else "Nicht verfügbar"
+        installed_version = self._safe_text(model.get("version"), tr("not_available", "Nicht verfügbar")) if model.get("installed") else tr("not_available", "Nicht verfügbar")
         required_runtime = self._safe_text(
             package.get("recommended_runtime") if package else model.get("recommended_backend") or model.get("backend")
         )
-        installed_runtime = self._safe_text(model.get("backend"), "Nicht verfügbar") if model.get("installed") else "Nicht verfügbar"
+        installed_runtime = self._safe_text(model.get("backend"), tr("not_available", "Nicht verfügbar")) if model.get("installed") else tr("not_available", "Nicht verfügbar")
         update_hint = "Keine neuere Version verfügbar"
         if status == "UPDATE_AVAILABLE":
             update_hint = f"Neuere Version verfügbar: {package_version}"
@@ -1188,7 +1216,7 @@ class PhoenixModelManagerView(tk.Frame):
         self.inspect_package_size.configure(text=self._format_size(package))
         availability_message = self._safe_text(
             (package.get("availability_message") if package else None) or model.get("availability_message"),
-            "Nicht verfügbar",
+            tr("not_available", "Nicht verfügbar"),
         )
         download_url = package.get("download_url") if package else None
         self.inspect_download_url.configure(text=self._safe_text(download_url, availability_message))
@@ -1212,12 +1240,12 @@ class PhoenixModelManagerView(tk.Frame):
         self.env_os.configure(text=self._safe_text(result.os_name))
         self.env_arch.configure(text=self._safe_text(result.architecture))
         self.env_python.configure(text=self._safe_text(result.python_version))
-        self.env_cpu.configure(text="Verfügbar" if result.cpu_available else "Nicht verfügbar")
+        self.env_cpu.configure(text=tr("available", "Verfügbar") if result.cpu_available else tr("not_available", "Nicht verfügbar"))
         self.env_onnx.configure(
-            text=f"Verfügbar ({result.onnx_version})" if result.onnx_available else "Nicht installiert"
+            text=f"{tr('available', 'Verfügbar')} ({result.onnx_version})" if result.onnx_available else tr("not_installed", "Nicht installiert")
         )
-        self.env_qnn_sdk.configure(text="Gefunden" if result.qnn_sdk_found else "Nicht gefunden")
-        self.env_qnn_tools.configure(text="Gefunden" if result.qnn_tools_found else "Nicht gefunden")
+        self.env_qnn_sdk.configure(text=tr("found", "Gefunden") if result.qnn_sdk_found else tr("not_found", "Nicht gefunden"))
+        self.env_qnn_tools.configure(text=tr("found", "Gefunden") if result.qnn_tools_found else tr("not_found", "Nicht gefunden"))
 
     def refresh(self) -> None:
         """Reload models from repository and populate treeview while keeping active selection."""
@@ -1229,26 +1257,40 @@ class PhoenixModelManagerView(tk.Frame):
 
         # 2. Reload repository data
         self.controller.refresh_repository()
-        models = self.controller.get_all_models()
         active_model_id = self.controller.get_active_model_id()
+
+        # Run model scanner
+        try:
+            self.scanned_results = {m["id"]: m for m in self.controller.scan_npu_models()}
+        except Exception:
+            self.scanned_results = {}
 
         # 3. Rebuild Treeview items
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        for model in models:
-            is_active = "✓" if model.get("id") == active_model_id else ""
-            model_id = self._safe_text(model.get("id"))
+        # Iterate over only the scanned NPU models
+        for model_id, scanned in self.scanned_results.items():
+            model = self.controller.get_model_details(model_id)
+            display_name = model.get("display_name") if model else scanned.get("display_name")
+            category = model.get("category") if model else "Text-to-Image"
+            backend = model.get("backend") if model else scanned.get("backend_status")
+            
+            is_active = "✓" if model_id == active_model_id else ""
+            
+            is_complete = scanned.get("is_complete", False)
+            status_text = tr("einsatzbereit_auf_npu", "Einsatzbereit auf NPU") if is_complete else tr("fehlt_unvollstaendig", "Fehlt / Unvollständig")
+            
             self.tree.insert(
                 "",
                 "end",
                 iid=model_id,
                 values=(
                     is_active,
-                    self._safe_text(model.get("display_name")),
-                    self._safe_text(model.get("category")),
-                    self._safe_text(model.get("backend")),
-                    self._format_status_badge(self._resolved_package_status(model_id)),
+                    display_name,
+                    category,
+                    backend,
+                    status_text,
                 ),
             )
 
@@ -1277,6 +1319,8 @@ class PhoenixModelManagerView(tk.Frame):
                 self.inspect_installed,
                 self.inspect_download,
                 self.inspect_path,
+                self.inspect_size,
+                self.inspect_samplers,
             ):
                 lbl.configure(text="—")
             if self._advanced_popup_is_open():
@@ -1315,23 +1359,60 @@ class PhoenixModelManagerView(tk.Frame):
         if not model:
             self._set_package_action_states(None)
             return
-        package_status = self._resolved_package_status(model_id)
-
+        
+        scanned = self.scanned_results.get(model_id) if hasattr(self, "scanned_results") else None
+        
+        # Check complete status
+        is_complete = scanned.get("is_complete", False) if scanned else False
+        status_text = tr("einsatzbereit_auf_npu", "Einsatzbereit auf NPU") if is_complete else tr("fehlt_unvollstaendig", "Fehlt / Unvollständig")
+        
         # Compact inspector values
         self.inspect_name.configure(text=self._safe_text(model.get("display_name")))
         self.inspect_version.configure(text=self._safe_text(model.get("version")))
         self.inspect_backend.configure(text=self._safe_text(model.get("backend")))
-        self._configure_status_badge(self.inspect_status, package_status)
+        
+        # Status badge
+        self.inspect_status.configure(
+            text=status_text,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.accent if is_complete else PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_button,
+            padx=6,
+            pady=2,
+        )
+        
         self.inspect_desc.configure(text=self._safe_text(model.get("description")))
-        self.inspect_installed.configure(text=self._format_bool(model.get("installed")))
-        self.inspect_download.configure(text="Heruntergeladen" if model.get("downloaded") else "Ausstehend")
-        self.inspect_path.configure(text=self._safe_text(model.get("path"), "Nicht verfügbar"))
+        self.inspect_installed.configure(text=self._format_bool(is_complete))
+        self.inspect_download.configure(text=tr("found", "Gefunden") if is_complete else tr("not_found", "Nicht gefunden"))
+        
+        path_str = scanned.get("path") if scanned else model.get("path")
+        self.inspect_path.configure(text=self._safe_text(path_str, tr("not_available", "Nicht verfügbar")))
+        
+        # Folder size
+        size_str = scanned.get("size_str", "—") if scanned else "—"
+        self.inspect_size.configure(text=size_str)
+        
+        # Supported Samplers
+        samplers = "—"
+        gen_params = model.get("generation_parameters")
+        if isinstance(gen_params, dict):
+            sampler_spec = gen_params.get("sampler")
+            if isinstance(sampler_spec, dict):
+                sampler_vals = sampler_spec.get("values")
+                if isinstance(sampler_vals, list):
+                    samplers = ", ".join(str(s) for s in sampler_vals)
+                elif sampler_spec.get("default"):
+                    samplers = str(sampler_spec.get("default"))
+        if samplers == "—" and scanned:
+            samplers = scanned.get("default_sampler", "—")
+        self.inspect_samplers.configure(text=samplers)
+
         self._update_advanced_model_details(model)
         self._set_package_detail_values(model)
-        self._set_package_action_states(package_status)
+        self._set_package_action_states(self._resolved_package_status(model_id))
 
         # Update status bar feedback: "Modell ausgewählt: <Modellname>"
-        self.status_lbl.configure(text=f"Modell ausgewählt: {self._safe_text(model.get('display_name'))}")
+        self.status_lbl.configure(text=tr("model_selected_status", "Modell ausgewählt: {name}", name=self._safe_text(model.get('display_name'))))
 
     def _format_validation_summary(self, validation: dict[str, object]) -> str:
         issues = validation.get("issues") if isinstance(validation, dict) else []
@@ -1479,8 +1560,8 @@ class PhoenixModelManagerView(tk.Frame):
             return
         model_id, _model, package_name = context
         confirmed = messagebox.askyesno(
-            "Package entfernen",
-            f"Soll das lokale Package '{package_name}' wirklich entfernt werden?\n\nEs werden nur Package-eigene Dateien unter C:\\SnapdragonAI\\models\\{model_id} entfernt.",
+            tr("remove", "Entfernen"),
+            tr("package_remove_confirm", package_name=package_name, model_id=model_id),
         )
         if not confirmed:
             self.status_lbl.configure(text="Entfernen abgebrochen.")
@@ -1548,7 +1629,7 @@ class PhoenixModelManagerView(tk.Frame):
         self.refresh()
 
         # Update status bar feedback: "Aktives Modell geändert: <Modellname>"
-        self.status_lbl.configure(text=f"Aktives Modell geändert: {display_name}")
+        self.status_lbl.configure(text=tr("active_model_changed", "Aktives Modell geändert: {name}", name=display_name))
 
         # TODO (UX-003): Add context menu item "Mit diesem Modell generieren" 
         # which will explicitly trigger open_generate() on the WorkflowController.

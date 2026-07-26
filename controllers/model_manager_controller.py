@@ -101,4 +101,12 @@ class ModelManagerController:
         """Run the local QNN DLC smoke test and return the diagnostic report."""
         return QnnDlcDiagnosticRunner().run()
 
+    def scan_npu_models(self) -> list[dict[str, Any]]:
+        """Scan local directories for preinstalled NPU models."""
+        from app.model_scanner import ModelScanner
+        import config
+        scanner = ModelScanner(temp_dir=config.TEMP_DIR, models_dir=config.MODELS_DIR)
+        return scanner.scan_models()
+
 Class = ModelManagerController
+
