@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import time
 import tkinter as tk
+import shutil
 from typing import Callable
 
 from PIL import Image, ImageTk
@@ -18,7 +19,7 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 
 @dataclass(frozen=True)
-class LatestGeneration:
+class GenerationInfo:
     path: Path
     filename: str
     model: str
@@ -36,7 +37,8 @@ class HomeSnapshot:
     version: str
     branch: str
     installed_packages: str
-    latest_generation: LatestGeneration | None
+    disk_usage_info: str
+    latest_generations: list[GenerationInfo]
 
 
 class PhoenixHomeView(tk.Frame):
@@ -56,8 +58,7 @@ class PhoenixHomeView(tk.Frame):
         self._model_controller = ModelManagerController()
         self._project_branch = self._read_project_branch()
         self._last_refresh_at = 0.0
-        self._last_generation_path: Path | None = None
-        self._last_generation_photo: ImageTk.PhotoImage | None = None
+        self._cached_photos: list[ImageTk.PhotoImage] = []
 
         self._system_values: dict[str, tk.Label] = {}
         self._project_values: dict[str, tk.Label] = {}
@@ -75,7 +76,7 @@ class PhoenixHomeView(tk.Frame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_xl,
-            pady=(PHOENIX_THEME.space_xl, PHOENIX_THEME.space_lg),
+            pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_sm),
         )
         tk.Label(
             welcome,
@@ -92,7 +93,7 @@ class PhoenixHomeView(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_title,
             anchor="w",
-        ).pack(fill="x", pady=(PHOENIX_THEME.space_xs, 0))
+        ).pack(fill="x", pady=(2, 0))
         tk.Label(
             welcome,
             text="Create. Organize. Review. Evolve.",
@@ -100,7 +101,7 @@ class PhoenixHomeView(tk.Frame):
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
             anchor="w",
-        ).pack(fill="x", pady=(PHOENIX_THEME.space_xs, 0))
+        ).pack(fill="x", pady=(2, 0))
 
         actions = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
         actions.grid(
@@ -108,24 +109,24 @@ class PhoenixHomeView(tk.Frame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_xl,
-            pady=(0, PHOENIX_THEME.space_lg),
+            pady=(0, PHOENIX_THEME.space_sm),
         )
         tk.Label(
             actions,
-            text="Schnellaktionen",
+            text="Schnelleinstieg",
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
             anchor="w",
-        ).grid(row=0, column=0, columnspan=4, sticky="ew", pady=(0, PHOENIX_THEME.space_sm))
-        for column in range(4):
+        ).grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 4))
+        
+        for column in range(3):
             actions.grid_columnconfigure(column, weight=1, uniform="home_actions")
 
         action_specs = (
-            ("🎨", "AI Generate", "prompt"),
-            ("🤖", "AI Model Manager", "models"),
-            ("📚", "AI Asset Library", "gallery"),
-            ("🔍", "Review Workspace", "compare"),
+            ("🎨", "Neue Bildgenerierung", "prompt"),
+            ("🤖", "Modelle verwalten", "models"),
+            ("📚", "Galerie", "gallery"),
         )
         for column, (icon, title, target) in enumerate(action_specs):
             self._create_action_card(actions, icon, title, target, column)
@@ -136,28 +137,21 @@ class PhoenixHomeView(tk.Frame):
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_xl,
-            pady=(0, PHOENIX_THEME.space_lg),
+            pady=(0, PHOENIX_THEME.space_sm),
         )
         status_host.grid_columnconfigure((0, 1), weight=1, uniform="home_status")
 
-        system_card = self._create_section_card(status_host, "Systemstatus")
+        system_card = self._create_section_card(status_host, "System- & NPU-Status")
         system_card.grid(
             row=0,
             column=0,
             sticky="nsew",
             padx=(0, PHOENIX_THEME.space_sm),
         )
-        for row, (key, label) in enumerate(
-            (
-                ("npu", "NPU"),
-                ("qnn", "QNN Runtime"),
-                ("onnx", "ONNX Runtime"),
-                ("models", "Installierte Modelle"),
-                ("active", "Aktives Modell"),
-            ),
-            start=1,
-        ):
-            self._system_values[key] = self._create_metric_row(system_card, label, row)
+        
+        self._system_values["npu"] = self._create_metric_row(system_card, "Qualcomm Hexagon NPU", 1)
+        self._system_values["active"] = self._create_metric_row(system_card, "Aktives Modell", 2)
+        self._system_values["resources"] = self._create_metric_row(system_card, "Systemressourcen", 3)
 
         project_card = self._create_section_card(status_host, "Projektstatus")
         project_card.grid(
@@ -166,69 +160,29 @@ class PhoenixHomeView(tk.Frame):
             sticky="nsew",
             padx=(PHOENIX_THEME.space_sm, 0),
         )
-        for row, (key, label) in enumerate(
-            (
-                ("version", "Version"),
-                ("branch", "Branch"),
-                ("packages", "Installierte AI Packages"),
-            ),
-            start=1,
-        ):
-            self._project_values[key] = self._create_metric_row(project_card, label, row)
+        
+        self._project_values["version"] = self._create_metric_row(project_card, "Version", 1)
+        self._project_values["branch"] = self._create_metric_row(project_card, "Branch", 2)
+        self._project_values["packages"] = self._create_metric_row(project_card, "Installierte AI Packages", 3)
 
-        self._last_card = self._create_section_card(self, "Letzte Generierung")
+        self._last_card = self._create_section_card(self, "Letzte Generierungen")
         self._last_card.grid(
             row=3,
             column=0,
             sticky="nsew",
             padx=PHOENIX_THEME.space_xl,
-            pady=(0, PHOENIX_THEME.space_xl),
+            pady=(0, PHOENIX_THEME.space_md),
         )
-        self._last_card.grid_columnconfigure(1, weight=1)
-        self._last_preview = tk.Label(
-            self._last_card,
-            bg=PHOENIX_THEME.card_bg,
-            bd=0,
-        )
-        self._last_preview.grid(
+        self._last_card.grid_columnconfigure(0, weight=1)
+        
+        self._previews_inner_frame = tk.Frame(self._last_card, bg=PHOENIX_THEME.card_bg)
+        self._previews_inner_frame.grid(
             row=1,
             column=0,
-            rowspan=2,
-            sticky="nw",
-            padx=(PHOENIX_THEME.card_pad_x, PHOENIX_THEME.space_lg),
-            pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.card_pad_y),
-        )
-        self._last_message = tk.Label(
-            self._last_card,
-            text="",
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_body,
-            anchor="w",
-            justify="left",
-        )
-        self._last_message.grid(
-            row=1,
-            column=1,
+            columnspan=2,
             sticky="ew",
-            padx=(0, PHOENIX_THEME.card_pad_x),
-            pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_xs),
-        )
-        self._last_details = tk.Label(
-            self._last_card,
-            text="",
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_small,
-            anchor="nw",
-            justify="left",
-        )
-        self._last_details.grid(
-            row=2,
-            column=1,
-            sticky="new",
-            padx=(0, PHOENIX_THEME.card_pad_x),
-            pady=(0, PHOENIX_THEME.card_pad_y),
+            padx=PHOENIX_THEME.card_pad_x,
+            pady=(4, PHOENIX_THEME.card_pad_y)
         )
 
     def _create_action_card(
@@ -252,7 +206,7 @@ class PhoenixHomeView(tk.Frame):
             sticky="nsew",
             padx=(
                 0 if column == 0 else PHOENIX_THEME.space_sm,
-                0 if column == 3 else PHOENIX_THEME.space_sm,
+                0 if column == 2 else PHOENIX_THEME.space_sm,
             ),
         )
         icon_label = tk.Label(
@@ -263,7 +217,7 @@ class PhoenixHomeView(tk.Frame):
             font=PHOENIX_THEME.font_title,
             cursor="hand2",
         )
-        icon_label.pack(anchor="w", padx=PHOENIX_THEME.card_pad_x, pady=(PHOENIX_THEME.card_pad_y, 0))
+        icon_label.pack(anchor="w", padx=PHOENIX_THEME.card_pad_x, pady=(8, 0))
         title_label = tk.Label(
             card,
             text=title,
@@ -276,7 +230,7 @@ class PhoenixHomeView(tk.Frame):
         title_label.pack(
             fill="x",
             padx=PHOENIX_THEME.card_pad_x,
-            pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.card_pad_y),
+            pady=(4, 8),
         )
 
         widgets = (card, icon_label, title_label)
@@ -316,7 +270,7 @@ class PhoenixHomeView(tk.Frame):
             columnspan=2,
             sticky="ew",
             padx=PHOENIX_THEME.card_pad_x,
-            pady=(PHOENIX_THEME.card_pad_y, PHOENIX_THEME.space_sm),
+            pady=(8, 4),
         )
         return card
 
@@ -333,7 +287,7 @@ class PhoenixHomeView(tk.Frame):
             column=0,
             sticky="w",
             padx=(PHOENIX_THEME.card_pad_x, PHOENIX_THEME.space_md),
-            pady=PHOENIX_THEME.space_xs,
+            pady=2,
         )
         value = tk.Label(
             parent,
@@ -349,7 +303,7 @@ class PhoenixHomeView(tk.Frame):
             column=1,
             sticky="e",
             padx=(PHOENIX_THEME.space_md, PHOENIX_THEME.card_pad_x),
-            pady=PHOENIX_THEME.space_xs,
+            pady=2,
         )
         return value
 
@@ -386,9 +340,9 @@ class PhoenixHomeView(tk.Frame):
         try:
             discovery = self._model_controller.get_discovery_result()
             npu_status = (
-                "Verfügbar"
+                "Hexagon NPU Aktiv"
                 if discovery.qnn_sdk_found and discovery.qnn_tools_found
-                else "Nicht verfügbar"
+                else "QNN nicht registriert"
             )
             qnn_runtime = "Gefunden" if discovery.qnn_sdk_found else "Nicht gefunden"
             onnx_runtime = (
@@ -408,6 +362,14 @@ class PhoenixHomeView(tk.Frame):
         except Exception:
             installed_packages = "Nicht verfügbar"
 
+        try:
+            usage = shutil.disk_usage(BASE)
+            free_gb = usage.free / (1024**3)
+            total_gb = usage.total / (1024**3)
+            disk_usage_info = f"{free_gb:.1f} GB frei (von {total_gb:.1f} GB)"
+        except Exception:
+            disk_usage_info = "Nicht verfügbar"
+
         return HomeSnapshot(
             npu_status=npu_status,
             qnn_runtime=qnn_runtime,
@@ -417,7 +379,8 @@ class PhoenixHomeView(tk.Frame):
             version=BrandManager.APP_VERSION,
             branch=self._project_branch,
             installed_packages=installed_packages,
-            latest_generation=self._read_latest_generation(),
+            disk_usage_info=disk_usage_info,
+            latest_generations=self._read_latest_generations(),
         )
 
     def _read_project_branch(self) -> str:
@@ -439,45 +402,56 @@ class PhoenixHomeView(tk.Frame):
             pass
         return "Nicht verfügbar"
 
-    def _read_latest_generation(self) -> LatestGeneration | None:
+    def _read_latest_generations(self) -> list[GenerationInfo]:
         candidates = [
             path
             for path in OUTPUT_DIR.glob("*.png")
-            if path.is_file() and path.with_suffix(".json").is_file()
+            if path.is_file()
         ]
         if not candidates:
-            return None
+            return []
 
-        latest_path = max(candidates, key=lambda path: path.stat().st_mtime_ns)
-        sidecar_path = latest_path.with_suffix(".json")
-        try:
-            metadata = json.loads(sidecar_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            metadata = {}
+        # Sort by modification time, newest first
+        candidates.sort(key=lambda path: path.stat().st_mtime_ns, reverse=True)
+        latest_candidates = candidates[:4]
 
-        model = str(metadata.get("model_id") or metadata.get("model") or "Nicht verfügbar")
-        width = metadata.get("width")
-        height = metadata.get("height")
-        resolution = f"{width} × {height}" if width and height else "Nicht verfügbar"
-        created_at = str(metadata.get("created_at") or "").strip()
-        if not created_at:
-            created_at = dt.datetime.fromtimestamp(latest_path.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
+        info_list = []
+        for path in latest_candidates:
+            sidecar_path = path.with_suffix(".json")
+            try:
+                metadata = json.loads(sidecar_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                metadata = {}
 
-        return LatestGeneration(
-            path=latest_path,
-            filename=latest_path.name,
-            model=model,
-            resolution=resolution,
-            created_at=created_at,
-        )
+            model = str(metadata.get("model_id") or metadata.get("model") or "Nicht verfügbar")
+            width = metadata.get("width")
+            height = metadata.get("height")
+            resolution = f"{width} × {height}" if width and height else "Nicht verfügbar"
+            created_at = str(metadata.get("created_at") or "").strip()
+            if not created_at:
+                created_at = dt.datetime.fromtimestamp(path.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
+
+            info_list.append(
+                GenerationInfo(
+                    path=path,
+                    filename=path.name,
+                    model=model,
+                    resolution=resolution,
+                    created_at=created_at,
+                )
+            )
+        return info_list
+
+    def _truncate_text(self, text: str, max_length: int = 15) -> str:
+        if len(text) > max_length:
+            return text[:max_length-3] + "..."
+        return text
 
     def _render(self, snapshot: HomeSnapshot) -> None:
         system_values = {
             "npu": snapshot.npu_status,
-            "qnn": snapshot.qnn_runtime,
-            "onnx": snapshot.onnx_runtime,
-            "models": snapshot.installed_models,
             "active": snapshot.active_model,
+            "resources": snapshot.disk_usage_info,
         }
         project_values = {
             "version": snapshot.version,
@@ -485,37 +459,86 @@ class PhoenixHomeView(tk.Frame):
             "packages": snapshot.installed_packages,
         }
         for key, value in system_values.items():
-            self._system_values[key].configure(text=value)
+            if key in self._system_values:
+                self._system_values[key].configure(text=value)
         for key, value in project_values.items():
-            self._project_values[key].configure(text=value)
+            if key in self._project_values:
+                self._project_values[key].configure(text=value)
 
-        latest = snapshot.latest_generation
-        if latest is None:
-            self._last_preview.grid_remove()
-            self._last_message.configure(text="Es wurde noch kein Bild generiert.")
-            self._last_details.configure(text="")
-            self._last_generation_path = None
-            self._last_generation_photo = None
+        # Clear existing preview tiles inside self._previews_inner_frame
+        for widget in self._previews_inner_frame.winfo_children():
+            widget.destroy()
+
+        latest = snapshot.latest_generations
+        if not latest:
+            no_gen_lbl = tk.Label(
+                self._previews_inner_frame,
+                text="Es wurden noch keine Bilder generiert.",
+                bg=PHOENIX_THEME.card_bg,
+                fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_body,
+            )
+            no_gen_lbl.pack(pady=12)
+            self._cached_photos.clear()
             return
 
-        if self._last_generation_path != latest.path:
-            try:
-                preview_size = PHOENIX_THEME.space_xl * 4
-                with Image.open(latest.path) as image:
-                    image.thumbnail((preview_size, preview_size))
-                    self._last_generation_photo = ImageTk.PhotoImage(image.copy())
-                self._last_preview.configure(image=self._last_generation_photo)
-                self._last_preview.grid()
-            except OSError:
-                self._last_preview.grid_remove()
-                self._last_generation_photo = None
-            self._last_generation_path = latest.path
+        self._cached_photos.clear()
 
-        self._last_message.configure(text=latest.filename)
-        self._last_details.configure(
-            text=(
-                f"Modell: {latest.model}\n"
-                f"Auflösung: {latest.resolution}\n"
-                f"Erstellt: {latest.created_at}"
+        # Configure columns inside previews frame for horizontal distribution
+        for idx in range(4):
+            self._previews_inner_frame.grid_columnconfigure(idx, weight=1, uniform="home_previews")
+
+        for idx, gen in enumerate(latest):
+            tile_frame = tk.Frame(
+                self._previews_inner_frame,
+                bg=PHOENIX_THEME.elevated_bg,
+                highlightbackground=PHOENIX_THEME.border,
+                highlightthickness=1,
+                cursor="hand2"
             )
-        )
+            tile_frame.grid(row=0, column=idx, padx=4, pady=2, sticky="nsew")
+
+            try:
+                with Image.open(gen.path) as img:
+                    img.thumbnail((120, 80))
+                    photo = ImageTk.PhotoImage(img.copy())
+                    self._cached_photos.append(photo)
+            except Exception:
+                photo = None
+
+            img_lbl = tk.Label(
+                tile_frame,
+                image=photo if photo else "",
+                bg=PHOENIX_THEME.elevated_bg,
+                width=120,
+                height=80,
+                cursor="hand2"
+            )
+            img_lbl.pack(padx=4, pady=4)
+
+            name_lbl = tk.Label(
+                tile_frame,
+                text=self._truncate_text(gen.filename),
+                bg=PHOENIX_THEME.elevated_bg,
+                fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_caption,
+                cursor="hand2"
+            )
+            name_lbl.pack(padx=4, pady=(0, 4))
+
+            # Hover function closure
+            def make_hover_func(f=tile_frame, il=img_lbl, nl=name_lbl):
+                return lambda active: (
+                    f.configure(highlightbackground=PHOENIX_THEME.accent if active else PHOENIX_THEME.border),
+                    f.configure(bg=PHOENIX_THEME.card_bg if active else PHOENIX_THEME.elevated_bg),
+                    il.configure(bg=PHOENIX_THEME.card_bg if active else PHOENIX_THEME.elevated_bg),
+                    nl.configure(bg=PHOENIX_THEME.card_bg if active else PHOENIX_THEME.elevated_bg),
+                )
+
+            hover_func = make_hover_func()
+            click_func = lambda _event, target="gallery": self._navigate(target)
+
+            for w in (tile_frame, img_lbl, name_lbl):
+                w.bind("<Enter>", lambda _e, h=hover_func: h(True), add="+")
+                w.bind("<Leave>", lambda _e, h=hover_func: h(False), add="+")
+                w.bind("<Button-1>", click_func, add="+")
