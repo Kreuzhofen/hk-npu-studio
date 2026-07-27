@@ -4,6 +4,8 @@ import tkinter as tk
 from collections.abc import Callable, Sequence
 
 from widgets.phoenix.theme import PHOENIX_THEME
+from widgets.phoenix.controls.button import PhoenixButton
+from widgets.phoenix.controls.card import PhoenixCard
 
 
 class WorkspaceHeader(tk.Frame):
@@ -122,24 +124,29 @@ class WorkspaceToolbarBase(tk.Frame):
         text: str,
         command: Callable[[], None],
         width_px: int,
-    ) -> tk.Button:
-        button = tk.Button(
+        icon_name: str | None = None,
+    ) -> PhoenixButton:
+        # Auto-parse vector icon name if unicode symbol is used
+        symbol, _, label = text.partition("  ")
+        if label:
+            if not icon_name:
+                from resources.icons import IconManager
+                for k, v in IconManager.FALLBACK_SYMBOLS.items():
+                    if v == symbol:
+                        icon_name = k
+                        break
+            text = label
+
+        button = PhoenixButton(
             master,
             text=text,
             command=command,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_secondary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.button_pad_y,
-            cursor="hand2",
-            anchor="center",
+            button_type="neutral",
+            icon_name=icon_name,
+            width=width_px,
+            height=30,
+            radius=6
         )
-        button.configure(width=max(1, width_px // 9))
         return button
 
     def toolbar_dropdown(
@@ -150,40 +157,30 @@ class WorkspaceToolbarBase(tk.Frame):
         values: Sequence[str],
         width_px: int,
         callback: Callable[[str], None],
-    ) -> tk.Menubutton:
-        button = tk.Menubutton(
+    ) -> Any:
+        icon_name = None
+        label_lower = label.lower()
+        if "sort" in label_lower:
+            icon_name = "sort"
+        elif "zoom" in label_lower or "size" in label_lower or "größe" in label_lower or "grosse" in label_lower:
+            icon_name = "zoom"
+        elif "filter" in label_lower:
+            icon_name = "filter"
+        elif "preset" in label_lower:
+            icon_name = "preset"
+
+        from widgets.phoenix.controls.dropdown import PhoenixDropdown
+        button = PhoenixDropdown(
             master,
-            textvariable=variable,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_secondary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.button_pad_y,
-            cursor="hand2",
-            indicatoron=True,
-            width=max(1, width_px // 9),
+            variable=variable,
+            values=values,
+            label=label,
+            icon_name=icon_name,
+            callback=callback,
+            width=width_px,
+            height=30,
+            radius=6
         )
-        menu = tk.Menu(
-            button,
-            tearoff=False,
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_body,
-        )
-        for value in values:
-            menu.add_command(
-                label=f"{label}: {value}",
-                command=lambda item=value: self._set_dropdown_value(variable, item, callback),
-            )
-        button.configure(menu=menu)
         return button
 
     def _set_dropdown_value(
@@ -252,18 +249,18 @@ class WorkspaceStatusBar(tk.Frame):
             value_label.configure(text=value)
 
 
-class WorkspacePanel(tk.Frame):
+class WorkspacePanel(PhoenixCard):
     """Reusable side panel with shared header spacing and surface styling."""
 
     def __init__(self, master: tk.Misc, title: str, subtitle: str, width: int | None = None) -> None:
-        options: dict[str, object] = {
+        kwargs: dict[str, object] = {
             "bg": PHOENIX_THEME.card_bg,
-            "highlightbackground": PHOENIX_THEME.border,
-            "highlightthickness": 1,
+            "border_color": PHOENIX_THEME.border,
+            "radius": 10,
         }
         if width is not None:
-            options["width"] = width
-        super().__init__(master, **options)
+            kwargs["width"] = width
+        super().__init__(master, **kwargs)
         if width is not None:
             self.grid_propagate(False)
 
@@ -304,15 +301,15 @@ class WorkspacePanel(tk.Frame):
         self.content.grid_columnconfigure(0, weight=1)
 
 
-class WorkspaceInfoCard(tk.Frame):
+class WorkspaceInfoCard(PhoenixCard):
     """Reusable information card for inspectors and future workspace panels."""
 
     def __init__(self, master: tk.Misc, title: str) -> None:
         super().__init__(
             master,
             bg=PHOENIX_THEME.elevated_bg,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
+            border_color=PHOENIX_THEME.border,
+            radius=8
         )
         self.grid_columnconfigure(0, weight=1)
 

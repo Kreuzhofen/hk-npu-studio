@@ -1,0 +1,76 @@
+from __future__ import annotations
+
+class PhoenixTheme:
+    """
+    Zentrales Design-System für die Phoenix Engine.
+    Definiert Farben, Fonts und Oberflächen-Eigenschaften im einheitlichen Look.
+    """
+    def __init__(self) -> None:
+        # Farbpalette & erforderliche Layout-Attribute
+        self.bg_dark = "#121214"
+        self.app_bg = self.bg_dark
+        self.content_bg = "#141416"
+        self.header_bg = "#161619"
+        self.surface = "#18181b"
+        self.panel_bg = "#18181b"          # Erforderlich für die Sidebar
+        self.card_bg = "#1e1e23"
+        self.elevated_bg = "#27272a"
+        
+        # Hover-, Aktiv- und Akzent-Zustände
+        self.hover_bg = "#27272e"
+        self.active_bg = "#2f2f38"
+        self.button_active = "#2f2f38"     # Erforderlich in prompt_view.py
+        self.accent_soft = "#1e293b"       # Erforderlich in settings_view.py
+        
+        self.border = "#2f2f36"
+        self.border_subtle = "#222228"
+        
+        # Textfarben
+        self.text_primary = "#f4f4f5"
+        self.text_secondary = "#a1a1aa"
+        self.text_muted = "#71717a"
+        self.text_disabled = "#52525b"
+        
+        # Akzente & Status
+        self.accent = "#3b82f6"
+        self.accent_dark = "#2563eb"
+        self.text_on_accent = "#ffffff"
+        self.success = "#10b981"
+        self.warning = "#f59e0b"
+        self.error = "#ef4444"
+
+        # Fonts
+        self.font_family = "Segoe UI"
+        self.font_title = (self.font_family, 16, "bold")
+        self.font_subtitle = (self.font_family, 10, "normal")
+        self.font_section = (self.font_family, 12, "bold")
+        self.font_card_title = (self.font_family, 11, "bold")
+        self.font_body = (self.font_family, 10, "normal")
+        self.font_caption = (self.font_family, 9, "normal")
+        self.font_small = (self.font_family, 9, "normal")
+        self.font_button = (self.font_family, 10, "bold")
+        self.font_value = (self.font_family, 14, "bold")  # Erforderlich für status_card.py
+
+        # Abstände
+        self.space_xs = 4
+        self.space_sm = 8
+        self.space_md = 16
+        self.space_lg = 24
+        self.space_xl = 32
+        self.space_xxl = 48
+        
+        # Button-Paddings
+        self.button_pad_x = 12
+        self.button_pad_y = 6
+
+        # Card-Paddings
+        self.card_pad_x = 16
+        self.card_pad_y = 16
+
+PHOENIX_THEME = PhoenixTheme()
+
+def update_phoenix_theme(mode: str = "dark") -> None:
+    pass
+
+def configure_phoenix_styles(master=None) -> None:
+    pass

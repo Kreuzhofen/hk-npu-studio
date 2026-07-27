@@ -82,9 +82,11 @@ class GalleryThumbnailArea(tk.Frame):
         images: list[GalleryImage],
         selected_paths: set[Path],
         thumbnail_size: int,
+        force: bool = False,
     ) -> None:
         if (
-            self.images == images
+            not force
+            and self.images == images
             and self.selected_paths == selected_paths
             and self.thumbnail_size == thumbnail_size
         ):
@@ -92,7 +94,7 @@ class GalleryThumbnailArea(tk.Frame):
         self.images = images
         self.selected_paths = selected_paths
         self.thumbnail_size = thumbnail_size
-        self._render_grid()
+        self._render_grid(restore_scroll=force)
 
     def set_selection(self, selected_paths: set[Path]) -> None:
         """Update card selection in place, preserving loaded thumbnail widgets."""
@@ -145,8 +147,9 @@ class GalleryThumbnailArea(tk.Frame):
             wraplength=420,
         ).grid(row=2, column=0, sticky="ew", pady=(PHOENIX_THEME.space_md, 0))
 
-    def _render_grid(self) -> None:
+    def _render_grid(self, restore_scroll: bool = False) -> None:
         self.render_generation += 1
+        scroll_pos = self.canvas.yview() if restore_scroll else (0.0, 1.0)
         self.empty_state.grid_forget()
         for child in self.grid_frame.winfo_children():
             if child is not self.empty_state:
@@ -159,6 +162,10 @@ class GalleryThumbnailArea(tk.Frame):
 
         self._show_thumbnails()
         self._update_scroll_region(None)
+
+        if restore_scroll:
+            self.master.update_idletasks()
+            self.canvas.yview_moveto(scroll_pos[0])
 
     def _show_empty_state(self) -> None:
         self.grid_frame.grid_rowconfigure(0, weight=1)
@@ -403,6 +410,7 @@ class GalleryThumbnailArea(tk.Frame):
         """Clears all loaded images and explicitly destroys widgets to release memory."""
         self.images = []
         self.selected_paths = set()
+        self.provider.clear_cache()
         for child in self.grid_frame.winfo_children():
             if child is not self.empty_state:
                 child.destroy()

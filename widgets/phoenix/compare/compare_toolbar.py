@@ -111,15 +111,9 @@ class CompareToolbar(WorkspaceToolbarBase):
             return
         for label, button in self.zoom_buttons.items():
             if label == zoom_label:
-                button.configure(
-                    bg=PHOENIX_THEME.accent,
-                    fg=PHOENIX_THEME.text_on_accent,
-                )
+                button.configure(button_type="primary")
             else:
-                button.configure(
-                    bg=PHOENIX_THEME.elevated_bg,
-                    fg=PHOENIX_THEME.text_secondary,
-                )
+                button.configure(button_type="neutral")
 
 
     def _build_compare_group(self) -> tk.Frame:

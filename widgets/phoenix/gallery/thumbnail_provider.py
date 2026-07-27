@@ -12,10 +12,17 @@ from widgets.phoenix.gallery.thumbnail_service import ThumbnailService
 
 class ThumbnailRequest:
     """Represents a request to load a thumbnail asynchronously."""
-    def __init__(self, image_path: Path, size: int, callback: Callable[[ImageTk.PhotoImage], None]) -> None:
+    def __init__(
+        self,
+        image_path: Path,
+        size: int,
+        callback: Callable[[ImageTk.PhotoImage], None],
+        cache_key: tuple[Path, int, int, int] | tuple[Path, int, int, None],
+    ) -> None:
         self.image_path = image_path
         self.size = size
         self.callback = callback
+        self.cache_key = cache_key
 
 
 class ThumbnailProvider:
@@ -37,6 +44,9 @@ class ThumbnailProvider:
         
         # Dictionary mapping (Path, size) to list of callbacks waiting for this thumbnail
         self._pending_callbacks: dict[tuple[Path, int], list[Callable[[ImageTk.PhotoImage], None]]] = {}
+
+        # Cache finished thumbnails by file signature so refreshes can reuse them without flicker.
+        self._thumbnail_cache: dict[tuple[Path, int, int, int | None], ImageTk.PhotoImage] = {}
         
         # Start background worker thread
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
@@ -55,7 +65,22 @@ class ThumbnailProvider:
         Queues an async request and returns None (placeholder should be displayed).
         Prepared for future cache lookup and storage.
         """
-        key = (image_path, size)
+        try:
+            stat = image_path.stat()
+            cache_key: tuple[Path, int, int, int | None] = (
+                image_path.resolve(),
+                size,
+                int(stat.st_mtime_ns),
+                int(stat.st_size),
+            )
+        except Exception:
+            cache_key = (image_path.resolve(), size, 0, None)
+
+        cached_thumbnail = self._thumbnail_cache.get(cache_key)
+        if cached_thumbnail is not None:
+            return cached_thumbnail
+
+        key = (image_path.resolve(), size)
         
         # 1. Future: check RAM cache
         # 2. Future: check Disk cache
@@ -65,7 +90,7 @@ class ThumbnailProvider:
             self._pending_callbacks[key].append(callback)
         else:
             self._pending_callbacks[key] = [callback]
-            self._request_queue.put(ThumbnailRequest(image_path, size, callback))
+            self._request_queue.put(ThumbnailRequest(image_path, size, callback, cache_key))
             
         return None
 
@@ -99,6 +124,7 @@ class ThumbnailProvider:
                 if resized_img is not None:
                     # Convert to PhotoImage in UI thread
                     photo_image = ImageTk.PhotoImage(resized_img)
+                    self._thumbnail_cache[request.cache_key] = photo_image
                     
                     # Invoke all callbacks
                     for cb in callbacks:
@@ -114,3 +140,7 @@ class ThumbnailProvider:
         # Schedule next check if UI exists
         if self.master.winfo_exists():
             self.master.after(30, self._poll_responses)
+
+    def clear_cache(self) -> None:
+        """Drops all cached thumbnails."""
+        self._thumbnail_cache.clear()

@@ -1,5 +1,23 @@
 [
   {
+    "prompt": "Cyberpunk city street, neon glowing signs, futuristic cars, rain, high detail",
+    "negative_prompt": "daylight, natural, old, rustic, low quality",
+    "model_name": "stable_diffusion_v1_5_qnn",
+    "width": 512,
+    "height": 512,
+    "steps": 20,
+    "cfg_scale": 7.5,
+    "seed": -1,
+    "sampler": "Euler",
+    "scheduler": "Euler",
+    "controlnet_enabled": false,
+    "controlnet_model": null,
+    "canny_low_threshold": null,
+    "canny_high_threshold": null,
+    "controlnet_conditioning_scale": null,
+    "reference_image_path": null
+  },
+  {
     "prompt": "Professional studio portrait, soft key lighting, clean background, realistic skin textures, sharp focus",
     "negative_prompt": "blurry, low quality, distorted, extra limbs, bad anatomy",
     "model_name": "controlnet_canny_qnn",

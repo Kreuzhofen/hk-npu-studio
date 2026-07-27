@@ -25,6 +25,8 @@ class PhoenixTheme:
     accent_dark: str
     accent_soft: str
     success: str
+    warning: str
+    danger: str
 
     background: str
     surface: str
@@ -37,14 +39,14 @@ class PhoenixTheme:
     header: str
     workspace: str
 
-    font_title: tuple[str, int, str] = ("Segoe UI", 22, "bold")
-    font_section: tuple[str, int, str] = ("Segoe UI", 15, "bold")
-    font_card_title: tuple[str, int, str] = ("Segoe UI", 9, "bold")
-    font_value: tuple[str, int, str] = ("Segoe UI", 16, "bold")
+    font_title: tuple[str, int, str] = ("Segoe UI", 20, "bold")
+    font_section: tuple[str, int, str] = ("Segoe UI", 13, "bold")
+    font_card_title: tuple[str, int, str] = ("Segoe UI", 11, "bold")
+    font_value: tuple[str, int, str] = ("Segoe UI", 14, "bold")
     font_body: tuple[str, int] = ("Segoe UI", 10)
     font_small: tuple[str, int] = ("Segoe UI", 9)
     font_caption: tuple[str, int] = ("Segoe UI", 8)
-    font_button: tuple[str, int, str] = ("Segoe UI", 10, "bold")
+    font_button: tuple[str, int, str] = ("Segoe UI", 9, "bold")
 
     space_xs: int = 4
     space_sm: int = 8
@@ -77,6 +79,8 @@ def _create_phoenix_theme() -> PhoenixTheme:
         accent_dark=palette.button_active,
         accent_soft=palette.surface,
         success=palette.success,
+        warning=palette.warning,
+        danger=palette.error,
         background=palette.background,
         surface=palette.surface,
         card=palette.card,

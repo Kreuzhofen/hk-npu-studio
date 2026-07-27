@@ -8,6 +8,7 @@ from typing import Any
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
+from widgets.phoenix.controls.button import PhoenixButton
 
 logger = logging.getLogger("PhoenixModelManagerView")
 
@@ -219,24 +220,15 @@ class PhoenixModelManagerView(WorkspaceFrame):
         self.action_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 16))
         self.action_frame.columnconfigure(0, weight=1)
 
-        self.btn_activate = tk.Button(
+        self.btn_activate = PhoenixButton(
             self.action_frame,
-            text="⚡ " + tr("btn_activate_model", "Als aktives Modell setzen"),
+            text=tr("btn_activate_model", "Als aktives Modell setzen"),
             command=self._on_activate_selected,
-            bg=PHOENIX_THEME.accent,
-            fg=PHOENIX_THEME.text_on_accent,
-            activebackground=PHOENIX_THEME.accent_dark,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=12,
-            pady=8,
-            anchor="center"
+            button_type="primary",
+            icon_name="start",
+            height=34,
         )
         self.btn_activate.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        self._add_button_hover(self.btn_activate)
 
     # ==================================================================
     # DATA REFRESH & UI RENDERING (Anti-Flicker Caching)
@@ -430,7 +422,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
         self.det_format.configure(text=selected_model.get("format", "Snapdragon Model Package"))
         
         has_controlnet = selected_model.get("capabilities", {}).get("controlnet", False)
-        self.det_controlnet.configure(text="Unterstützt (Canny)" if has_controlnet else "Nicht unterstützt")
+        self.det_controlnet.configure(text=tr("controlnet_supported_canny", "Unterstützt (Canny)") if has_controlnet else tr("controlnet_not_supported", "Nicht unterstützt"))
         
         status_str = "Aktiv" if is_active else ("Installiert" if selected_model.get("installed", True) else "Nicht installiert")
         self.det_status.configure(text=status_str)
@@ -439,16 +431,15 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if is_active:
             self.btn_activate.configure(
                 state="disabled",
-                text="✓ Aktives Modell",
-                bg=PHOENIX_THEME.elevated_bg,
-                fg=PHOENIX_THEME.text_disabled
+                text=tr("active_model", "Aktives Modell"),
+                icon_name="success"
             )
         else:
             self.btn_activate.configure(
                 state="normal",
-                text="⚡ Als aktives Modell setzen",
-                bg=PHOENIX_THEME.accent,
-                fg=PHOENIX_THEME.text_on_accent
+                text=tr("btn_activate_model", "Als aktives Modell setzen"),
+                button_type="primary",
+                icon_name="start"
             )
 
     def _on_activate_selected(self) -> None:

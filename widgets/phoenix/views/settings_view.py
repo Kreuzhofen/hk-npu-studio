@@ -4,7 +4,48 @@ import os
 import threading
 import tkinter as tk
 import webbrowser
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
+from tkinter import ttk as ttk_real
+
+class _TtkProxy:
+    def __getattr__(self, name):
+        if name == "Combobox":
+            def make_phoenix_combobox(master, **kwargs):
+                textvariable = kwargs.pop("textvariable", None)
+                if textvariable is None:
+                    textvariable = tk.StringVar(master)
+                values = kwargs.pop("values", [])
+                width = kwargs.pop("width", None)
+                kwargs.pop("state", None)
+                kwargs.pop("style", None)
+                kwargs.pop("font", None)
+                width_px = int(width) * 8 if width is not None else None
+
+                icon_name = None
+                var_name = str(textvariable).lower()
+                if "theme" in var_name:
+                    icon_name = "settings"
+                elif "lang" in var_name:
+                    icon_name = "info"
+                elif "thread" in var_name:
+                    icon_name = "settings"
+                elif "ep" in var_name:
+                    icon_name = "models"
+
+                from widgets.phoenix.controls.dropdown import PhoenixDropdown
+                return PhoenixDropdown(
+                    master,
+                    variable=textvariable,
+                    values=values,
+                    icon_name=icon_name,
+                    width=width_px,
+                    radius=6,
+                    **kwargs
+                )
+            return make_phoenix_combobox
+        return getattr(ttk_real, name)
+
+ttk = _TtkProxy()
 
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr

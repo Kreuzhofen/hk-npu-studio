@@ -6,11 +6,13 @@ from collections.abc import Callable
 
 from controllers.plugin_controller import PluginMetadata
 from widgets.phoenix.theme import PHOENIX_THEME
-from resources.icons import IconManager
 from app.i18n import tr
+from widgets.phoenix.controls.button import PhoenixButton
+from widgets.phoenix.controls.card import PhoenixCard
+from resources.icons import IconManager
 
 
-class PhoenixPluginCard(tk.Frame):
+class PhoenixPluginCard(PhoenixCard):
     """A premium, compact plugin card showing status, metadata, and control actions."""
 
     def __init__(
@@ -24,8 +26,8 @@ class PhoenixPluginCard(tk.Frame):
         super().__init__(
             master,
             bg=PHOENIX_THEME.card_bg,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
+            border_color=PHOENIX_THEME.border,
+            radius=10,
         )
         self.plugin = plugin
         self.on_toggle = on_toggle
@@ -40,15 +42,15 @@ class PhoenixPluginCard(tk.Frame):
         self.columnconfigure(2, weight=0)  # Controls
 
         # 1. Left Slot: Plugin Extension Icon
-        icon_lbl = tk.Label(
+        from widgets.phoenix.controls.vector_icons import PhoenixIcon
+        icon_canvas = PhoenixIcon(
             self,
-            text=IconManager.get_symbol("extension") or "🔌",
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.accent,
-            font=("Segoe UI", 20, "bold"),
-            width=3,
+            name="plugins",
+            size=24,
+            color=PHOENIX_THEME.accent,
+            bg=PHOENIX_THEME.card_bg
         )
-        icon_lbl.grid(row=0, column=0, sticky="nsw", padx=16, pady=12)
+        icon_canvas.grid(row=0, column=0, sticky="nsw", padx=16, pady=12)
 
         # 2. Middle Slot: Detailed Information
         info_frame = tk.Frame(self, bg=PHOENIX_THEME.card_bg)
@@ -115,45 +117,27 @@ class PhoenixPluginCard(tk.Frame):
         )
         self.toggle_btn.pack(side="left", padx=8)
 
-        # Settings Icon Button (⚙️)
-        self.settings_btn = tk.Button(
+        # Settings Icon Button
+        self.settings_btn = PhoenixButton(
             controls_frame,
-            text="⚙️",
             command=lambda: self.on_configure(self.plugin.id),
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=10,
-            pady=6,
+            button_type="neutral",
+            icon_name="settings",
+            width=36,
+            height=32,
         )
         self.settings_btn.pack(side="left", padx=4)
-        self._add_hover(self.settings_btn)
 
-        # Delete/Remove Icon Button (🗑️)
-        from engine.theme_manager import ThemeManager
-        danger_bg = getattr(ThemeManager.palette(), "error", "#cf6679")
-        self.delete_btn = tk.Button(
+        # Delete/Remove Icon Button
+        self.delete_btn = PhoenixButton(
             controls_frame,
-            text="🗑️",
             command=lambda: self.on_uninstall(self.plugin.id),
-            bg=danger_bg,
-            fg=PHOENIX_THEME.text_on_accent,
-            activebackground=danger_bg,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=10,
-            pady=6,
+            button_type="danger",
+            icon_name="delete",
+            width=36,
+            height=32,
         )
         self.delete_btn.pack(side="left", padx=4)
-        self._add_hover(self.delete_btn, hover_bg="#b00020")
 
     def _on_toggle(self) -> None:
         is_enabled = self.toggle_var.get()

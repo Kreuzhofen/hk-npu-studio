@@ -8,6 +8,7 @@ from controllers.gallery_model import GalleryImage
 from widgets.phoenix.layout.workspace import WorkspaceInfoCard, WorkspacePanel
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
+from widgets.phoenix.controls.button import PhoenixButton
 
 
 class GalleryInspector(WorkspacePanel):
@@ -74,20 +75,13 @@ class GalleryInspector(WorkspacePanel):
         self.fixed_header.grid(row=0, column=0, sticky="ew")
         self.fixed_header.grid_columnconfigure(0, weight=1)
 
-        self.apply_btn = tk.Button(
+        self.apply_btn = PhoenixButton(
             self.fixed_header,
             text=tr("apply_settings_btn", "Prompt & Settings übernehmen"),
             command=self._apply_settings,
-            bg=PHOENIX_THEME.accent,
-            fg=PHOENIX_THEME.text_on_accent,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=16,
-            pady=8,
+            button_type="primary",
+            icon_name="start",
+            height=36,
         )
         self.apply_btn.grid(
             row=0,
@@ -96,22 +90,14 @@ class GalleryInspector(WorkspacePanel):
             padx=PHOENIX_THEME.card_pad_x,
             pady=(0, 4),
         )
-        self._add_button_hover(self.apply_btn)
 
-        self.explorer_btn = tk.Button(
+        self.explorer_btn = PhoenixButton(
             self.fixed_header,
             text=tr("show_in_explorer_btn", "Im Explorer anzeigen"),
             command=self._show_in_explorer,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=16,
-            pady=8,
+            button_type="neutral",
+            icon_name="folder",
+            height=36,
         )
         self.explorer_btn.grid(
             row=1,
@@ -120,24 +106,14 @@ class GalleryInspector(WorkspacePanel):
             padx=PHOENIX_THEME.card_pad_x,
             pady=4,
         )
-        self._add_button_hover(self.explorer_btn)
 
-        from engine.theme_manager import ThemeManager
-        danger_color = getattr(ThemeManager.palette(), "error", "#cf6679")
-        self.delete_btn = tk.Button(
+        self.delete_btn = PhoenixButton(
             self.fixed_header,
             text=tr("delete_btn", "Löschen"),
             command=self._delete_image,
-            bg=danger_color,
-            fg=PHOENIX_THEME.text_on_accent,
-            activebackground=danger_color,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=16,
-            pady=8,
+            button_type="danger",
+            icon_name="delete",
+            height=36,
         )
         self.delete_btn.grid(
             row=2,
@@ -146,7 +122,6 @@ class GalleryInspector(WorkspacePanel):
             padx=PHOENIX_THEME.card_pad_x,
             pady=(4, PHOENIX_THEME.space_md),
         )
-        self._add_button_hover(self.delete_btn, hover_bg="#b00020")
 
         self.fixed_header.grid_remove()
 

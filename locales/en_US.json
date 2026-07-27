@@ -419,5 +419,9 @@
   "package_incomplete_error": "Package is incomplete or corrupted.",
   "npu_reqs_none": "None (CPU Inference)",
   "provider_cpu_stub": "CPU Execution Provider (Stub)",
-  "details": "Details"
+  "details": "Details",
+  "controlnet_supported_canny": "Supported (Canny)",
+  "controlnet_not_supported": "Not supported",
+  "btn_activate_model": "Set as active model",
+  "active_model": "Active Model"
 }

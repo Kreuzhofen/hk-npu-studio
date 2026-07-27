@@ -3,7 +3,115 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-import tkinter as tk
+import tkinter as tk_real
+from widgets.phoenix.controls.button import PhoenixButton
+
+def make_phoenix_button(*args, **kwargs):
+    bg = kwargs.get("bg")
+    button_type = "primary"
+    if bg == PHOENIX_THEME.accent:
+        button_type = "primary"
+    elif bg in (PHOENIX_THEME.elevated_bg, PHOENIX_THEME.card_bg, PHOENIX_THEME.panel_bg, PHOENIX_THEME.accent_soft):
+        button_type = "neutral"
+    elif bg == PHOENIX_THEME.danger or (isinstance(bg, str) and ("#ef" in bg.lower() or "#dc" in bg.lower() or "danger" in bg.lower() or "red" in bg.lower() or "#cf" in bg.lower() or "#b0" in bg.lower())):
+        button_type = "danger"
+    else:
+        text = kwargs.get("text", "").lower()
+        if "abbrechen" in text or "cancel" in text or "loeschen" in text or "löschen" in text or "remove" in text or "delete" in text:
+            if "abbrechen" in text or "cancel" in text:
+                button_type = "neutral"
+            else:
+                button_type = "danger"
+        else:
+            button_type = "neutral" if bg else "primary"
+
+    for k in ["bg", "fg", "activebackground", "activeforeground", "relief", "bd", "padx", "pady", "anchor", "disabledforeground", "highlightbackground", "highlightthickness", "highlightcolor", "overrelief"]:
+        kwargs.pop(k, None)
+
+    text_val = kwargs.get("text", "")
+    icon_name = None
+    if "→" in text_val:
+        kwargs["text"] = text_val.replace("→", "").strip()
+        icon_name = "start"
+    elif "←" in text_val:
+        kwargs["text"] = text_val.replace("←", "").strip()
+        icon_name = "back"
+    elif "✕" in text_val:
+        kwargs["text"] = text_val.replace("✕", "").strip()
+        icon_name = "close"
+    elif "✓" in text_val:
+        kwargs["text"] = text_val.replace("✓", "").strip()
+        icon_name = "success"
+    elif "⚡" in text_val:
+        kwargs["text"] = text_val.replace("⚡", "").strip()
+        icon_name = "start"
+
+    if icon_name and "icon_name" not in kwargs:
+        kwargs["icon_name"] = icon_name
+
+    return PhoenixButton(*args, button_type=button_type, **kwargs)
+
+def make_phoenix_frame(*args, **kwargs):
+    highlightthickness = kwargs.get("highlightthickness", 0)
+
+    if highlightthickness and int(highlightthickness) > 0:
+        from widgets.phoenix.controls.card import PhoenixCard
+        bg = kwargs.pop("bg", PHOENIX_THEME.card_bg)
+        border_color = kwargs.pop("highlightbackground", PHOENIX_THEME.border)
+        for k in ["highlightthickness", "highlightcolor", "padx", "pady", "ipadx", "ipady"]:
+            kwargs.pop(k, None)
+        return PhoenixCard(*args, bg=bg, border_color=border_color, radius=10, **kwargs)
+
+    return tk_real.Frame(*args, **kwargs)
+
+def make_phoenix_option_menu(*args, **kwargs):
+    if len(args) < 3:
+        return tk_real.OptionMenu(*args, **kwargs)
+
+    master = args[0]
+    variable = args[1]
+    default_val = args[2]
+    values = list(args[3:])
+
+    # Standard cleanup of styling parameters
+    for k in ["command", "bg", "fg", "activebackground", "activeforeground", "relief", "bd", "padx", "pady", "anchor", "disabledforeground", "highlightbackground", "highlightthickness", "highlightcolor", "overrelief"]:
+        kwargs.pop(k, None)
+
+    # Resolve a context-appropriate icon
+    icon_name = None
+    var_name = str(variable).lower()
+    if "preset" in var_name:
+        icon_name = "preset"
+    elif "model" in var_name:
+        icon_name = "models"
+    elif "width" in var_name or "height" in var_name or "size" in var_name:
+        icon_name = "zoom"
+    elif "sampler" in var_name or "scheduler" in var_name:
+        icon_name = "settings"
+    elif "batch" in var_name:
+        icon_name = "grid"
+
+    from widgets.phoenix.controls.dropdown import PhoenixDropdown
+    return PhoenixDropdown(
+        master,
+        variable=variable,
+        values=values,
+        icon_name=icon_name,
+        radius=6,
+        **kwargs
+    )
+
+class _TkProxy:
+    def __getattr__(self, name):
+        if name == "Button":
+            return make_phoenix_button
+        if name == "Frame":
+            return make_phoenix_frame
+        if name == "OptionMenu":
+            return make_phoenix_option_menu
+        return getattr(tk_real, name)
+
+tk = _TkProxy()
 import datetime
 import time
 import os

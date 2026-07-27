@@ -1,17 +1,47 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk as ttk_real
 from collections.abc import Callable
 from PIL import Image
+
+class _TtkProxy:
+    def __getattr__(self, name):
+        if name == "Combobox":
+            def make_phoenix_combobox(master, **kwargs):
+                textvariable = kwargs.pop("textvariable", None)
+                if textvariable is None:
+                    textvariable = tk.StringVar(master)
+                values = kwargs.pop("values", [])
+                width = kwargs.pop("width", None)
+                kwargs.pop("state", None)
+                kwargs.pop("style", None)
+                kwargs.pop("font", None)
+                width_px = int(width) * 8 if width is not None else None
+                from widgets.phoenix.controls.dropdown import PhoenixDropdown
+                return PhoenixDropdown(
+                    master,
+                    variable=textvariable,
+                    values=values,
+                    icon_name="compare",
+                    width=width_px,
+                    radius=6,
+                    **kwargs
+                )
+            return make_phoenix_combobox
+        return getattr(ttk_real, name)
+
+ttk = _TtkProxy()
 
 from widgets.phoenix.compare.compare_image_canvas import CompareImageCanvas
 from widgets.phoenix.compare.compare_placeholder import ComparePlaceholder
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
+from widgets.phoenix.controls.button import PhoenixButton
+from widgets.phoenix.controls.card import PhoenixCard
 
 
-class ComparePanel(tk.Frame):
+class ComparePanel(PhoenixCard):
     """Panel shell for compare sources, managing placeholder, image canvas slots, and metadata."""
 
     def __init__(
@@ -27,8 +57,8 @@ class ComparePanel(tk.Frame):
         super().__init__(
             master,
             bg=PHOENIX_THEME.card_bg,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
+            border_color=PHOENIX_THEME.border,
+            radius=10,
         )
         self.title = title
         self.empty_title = empty_title
@@ -87,23 +117,15 @@ class ComparePanel(tk.Frame):
         self.combobox.bind("<<ComboboxSelected>>", self._on_combobox_changed)
         
         # Load Image button
-        self.load_btn = tk.Button(
+        self.load_btn = PhoenixButton(
             dropdown_frame,
             text=tr("load_image", "Bild laden"),
             command=self.on_load_clicked,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=10,
-            pady=4,
+            button_type="neutral",
+            icon_name="load_image",
+            height=30,
         )
         self.load_btn.pack(side="right")
-        self._add_button_hover(self.load_btn)
 
         # Row 1: Panel Header
         tk.Label(

@@ -4,6 +4,7 @@ import tkinter as tk
 from typing import Callable
 
 from widgets.phoenix.theme import PHOENIX_THEME
+from widgets.phoenix.controls.button import PhoenixButton
 
 
 class PhoenixActionCard(tk.Frame):
@@ -42,18 +43,9 @@ class PhoenixActionCard(tk.Frame):
             wraplength=360,
         ).pack(fill="x", padx=16, pady=(0, 12))
 
-        tk.Button(
+        PhoenixButton(
             self,
             text=button_text,
             command=command,
-            bg=PHOENIX_THEME.accent,
-            fg=PHOENIX_THEME.text_on_accent,
-            activebackground=PHOENIX_THEME.accent_dark,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.button_pad_y,
-            cursor="hand2",
+            button_type="primary",
         ).pack(anchor="w", padx=16, pady=(0, 14))

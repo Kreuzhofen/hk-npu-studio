@@ -10,6 +10,7 @@ from widgets.phoenix.cards.plugin_card import PhoenixPluginCard
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
+from widgets.phoenix.controls.button import PhoenixButton
 
 
 class PhoenixPluginView(WorkspaceFrame):
@@ -75,24 +76,15 @@ class PhoenixPluginView(WorkspaceFrame):
             "Verfügbar": tr("plugins_tab_available", "Verfügbar"),
         }
         for tab_name in ("Alle", "Aktiv", "Verfügbar"):
-            btn = tk.Button(
+            btn = PhoenixButton(
                 tabs_container,
                 text=tab_labels[tab_name],
                 command=lambda t=tab_name: self._on_tab_changed(t),
-                bg=PHOENIX_THEME.elevated_bg,
-                fg=PHOENIX_THEME.text_secondary,
-                activebackground=PHOENIX_THEME.accent,
-                activeforeground=PHOENIX_THEME.text_on_accent,
-                bd=0,
-                relief="flat",
-                font=PHOENIX_THEME.font_caption,
-                cursor="hand2",
-                padx=16,
-                pady=6,
+                button_type="neutral",
+                height=28,
             )
             btn.pack(side="left", padx=2)
             self.tab_buttons[tab_name] = btn
-            self._add_tab_hover(btn, tab_name)
 
         # 3. Middle Slot: Scrollable Card Container for Responsive/Zero-Scroll Layout
         self.middle_frame = tk.Frame(self.content_slot, bg=PHOENIX_THEME.content_bg)
@@ -177,41 +169,25 @@ class PhoenixPluginView(WorkspaceFrame):
         )
         self.install_path_entry.pack(side="left", fill="x", expand=True, padx=8, ipady=4)
 
-        self.browse_btn = tk.Button(
+        self.browse_btn = PhoenixButton(
             self.install_frame,
             text=tr("plugins_choose_folder_btn", "Ordner wählen..."),
             command=self._on_browse_plugin,
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=14,
-            pady=8,
+            button_type="neutral",
+            height=32,
+            width=140,
         )
         self.browse_btn.pack(side="left", padx=4)
-        self._add_button_hover(self.browse_btn)
 
-        self.install_btn = tk.Button(
+        self.install_btn = PhoenixButton(
             self.install_frame,
             text=tr("plugins_install_btn", "Installieren"),
             command=self._on_install_plugin,
-            bg=PHOENIX_THEME.accent,
-            fg=PHOENIX_THEME.text_on_accent,
-            activebackground=PHOENIX_THEME.accent_dark,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=18,
-            pady=8,
+            button_type="primary",
+            height=32,
+            width=120,
         )
         self.install_btn.pack(side="left", padx=(4, 16))
-        self._add_button_hover(self.install_btn)
 
     def _on_tab_changed(self, tab_name: str) -> None:
         self.active_tab = tab_name
@@ -261,9 +237,9 @@ class PhoenixPluginView(WorkspaceFrame):
         # Update tab visual indicators
         for name, button in self.tab_buttons.items():
             if name == self.active_tab:
-                button.configure(bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent)
+                button.configure(button_type="primary")
             else:
-                button.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_secondary)
+                button.configure(button_type="neutral")
 
         # Get all plugins from the directory structure
         plugins = self.controller.get_plugins("Alle", "")

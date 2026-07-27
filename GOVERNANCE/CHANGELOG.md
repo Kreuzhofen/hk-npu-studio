@@ -4,6 +4,24 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-27 (Sprint UX-001 – Phoenix UI Modernization)
+
+### Hinzugefügt
+* **Sprint UX-001 – Phoenix UI Modernization:**
+  * **Modernes Button-System & PhoenixButton:**
+    * Implementierung von `PhoenixButton` (`widgets/phoenix/controls/button.py`), einem reaktiven, Canvas-basierten Button-Widget mit abgerundeten Ecken (8-12px), uniformen Höhen und animierten Farbübergängen (Fade-Effekt bei Hover/Aktivierung) im Haupt-UI-Thread ohne zusätzlichen Overhead.
+    * Unterstützung für Primary-, Neutral-, Danger- und Disabled-Stile mit automatischer Farbkontrastberechnung und Theme-Zuweisung.
+    * Integration standardmäßiger Tkinter-Schnittstellen (wie `.cget("bg" / "fg" / "state" / "text")`, `.configure()`, `.invoke()`) für nahtlose Rückwärtskompatibilität und Testbarkeit.
+  * **Moderne Vektor-Icon-Bibliothek:**
+    * Implementierung von `PhoenixIcon` (`widgets/phoenix/controls/vector_icons.py`) für die direkte mathematische Darstellung moderner, skalierbarer Vektorgrafiken auf `tk.Canvas` zur Vermeidung von pixeligen PNGs/Emojis und Gewährleistung gestochen scharfer Icons im Dark/Light-Theme.
+    * Automatisches Parsing und Mapping von Unicode-Fallback-Symbolen in Buttons und Toolbars zu den entsprechenden Vektor-Icons.
+  * **Modernisiertes Navigations- & Sidebar-Layout:**
+    * Umstellung der Navigationsleiste (`widgets/phoenix/sidebar.py`) und der Arbeitsbereich-Toolbars (`widgets/phoenix/layout/workspace.py`) auf das neue reaktive Vektor-Button-System mit sauberen Hover- und Active-Zuständen.
+  * **Cards statt Kästen & PhoenixCard:**
+    * Entwicklung des Canvas-basierten Container-Widgets `PhoenixCard` (`widgets/phoenix/controls/card.py`) zur Visualisierung moderner Karten mit abgerundeten Ecken, dezentem Rahmen und Hintergrundabstufungen.
+    * Migration von `WorkspacePanel`, `WorkspaceInfoCard`, `PhoenixPluginCard` und `ComparePanel` auf `PhoenixCard` für ein ruhigeres und moderneres UI-Layout.
+    * Integration eines dynamic proxies in `widgets/phoenix/views/prompt_view.py` zur automatischen Konvertierung aller klassischen Buttons und umrandeten Layout-Frames zu `PhoenixButton` und `PhoenixCard` ohne Modifikation der Geschäftslogik.
+
 ## [2.0 Preview] – 2026-07-27 (Sprint CN-033 bis CN-035e)
 
 ### Hinzugefügt

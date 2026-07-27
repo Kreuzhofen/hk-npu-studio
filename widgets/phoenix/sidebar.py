@@ -6,9 +6,25 @@ from typing import Callable
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
+from widgets.phoenix.controls.button import PhoenixButton
 
 
 class PhoenixSidebar(tk.Frame):
+    BUTTON_HEIGHT = 42
+    BUTTON_RADIUS = 6
+    BUTTON_PADX = 14
+    BUTTON_FONT = (PHOENIX_THEME.font_button[0], 10, "bold")
+
+    ICON_COLORS = {
+        "home": "#60a5fa",
+        "prompt": "#a78bfa",
+        "models": "#34d399",
+        "gallery": "#fbbf24",
+        "compare": "#2dd4bf",
+        "plugins": "#fb7185",
+        "settings": "#cbd5e1",
+    }
+
     def __init__(
         self,
         master: tk.Misc,
@@ -33,7 +49,7 @@ class PhoenixSidebar(tk.Frame):
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(24, 4))
 
         tk.Label(
             self,
@@ -42,7 +58,7 @@ class PhoenixSidebar(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_xl))
+        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, 16))
 
         self._nav_button("home", tr("nav_home", "Home"))
         self._nav_button("prompt", tr("nav_ai_generate", "AI Generate"))
@@ -54,23 +70,20 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("settings", tr("nav_settings", "Settings"))
 
     def _nav_button(self, view_name: str, text: str) -> None:
-        button = tk.Button(
+        button = PhoenixButton(
             self,
             text=text,
             command=lambda: self._navigate(view_name),
+            button_type="nav",
+            icon_name=view_name,
+            icon_color=self.ICON_COLORS.get(view_name, PHOENIX_THEME.accent),
+            height=self.BUTTON_HEIGHT,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_secondary,
-            activebackground=PHOENIX_THEME.elevated_bg,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_button,
-            anchor="w",
-            padx=PHOENIX_THEME.button_pad_x,
-            pady=PHOENIX_THEME.space_sm,
-            cursor="hand2",
+            font=self.BUTTON_FONT,
+            radius=self.BUTTON_RADIUS,
         )
-        button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=PHOENIX_THEME.space_xs)
+        button.pack(fill="x", padx=self.BUTTON_PADX, pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_xs))
         self._buttons[view_name] = button
 
     def _navigate(self, view_name: str) -> None:
@@ -81,15 +94,19 @@ class PhoenixSidebar(tk.Frame):
         for name, button in self._buttons.items():
             if name == view_name:
                 button.configure(
-                    bg=PHOENIX_THEME.accent,
-                    fg=PHOENIX_THEME.text_on_accent,
-                    activebackground=PHOENIX_THEME.accent_dark,
-                    activeforeground=PHOENIX_THEME.text_on_accent,
+                    button_type="nav_active",
+                    height=self.BUTTON_HEIGHT,
+                    bg=PHOENIX_THEME.panel_bg,
+                    fg=PHOENIX_THEME.text_primary,
+                    font=self.BUTTON_FONT,
+                    icon_color=self.ICON_COLORS.get(name, PHOENIX_THEME.accent),
                 )
             else:
                 button.configure(
+                    button_type="nav",
+                    height=self.BUTTON_HEIGHT,
                     bg=PHOENIX_THEME.panel_bg,
                     fg=PHOENIX_THEME.text_secondary,
-                    activebackground=PHOENIX_THEME.elevated_bg,
-                    activeforeground=PHOENIX_THEME.text_on_accent,
+                    font=self.BUTTON_FONT,
+                    icon_color=self.ICON_COLORS.get(name, PHOENIX_THEME.accent),
                 )
