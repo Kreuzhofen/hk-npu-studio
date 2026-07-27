@@ -36,3 +36,5 @@ class I18nTests(unittest.TestCase):
         langs = get_available_languages()
         self.assertIn("de_DE", langs)
         self.assertIn("en_US", langs)
+
+

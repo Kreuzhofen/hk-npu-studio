@@ -49,6 +49,8 @@ class PromptCounterTests(unittest.TestCase):
         cls.root.destroy()
 
     def setUp(self) -> None:
+        from app.i18n import set_language
+        set_language("de_DE")
         self.controller = PromptWorkspaceController()
         self.view = PhoenixPromptView(self.root, controller=self.controller)
 

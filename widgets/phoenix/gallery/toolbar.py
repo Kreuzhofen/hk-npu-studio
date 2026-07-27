@@ -31,6 +31,25 @@ class GalleryToolbar(WorkspaceToolbarBase):
         on_sort_change: Callable[[str], None],
         on_filter_change: Callable[[str], None],
     ) -> None:
+        from app.i18n import tr
+        self.SORT_OPTIONS = (
+            tr("sort_name", "Name"),
+            tr("sort_date", "Datum"),
+            tr("sort_size", "Größe"),
+            tr("sort_type", "Typ")
+        )
+        self.SIZE_OPTIONS = (
+            tr("size_small", "Klein"),
+            tr("size_medium", "Mittel"),
+            tr("size_large", "Groß"),
+            tr("size_huge", "Sehr groß")
+        )
+        self.FILTER_OPTIONS = (
+            tr("filter_all", "Alle"),
+            "JPG/JPEG", "PNG", "WEBP", "TIFF", "BMP"
+        )
+        self.PLACEHOLDER = tr("search_placeholder", "Suchen…")
+
         super().__init__(master)
         self.on_open_folder = on_open_folder
         self.on_refresh = on_refresh
@@ -72,17 +91,18 @@ class GalleryToolbar(WorkspaceToolbarBase):
         )
 
     def _build_action_group(self) -> tk.Frame:
+        from app.i18n import tr
         group = self.group_frame()
         self.toolbar_button(
             group,
-            IconManager.get_label("folder", "Ordner öffnen"),
+            IconManager.get_label("folder", tr("open_folder", "Ordner öffnen")),
             self.on_open_folder,
             self.BUTTON_WIDTH_OPEN,
         ).pack(side="left")
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self.toolbar_button(
             group,
-            IconManager.get_label("refresh", "Aktualisieren"),
+            IconManager.get_label("refresh", tr("refresh", "Aktualisieren")),
             self.on_refresh,
             self.BUTTON_WIDTH_REFRESH,
         ).pack(side="left")
@@ -134,10 +154,11 @@ class GalleryToolbar(WorkspaceToolbarBase):
         return group
 
     def _build_view_group(self) -> tk.Frame:
+        from app.i18n import tr
         group = self.group_frame()
         self.toolbar_dropdown(
             group,
-            "Sortieren",
+            tr("sort_by", "Sortieren"),
             self.sort_value,
             self.SORT_OPTIONS,
             self.DROPDOWN_WIDTH_SORT,
@@ -145,7 +166,7 @@ class GalleryToolbar(WorkspaceToolbarBase):
         ).pack(side="left")
         self.toolbar_dropdown(
             group,
-            "Größe",
+            tr("size", "Größe"),
             self.size_value,
             self.SIZE_OPTIONS,
             self.DROPDOWN_WIDTH_SIZE,
@@ -154,7 +175,7 @@ class GalleryToolbar(WorkspaceToolbarBase):
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self.toolbar_dropdown(
             group,
-            "Filter",
+            tr("filter", "Filter"),
             self.filter_value,
             self.FILTER_OPTIONS,
             self.BUTTON_WIDTH_FILTER,

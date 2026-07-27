@@ -129,7 +129,7 @@ class PhoenixSettingsView(tk.Frame):
         # Reset Button
         self.reset_btn = tk.Button(
             btn_frame,
-            text="Zurücksetzen",
+            text=tr("settings_reset_btn", "Zurücksetzen"),
             command=self._reset_defaults,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -189,7 +189,7 @@ class PhoenixSettingsView(tk.Frame):
         # ==========================================
         # CARD 1: SYSTEM & NPU
         # ==========================================
-        sys_card = self._create_card(grid_frame, "System & NPU", 0, 0)
+        sys_card = self._create_card(grid_frame, tr("settings_title_system_npu", "System & NPU"), 0, 0)
         
         sys_form = tk.Frame(sys_card, bg=PHOENIX_THEME.card_bg)
         sys_form.pack(fill="both", expand=True, padx=16, pady=0)
@@ -198,7 +198,7 @@ class PhoenixSettingsView(tk.Frame):
         # Thread count
         tk.Label(
             sys_form,
-            text="Thread-Anzahl:",
+            text=tr("settings_thread_count", "Thread-Anzahl:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -218,7 +218,7 @@ class PhoenixSettingsView(tk.Frame):
         # EP Preference
         tk.Label(
             sys_form,
-            text="Execution Provider:",
+            text=tr("settings_execution_provider", "Execution Provider:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -238,7 +238,7 @@ class PhoenixSettingsView(tk.Frame):
         # Hardware Acceleration
         self.hw_acc_cb = tk.Checkbutton(
             sys_form,
-            text="Qualcomm Snapdragon NPU-Beschleunigung aktivieren",
+            text=tr("settings_npu_acceleration", "Qualcomm Snapdragon NPU-Beschleunigung aktivieren"),
             variable=self.hw_acc_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -254,7 +254,7 @@ class PhoenixSettingsView(tk.Frame):
         # ==========================================
         # CARD 2: PFADE & SPEICHER
         # ==========================================
-        paths_card = self._create_card(grid_frame, "Pfade & Speicher", 0, 1)
+        paths_card = self._create_card(grid_frame, tr("settings_title_paths_storage", "Pfade & Speicher"), 0, 1)
         
         paths_form = tk.Frame(paths_card, bg=PHOENIX_THEME.card_bg)
         paths_form.pack(fill="both", expand=True, padx=16, pady=0)
@@ -263,7 +263,7 @@ class PhoenixSettingsView(tk.Frame):
         # Output folder
         tk.Label(
             paths_form,
-            text="Standard-Ausgabeordner:",
+            text=tr("settings_default_output_dir", "Standard-Ausgabeordner:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -302,7 +302,7 @@ class PhoenixSettingsView(tk.Frame):
         # Model directory
         tk.Label(
             paths_form,
-            text="Modell-Verzeichnis:",
+            text=tr("settings_models_dir", "Modell-Verzeichnis:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -341,7 +341,7 @@ class PhoenixSettingsView(tk.Frame):
         # ==========================================
         # CARD 3: UI & SPRACHE
         # ==========================================
-        ui_card = self._create_card(grid_frame, "UI & Sprache", 1, 0)
+        ui_card = self._create_card(grid_frame, tr("settings_title_ui_language", "UI & Sprache"), 1, 0)
         
         ui_form = tk.Frame(ui_card, bg=PHOENIX_THEME.card_bg)
         ui_form.pack(fill="both", expand=True, padx=16, pady=0)
@@ -350,7 +350,7 @@ class PhoenixSettingsView(tk.Frame):
         # Theme option
         tk.Label(
             ui_form,
-            text="Theme-Optionen:",
+            text=tr("settings_theme_options", "Theme-Optionen:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -370,7 +370,7 @@ class PhoenixSettingsView(tk.Frame):
         # Language
         tk.Label(
             ui_form,
-            text="Sprache:",
+            text=tr("settings_language", "Sprache:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -380,7 +380,7 @@ class PhoenixSettingsView(tk.Frame):
         self.language_cb = ttk.Combobox(
             ui_form,
             textvariable=self.language_var,
-            values=["Deutsch", "English"],
+            values=["Deutsch", "English", "Español", "Français"],
             state="readonly",
             style="Phoenix.TCombobox",
             font=PHOENIX_THEME.font_body,
@@ -390,7 +390,7 @@ class PhoenixSettingsView(tk.Frame):
         # ==========================================
         # CARD 4: HUGGING FACE INTEGRATION
         # ==========================================
-        hf_card = self._create_card(grid_frame, "Hugging Face Integration", 1, 1)
+        hf_card = self._create_card(grid_frame, tr("settings_title_huggingface", "Hugging Face Integration"), 1, 1)
         
         hf_form = tk.Frame(hf_card, bg=PHOENIX_THEME.card_bg)
         hf_form.pack(fill="both", expand=True, padx=16, pady=0)
@@ -399,7 +399,7 @@ class PhoenixSettingsView(tk.Frame):
         # Access Token Label
         tk.Label(
             hf_form,
-            text="Hugging Face Access Token (HF_TOKEN):",
+            text=tr("hf_token_label", "Hugging Face Access Token (HF_TOKEN):"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -446,7 +446,7 @@ class PhoenixSettingsView(tk.Frame):
 
         self.token_help_lbl = tk.Label(
             links_frame,
-            text="Token erstellen unter: huggingface.co/settings/tokens ↗",
+            text=tr("settings_hf_token_hint", "Token erstellen unter: huggingface.co/settings/tokens ↗"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_caption,
@@ -543,19 +543,46 @@ class PhoenixSettingsView(tk.Frame):
 
     def _save_settings(self) -> None:
         token = self.token_entry.get().strip()
+        
+        # Load current preferences to compare modifications
+        prefs = SettingsManager.load_settings()
+        old_theme = prefs.get("theme", "Dunkel")
+        old_lang = prefs.get("language", "Deutsch")
+        
+        new_theme = self.theme_var.get()
+        new_lang = self.language_var.get()
+        
         settings = {
             "thread_count": self.thread_var.get(),
             "execution_provider": self.ep_var.get(),
             "hardware_accel": str(self.hw_acc_var.get()),
             "output_dir": self.out_dir_entry.get().strip(),
             "models_dir": self.models_dir_entry.get().strip(),
-            "theme": self.theme_var.get(),
-            "language": self.language_var.get(),
+            "theme": new_theme,
+            "language": new_lang,
             "hf_token": token,
         }
         
         success = SettingsManager.save_settings(settings)
         if success:
+            # 1. Check if theme OR language changed, and trigger a clean restart
+            if old_theme != new_theme or old_lang != new_lang:
+                from tkinter import messagebox
+                import sys
+                import subprocess
+                
+                messagebox.showinfo(
+                    tr("settings_restart_title", "Neustart erforderlich"),
+                    tr("settings_restart_msg", "Die Einstellungen wurden gespeichert. Snapdragon AI Studio wird jetzt neu gestartet, um die Änderungen anzuwenden.")
+                )
+                
+                # Windows-kompatibler Neustart der App
+                subprocess.Popen([sys.executable] + sys.argv)
+                
+                # Aktuelle Instanz sauber beenden
+                self.winfo_toplevel().destroy()
+                return
+            
             self.status_lbl.configure(
                 text=tr("settings_save_success", "Einstellungen erfolgreich gespeichert."),
                 fg=PHOENIX_THEME.accent
@@ -585,7 +612,7 @@ class PhoenixSettingsView(tk.Frame):
         self._update_token_format_status()
         
         self.status_lbl.configure(
-            text="Einstellungen auf Standardwerte zurückgesetzt.",
+            text=tr("settings_reset_success", "Einstellungen auf Standardwerte zurückgesetzt."),
             fg=PHOENIX_THEME.text_secondary
         )
 
@@ -621,11 +648,11 @@ class PhoenixSettingsView(tk.Frame):
     def _update_token_format_status(self, *args) -> None:
         token = self.token_entry.get().strip()
         if not token:
-            self.token_format_lbl.configure(text="❌ Kein Token angegeben", fg="#ef4444")
+            self.token_format_lbl.configure(text=tr("settings_token_none", "❌ Kein Token angegeben"), fg="#ef4444")
         elif token.startswith("hf_"):
-            self.token_format_lbl.configure(text="✔ Format gültig (HF Standard)", fg="#22c55e")
+            self.token_format_lbl.configure(text=tr("settings_token_valid", "✔ Format gültig (HF Standard)"), fg="#22c55e")
         else:
-            self.token_format_lbl.configure(text="⚠ Format ungewöhnlich (sollte mit 'hf_' beginnen)", fg="#eab308")
+            self.token_format_lbl.configure(text=tr("settings_token_unusual", "⚠ Format ungewöhnlich (sollte mit 'hf_' beginnen)"), fg="#eab308")
 
     def refresh(self) -> None:
         self._update_token_format_status()

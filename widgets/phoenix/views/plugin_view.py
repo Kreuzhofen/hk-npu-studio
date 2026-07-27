@@ -18,8 +18,8 @@ class PhoenixPluginView(WorkspaceFrame):
     def __init__(self, master: tk.Misc, controller: PluginController | None = None) -> None:
         super().__init__(
             master,
-            title="Plugins",
-            subtitle="Verwalte Erweiterungen und Zusatzmodule für das Snapdragon AI Studio.",
+            title=tr("plugins_title", "Plugins"),
+            subtitle=tr("plugins_subtitle", "Verwalte Erweiterungen und Zusatzmodule für das Snapdragon AI Studio."),
             has_inspector=False,
         )
         self.controller = controller or PluginController()
@@ -39,7 +39,7 @@ class PhoenixPluginView(WorkspaceFrame):
         # 1. Search Box
         search_label = tk.Label(
             self.header_bar,
-            text="Suchen:",
+            text=tr("plugins_search_label", "Suchen:"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -69,10 +69,15 @@ class PhoenixPluginView(WorkspaceFrame):
         tabs_container = tk.Frame(self.header_bar, bg=PHOENIX_THEME.content_bg)
         tabs_container.pack(side="left")
 
+        tab_labels = {
+            "Alle": tr("plugins_tab_all", "Alle"),
+            "Aktiv": tr("plugins_tab_active", "Aktiv"),
+            "Verfügbar": tr("plugins_tab_available", "Verfügbar"),
+        }
         for tab_name in ("Alle", "Aktiv", "Verfügbar"):
             btn = tk.Button(
                 tabs_container,
-                text=tab_name,
+                text=tab_labels[tab_name],
                 command=lambda t=tab_name: self._on_tab_changed(t),
                 bg=PHOENIX_THEME.elevated_bg,
                 fg=PHOENIX_THEME.text_secondary,
@@ -129,7 +134,7 @@ class PhoenixPluginView(WorkspaceFrame):
         # Pre-create empty state label
         self._no_plugins_lbl = tk.Label(
             self.cards_container,
-            text="Keine Plugins gefunden.",
+            text=tr("plugins_empty", "Keine Plugins gefunden."),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
@@ -152,7 +157,7 @@ class PhoenixPluginView(WorkspaceFrame):
 
         tk.Label(
             self.install_frame,
-            text="Plugin installieren:",
+            text=tr("plugins_install_title", "Plugin installieren:"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_button,
@@ -174,7 +179,7 @@ class PhoenixPluginView(WorkspaceFrame):
 
         self.browse_btn = tk.Button(
             self.install_frame,
-            text="Ordner wählen...",
+            text=tr("plugins_choose_folder_btn", "Ordner wählen..."),
             command=self._on_browse_plugin,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -192,7 +197,7 @@ class PhoenixPluginView(WorkspaceFrame):
 
         self.install_btn = tk.Button(
             self.install_frame,
-            text="Installieren",
+            text=tr("plugins_install_btn", "Installieren"),
             command=self._on_install_plugin,
             bg=PHOENIX_THEME.accent,
             fg=PHOENIX_THEME.text_on_accent,

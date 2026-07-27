@@ -6,6 +6,7 @@ from collections.abc import Callable
 from resources.icons import IconManager
 from widgets.phoenix.layout.workspace import WorkspaceToolbarBase
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
 
 
 class CompareToolbar(WorkspaceToolbarBase):
@@ -76,7 +77,7 @@ class CompareToolbar(WorkspaceToolbarBase):
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self.toolbar_button(
             group,
-            IconManager.get_label("output", "Ausgabe"),
+            IconManager.get_label("output", tr("output_title", "Ausgabe")),
             self.on_open_output,
             self.BUTTON_WIDTH_WIDE,
         ).pack(side="left")
@@ -139,7 +140,7 @@ class CompareToolbar(WorkspaceToolbarBase):
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self.toolbar_button(
             group,
-            "Metadaten vergleichen",
+            tr("compare_metadata", "Metadaten vergleichen"),
             self.on_compare_metadata,
             160,
         ).pack(side="left")

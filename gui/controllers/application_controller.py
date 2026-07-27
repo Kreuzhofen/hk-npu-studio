@@ -51,8 +51,24 @@ class ApplicationController:
                 self.app.iconbitmap(str(BrandManager.APP_ICON))
             except Exception:
                 pass
+        
+        # Load theme & language from preferences and initialize PHOENIX_THEME and locales
+        from app.settings_manager import SettingsManager
+        from widgets.phoenix.theme import update_phoenix_theme, PHOENIX_THEME
+        from app.i18n import set_language
+        
+        prefs = SettingsManager.load_settings()
+        
+        # Theme
+        theme_val = prefs.get("theme", "Dunkel")
+        update_phoenix_theme("dark" if theme_val == "Dunkel" else "light")
+        
+        # Language
+        lang_val = prefs.get("language", "Deutsch")
+        set_language("de_DE" if lang_val == "Deutsch" else "en_US")
+        
         self.app.geometry("1400x900")
-        self.app.configure(bg=Theme.color("background"))
+        self.app.configure(bg=PHOENIX_THEME.app_bg)
 
     def _create_controllers(self):
         self.app.controller = GuiController()

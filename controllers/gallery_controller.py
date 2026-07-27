@@ -22,7 +22,8 @@ class GalleryController:
         from config import OUTPUT_DIR
         self.current_folder: Path | None = OUTPUT_DIR
         self.thumbnail_size_label = "Mittel"
-        self.status = "Bereit"
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
         self.refresh()
 
     @property
@@ -51,22 +52,24 @@ class GalleryController:
         return self.refresh()
 
     def refresh(self) -> list[GalleryImage]:
+        from app.i18n import tr
         if self.current_folder is None:
-            self.status = "Bereit"
+            self.status = tr("ready", "Bereit")
             return self.visible_images
 
-        self.status = "Lade Bilder"
+        self.status = tr("loading_images", "Lade Bilder")
         try:
             self.model.set_images(self.image_loader.load_folder(self.current_folder))
-            self.status = "Bereit"
+            self.status = tr("ready", "Bereit")
         except Exception:
             self.model.set_images([])
             self.model.clear_selection()
-            self.status = "Fehler"
+            self.status = tr("status_failed", "Fehler")
         return self.visible_images
 
     def select_image(self, image: GalleryImage, ctrl: bool = False, shift: bool = False) -> None:
-        self.status = "Bereit"
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
         if shift:
             self.model.select_range_to(image)
         elif ctrl:
@@ -75,43 +78,70 @@ class GalleryController:
             self.model.select_single(image)
 
     def select_all_visible(self) -> None:
-        self.status = "Bereit"
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
         self.model.select_all_visible()
 
     def clear_selection(self) -> None:
-        self.status = "Bereit"
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
         self.model.clear_selection()
 
     def move_selection(self, offset: int) -> None:
-        self.status = "Bereit"
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
         self.model.move_active_selection(offset)
 
     def set_thumbnail_size(self, label: str) -> None:
-        if label in self.THUMBNAIL_SIZES:
-            self.thumbnail_size_label = label
+        from app.i18n import tr
+        mapping = {
+            tr("size_small", "Klein"): "Klein",
+            tr("size_medium", "Mittel"): "Mittel",
+            tr("size_large", "Groß"): "Groß",
+            tr("size_huge", "Sehr groß"): "Sehr groß",
+        }
+        internal_key = mapping.get(label, label)
+        if internal_key in self.THUMBNAIL_SIZES:
+            self.thumbnail_size_label = internal_key
 
     def set_search_text(self, value: str) -> None:
-        self.status = "Bereit"
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
         self.model.set_search_text(value)
 
     def set_sort_mode(self, value: str) -> None:
-        self.status = "Bereit"
-        self.model.set_sort_mode(value)
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
+        mapping = {
+            tr("sort_name", "Name"): "Name",
+            tr("sort_date", "Datum"): "Datum",
+            tr("sort_size", "Größe"): "Größe",
+            tr("sort_type", "Typ"): "Typ",
+        }
+        internal_key = mapping.get(value, value)
+        self.model.set_sort_mode(internal_key)
 
     def set_filter_mode(self, value: str) -> None:
-        self.status = "Bereit"
-        self.model.set_filter_mode(value)
+        from app.i18n import tr
+        self.status = tr("ready", "Bereit")
+        mapping = {
+            tr("filter_all", "Alle"): "Alle",
+        }
+        internal_key = mapping.get(value, value)
+        self.model.set_filter_mode(internal_key)
 
     def prepare_preview(self) -> None:
         image = self.selected_image
         if image is not None:
-            self.status = f"Preview vorbereitet: {image.filename}"
+            from app.i18n import tr
+            self.status = f"{tr('gallery_preview_prepared', 'Preview vorbereitet')}: {image.filename}"
 
     def prepare_compare_source(self) -> Path | None:
         """Prepares and returns the path of the selected image as a source for comparison."""
         image = self.selected_image
         if image is not None:
-            self.status = f"Compare-Quelle vorbereitet: {image.filename}"
+            from app.i18n import tr
+            self.status = f"{tr('gallery_compare_source_prepared', 'Compare-Quelle vorbereitet')}: {image.filename}"
             return image.path
         return None
 
@@ -119,7 +149,8 @@ class GalleryController:
         """Load the image folder and select the provided image if it is supported."""
         path = Path(image_path)
         if not path.exists() or not path.is_file():
-            self.status = "Fehler"
+            from app.i18n import tr
+            self.status = tr("status_failed", "Fehler")
             return False
 
         self.current_folder = path.parent
@@ -128,10 +159,12 @@ class GalleryController:
         for image in self.visible_images:
             if image.path == path:
                 self.model.select_single(image)
-                self.status = f"Bereit: {image.filename}"
+                from app.i18n import tr
+                self.status = f"{tr('ready', 'Bereit')}: {image.filename}"
                 return True
 
-        self.status = "Bild nicht in der Galerie gefunden"
+        from app.i18n import tr
+        self.status = tr("gallery_image_not_found", "Bild nicht in der Galerie gefunden")
         return False
 
     def get_thumbnail_size(self) -> int:

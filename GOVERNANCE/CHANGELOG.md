@@ -4,6 +4,26 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-27 (Sprint CN-033 bis CN-035e)
+
+### Hinzugefügt
+* **Sprint CN-033 – App Top Menu Bar Refinement:**
+  * Bereinigung und Re-Strukturierung der oberen Hauptmenüleiste (File, Studio, View, Plugins, Tools, Help) in `gui_v2.py`.
+  * Integration von Aktionen wie "Output-Ordner öffnen", "Modell-Ordner öffnen", "VRAM / NPU Cache leeren", "Hardware-Info", "Seitenleiste umschalten", "Plugins verwalten", "Log-Datei anzeigen", etc.
+  * Definition globaler Tastenkombinationen (Hotkeys) für Vollbild umschalten (F11) und Beenden (Alt+F4).
+* **Sprint CN-034 / CN-034b / CN-034d / CN-034e – Global Theme Switching & Persistence:**
+  * Implementierung einer globalen Theme-Steuerung (Dark / Light) mit vollständiger Kaskadierung über alle View-Container und Controls via `<<ThemeChanged>>` Event-System.
+  * Windows-kompatible Neustart-Logik mit `subprocess.Popen` bei Theme-Änderungen nach Bestätigung durch Benutzerdialog.
+  * Boot-Phase in `gui_v2.py` liest das konfigurierte Theme aus `config.json` aus und initialisiert das UI einheitlich im gewählten Design.
+* **Sprint CN-035 / CN-035b / CN-035c / CN-035d / CN-035e / CN-035f / CN-035g – Complete i18n Sweep, Sync-Audit, View Precision Fixes & Import Resolutions:**
+  * Erstellung des automatischen Vollständigkeitsscanners `test_i18n_completeness.py` und des bidirektionalen Sync-Audits `test_i18n_sync.py` zur Validierung symmetrischer Translation-Keys (Deutsch/Englisch) und zur Verhinderung identischer Werte für Nicht-Eigennamen/Nicht-technische Begriffe.
+  * Lückenloser Sweep durch alle Workspaces und Unterkomponenten (AI Generate, Model Manager, Gallery, Compare, Plugins, Settings, Sidebar und Home) zur Kapselung aller UI-Labels (inklusive Toolbars, Statusmeldungen, Fallback-Metadaten und Dialogfenster) in die Übersetzungsfunktion `tr(...)`.
+  * Lokalisierung aller englisch-gebliebenen Schlüssel in `de_DE.json` (wie `ai_generate_title`, `nav_ai_generate`, `nav_ai_model_manager`, `nav_compare`, `nav_gallery`, `nav_home`, `nav_settings`, `gallery_title`, `tab_basic`, `tab_advanced`, `cfg_scale_label_colon`, `steps_label_colon`, `exit_code_label`, `package_status_label`, `checksum_label_colon`, `vae_decoding`, `download_failed_msg`, `msg_package_update_failed`, `queue_prefix`).
+  * Direkte Behebung verbliebener deutscher Strings in den Gallery- und Compare-Workspaces (Lokalisierung von "Ausgabe", "Metadaten vergleichen", "Keine Auswahl", "Nicht geladen", "Synchron" -> "Synced", "Status Bereit" -> "Status Ready", "Ordner öffnen" -> "Open Folder", "Aktualisieren" -> "Refresh", "Bilder" -> "Images", "Auswahl" -> "Selection", "Zoom", "Mittel" -> "Medium") und Integration passender Übersetzungen in die JSON-Sprachdateien.
+  * Behebung eines NameError-Absturzes beim Laden der Galerie durch Hinzufügen des fehlenden `tr` Imports in `status_bar.py`.
+  * Bereinigung verdeckter hardcodierter Statusänderungen ("Bereit") im Galerie-Controller und Statusleiste durch Angleichung auf den Standardkey `tr("ready", "Bereit")`.
+  * Anpassung der Testumgebung in `test_production_qnn_pipeline.py` durch Mocking von `pathlib.Path.exists`, damit QNN-Fehlerpfade auch ohne physische Modelldateien robust getestet werden können und alle Unit-Tests erfolgreich durchlaufen.
+
 ## [2.0 Preview] – 2026-07-16 (Sprint CN-002)
 
 ### Hinzugefügt

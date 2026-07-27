@@ -197,7 +197,7 @@ class ProductionQnnPipelineTests(unittest.TestCase):
             sessions = [_FakeSession() for _ in range(expected_sessions_count)]
             with patch.object(backend, "_setup_sessions", return_value=(*sessions, {})), patch.object(
                 module, "SimpleCLIPTokenizer", side_effect=RuntimeError("injected tokenizer failure")
-            ):
+            ), patch("pathlib.Path.exists", return_value=True):
                 result = backend._execute_generation_physical({"model_name": model_name, "input_image_path": real_image})
             self.assertFalse(result["success"])
             self.assertEqual([1] * expected_sessions_count, [session.finalized for session in sessions])

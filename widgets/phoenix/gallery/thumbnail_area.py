@@ -9,6 +9,7 @@ from resources.icons import IconManager
 from widgets.phoenix.gallery.thumbnail_provider import ThumbnailProvider
 from widgets.phoenix.gallery.thumbnail_widget import ThumbnailWidget
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
 
 
 class GalleryThumbnailArea(tk.Frame):
@@ -126,7 +127,7 @@ class GalleryThumbnailArea(tk.Frame):
 
         tk.Label(
             self.empty_state,
-            text="Noch keine Bilder in der Galerie",
+            text=tr("gallery_empty_title", "Noch keine Bilder in der Galerie"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
@@ -135,7 +136,7 @@ class GalleryThumbnailArea(tk.Frame):
 
         tk.Label(
             self.empty_state,
-            text="Wähle „Ordner öffnen“, um Bilder aus einem lokalen Ordner anzuzeigen.",
+            text=tr("gallery_empty_subtitle", "Wähle „Ordner öffnen“, um Bilder aus einem lokalen Ordner anzuzeigen."),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
@@ -308,7 +309,7 @@ class GalleryThumbnailArea(tk.Frame):
                 # Clear standard footer button packing and replace with side-by-side buttons
                 btn_cancel = tk.Button(
                     self.footer,
-                    text="Abbrechen",
+                    text=tr("cancel", "Abbrechen"),
                     command=self.close,
                     bg=PHOENIX_THEME.elevated_bg,
                     fg=PHOENIX_THEME.text_secondary,
@@ -326,7 +327,7 @@ class GalleryThumbnailArea(tk.Frame):
 
                 btn_delete = tk.Button(
                     self.footer,
-                    text="Löschen",
+                    text=tr("delete", "Löschen"),
                     command=self._confirm,
                     bg="#ef4444",
                     fg="#ffffff",

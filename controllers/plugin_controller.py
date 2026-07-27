@@ -65,8 +65,9 @@ class PluginController:
                     plugin_json = item / "plugin.json"
                     name = plugin_id.capitalize()
                     version = "1.0.0"
-                    author = "System"
-                    description = "Zusatzmodul für Snapdragon AI Studio."
+                    from app.i18n import tr
+                    author = tr("plugin_fallback_author", "System")
+                    description = tr("plugin_fallback_description", "Zusatzmodul für Snapdragon AI Studio.")
 
                     if plugin_json.exists():
                         try:

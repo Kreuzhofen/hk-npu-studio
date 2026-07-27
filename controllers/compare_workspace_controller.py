@@ -76,31 +76,40 @@ class CompareWorkspaceController:
         self.model.set_status(f"Fehler: {message}")
 
     def status_items(self) -> dict[str, str]:
+        from app.i18n import tr
         state = self.get_state()
-        original_name = state.original_metadata.filename if (state.original_loaded and state.original_metadata) else "Nicht geladen"
-        output_name = state.output_metadata.filename if (state.output_loaded and state.output_metadata) else "Nicht geladen"
+        original_name = state.original_metadata.filename if (state.original_loaded and state.original_metadata) else tr("not_loaded", "Nicht geladen")
+        output_name = state.output_metadata.filename if (state.output_loaded and state.output_metadata) else tr("not_loaded", "Nicht geladen")
+        
+        sync_val = tr("synchronized", "Synchron") if state.sync_label == "Synchron" else state.sync_label
+        status_val = tr("ready", "Bereit") if state.status == "Bereit" else state.status
+        
         return {
             "Original": original_name,
             "Output": output_name,
             "Zoom": state.zoom_label,
-            "Sync": state.sync_label,
-            "Status": state.status,
+            "Sync": sync_val,
+            "Status": status_val,
         }
 
     def inspector_sections(self) -> dict[str, tuple[str, ...]]:
+        from app.i18n import tr
         state = self.get_state()
+        sync_val = tr("synchronized", "Synchron") if state.sync_label == "Synchron" else state.sync_label
+        status_val = tr("ready", "Bereit") if state.status == "Bereit" else state.status
+        
         return {
             "Original": self._metadata_lines(state.original_metadata),
             "Output": self._metadata_lines(state.output_metadata),
             "Bildinformationen": (
                 f"Zoom: {state.zoom_label}",
-                f"Synchronisation: {state.sync_label}",
+                f"{tr('compare_sync_label', 'Synchronisation')}: {sync_val}",
                 self._resolution_delta_label(state),
             ),
             "Verarbeitung": (
                 "AI-Daten: -",
                 "Pipeline: Manuelle Vergleichsansicht",
-                "Status: Bereit für Qualitätskontrolle",
+                f"{tr('status', 'Status')}: {tr('compare_ready_status', 'Bereit für Qualitätskontrolle') if state.status == 'Bereit' else status_val}",
             ),
         }
 

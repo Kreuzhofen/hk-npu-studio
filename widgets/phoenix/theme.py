@@ -145,3 +145,17 @@ def configure_phoenix_styles(root_or_widget: tk.Misc | None = None) -> None:
         darkcolor=PHOENIX_THEME.success,
         bordercolor=PHOENIX_THEME.border,
     )
+
+
+def update_phoenix_theme(theme_name: str) -> None:
+    """Updates the active ThemeManager theme and updates the global PHOENIX_THEME instance properties in-place."""
+    ThemeManager.set_active_theme(theme_name)
+    
+    global PHOENIX_THEME
+    new_theme = _create_phoenix_theme()
+    for field_name in new_theme.__dataclass_fields__:
+        if not field_name.startswith("font_") and not field_name.startswith("space_") and not field_name.endswith("_pad_x") and not field_name.endswith("_pad_y"):
+            val = getattr(new_theme, field_name)
+            object.__setattr__(PHOENIX_THEME, field_name, val)
+            
+    configure_phoenix_styles()

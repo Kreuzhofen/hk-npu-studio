@@ -8,6 +8,7 @@ from widgets.phoenix.gallery.status_bar import GalleryStatusBar
 from widgets.phoenix.gallery.thumbnail_area import GalleryThumbnailArea
 from widgets.phoenix.gallery.toolbar import GalleryToolbar
 from widgets.phoenix.layout.workspace import WorkspaceFrame
+from app.i18n import tr
 
 
 class PhoenixGalleryView(WorkspaceFrame):
@@ -19,8 +20,8 @@ class PhoenixGalleryView(WorkspaceFrame):
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
         super().__init__(
             master,
-            title="Gallery Workspace",
-            subtitle="Bildkatalog durchsuchen und verwalten",
+            title=tr("gallery_title", "Gallery Workspace"),
+            subtitle=tr("gallery_subtitle", "Bildkatalog durchsuchen und verwalten"),
             has_inspector=True,
         )
         self.controller = controller or GalleryController()
@@ -223,10 +224,18 @@ class PhoenixGalleryView(WorkspaceFrame):
             selected_paths=self.controller.selected_paths,
             thumbnail_size=self.controller.get_thumbnail_size(),
         )
+        from app.i18n import tr
+        size_mapping = {
+            "Klein": tr("size_small", "Klein"),
+            "Mittel": tr("size_medium", "Mittel"),
+            "Groß": tr("size_large", "Groß"),
+            "Sehr groß": tr("size_huge", "Sehr groß"),
+        }
+        size_label = size_mapping.get(self.controller.thumbnail_size_label, self.controller.thumbnail_size_label)
         self.status_bar.update_values(
             image_count=self.controller.get_image_count(),
             selection_count=self.controller.get_selection_count(),
-            thumbnail_size=self.controller.thumbnail_size_label,
+            thumbnail_size=size_label,
             status=self.controller.get_status(),
         )
         if hasattr(self, "inspector"):
@@ -235,10 +244,18 @@ class PhoenixGalleryView(WorkspaceFrame):
     def _refresh_selection_ui(self) -> None:
         """Refresh selection/status without rebuilding the thumbnail grid."""
         self.thumbnail_area.set_selection(self.controller.selected_paths)
+        from app.i18n import tr
+        size_mapping = {
+            "Klein": tr("size_small", "Klein"),
+            "Mittel": tr("size_medium", "Mittel"),
+            "Groß": tr("size_large", "Groß"),
+            "Sehr groß": tr("size_huge", "Sehr groß"),
+        }
+        size_label = size_mapping.get(self.controller.thumbnail_size_label, self.controller.thumbnail_size_label)
         self.status_bar.update_values(
             image_count=self.controller.get_image_count(),
             selection_count=self.controller.get_selection_count(),
-            thumbnail_size=self.controller.thumbnail_size_label,
+            thumbnail_size=size_label,
             status=self.controller.get_status(),
         )
         if hasattr(self, "inspector"):

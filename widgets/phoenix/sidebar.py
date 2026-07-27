@@ -5,6 +5,7 @@ from typing import Callable
 
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
 
 
 class PhoenixSidebar(tk.Frame):
@@ -36,21 +37,21 @@ class PhoenixSidebar(tk.Frame):
 
         tk.Label(
             self,
-            text="Workspace 1.0",
+            text=tr("nav_workspace_version", "Workspace 1.0"),
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption,
             anchor="w",
         ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_xl))
 
-        self._nav_button("home", "Home")
-        self._nav_button("prompt", "AI Generate")
-        self._nav_button("models", "AI Model Manager")
+        self._nav_button("home", tr("nav_home", "Home"))
+        self._nav_button("prompt", tr("nav_ai_generate", "AI Generate"))
+        self._nav_button("models", tr("nav_ai_model_manager", "AI Model Manager"))
         # self._nav_button("image", "Image")
-        self._nav_button("gallery", "Gallery")
-        self._nav_button("compare", "Compare")
-        self._nav_button("plugins", "Plugins")
-        self._nav_button("settings", "Settings")
+        self._nav_button("gallery", tr("nav_gallery", "Gallery"))
+        self._nav_button("compare", tr("nav_compare", "Compare"))
+        self._nav_button("plugins", tr("nav_plugins", "Plugins"))
+        self._nav_button("settings", tr("nav_settings", "Settings"))
 
     def _nav_button(self, view_name: str, text: str) -> None:
         button = tk.Button(

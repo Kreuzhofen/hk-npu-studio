@@ -11,6 +11,19 @@ _current_language = "de_DE"
 _translations: dict[str, dict[str, str]] = {}
 LOCALES_DIR = Path(__file__).parent.parent / "locales"
 
+# Try loading language from preferences on module load (skip under test environment)
+try:
+    import sys
+    if "unittest" not in sys.modules:
+        _pref_path = Path(r"C:\SnapdragonAI\data\preferences.json")
+        if _pref_path.exists():
+            with open(_pref_path, "r", encoding="utf-8") as _f:
+                _data = json.load(_f)
+                _lang_val = _data.get("language", "Deutsch")
+                _current_language = "en_US" if _lang_val == "English" else "de_DE"
+except Exception:
+    pass
+
 
 def load_translations(lang_code: str) -> dict[str, str]:
     locale_file = LOCALES_DIR / f"{lang_code}.json"

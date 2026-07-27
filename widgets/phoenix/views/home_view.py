@@ -16,6 +16,7 @@ from config import BASE, OUTPUT_DIR
 from controllers.model_manager_controller import ModelManagerController
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
 
 
 @dataclass(frozen=True)
@@ -80,7 +81,7 @@ class PhoenixHomeView(tk.Frame):
         )
         tk.Label(
             welcome,
-            text="Willkommen",
+            text=tr("home_welcome", "Willkommen"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_card_title,
@@ -88,7 +89,7 @@ class PhoenixHomeView(tk.Frame):
         ).pack(fill="x")
         tk.Label(
             welcome,
-            text="Snapdragon AI Studio",
+            text=tr("app_title", "Snapdragon AI Studio"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_title,
@@ -96,7 +97,7 @@ class PhoenixHomeView(tk.Frame):
         ).pack(fill="x", pady=(2, 0))
         tk.Label(
             welcome,
-            text="Create. Organize. Review. Evolve.",
+            text=tr("app_tagline", "Create. Organize. Review. Evolve."),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -113,7 +114,7 @@ class PhoenixHomeView(tk.Frame):
         )
         tk.Label(
             actions,
-            text="Schnelleinstieg",
+            text=tr("home_quickstart", "Schnelleinstieg"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
@@ -124,9 +125,9 @@ class PhoenixHomeView(tk.Frame):
             actions.grid_columnconfigure(column, weight=1, uniform="home_actions")
 
         action_specs = (
-            ("🎨", "Neue Bildgenerierung", "prompt"),
-            ("🤖", "Modelle verwalten", "models"),
-            ("📚", "Galerie", "gallery"),
+            ("🎨", tr("home_action_generate", "Neue Bildgenerierung"), "prompt"),
+            ("🤖", tr("home_action_models", "Modelle verwalten"), "models"),
+            ("📚", tr("home_action_gallery", "Galerie"), "gallery"),
         )
         for column, (icon, title, target) in enumerate(action_specs):
             self._create_action_card(actions, icon, title, target, column)
@@ -141,7 +142,7 @@ class PhoenixHomeView(tk.Frame):
         )
         status_host.grid_columnconfigure((0, 1), weight=1, uniform="home_status")
 
-        system_card = self._create_section_card(status_host, "System- & NPU-Status")
+        system_card = self._create_section_card(status_host, tr("home_sys_npu_status", "System- & NPU-Status"))
         system_card.grid(
             row=0,
             column=0,
@@ -149,11 +150,11 @@ class PhoenixHomeView(tk.Frame):
             padx=(0, PHOENIX_THEME.space_sm),
         )
         
-        self._system_values["npu"] = self._create_metric_row(system_card, "Qualcomm Hexagon NPU", 1)
-        self._system_values["active"] = self._create_metric_row(system_card, "Aktives Modell", 2)
-        self._system_values["resources"] = self._create_metric_row(system_card, "Systemressourcen", 3)
+        self._system_values["npu"] = self._create_metric_row(system_card, tr("home_hexagon_npu", "Qualcomm Hexagon NPU"), 1)
+        self._system_values["active"] = self._create_metric_row(system_card, tr("home_active_model_lbl", "Aktives Modell"), 2)
+        self._system_values["resources"] = self._create_metric_row(system_card, tr("home_sys_resources", "Systemressourcen"), 3)
 
-        project_card = self._create_section_card(status_host, "Projektstatus")
+        project_card = self._create_section_card(status_host, tr("home_project_status", "Projektstatus"))
         project_card.grid(
             row=0,
             column=1,
@@ -161,11 +162,11 @@ class PhoenixHomeView(tk.Frame):
             padx=(PHOENIX_THEME.space_sm, 0),
         )
         
-        self._project_values["version"] = self._create_metric_row(project_card, "Version", 1)
-        self._project_values["branch"] = self._create_metric_row(project_card, "Branch", 2)
-        self._project_values["packages"] = self._create_metric_row(project_card, "Installierte AI Packages", 3)
+        self._project_values["version"] = self._create_metric_row(project_card, tr("home_version", "Version"), 1)
+        self._project_values["branch"] = self._create_metric_row(project_card, tr("home_branch", "Branch"), 2)
+        self._project_values["packages"] = self._create_metric_row(project_card, tr("home_installed_packages", "Installierte AI Packages"), 3)
 
-        self._last_card = self._create_section_card(self, "Letzte Generierungen")
+        self._last_card = self._create_section_card(self, tr("home_latest_generations", "Letzte Generierungen"))
         self._last_card.grid(
             row=3,
             column=0,
@@ -331,44 +332,44 @@ class PhoenixHomeView(tk.Frame):
                     for model in models
                     if model.get("id") == active_model_id
                 ),
-                str(active_model_id) if active_model_id else "Kein aktives Modell",
+                str(active_model_id) if active_model_id else tr("home_no_active_model", "Kein aktives Modell"),
             )
         except Exception:
             installed_models = []
-            active_model = "Nicht verfügbar"
+            active_model = tr("home_not_available", "Nicht verfügbar")
 
         try:
             discovery = self._model_controller.get_discovery_result()
             npu_status = (
-                "Hexagon NPU Aktiv"
+                tr("home_npu_active", "Hexagon NPU Aktiv")
                 if discovery.qnn_sdk_found and discovery.qnn_tools_found
-                else "QNN nicht registriert"
+                else tr("home_qnn_not_registered", "QNN nicht registriert")
             )
-            qnn_runtime = "Gefunden" if discovery.qnn_sdk_found else "Nicht gefunden"
+            qnn_runtime = tr("home_found", "Gefunden") if discovery.qnn_sdk_found else tr("home_not_found", "Nicht gefunden")
             onnx_runtime = (
-                f"Installiert ({discovery.onnx_version})"
+                f"{tr('home_installed_label', 'Installiert')} ({discovery.onnx_version})"
                 if discovery.onnx_available
-                else "Nicht installiert"
+                else tr("home_not_installed", "Nicht installiert")
             )
         except Exception:
-            npu_status = "Nicht verfügbar"
-            qnn_runtime = "Nicht verfügbar"
-            onnx_runtime = "Nicht verfügbar"
+            npu_status = tr("home_not_available", "Nicht verfügbar")
+            qnn_runtime = tr("home_not_available", "Nicht verfügbar")
+            onnx_runtime = tr("home_not_available", "Nicht verfügbar")
 
         try:
             packages = self._model_controller.reconcile_installed_packages()
             installed_package_count = sum(package.get("installed") is True for package in packages)
             installed_packages = str(installed_package_count)
         except Exception:
-            installed_packages = "Nicht verfügbar"
+            installed_packages = tr("home_not_available", "Nicht verfügbar")
 
         try:
             usage = shutil.disk_usage(BASE)
             free_gb = usage.free / (1024**3)
             total_gb = usage.total / (1024**3)
-            disk_usage_info = f"{free_gb:.1f} GB frei (von {total_gb:.1f} GB)"
+            disk_usage_info = tr("home_disk_free", "{free:.1f} GB frei (von {total:.1f} GB)").format(free=free_gb, total=total_gb)
         except Exception:
-            disk_usage_info = "Nicht verfügbar"
+            disk_usage_info = tr("home_not_available", "Nicht verfügbar")
 
         return HomeSnapshot(
             npu_status=npu_status,
@@ -400,7 +401,7 @@ class PhoenixHomeView(tk.Frame):
                 return branch
         except (OSError, subprocess.SubprocessError):
             pass
-        return "Nicht verfügbar"
+        return tr("home_not_available", "Nicht verfügbar")
 
     def _read_latest_generations(self) -> list[GenerationInfo]:
         candidates = [
@@ -423,10 +424,10 @@ class PhoenixHomeView(tk.Frame):
             except (OSError, json.JSONDecodeError):
                 metadata = {}
 
-            model = str(metadata.get("model_id") or metadata.get("model") or "Nicht verfügbar")
+            model = str(metadata.get("model_id") or metadata.get("model") or tr("home_not_available", "Nicht verfügbar"))
             width = metadata.get("width")
             height = metadata.get("height")
-            resolution = f"{width} × {height}" if width and height else "Nicht verfügbar"
+            resolution = f"{width} × {height}" if width and height else tr("home_not_available", "Nicht verfügbar")
             created_at = str(metadata.get("created_at") or "").strip()
             if not created_at:
                 created_at = dt.datetime.fromtimestamp(path.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
@@ -473,7 +474,7 @@ class PhoenixHomeView(tk.Frame):
         if not latest:
             no_gen_lbl = tk.Label(
                 self._previews_inner_frame,
-                text="Es wurden noch keine Bilder generiert.",
+                text=tr("home_no_images_generated", "Es wurden noch keine Bilder generiert."),
                 bg=PHOENIX_THEME.card_bg,
                 fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_body,

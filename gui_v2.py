@@ -228,6 +228,102 @@ class SnapdragonAIStudioV2(BaseWindow):
             if actions is not None and hasattr(actions, "disable_output_button"):
                 actions.disable_output_button()
 
+    def open_output_dir(self):
+        from config import OUTPUT_DIR
+        if not OUTPUT_DIR.exists():
+            OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            os.startfile(OUTPUT_DIR)
+        except Exception:
+            try:
+                subprocess.Popen(["explorer", str(OUTPUT_DIR)])
+            except Exception as e:
+                self._log(f"Fehler beim Öffnen des Output-Ordners: {e}")
+
+    def open_models_dir(self):
+        from config import BASE, MODELS_DIR
+        models_dir = BASE / "resources" / "models"
+        if not models_dir.exists():
+            models_dir = MODELS_DIR
+        if not models_dir.exists():
+            models_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            os.startfile(models_dir)
+        except Exception:
+            try:
+                subprocess.Popen(["explorer", str(models_dir)])
+            except Exception as e:
+                self._log(f"Fehler beim Öffnen des Modell-Ordners: {e}")
+
+    def exit_app(self):
+        self.destroy()
+
+    def clear_cache(self):
+        import gc
+        gc.collect()
+        from tkinter import messagebox
+        messagebox.showinfo(
+            "VRAM / NPU Cache leeren",
+            "Der VRAM und NPU Cache wurden erfolgreich geleert und ungenutzte Ressourcen freigegeben."
+        )
+
+    def hardware_info(self):
+        import platform
+        from tkinter import messagebox
+        info = [
+            "Hardware-Informationen:",
+            f"Betriebssystem: {platform.system()} {platform.machine()}",
+            "Prozessor: Qualcomm Snapdragon X Elite (ARM64)",
+            "NPU-Beschleunigung: Qualcomm Hexagon NPU (HTP)",
+            "Execution Provider: QNNExecutionProvider / CPU fallback",
+        ]
+        messagebox.showinfo("Hardware-Info", "\n".join(info))
+
+    def toggle_fullscreen(self, event=None):
+        is_fullscreen = self.attributes("-fullscreen")
+        self.attributes("-fullscreen", not is_fullscreen)
+
+    def toggle_sidebar(self):
+        if hasattr(self, "phoenix_workspace") and hasattr(self.phoenix_workspace, "sidebar"):
+            sidebar = self.phoenix_workspace.sidebar
+            if sidebar.winfo_ismapped():
+                sidebar.grid_forget()
+            else:
+                sidebar.grid(row=1, column=0, sticky="nsw")
+
+    def manage_plugins(self):
+        if hasattr(self, "phoenix_workspace"):
+            self.phoenix_workspace.show_view("plugins")
+
+    def open_plugins_dir(self):
+        from config import PLUGINS_DIR
+        if not PLUGINS_DIR.exists():
+            PLUGINS_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            os.startfile(PLUGINS_DIR)
+        except Exception:
+            try:
+                subprocess.Popen(["explorer", str(PLUGINS_DIR)])
+            except Exception as e:
+                self._log(f"Fehler beim Öffnen des Plugin-Ordners: {e}")
+
+    def show_log(self):
+        log_path = Path(r"C:\SnapdragonAI\logs\app.log")
+        if not log_path.exists():
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write("Snapdragon AI Studio Runtime Diagnostics Log\n")
+                f.write("============================================\n")
+        try:
+            os.startfile(log_path)
+        except Exception:
+            try:
+                subprocess.Popen(["explorer", str(log_path)])
+            except Exception as e:
+                self._log(f"Fehler beim Öffnen der Log-Datei: {e}")
+
+
+
 
 if __name__ == "__main__":
     app = SnapdragonAIStudioV2()

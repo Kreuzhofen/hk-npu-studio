@@ -7,6 +7,7 @@ from collections.abc import Callable
 from controllers.plugin_controller import PluginMetadata
 from widgets.phoenix.theme import PHOENIX_THEME
 from resources.icons import IconManager
+from app.i18n import tr
 
 
 class PhoenixPluginCard(tk.Frame):
@@ -96,9 +97,10 @@ class PhoenixPluginCard(tk.Frame):
 
         # Toggle Switch (Checkbutton styled as slider/toggle status)
         self.toggle_var = tk.BooleanVar(value=self.plugin.enabled)
+        status_text = tr("plugin_status_active", "Aktiv") if self.plugin.enabled else tr("plugin_status_inactive", "Inaktiv")
         self.toggle_btn = tk.Checkbutton(
             controls_frame,
-            text="Aktiv" if self.plugin.enabled else "Inaktiv",
+            text=status_text,
             variable=self.toggle_var,
             command=self._on_toggle,
             bg=PHOENIX_THEME.card_bg,
@@ -155,7 +157,8 @@ class PhoenixPluginCard(tk.Frame):
 
     def _on_toggle(self) -> None:
         is_enabled = self.toggle_var.get()
-        self.toggle_btn.configure(text="Aktiv" if is_enabled else "Inaktiv")
+        status_text = tr("plugin_status_active", "Aktiv") if is_enabled else tr("plugin_status_inactive", "Inaktiv")
+        self.toggle_btn.configure(text=status_text)
         self.on_toggle(self.plugin.id, is_enabled)
 
     def _add_hover(self, btn: tk.Button, hover_bg: str | None = None) -> None:

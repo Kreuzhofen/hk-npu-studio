@@ -303,7 +303,7 @@ class PhoenixModelManagerView(tk.Frame):
         # Action Buttons (packed inside action_frame)
         self.activate_btn = tk.Button(
             self.action_frame,
-            text="Modell aktivieren",
+            text=tr("model_activate_btn", "Modell aktivieren"),
             command=self._activate_selected_model,
             bg=PHOENIX_THEME.accent,
             fg=PHOENIX_THEME.text_on_accent,
@@ -321,7 +321,7 @@ class PhoenixModelManagerView(tk.Frame):
 
         self.verify_paths_btn = tk.Button(
             self.action_frame,
-            text="Pfade überprüfen",
+            text=tr("model_check_paths_btn", "Pfade überprüfen"),
             command=self._verify_paths,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -436,37 +436,37 @@ class PhoenixModelManagerView(tk.Frame):
     def _activate_selected_model(self) -> None:
         selected = self.tree.selection()
         if not selected:
-            messagebox.showinfo(tr("advanced_settings_title", "Erweiterte Einstellungen"), "Kein Modell ausgewählt.")
+            messagebox.showinfo(tr("info", "Information"), tr("no_model_selected", "Kein Modell ausgewählt."))
             return
         model_id = selected[0]
         scanned = self.scanned_results.get(model_id) if hasattr(self, "scanned_results") else None
         is_complete = scanned.get("is_complete", False) if scanned else False
         if not is_complete:
-            messagebox.showwarning("Modell aktivieren", "Modell kann nicht aktiviert werden, da es unvollständig ist oder Dateien fehlen.")
+            messagebox.showwarning(tr("model_activate_btn", "Modell aktivieren"), tr("model_activate_incomplete_msg", "Modell kann nicht aktiviert werden, da es unvollständig ist oder Dateien fehlen."))
             return
 
         self.controller.set_active_model_id(model_id)
         self.refresh()
-        messagebox.showinfo("Modell aktivieren", f"Modell '{model_id}' wurde erfolgreich aktiviert.")
+        messagebox.showinfo(tr("model_activate_btn", "Modell aktivieren"), tr("model_activate_success_msg", "Modell '{model_id}' wurde erfolgreich aktiviert.", model_id=model_id))
 
     def _verify_paths(self) -> None:
         selected = self.tree.selection()
         if not selected:
-            messagebox.showinfo("Pfade überprüfen", "Kein Modell ausgewählt.")
+            messagebox.showinfo(tr("model_check_paths_btn", "Pfade überprüfen"), tr("no_model_selected", "Kein Modell ausgewählt."))
             return
         model_id = selected[0]
         result = self.controller.validate_package(model_id)
         self.refresh()
 
-        title = "Pfad-Validierung"
+        title = tr("path_validation_title", "Pfad-Validierung")
         if result.get("is_fully_ready") or result.get("success"):
-            msg = f"Erfolgreich: Modell-Pfade und Manifest sind intakt.\n\nDetails:\n{result.get('message', 'Package ist vollständig.')}"
+            msg = f"{tr('validation_success_prefix', 'Erfolgreich: Modell-Pfade und Manifest sind intakt.')}\n\n{tr('details', 'Details')}:\n{result.get('message', tr('package_complete', 'Package ist vollständig.'))}"
             messagebox.showinfo(title, msg)
         else:
             issues = "\n".join(f"- {issue}" for issue in result.get("issues", []))
             if not issues:
-                issues = result.get("message", "Package ist unvollständig oder fehlerhaft.")
-            msg = f"Fehler bei der Validierung:\n\n{issues}"
+                issues = result.get("message", tr("package_incomplete_error", "Package ist unvollständig oder fehlerhaft."))
+            msg = f"{tr('validation_error_prefix', 'Fehler bei der Validierung:')}\n\n{issues}"
             messagebox.showwarning(title, msg)
 
     def _advanced_popup_is_open(self) -> bool:
@@ -1392,11 +1392,11 @@ class PhoenixModelManagerView(tk.Frame):
             
             is_complete = scanned.get("is_complete", False)
             if model_id == active_model_id:
-                status_text = "Aktiv"
+                status_text = tr("active", "Aktiv")
             elif is_complete:
-                status_text = "Bereit"
+                status_text = tr("ready", "Bereit")
             else:
-                status_text = "Fehlt"
+                status_text = tr("missing", "Fehlt")
             
             self.tree.insert(
                 "",
@@ -1484,13 +1484,13 @@ class PhoenixModelManagerView(tk.Frame):
         is_complete = scanned.get("is_complete", False) if scanned else False
         
         if model_id == active_model_id:
-            status_text = "Aktiv"
+            status_text = tr("active", "Aktiv")
             status_fg = PHOENIX_THEME.success
         elif is_complete:
-            status_text = "Bereit"
+            status_text = tr("ready", "Bereit")
             status_fg = PHOENIX_THEME.accent
         else:
-            status_text = "Fehlt"
+            status_text = tr("missing", "Fehlt")
             status_fg = PHOENIX_THEME.text_muted
 
         # Determine NPU requirements and Execution Provider
@@ -1522,21 +1522,21 @@ class PhoenixModelManagerView(tk.Frame):
         # Dynamic Activation Button State
         if model_id == active_model_id:
             self.activate_btn.configure(
-                text="Bereits aktiv",
+                text=tr("model_already_active", "Bereits aktiv"),
                 state="disabled",
                 bg=PHOENIX_THEME.elevated_bg,
                 fg=PHOENIX_THEME.text_disabled,
             )
         elif not is_complete:
             self.activate_btn.configure(
-                text="Aktivieren (Dateien fehlen)",
+                text=tr("model_missing_files", "Aktivieren (Dateien fehlen)"),
                 state="disabled",
                 bg=PHOENIX_THEME.elevated_bg,
                 fg=PHOENIX_THEME.text_disabled,
             )
         else:
             self.activate_btn.configure(
-                text="Modell aktivieren",
+                text=tr("model_activate_btn", "Modell aktivieren"),
                 state="normal",
                 bg=PHOENIX_THEME.accent,
                 fg=PHOENIX_THEME.text_on_accent,
@@ -1751,8 +1751,8 @@ class PhoenixModelManagerView(tk.Frame):
     def _get_selected_package_context(self) -> tuple[str, dict[str, object] | None, str] | None:
         selected = self.tree.selection()
         if not selected:
-            messagebox.showinfo("Package Action", "Kein Package ausgewählt.")
-            self.status_lbl.configure(text="Kein Package ausgewählt.")
+            messagebox.showinfo("Package Action", tr("msg_no_package_selected", "Kein Package ausgewählt."))
+            self.status_lbl.configure(text=tr("msg_no_package_selected", "Kein Package ausgewählt."))
             return None
         model_id = selected[0]
         model = self.controller.get_model_details(model_id)
@@ -1780,21 +1780,21 @@ class PhoenixModelManagerView(tk.Frame):
         model_id, _model, package_name = context
         source_path = self._select_local_package_source("Lokales SMP-Package auswählen")
         if not source_path:
-            self.status_lbl.configure(text="Installation abgebrochen.")
+            self.status_lbl.configure(text=tr("msg_installation_cancelled", "Installation abgebrochen."))
             return
 
-        self.status_lbl.configure(text=f"{package_name}: Installiere lokales Package...")
+        self.status_lbl.configure(text=tr("msg_installing_local_package", "{package_name}: Installiere lokales Package...", package_name=package_name))
         self.update_idletasks()
         success = self.controller.install_package(model_id, source_path)
         self.refresh()
         if success:
-            self.status_lbl.configure(text=f"{package_name}: Package installiert.")
-            messagebox.showinfo("Package Installation", f"{package_name} wurde lokal installiert.")
+            self.status_lbl.configure(text=tr("msg_package_installed", "{package_name}: Package installiert.", package_name=package_name))
+            messagebox.showinfo("Package Installation", tr("msg_package_installed_success", "{package_name} wurde lokal installiert.", package_name=package_name))
         else:
-            self.status_lbl.configure(text=f"{package_name}: Installation fehlgeschlagen.")
+            self.status_lbl.configure(text=tr("msg_package_install_failed", "{package_name}: Installation fehlgeschlagen.", package_name=package_name))
             messagebox.showerror(
                 "Package Installation",
-                "Installation fehlgeschlagen. Bitte Package-Verzeichnis, Manifest und Package-ID prüfen.",
+                tr("msg_package_install_failed_detail", "Installation fehlgeschlagen. Bitte Package-Verzeichnis, Manifest und Package-ID prüfen."),
             )
 
     def _update_selected_package(self) -> None:
@@ -1804,21 +1804,21 @@ class PhoenixModelManagerView(tk.Frame):
         model_id, _model, package_name = context
         source_path = self._select_local_package_source("Lokales Update-Package auswählen")
         if not source_path:
-            self.status_lbl.configure(text="Update abgebrochen.")
+            self.status_lbl.configure(text=tr("msg_update_cancelled", "Update abgebrochen."))
             return
 
-        self.status_lbl.configure(text=f"{package_name}: Aktualisiere lokales Package...")
+        self.status_lbl.configure(text=tr("msg_updating_local_package", "{package_name}: Aktualisiere lokales Package...", package_name=package_name))
         self.update_idletasks()
         success = self.controller.update_package(model_id, source_path)
         self.refresh()
         if success:
-            self.status_lbl.configure(text=f"{package_name}: Package aktualisiert.")
-            messagebox.showinfo("Package Update", f"{package_name} wurde lokal aktualisiert.")
+            self.status_lbl.configure(text=tr("msg_package_updated", "{package_name}: Package updated.", package_name=package_name))
+            messagebox.showinfo("Package Update", tr("msg_package_update_success", "{package_name} wurde lokal aktualisiert.", package_name=package_name))
         else:
-            self.status_lbl.configure(text=f"{package_name}: Update fehlgeschlagen.")
+            self.status_lbl.configure(text=tr("msg_package_update_failed", "{package_name}: Update fehlgeschlagen.", package_name=package_name))
             messagebox.showerror(
                 "Package Update",
-                "Update fehlgeschlagen. Bitte lokales Package, Manifest und Version prüfen.",
+                tr("msg_package_update_failed_detail", "Update fehlgeschlagen. Bitte lokales Package, Manifest und Version prüfen."),
             )
 
     def _remove_selected_package(self) -> None:
@@ -1831,19 +1831,19 @@ class PhoenixModelManagerView(tk.Frame):
             tr("package_remove_confirm", package_name=package_name, model_id=model_id),
         )
         if not confirmed:
-            self.status_lbl.configure(text="Entfernen abgebrochen.")
+            self.status_lbl.configure(text=tr("msg_remove_cancelled", "Entfernen abgebrochen."))
             return
 
-        self.status_lbl.configure(text=f"{package_name}: Entferne lokales Package...")
+        self.status_lbl.configure(text=tr("msg_removing_local_package", "{package_name}: Entferne lokales Package...", package_name=package_name))
         self.update_idletasks()
         success = self.controller.remove_package(model_id)
         self.refresh()
         if success:
-            self.status_lbl.configure(text=f"{package_name}: Package entfernt.")
-            messagebox.showinfo("Package entfernen", f"{package_name} wurde lokal entfernt.")
+            self.status_lbl.configure(text=tr("msg_package_removed", "{package_name}: Package entfernt.", package_name=package_name))
+            messagebox.showinfo("Package entfernen", tr("msg_package_remove_success", "{package_name} wurde lokal entfernt.", package_name=package_name))
         else:
-            self.status_lbl.configure(text=f"{package_name}: Entfernen fehlgeschlagen.")
-            messagebox.showerror("Package entfernen", "Package konnte nicht sicher entfernt werden.")
+            self.status_lbl.configure(text=tr("msg_package_remove_failed", "{package_name}: Entfernen fehlgeschlagen.", package_name=package_name))
+            messagebox.showerror("Package entfernen", tr("msg_package_remove_failed_detail", "Package konnte nicht sicher entfernt werden."))
 
     def _on_package_action(self, action: str) -> None:
         if action == "install":
@@ -1914,44 +1914,44 @@ class PhoenixModelManagerView(tk.Frame):
             return  # User cancelled
 
         # Inform user we are installing
-        self.status_lbl.configure(text=f"Installiere Modell '{model_id}'...")
+        self.status_lbl.configure(text=tr("msg_installing_model", "Installiere Modell '{model_id}'...", model_id=model_id))
         self.update_idletasks()
 
         success = self.controller.install_model(model_id, source_path)
         if success:
             messagebox.showinfo(
-                "Erfolg",
-                f"Modell '{model_id}' wurde erfolgreich installiert."
+                tr("success", "Erfolg"),
+                tr("msg_model_install_success", "Modell '{model_id}' wurde erfolgreich installiert.", model_id=model_id)
             )
         else:
             messagebox.showerror(
-                "Fehler",
-                f"Installation des Modells '{model_id}' fehlgeschlagen. Überprüfen Sie den Speicherplatz und die Gültigkeit der Datei."
+                tr("error", "Fehler"),
+                tr("msg_model_install_failed", "Installation des Modells '{model_id}' fehlgeschlagen. Überprüfen Sie den Speicherplatz und die Gültigkeit der Datei.", model_id=model_id)
             )
         self.refresh()
 
     def _on_uninstall(self, model_id: str) -> None:
         """Confirm and uninstall the selected model."""
         confirm = messagebox.askyesno(
-            "Modell deinstallieren",
-            f"Möchten Sie das Modell '{model_id}' wirklich deinstallieren und alle zugehörigen lokalen Dateien löschen?"
+            tr("msg_model_uninstall_title", "Modell deinstallieren"),
+            tr("msg_model_uninstall_confirm", "Möchten Sie das Modell '{model_id}' wirklich deinstallieren und alle zugehörigen lokalen Dateien löschen?", model_id=model_id)
         )
         if not confirm:
             return
 
-        self.status_lbl.configure(text=f"Deinstalliere Modell '{model_id}'...")
+        self.status_lbl.configure(text=tr("msg_uninstalling_model", "Deinstalliere Modell '{model_id}'...", model_id=model_id))
         self.update_idletasks()
 
         success = self.controller.uninstall_model(model_id)
         if success:
             messagebox.showinfo(
-                "Erfolg",
-                f"Modell '{model_id}' wurde erfolgreich deinstalliert."
+                tr("success", "Erfolg"),
+                tr("msg_model_uninstall_success", "Modell '{model_id}' wurde erfolgreich deinstalliert.", model_id=model_id)
             )
         else:
             messagebox.showerror(
-                "Fehler",
-                f"Deinstallation des Modells '{model_id}' fehlgeschlagen."
+                tr("error", "Fehler"),
+                tr("msg_model_uninstall_failed", "Deinstallation des Modells '{model_id}' fehlgeschlagen.", model_id=model_id)
             )
         self.refresh()
 

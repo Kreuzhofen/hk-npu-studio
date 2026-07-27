@@ -32,8 +32,8 @@ class PhoenixCompareView(WorkspaceFrame):
     ) -> None:
         super().__init__(
             master,
-            title="Compare Workspace",
-            subtitle="Lade Original und Ergebnis, um AI-Outputs direkt nebeneinander zu prüfen.",
+            title=tr("compare_title", "Bildvergleich"),
+            subtitle=tr("compare_subtitle", "Generierte Bilder und Originale direkt gegenüberstellen"),
             has_inspector=False,
         )
         self.controller = controller or CompareWorkspaceController()
@@ -73,9 +73,9 @@ class PhoenixCompareView(WorkspaceFrame):
 
         self.original_panel = ComparePanel(
             self.split_container,
-            title="Original",
-            empty_title="Originalbild laden",
-            empty_text="Öffne links ein Ausgangsbild für den Qualitätsvergleich.",
+            title=tr("compare_left_title", "Original"),
+            empty_title=tr("compare_left_empty_title", "Originalbild laden"),
+            empty_text=tr("compare_left_placeholder", "Öffne links ein Ausgangsbild für den Qualitätsvergleich."),
             icon_name="image",
             on_load_clicked=self._open_original,
             on_combobox_selected=self._on_original_selected,
@@ -89,9 +89,9 @@ class PhoenixCompareView(WorkspaceFrame):
 
         self.result_panel = ComparePanel(
             self.split_container,
-            title="Ergebnis",
-            empty_title="Ausgabe laden",
-            empty_text="Öffne rechts ein Ergebnisbild, z. B. einen AI-Output.",
+            title=tr("compare_right_title", "Ergebnis"),
+            empty_title=tr("compare_right_empty_title", "Ausgabe laden"),
+            empty_text=tr("compare_right_placeholder", "Öffne rechts ein Ergebnisbild, z. B. einen AI-Output."),
             icon_name="output",
             on_load_clicked=self._open_output,
             on_combobox_selected=self._on_output_selected,
@@ -139,8 +139,8 @@ class PhoenixCompareView(WorkspaceFrame):
             remove_cmd = self._remove_output
             replace_cmd = self._open_output
             
-        menu.add_command(label="Bild entfernen", command=remove_cmd)
-        menu.add_command(label="Bild durch Datei ersetzen...", command=replace_cmd)
+        menu.add_command(label=tr("compare_remove_image", "Bild entfernen"), command=remove_cmd)
+        menu.add_command(label=tr("compare_replace_image", "Bild durch Datei ersetzen..."), command=replace_cmd)
         menu.post(event.x_root, event.y_root)
 
     def _remove_original(self) -> None:
@@ -171,12 +171,12 @@ class PhoenixCompareView(WorkspaceFrame):
             font=PHOENIX_THEME.font_body,
         )
         menu.add_command(
-            label="Erneut generieren (TODO)",
+            label=tr("compare_regenerate_todo", "Erneut generieren (TODO)"),
             command=self._on_regenerate_todo,
             state="disabled"
         )
         menu.add_command(
-            label="Mit aktuellem Modell generieren (TODO)",
+            label=tr("compare_generate_with_current_model_todo", "Mit aktuellem Modell generieren (TODO)"),
             command=self._on_generate_current_model_todo,
             state="disabled"
         )
@@ -196,7 +196,7 @@ class PhoenixCompareView(WorkspaceFrame):
 
     def _update_comboboxes(self) -> None:
         from config import OUTPUT_DIR
-        images = ["Keine Auswahl"]
+        images = [tr("no_selection", "Keine Auswahl")]
         if Path(OUTPUT_DIR).exists():
             for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp"):
                 images.extend(p.name for p in Path(OUTPUT_DIR).glob(ext))
@@ -211,12 +211,12 @@ class PhoenixCompareView(WorkspaceFrame):
         if sel_orig in images:
             self.original_panel.combobox.set(sel_orig)
         else:
-            self.original_panel.combobox.set("Keine Auswahl")
+            self.original_panel.combobox.set(tr("no_selection", "Keine Auswahl"))
             
         if sel_out in images:
             self.result_panel.combobox.set(sel_out)
         else:
-            self.result_panel.combobox.set("Keine Auswahl")
+            self.result_panel.combobox.set(tr("no_selection", "Keine Auswahl"))
 
     def refresh(self) -> None:
         state = self.controller.get_state()
@@ -243,7 +243,7 @@ class PhoenixCompareView(WorkspaceFrame):
             self.original_panel.meta_prompt_val.configure(text="-")
             self.original_panel.meta_seed_val.configure(text="-")
             self.original_panel.meta_sampler_val.configure(text="-")
-            self.original_panel.combobox.set("Keine Auswahl")
+            self.original_panel.combobox.set(tr("no_selection", "Keine Auswahl"))
             
         # Right Panel metadata
         if out_meta:
@@ -256,7 +256,7 @@ class PhoenixCompareView(WorkspaceFrame):
             self.result_panel.meta_prompt_val.configure(text="-")
             self.result_panel.meta_seed_val.configure(text="-")
             self.result_panel.meta_sampler_val.configure(text="-")
-            self.result_panel.combobox.set("Keine Auswahl")
+            self.result_panel.combobox.set(tr("no_selection", "Keine Auswahl"))
             
         # Reset colors
         for val_lbl in (self.original_panel.meta_prompt_val, self.original_panel.meta_seed_val, self.original_panel.meta_sampler_val,
@@ -289,7 +289,7 @@ class PhoenixCompareView(WorkspaceFrame):
             self.status_bar.update_values(self.controller.status_items())
 
     def _on_original_selected(self, filename: str) -> None:
-        if filename == "Keine Auswahl":
+        if filename in ("Keine Auswahl", "No Selection", tr("no_selection", "Keine Auswahl")):
             return
         from config import OUTPUT_DIR
         filepath = Path(OUTPUT_DIR) / filename
@@ -301,7 +301,7 @@ class PhoenixCompareView(WorkspaceFrame):
                 self._handle_error(error)
 
     def _on_output_selected(self, filename: str) -> None:
-        if filename == "Keine Auswahl":
+        if filename in ("Keine Auswahl", "No Selection", tr("no_selection", "Keine Auswahl")):
             return
         from config import OUTPUT_DIR
         filepath = Path(OUTPUT_DIR) / filename
@@ -313,7 +313,7 @@ class PhoenixCompareView(WorkspaceFrame):
                 self._handle_error(error)
 
     def _open_original(self) -> None:
-        filename = self._ask_image_filename("Originalbild öffnen")
+        filename = self._ask_image_filename(tr("open_original_image", "Originalbild öffnen"))
         if not filename:
             return
         try:
@@ -323,7 +323,7 @@ class PhoenixCompareView(WorkspaceFrame):
         self.refresh()
 
     def _open_output(self) -> None:
-        filename = self._ask_image_filename("Ausgabebild öffnen")
+        filename = self._ask_image_filename(tr("open_output_image", "Ausgabebild öffnen"))
         if not filename:
             return
         try:

@@ -258,3 +258,16 @@ class PhoenixWorkspace(tk.Frame):
 
         if hasattr(view, "clear_image"):
             view.clear_image()
+
+    def reconstruct_views(self) -> None:
+        """Destroys and recreates all cached views to apply dynamic language changes."""
+        for view in list(self._views.values()):
+            try:
+                view.destroy()
+            except Exception:
+                pass
+        self._views.clear()
+        
+        current = self.current_view
+        self.current_view = None
+        self.show_view(current)

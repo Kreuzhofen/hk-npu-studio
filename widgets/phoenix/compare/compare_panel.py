@@ -8,6 +8,7 @@ from PIL import Image
 from widgets.phoenix.compare.compare_image_canvas import CompareImageCanvas
 from widgets.phoenix.compare.compare_placeholder import ComparePlaceholder
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
 
 
 class ComparePanel(tk.Frame):
@@ -77,18 +78,18 @@ class ComparePanel(tk.Frame):
         
         self.combobox = ttk.Combobox(
             dropdown_frame,
-            values=["Keine Auswahl"],
+            values=[tr("no_selection", "Keine Auswahl")],
             state="readonly",
             style="Phoenix.TCombobox",
         )
-        self.combobox.set("Keine Auswahl")
+        self.combobox.set(tr("no_selection", "Keine Auswahl"))
         self.combobox.pack(side="left", fill="x", expand=True, padx=(0, 6))
         self.combobox.bind("<<ComboboxSelected>>", self._on_combobox_changed)
         
         # Load Image button
         self.load_btn = tk.Button(
             dropdown_frame,
-            text="Bild laden",
+            text=tr("load_image", "Bild laden"),
             command=self.on_load_clicked,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
