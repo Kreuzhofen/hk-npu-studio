@@ -69,8 +69,8 @@ class PhoenixGalleryView(WorkspaceFrame):
                     imported_any = True
 
             if imported_any:
-                self.controller.refresh()
-                self._refresh_ui()
+                changed = self.controller.refresh()
+                self._refresh_ui(force=changed)
         except Exception:
             pass
 
@@ -150,8 +150,8 @@ class PhoenixGalleryView(WorkspaceFrame):
                 
                 # Refresh
                 self.controller.clear_selection()
-                self.controller.refresh()
-                self._refresh_ui()
+                changed = self.controller.refresh()
+                self._refresh_ui(force=changed)
             except Exception as e:
                 import logging
                 logging.getLogger("PhoenixGalleryView").error(f"Failed to delete image: {e}")
@@ -164,11 +164,11 @@ class PhoenixGalleryView(WorkspaceFrame):
         )
         if folder:
             self.controller.open_folder(folder)
-            self._refresh_ui()
+            self._refresh_ui(force=True)
 
     def _on_refresh(self) -> None:
-        self.controller.refresh()
-        self._refresh_ui()
+        changed = self.controller.refresh()
+        self._refresh_ui(force=changed)
 
     def _on_thumbnail_size_change(self, size_label: str) -> None:
         self.controller.set_thumbnail_size(size_label)
@@ -195,7 +195,7 @@ class PhoenixGalleryView(WorkspaceFrame):
     def _clear_selection(self) -> None:
         """Löscht die visuelle Selektionsmarkierung."""
         self.controller.clear_selection()
-        self._refresh_ui()
+        self._refresh_selection_ui()
 
     def _on_double_click(self, image: GalleryImage) -> None:
         # First ensure the image is selected in the controller
@@ -210,19 +210,21 @@ class PhoenixGalleryView(WorkspaceFrame):
 
     def refresh(self) -> None:
         """Aktualisiert die Galerie beim Wechseln/Periodisch."""
-        self._refresh_ui()
+        changed = self.controller.refresh()
+        self._refresh_ui(force=changed)
 
     def show_generated_image(self, image_path: str) -> None:
         """Load the generated image into the Asset Library and select it."""
         self.controller.show_image(image_path)
-        self._refresh_ui()
+        self._refresh_ui(force=True)
 
-    def _refresh_ui(self) -> None:
+    def _refresh_ui(self, force: bool = False) -> None:
         """Aktualisiert die Galerie-Ansicht."""
         self.thumbnail_area.set_images(
             images=self.controller.visible_images,
             selected_paths=self.controller.selected_paths,
             thumbnail_size=self.controller.get_thumbnail_size(),
+            force=force,
         )
         from app.i18n import tr
         size_mapping = {

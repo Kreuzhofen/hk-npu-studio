@@ -49,23 +49,28 @@ class GalleryController:
 
     def open_folder(self, folder: str | Path) -> list[GalleryImage]:
         self.current_folder = Path(folder)
-        return self.refresh()
+        self.refresh()
+        return self.visible_images
 
-    def refresh(self) -> list[GalleryImage]:
+    def refresh(self) -> bool:
         from app.i18n import tr
         if self.current_folder is None:
             self.status = tr("ready", "Bereit")
-            return self.visible_images
+            return False
 
         self.status = tr("loading_images", "Lade Bilder")
         try:
-            self.model.set_images(self.image_loader.load_folder(self.current_folder))
+            previous_paths = [image.path for image in self.model.images]
+            loaded_images = self.image_loader.load_folder(self.current_folder)
+            self.model.set_images(loaded_images)
+
             self.status = tr("ready", "Bereit")
+            return previous_paths != [image.path for image in loaded_images]
         except Exception:
             self.model.set_images([])
             self.model.clear_selection()
             self.status = tr("status_failed", "Fehler")
-        return self.visible_images
+            return True
 
     def select_image(self, image: GalleryImage, ctrl: bool = False, shift: bool = False) -> None:
         from app.i18n import tr
