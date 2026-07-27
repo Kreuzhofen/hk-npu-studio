@@ -6,6 +6,8 @@ import threading
 import tkinter as tk
 import datetime
 import time
+import os
+import subprocess
 from tkinter import messagebox, ttk
 from pathlib import Path
 
@@ -156,19 +158,16 @@ class PhoenixPromptView(WorkspaceFrame):
             lambda e: self.param_canvas.itemconfig(self.param_canvas_wid, width=e.width)
         )
 
-        # Mouse wheel scrolling on left panel
         def _on_param_mousewheel(event: tk.Event) -> None:
             self.param_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
         self.input_card.bind("<Enter>", lambda e: self.param_canvas.bind_all("<MouseWheel>", _on_param_mousewheel))
         self.input_card.bind("<Leave>", lambda e: self.param_canvas.unbind_all("<MouseWheel>"))
 
-        # Build all parameter groups inside param_content
         self._build_parameters()
 
     def _build_parameters(self) -> None:
         """Build all parameter groups inside the scrollable param_content frame."""
-        # Shared variables for layout synchronization
         self.width_var = tk.StringVar(value="512")
         self.height_var = tk.StringVar(value="512")
         self.sampler_var = tk.StringVar(value="Euler")
@@ -181,12 +180,10 @@ class PhoenixPromptView(WorkspaceFrame):
         self.canny_high_var = tk.IntVar(value=150)
         self.conditioning_strength_var = tk.DoubleVar(value=1.0)
 
-        # Traces to automatically update Canny preview on threshold changes
         self.canny_low_var.trace_add("write", self._on_canny_param_changed)
         self.canny_high_var.trace_add("write", self._on_canny_param_changed)
 
-        p = self.param_content  # shorthand
-
+        p = self.param_content
         r = 0
 
         # ── Group: Presets ─────────────────────────────
@@ -300,7 +297,6 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         model_dropdown.grid(row=0, column=1, sticky="ew", pady=2)
 
-        # Visually highlighted model description box
         self.model_desc_frame = tk.Frame(
             model_frame,
             bg=PHOENIX_THEME.elevated_bg,
@@ -360,7 +356,6 @@ class PhoenixPromptView(WorkspaceFrame):
         r += 1
         prompt_card.grid_columnconfigure(0, weight=1)
 
-        # Header frame for DEIN PROMPT and history button
         prompt_header_frame = tk.Frame(prompt_card, bg=PHOENIX_THEME.surface)
         prompt_header_frame.grid(
             row=0,
@@ -381,7 +376,6 @@ class PhoenixPromptView(WorkspaceFrame):
             anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
-        # Cohesive toolbar frame acting as a segmented control group
         self.prompt_toolbar = tk.Frame(
             prompt_header_frame,
             bg=PHOENIX_THEME.border,
@@ -443,6 +437,7 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.maximize_btn.grid(row=0, column=2, sticky="nsew")
         self._add_button_hover(self.maximize_btn)
+
         tk.Label(
             prompt_card,
             text=tr("prompt_placeholder", "Beschreibe Motiv, Licht, Perspektive und Stil möglichst konkret."),
@@ -475,7 +470,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.prompt_text.insert("1.0", "A futuristic cyberpunk cityscape, neon lights, high resolution, highly detailed")
         self.prompt_text.bind("<KeyRelease>", lambda e: self._on_main_prompt_key())
 
-        # Live Prompt Counter Label
         self.prompt_counter_lbl = tk.Label(
             prompt_card,
             text=tr("chars_words_label", "Zeichen: {chars} | Wörter: {words}", chars=0, words=0),
@@ -531,7 +525,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.active_tab = "basic"
         self.canny_supported = False
 
-        # Segmented Button Bar Frame (CN-023)
         self.tab_bar = tk.Frame(p, bg=PHOENIX_THEME.elevated_bg, padx=2, pady=2, bd=0, highlightthickness=0)
         self.tab_bar.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(8, 6))
         r += 1
@@ -581,7 +574,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.btn_tab_advanced.grid(row=0, column=2, sticky="ew", padx=1)
         self._add_button_hover(self.btn_tab_advanced)
 
-        # Tab Content Container (styled exactly like dark Phoenix cards)
         self.tab_container = tk.Frame(
             p,
             bg=PHOENIX_THEME.card_bg,
@@ -606,7 +598,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.tab_advanced_content.columnconfigure(0, weight=1)
         self.tab_advanced_content.columnconfigure(1, weight=1)
 
-        # Show initial tab with clean padding inside container card
         self.tab_basic_content.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=8)
 
         # ── Group: ControlNet/Canny (inside tab_canny_content) ──
@@ -644,7 +635,6 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.dnd_card.row_idx = 1
 
-        # ControlNet Canny controls frame (Sprint CN-004)
         self.controlnet_frame = tk.Frame(self.tab_canny_content, bg=PHOENIX_THEME.card_bg)
         self.controlnet_frame.grid(
             row=2,
@@ -669,6 +659,7 @@ class PhoenixPromptView(WorkspaceFrame):
             width=12, variable=self.canny_low_var
         )
         self.low_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
+        self.low_scale.bind("<ButtonRelease-1>", lambda e: self._trigger_canny_preview_update())
 
         high_label = tk.Label(self.controlnet_frame, text=tr("canny_high_threshold_label", "Canny High Threshold:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         high_label.grid(row=0, column=1, sticky="w", pady=(0, 1))
@@ -680,6 +671,7 @@ class PhoenixPromptView(WorkspaceFrame):
             width=12, variable=self.canny_high_var
         )
         self.high_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
+        self.high_scale.bind("<ButtonRelease-1>", lambda e: self._trigger_canny_preview_update())
 
         strength_label = tk.Label(self.controlnet_frame, text=tr("conditioning_strength_label", "Conditioning Strength:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         strength_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(2, 1))
@@ -719,7 +711,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.height_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         self.height_menu.grid(row=0, column=3, sticky="ew", pady=2)
 
-        # Build Locked Resolution View (initially hidden)
         from resources.icons import IconManager
         self.locked_res_frame = tk.Frame(self.size_frame, bg=PHOENIX_THEME.card_bg)
         self.locked_res_frame.grid_columnconfigure(0, weight=1)
@@ -797,7 +788,6 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.cfg_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
  
-        # Advanced settings button for compact mode
         self.adv_label = tk.Label(self.sampling_frame, text=tr("settings_label_colon", "Einstellungen:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
         self.adv_settings_btn = tk.Button(
             self.sampling_frame, text=tr("advanced_settings_trigger", "Erweiterte Einstellungen ⚙️"),
@@ -818,7 +808,6 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.steps_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
 
-        # Quality presets for standard mode (locked resolution models)
         self.active_steps_preset = "Standard"
         self.steps_preset_frame = tk.Frame(self.sampling_frame, bg=PHOENIX_THEME.card_bg)
         self.steps_preset_frame.grid_columnconfigure(0, weight=1)
@@ -901,7 +890,6 @@ class PhoenixPromptView(WorkspaceFrame):
 
     @staticmethod
     def _configure_option_contract(widget: tk.OptionMenu, variable: tk.StringVar, spec: dict, label_widget: tk.Label | None = None, label_base_text: str = "") -> None:
-        """Apply a metadata-owned list contract to an option control."""
         values = [str(value) for value in spec.get("values", [])]
         default = str(spec.get("default", values[0] if values else variable.get()))
         if default not in values:
@@ -920,12 +908,10 @@ class PhoenixPromptView(WorkspaceFrame):
                 label_widget.configure(text=label_base_text)
 
     def _apply_generation_contract(self, model_id: str) -> None:
-        """Render the selected model's generic metadata contract without model-specific logic."""
         contract = self.controller.select_model(model_id)
         if not contract:
             return
 
-        # Configure option controls
         for name in ["width", "height"]:
             spec = contract.get(name)
             if isinstance(spec, dict):
@@ -937,12 +923,9 @@ class PhoenixPromptView(WorkspaceFrame):
         if isinstance(contract.get("scheduler"), dict):
             self._configure_option_contract(self.scheduler_menu, self.scheduler_var, contract["scheduler"], self.scheduler_lbl, "Sched.:")
 
-        # Always ensure self.sampling_frame is gridded inside tab_basic_content (CN-022)
         self.sampling_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
 
-        # Manage visibility based on COMPACT_PREVIEW_MODE
         if self.COMPACT_PREVIEW_MODE:
-            # Hide the entire Image Size group, dropdown frame, and Output group from basic/advanced tabs
             self.size_frame.grid_remove()
             self.dropdown_frame.grid_remove()
             self.output_frame.grid_remove()
@@ -952,19 +935,16 @@ class PhoenixPromptView(WorkspaceFrame):
                 if "Output" in self._section_labels:
                     self._section_labels["Output"].grid_remove()
 
-            # Hide standard CFG scale and show advanced settings button inside sampling_frame
             self.cfg_label.grid_remove()
             self.cfg_scale.grid_remove()
             self.adv_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
             self.adv_settings_btn.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
         else:
-            # Show standard CFG scale and hide advanced settings button
             self.adv_label.grid_remove()
             self.adv_settings_btn.grid_remove()
             self.cfg_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
             self.cfg_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
 
-            # Show the entire Image Size group, dropdown frame, and Output group in basic/advanced tabs
             if hasattr(self, "_section_labels"):
                 if "Image Size" in self._section_labels:
                     lbl = self._section_labels["Image Size"]
@@ -977,7 +957,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self.dropdown_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(2, 0))
             self.output_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
 
-            # Layout resolution inside size_frame
             if contract.get("resolution_locked") is True:
                 self.width_menu.configure(state="disabled")
                 self.height_menu.configure(state="disabled")
@@ -995,7 +974,6 @@ class PhoenixPromptView(WorkspaceFrame):
                 self.height_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
                 self.height_menu.grid(row=0, column=3, sticky="ew", pady=2)
 
-        # Always configure scale ranges
         scale_controls = {"steps": self.steps_scale, "cfg": self.cfg_scale}
         for name, widget in scale_controls.items():
             spec = contract.get(name)
@@ -1016,12 +994,10 @@ class PhoenixPromptView(WorkspaceFrame):
         self.steps_preset_frame.grid_remove()
         self.steps_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
 
-        # Always configure seed default
         seed_spec = contract.get("seed")
         if isinstance(seed_spec, dict) and "default" in seed_spec:
             self.seed_var.set(str(seed_spec["default"]))
 
-        # Toggle Reference Image selection visibility based on ControlNet capability (Sprint CN-002)
         model_meta = self.controller.repository.get_model(model_id)
         supports_controlnet = False
         if model_meta:
@@ -1060,19 +1036,16 @@ class PhoenixPromptView(WorkspaceFrame):
             self.dnd_subtitle.grid_remove()
             self.dnd_card.grid_remove()
             self.controlnet_frame.grid_remove()
-            # Fallback to basic tab if canny becomes unsupported
             if self.active_tab == "canny":
                 self._switch_tab("basic")
 
         self._update_tab_bar_visuals()
 
-        # If advanced settings popup is currently open and active, refresh it so it stays synced
         if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
             self._advanced_popup.destroy()
             self._open_advanced_settings_popup()
 
     def _section_header(self, parent: tk.Frame, title: str, row: int) -> int:
-        """Create a subtle section divider label and return the next row index."""
         lbl = tk.Label(
             parent, text=title, bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title, anchor="w"
@@ -1095,7 +1068,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.inspector_slot.grid_rowconfigure(0, weight=1)
         self.inspector_slot.grid_columnconfigure(0, weight=1)
 
-        # Inspector Card
         self.inspector_panel = tk.Frame(
             self.inspector_slot, bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border, highlightthickness=1,
@@ -1117,7 +1089,6 @@ class PhoenixPromptView(WorkspaceFrame):
         # ── Section: Generation Status ────────────────
         row = self._inspector_section_header(tr("insp_sec_status", "Generation Status"), row)
 
-        # Selected Model
         tk.Label(
             self.insp_content, text=tr("ai_model_label", "KI-Modell:"), bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
@@ -1129,7 +1100,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_model.grid(row=row, column=1, columnspan=3, sticky="w", padx=(4, 16), pady=1)
         row += 1
 
-        # Backend & Queue
         tk.Label(
             self.insp_content, text=tr("backend_label_colon", "Backend:"), bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
@@ -1151,7 +1121,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_queue.grid(row=row, column=3, sticky="w", padx=(4, 16), pady=1)
         row += 1
 
-        # Status
         tk.Label(
             self.insp_content, text=tr("status_label_colon", "Status:"), bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
@@ -1203,7 +1172,6 @@ class PhoenixPromptView(WorkspaceFrame):
         # ── Section: Generation Information ───────────
         row = self._inspector_section_header(tr("insp_sec_info", "Generation Information"), row)
 
-        # Row 0: Size & Steps
         tk.Label(
             self.insp_content, text=tr("size_label_colon", "Size:"), bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
@@ -1225,7 +1193,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_steps.grid(row=row, column=3, sticky="w", padx=(4, 16), pady=1)
         row += 1
 
-        # Row 1: CFG & Seed
         tk.Label(
             self.insp_content, text=tr("cfg_label_colon", "CFG:"), bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
@@ -1247,7 +1214,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_seed.grid(row=row, column=3, sticky="w", padx=(4, 16), pady=1)
         row += 1
 
-        # Row 2: Sampler & Scheduler
         tk.Label(
             self.insp_content, text=tr("sampler_label_colon", "Sampler:"), bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
@@ -1283,11 +1249,10 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.preview_center = tk.Frame(preview_frame, bg=PHOENIX_THEME.content_bg)
         self.preview_center.grid(row=0, column=0, sticky="nsew", pady=8)
-        self.preview_center.grid_columnconfigure(0, weight=1)
+        self.preview_center.grid_columnconfigure(0, weight=0)
         self.preview_center.grid_rowconfigure(0, weight=1)
         self.preview_center.bind("<Configure>", self._on_preview_resize)
 
-        # Place placeholder elements centered
         self.placeholder_container = tk.Frame(self.preview_center, bg=PHOENIX_THEME.content_bg)
         self.placeholder_container.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -1305,26 +1270,62 @@ class PhoenixPromptView(WorkspaceFrame):
         ).pack(anchor="center")
         row += 1
 
-        # ── Future Action Buttons (placeholders) ──────
+        # ── Clean Native Action Grid (No flickering, uniform text layout) ──
         btn_frame = tk.Frame(self.insp_content, bg=PHOENIX_THEME.card_bg)
-        btn_frame.grid(row=row, column=0, columnspan=4, sticky="ew", padx=16, pady=(2, 6))
-        btn_frame.columnconfigure((0, 1, 2), weight=1)
+        btn_frame.grid(row=row, column=0, columnspan=4, sticky="ew", padx=16, pady=(4, 8))
+        btn_frame.columnconfigure(0, weight=1, uniform="insp_btns")
+        btn_frame.columnconfigure(1, weight=1, uniform="insp_btns")
 
-        btn_style = {
-            "bg": PHOENIX_THEME.elevated_bg, "fg": PHOENIX_THEME.text_muted,
-            "activebackground": PHOENIX_THEME.elevated_bg, "activeforeground": PHOENIX_THEME.text_muted,
-            "bd": 1, "relief": "flat", "font": PHOENIX_THEME.font_caption,
-            "state": "disabled", "height": 1,
+        btn_kwargs = {
+            "bg": PHOENIX_THEME.elevated_bg,
+            "fg": PHOENIX_THEME.text_primary,
+            "activebackground": PHOENIX_THEME.accent,
+            "activeforeground": PHOENIX_THEME.text_on_accent,
+            "bd": 0,
+            "relief": "flat",
+            "font": PHOENIX_THEME.font_button,
+            "cursor": "hand2",
+            "padx": 10,
+            "pady": 6,
+            "anchor": "w",
+            "compound": "left",
         }
 
-        self.btn_open_library = tk.Button(btn_frame, text=tr("btn_open_in_library", "Open in Library"), command=self._on_open_library, **btn_style)
-        self.btn_open_library.grid(row=0, column=0, sticky="ew", padx=1, pady=1)
-        
-        self.btn_open_review = tk.Button(btn_frame, text=tr("btn_open_in_review", "Open in Review"), command=self._on_open_review, **btn_style)
-        self.btn_open_review.grid(row=0, column=1, sticky="ew", padx=1, pady=1)
-        
-        self.btn_save_as = tk.Button(btn_frame, text=tr("btn_save_as", "Save As"), command=self._on_save_as, **btn_style)
-        self.btn_save_as.grid(row=0, column=2, sticky="ew", padx=1, pady=1)
+        self.btn_open_library = tk.Button(
+            btn_frame,
+            text=tr("btn_open_in_library", "In Galerie öffnen"),
+            command=self._on_open_library,
+            **btn_kwargs
+        )
+        self.btn_open_library.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+        self._add_button_hover(self.btn_open_library)
+
+        self.btn_open_review = tk.Button(
+            btn_frame,
+            text=tr("btn_open_in_review", "Im Vergleich öffnen"),
+            command=self._on_open_review,
+            **btn_kwargs
+        )
+        self.btn_open_review.grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
+        self._add_button_hover(self.btn_open_review)
+
+        self.btn_save_as = tk.Button(
+            btn_frame,
+            text=tr("btn_save_as", "Speichern unter..."),
+            command=self._on_save_as,
+            **btn_kwargs
+        )
+        self.btn_save_as.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
+        self._add_button_hover(self.btn_save_as)
+
+        self.btn_open_explorer = tk.Button(
+            btn_frame,
+            text=tr("btn_open_in_explorer", "Im Explorer anzeigen"),
+            command=self._on_open_explorer,
+            **btn_kwargs
+        )
+        self.btn_open_explorer.grid(row=1, column=1, sticky="nsew", padx=2, pady=2)
+        self._add_button_hover(self.btn_open_explorer)
 
         # ── Fixed primary action (always visible) ─────
         self.action_bar = tk.Frame(
@@ -1446,7 +1447,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self.status_slot, bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border, highlightthickness=1
         )
-        # padx=space_sm aligns the status bar with the card edges above
         self.status_bar_frame.grid(row=0, column=0, sticky="ew", padx=PHOENIX_THEME.space_sm)
 
         self.status_label = tk.Label(
@@ -1542,8 +1542,6 @@ class PhoenixPromptView(WorkspaceFrame):
             controlnet_conditioning_scale=cond_scale,
         )
 
-
-        # Central validation prior to generation (Sprint CN-003)
         is_valid, msg = self.controller.generation_controller.validate_session()
         if not is_valid:
             self.controller.model.update_state(status=f"Fehler: {msg}")
@@ -1627,6 +1625,10 @@ class PhoenixPromptView(WorkspaceFrame):
         self._generation_running = False
         self._cancel_progress_tick()
         cancelled = result.status == "CANCELLED"
+        
+        if result.success and not cancelled:
+            self._progress_current_step = self._progress_total_steps
+
         if cancelled:
             self._set_progress(self._progress_percent, tr("status_cancelled", "CANCELLED"), self._step_text())
         else:
@@ -1637,9 +1639,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._append_generation_diagnostic(result, "before_finish_callback")
             self._notify_generation_finished(result)
             self._append_generation_diagnostic(result, "after_finish_callback")
-            self._append_generation_diagnostic(result, "before_gallery_open_callback")
-            self._show_generated_output_in_library(result.image_path)
-            self._append_generation_diagnostic(result, "after_gallery_open_callback")
         elif not cancelled:
             self._append_generation_diagnostic(result, "generation_failed", result.message)
             messagebox.showerror("AI Generate", result.message)
@@ -1711,7 +1710,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self._configure_if_alive(self.insp_gen_status, text=status_text)
 
     def _layout_generation_actions(self, busy: bool) -> None:
-        """Switch between the single and split action-bar layouts."""
         if busy:
             self.gen_btn.grid_configure(
                 column=0,
@@ -1734,7 +1732,6 @@ class PhoenixPromptView(WorkspaceFrame):
         if not self._is_view_alive():
             return
 
-        # Parse step text for sampling phase
         step_text = "-"
         if "Schritt " in stage:
             try:
@@ -1743,10 +1740,7 @@ class PhoenixPromptView(WorkspaceFrame):
             except Exception:
                 step_text = "-"
 
-        # Update progress bar and stage label
         self._set_progress(percent, stage, step_text)
-
-        # Update workspace state and inspector status labels dynamically
         self.controller.model.update_state(status=stage)
         self._configure_if_alive(self.status_label, text=tr("status_prefix", "Status: {status}", status=stage))
         self._configure_if_alive(self.insp_gen_status, text=stage)
@@ -1758,31 +1752,6 @@ class PhoenixPromptView(WorkspaceFrame):
             except Exception:
                 pass
         self._progress_after_id = None
-
-    def _update_generation_progress(self) -> None:
-        if not self._is_view_alive() or not self._generation_running:
-            return
-
-        if self._progress_percent < 12:
-            self._set_progress(self._progress_percent + 3, "Vorbereiten", "-")
-        elif self._progress_percent < 30:
-            self._set_progress(self._progress_percent + 2, "Text Encoding", "-")
-        elif self._progress_percent < 86:
-            next_percent = min(86, self._progress_percent + 2)
-            span = max(1, 86 - 30)
-            self._progress_current_step = min(
-                self._progress_total_steps,
-                max(1, int(((next_percent - 30) / span) * self._progress_total_steps)),
-            )
-            self._set_progress(next_percent, "UNet Steps", self._step_text())
-        elif self._progress_percent < 94:
-            self._set_progress(self._progress_percent + 1, "VAE Decode", self._step_text())
-        elif self._progress_percent < 98:
-            self._set_progress(self._progress_percent + 1, "Speichern", self._step_text())
-        else:
-            self._set_progress(98, "Speichern", self._step_text())
-
-        self._schedule_progress_tick()
 
     def _set_progress(self, percent: float, stage: str, step_text: str) -> None:
         if not self._is_view_alive():
@@ -1854,25 +1823,29 @@ class PhoenixPromptView(WorkspaceFrame):
             if dest:
                 try:
                     shutil.copy(response.image_path, dest)
-                    print(f"Saved image to: {dest}")
                 except Exception as e:
-                    print(f"Failed to save image copy: {e}")
+                    logger.error(f"Failed to save image copy: {e}")
+
+    def _on_open_explorer(self) -> None:
+        """Opens Windows Explorer with the generated image file selected."""
+        response = getattr(self.controller, "last_response", None)
+        if response and response.image_path:
+            path = Path(response.image_path).resolve()
+            if path.exists():
+                subprocess.run(f'explorer /select,"{path}"')
 
     def _enable_action_buttons(self, enable: bool) -> None:
         state = "normal" if enable else "disabled"
-        # Phoenix theme accent color for enabled buttons
-        fg_color = PHOENIX_THEME.accent if enable else PHOENIX_THEME.text_muted
-        
-        self.btn_open_library.configure(state=state, fg=fg_color)
-        self.btn_open_review.configure(state=state, fg=fg_color)
-        self.btn_save_as.configure(state=state, fg=fg_color)
+        fg_color = PHOENIX_THEME.text_primary if enable else PHOENIX_THEME.text_disabled
+
+        for btn in (self.btn_open_library, self.btn_open_review, self.btn_save_as, self.btn_open_explorer):
+            btn.configure(state=state, fg=fg_color)
 
     # ==================================================================
     # REFRESH
     # ==================================================================
 
     def refresh(self) -> None:
-        # Reload repository data from disk so it stays in sync with Model Manager installs/uninstalls
         if hasattr(self.controller, "repository") and self.controller.repository is not None:
             self.controller.repository.load_repository()
 
@@ -1890,7 +1863,6 @@ class PhoenixPromptView(WorkspaceFrame):
             if active_backend is not None:
                 active_backend_name = active_backend.get_backend_name()
 
-        # Check if the active model in the single source of truth changed
         active_model_id = self.controller.repository.get_active_model_id()
         if (
             active_model_id
@@ -1900,16 +1872,12 @@ class PhoenixPromptView(WorkspaceFrame):
             self.model_var.set(active_model_id)
             state = self.controller.get_state()
 
-
-
-        # Update Inspector – Generation Status
         self.insp_model.configure(text=state.selected_model if state.selected_model else "-")
         self.insp_backend.configure(text=active_backend_name)
         if not self._generation_running:
             self.insp_gen_status.configure(text=state.status)
         self.insp_queue.configure(text=f"{queued_count} Job(s)")
 
-        # Update Inspector – Generation Information
         self.insp_size.configure(text=f"{state.width} × {state.height}")
         self.insp_steps.configure(text=str(state.steps))
         self.insp_cfg.configure(text=str(state.cfg))
@@ -1917,12 +1885,10 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_sampler.configure(text=self.sampler_var.get())
         self.insp_scheduler.configure(text=self.scheduler_var.get())
 
-        # Update Status Bar
         self.model_status_label.configure(text=tr("model_prefix", "Modell: {model}", model=state.selected_model if state.selected_model else "-"))
         self.backend_status_label.configure(text=tr("backend_prefix", "Backend: {backend}", backend=active_backend_name))
         self.queue_status_label.configure(text=tr("queue_prefix", "Queue: {jobs} Job(s)", jobs=queued_count))
 
-        # Update environment diagnostics status labels (Sprint P-061)
         env_text = tr("env_status_placeholder", "Environment: -")
         qnn_text = tr("qnn_status_placeholder", "QNN: -")
         if gen_ctrl is not None and getattr(gen_ctrl, "backend_manager", None) is not None:
@@ -1935,7 +1901,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.env_status_label.configure(text=env_text)
         self.qnn_status_label.configure(text=qnn_text)
 
-        # Update Preview Area based on last response
         for widget in self.preview_center.winfo_children():
             widget.destroy()
 
@@ -1958,21 +1923,35 @@ class PhoenixPromptView(WorkspaceFrame):
                         new_h = max(10, int(img_h * scale))
                         resized_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
                         self._preview_photo = ImageTk.PhotoImage(resized_img)
-                        
-                    img_label = tk.Label(self.preview_center, image=self._preview_photo, bg=PHOENIX_THEME.content_bg)
+
+                    img_label = tk.Label(
+                        self.preview_center,
+                        image=self._preview_photo,
+                        bg=PHOENIX_THEME.content_bg,
+                        cursor="hand2"
+                    )
                     img_label.is_image_label = True
                     img_label.place(relx=0.5, rely=0.5, anchor="center")
+                    img_label.bind("<Button-1>", lambda e: self._open_lightbox_preview(img_path))
+
+                    def _on_img_enter(e):
+                        img_label.configure(bg=PHOENIX_THEME.accent)
+                    def _on_img_leave(e):
+                        img_label.configure(bg=PHOENIX_THEME.content_bg)
+
+                    img_label.bind("<Enter>", _on_img_enter)
+                    img_label.bind("<Leave>", _on_img_leave)
+
                     has_preview = True
                 except Exception as e:
                     logger.error(f"Failed to load preview image: {e}")
-                    print(f"Failed to load preview image: {e}")
 
         if not has_preview:
             self._current_preview_image_path = None
             from resources.icons import IconManager
             placeholder_container = tk.Frame(self.preview_center, bg=PHOENIX_THEME.content_bg)
             placeholder_container.place(relx=0.5, rely=0.5, anchor="center")
-            
+
             tk.Label(
                 placeholder_container, text=IconManager.get_symbol("image"),
                 bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.accent,
@@ -1985,24 +1964,60 @@ class PhoenixPromptView(WorkspaceFrame):
                 font=PHOENIX_THEME.font_small, justify="center"
             ).pack(anchor="center")
 
-        # Enable/Disable Action Buttons
         self._enable_action_buttons(has_preview)
-
-        # Update Drag & Drop reference image preview
         self._update_dnd_preview()
 
+    def _open_lightbox_preview(self, img_path: Path) -> None:
+        """Opens a large popup window showing the generated image in full size."""
+        if not img_path.exists():
+            return
+
+        popup = tk.Toplevel(self)
+        popup.title("Vorschau – " + img_path.name)
+        popup.configure(bg=PHOENIX_THEME.card_bg)
+
+        try:
+            from PIL import Image, ImageTk
+            with Image.open(img_path) as pil_img:
+                w, h = pil_img.size
+
+            main_w = self.winfo_toplevel().winfo_width()
+            main_h = self.winfo_toplevel().winfo_height()
+            max_w = int(main_w * 0.85) if main_w > 300 else 800
+            max_h = int(main_h * 0.85) if main_h > 300 else 800
+
+            scale = min(max_w / w, max_h / h, 1.0)
+            disp_w = int(w * scale)
+            disp_h = int(h * scale)
+
+            x = self.winfo_toplevel().winfo_rootx() + (main_w - disp_w) // 2
+            y = self.winfo_toplevel().winfo_rooty() + (main_h - disp_h) // 2
+            popup.geometry(f"{disp_w}x{disp_h}+{x}+{y}")
+
+            with Image.open(img_path) as pil_img:
+                resized = pil_img.resize((disp_w, disp_h), Image.Resampling.LANCZOS)
+                lightbox_photo = ImageTk.PhotoImage(resized)
+
+            lbl = tk.Label(popup, image=lightbox_photo, bg=PHOENIX_THEME.card_bg)
+            lbl.image = lightbox_photo
+            lbl.pack(fill="both", expand=True)
+
+        except Exception as e:
+            logger.error("Failed to render lightbox: %s", e)
+            popup.destroy()
+
+        popup.bind("<Escape>", lambda e: popup.destroy())
+
     def _on_preview_resize(self, event: tk.Event = None) -> None:
-        # Prevent zero or tiny dimensions
         w = self.preview_center.winfo_width()
         h = self.preview_center.winfo_height()
         if w < 50 or h < 50:
             return
-            
-        # Get path
+
         img_path = getattr(self, "_current_preview_image_path", None)
         if not img_path or not img_path.exists():
             return
-            
+
         try:
             from PIL import Image, ImageTk
             with Image.open(img_path) as pil_img:
@@ -2012,8 +2027,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 new_h = max(10, int(img_h * scale))
                 resized_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
                 self._preview_photo = ImageTk.PhotoImage(resized_img)
-                
-            # Update the label image
+
             for widget in self.preview_center.winfo_children():
                 if isinstance(widget, tk.Label) and getattr(widget, "is_image_label", False):
                     widget.configure(image=self._preview_photo)
@@ -2022,30 +2036,25 @@ class PhoenixPromptView(WorkspaceFrame):
             pass
 
     def _on_model_changed(self, *args) -> None:
-        """Trace callback when the model variable is updated in the UI."""
         if getattr(self, "_in_model_change", False):
             return
         new_model = self.model_var.get()
         self._change_active_model(new_model)
 
     def _change_active_model(self, new_model: str) -> None:
-        """Centralized model change handler to synchronize state and UI without recursion."""
         if getattr(self, "_in_model_change", False):
             return
 
         self._in_model_change = True
         try:
-            # 1. Update model description & apply contract (selects model in controller/repository, updates dimensions/ranges)
             self._update_model_description(new_model)
             if hasattr(self, "seed_entry"):
                 self._apply_generation_contract(new_model)
 
-            # 2. Reset reference image state & ControlNet specific values (Sprint CN-004)
             self._ref_image_path = None
             self._dnd_photo_ref = None
             self._dnd_error_message = None
 
-            # Cancel pending canny debounce and poll timers
             if getattr(self, "_canny_debounce_id", None) is not None:
                 try:
                     self.after_cancel(self._canny_debounce_id)
@@ -2060,7 +2069,6 @@ class PhoenixPromptView(WorkspaceFrame):
                     pass
                 self._canny_poll_id = None
 
-            # Drain the canny queue
             while not self._canny_queue.empty():
                 try:
                     self._canny_queue.get_nowait()
@@ -2073,7 +2081,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self.canny_high_var.set(150)
             self.conditioning_strength_var.set(1.0)
 
-            # Retrieve current parameters and update controller with input_image_path=None
             try:
                 prompt = self.prompt_text.get("1.0", "end-1c").strip()
                 neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
@@ -2115,26 +2122,20 @@ class PhoenixPromptView(WorkspaceFrame):
                 controlnet_conditioning_scale=cond_scale,
             )
 
-
-            # Clear general status if it was validation-related
             current_status = self.controller.model.state.status
             if current_status and ("Fehler" in current_status or "Validierung" in current_status):
                 self.controller.model.update_state(status="Bereit")
 
-            # 3. Refresh UI (including dnd preview card visibility and fields)
             self.refresh()
         finally:
             self._in_model_change = False
 
-
     def _update_model_description(self, model_id: str) -> None:
-        """Display the complete repository description for the selected model."""
         model = self.controller.repository.get_model(model_id)
         description = model.get("description", "") if model else ""
         self.model_description_var.set(str(description))
 
     def _on_image_drop(self, event) -> None:
-        """Handle Drag & Drop events for reference images."""
         if not event.data:
             return
         dropped_paths = self.tk.splitlist(event.data)
@@ -2145,7 +2146,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._load_reference_image(path_str)
 
     def _on_dnd_click(self, event=None) -> None:
-        """Open a file dialog to manually select a reference image."""
         from tkinter import filedialog
         file_path = filedialog.askopenfilename(
             title="Referenzbild auswählen",
@@ -2161,7 +2161,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._load_reference_image(file_path)
 
     def _load_reference_image(self, file_path: str) -> None:
-        """Load a selected reference image, verify format, extract dimensions, and update state."""
         path = Path(file_path)
         if not path.exists() or not path.is_file():
             self._clear_reference_image_state(error_message="Datei existiert nicht oder ist kein Bild.")
@@ -2178,17 +2177,14 @@ class PhoenixPromptView(WorkspaceFrame):
 
         try:
             from PIL import Image
-            # Try to verify integrity
             with Image.open(path) as img:
                 img.verify()
-            # Test conversion
             with Image.open(path) as img:
                 img.convert('L')
 
             self._ref_image_path = str(path)
             self._dnd_error_message = None
 
-            # Retrieve current parameter values safely
             prompt = self.prompt_text.get("1.0", "end-1c").strip()
             neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
             try:
@@ -2215,7 +2211,6 @@ class PhoenixPromptView(WorkspaceFrame):
 
             canny_low, canny_high, cond_scale = self._get_controlnet_params()
 
-            # Update state model and session controller
             self.controller.update_parameters(
                 prompt=prompt, negative_prompt=neg_prompt,
                 seed=seed, steps=steps, cfg=cfg,
@@ -2248,19 +2243,13 @@ class PhoenixPromptView(WorkspaceFrame):
         return canny_low, canny_high, cond_scale
 
     def _remove_reference_image(self) -> None:
-
-        """Clear the reference image and reset state parameters."""
         self._clear_reference_image_state()
 
     def _clear_reference_image_state(self, error_message: str | None = None) -> None:
-        """Central method to clear the reference image path and reset the UI preview.
-        Optionally takes an error message to transition the UI to an error state.
-        """
         self._ref_image_path = None
         self._dnd_photo_ref = None
         self._dnd_error_message = error_message
 
-        # Cancel pending canny debounce and poll timers
         if getattr(self, "_canny_debounce_id", None) is not None:
             try:
                 self.after_cancel(self._canny_debounce_id)
@@ -2275,7 +2264,6 @@ class PhoenixPromptView(WorkspaceFrame):
                 pass
             self._canny_poll_id = None
 
-        # Drain the canny queue
         while not self._canny_queue.empty():
             try:
                 self._canny_queue.get_nowait()
@@ -2326,8 +2314,6 @@ class PhoenixPromptView(WorkspaceFrame):
             controlnet_conditioning_scale=cond_scale,
         )
 
-
-        # Clear general status if it was validation-related
         current_status = self.controller.model.state.status
         if current_status and ("Fehler" in current_status or "Validierung" in current_status):
             self.controller.model.update_state(status="Bereit")
@@ -2335,7 +2321,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self.refresh()
 
     def _update_dnd_preview(self) -> None:
-        """Update the Drag & Drop area layout depending on whether an input image is present or an error occurred."""
         if not hasattr(self, "dnd_card") or not self.dnd_card.winfo_exists():
             return
 
@@ -2351,7 +2336,6 @@ class PhoenixPromptView(WorkspaceFrame):
 
         from engine.theme_manager import ThemeManager
 
-        # Toggle Reference Image selection visibility based on ControlNet capability
         supports_controlnet = False
         model_id = self.model_var.get()
         model_meta = self.controller.repository.get_model(model_id)
@@ -2364,7 +2348,6 @@ class PhoenixPromptView(WorkspaceFrame):
             and getattr(self, "_dnd_visible_state", None) == new_state
             and getattr(self, "_dnd_rendered_supports_controlnet", None) == supports_controlnet
         ):
-            # If state is loaded and controlnet parameters have changed, we still want to trigger the calculation update
             if new_state == "loaded" and supports_controlnet:
                 self._trigger_canny_preview_update()
             return
@@ -2413,15 +2396,12 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._dnd_empty_text.grid(row=1, column=0)
 
-            # Loaded Frame with columns 0 (previews) and 1 (metadata)
             self._dnd_loaded_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface)
             self._dnd_loaded_frame.grid_columnconfigure(1, weight=1)
 
-            # Previews container
             self._dnd_previews_container = tk.Frame(self._dnd_loaded_frame, bg=PHOENIX_THEME.surface)
             self._dnd_previews_container.grid(row=0, column=0, padx=12, pady=8, sticky="w")
 
-            # Reference Image subframe
             self._dnd_ref_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
             self._dnd_ref_title = tk.Label(
                 self._dnd_ref_container,
@@ -2441,7 +2421,6 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._dnd_preview_label.pack(anchor="w", pady=(2, 0))
 
-            # Canny subframe
             self._dnd_canny_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
             self._dnd_canny_title = tk.Label(
                 self._dnd_canny_container,
@@ -2461,7 +2440,6 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._dnd_canny_preview_label.pack(anchor="w", pady=(2, 0))
 
-            # Metadata frame
             self._dnd_meta_frame = tk.Frame(self._dnd_loaded_frame, bg=PHOENIX_THEME.surface)
             self._dnd_meta_frame.grid(row=0, column=1, padx=(0, 12), pady=8, sticky="nsew")
             self._dnd_meta_frame.columnconfigure(0, weight=1)
@@ -2475,7 +2453,6 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._dnd_name_label.grid(row=0, column=0, sticky="w", pady=(0, 2))
 
-            # Attach tooltip to name label dynamically
             _Tooltip(self._dnd_name_label, lambda: self.controller.model.state.input_image_path or getattr(self, "_dnd_error_message", None))
 
             self._dnd_resolution_label = tk.Label(
@@ -2505,7 +2482,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_remove_button.grid(row=2, column=0, sticky="w")
             self._add_button_hover(self._dnd_remove_button)
 
-            # Canny status/error label
             self._dnd_canny_status_label = tk.Label(
                 self._dnd_meta_frame,
                 text="",
@@ -2568,7 +2544,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_rendered_input_path = object()
             self._dnd_preview_widgets_ready = True
 
-        # Grid visibility of containers depending on ControlNet support
         if supports_controlnet:
             self._dnd_ref_title.pack(anchor="w")
             self._dnd_ref_container.grid(row=0, column=0, padx=(0, 10), sticky="w")
@@ -2579,7 +2554,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_canny_container.grid_forget()
             self._clear_canny_preview()
 
-        # Render active state (Sprint CN-003)
         if new_state == "error":
             error_color = ThemeManager.palette().error
             self.dnd_card.configure(highlightbackground=error_color)
@@ -2622,7 +2596,6 @@ class PhoenixPromptView(WorkspaceFrame):
             else:
                 self._dnd_preview_label.configure(image="", text="❌", fg=ThemeManager.palette().error)
 
-            # Smart filename shortening helper
             def shorten_filename(name: str, max_len: int = 24) -> str:
                 if len(name) <= max_len:
                     return name
@@ -2644,7 +2617,7 @@ class PhoenixPromptView(WorkspaceFrame):
             if supports_controlnet:
                 self._trigger_canny_preview_update()
 
-        else: # empty
+        else:
             self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
             self._dnd_loaded_frame.grid_remove()
             self._dnd_empty_frame.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
@@ -2655,13 +2628,11 @@ class PhoenixPromptView(WorkspaceFrame):
         self._dnd_rendered_supports_controlnet = supports_controlnet
 
     def _on_canny_param_changed(self, *args) -> None:
-        """Trace callback when Canny threshold variables are modified."""
         if getattr(self, "_in_model_change", False):
             return
         if not self.controller.model.state.input_image_path:
             return
 
-        # Cancel pending debounce
         if getattr(self, "_canny_debounce_id", None) is not None:
             try:
                 self.after_cancel(self._canny_debounce_id)
@@ -2669,11 +2640,9 @@ class PhoenixPromptView(WorkspaceFrame):
                 pass
             self._canny_debounce_id = None
 
-        # Schedule debounced update
-        self._canny_debounce_id = self.after(250, self._trigger_canny_preview_update)
+        self._canny_debounce_id = self.after(150, self._trigger_canny_preview_update)
 
     def _trigger_canny_preview_update(self) -> None:
-        """Trigger the background calculation of the Canny edge preview."""
         self._canny_debounce_id = None
         input_path = self.controller.model.state.input_image_path
         if not input_path:
@@ -2686,7 +2655,6 @@ class PhoenixPromptView(WorkspaceFrame):
         except (ValueError, AttributeError):
             low, high = 50, 150
 
-        # Don't recalculate if state is identical to current preview
         if (
             getattr(self, "_canny_rendered_path", None) == input_path
             and getattr(self, "_canny_rendered_low", None) == low
@@ -2695,7 +2663,6 @@ class PhoenixPromptView(WorkspaceFrame):
         ):
             return
 
-        # Validation checks: Low Threshold >= High Threshold
         if low >= high:
             self._show_canny_error("Low Threshold >= High Threshold")
             return
@@ -2720,11 +2687,9 @@ class PhoenixPromptView(WorkspaceFrame):
         t = threading.Thread(target=worker, daemon=True)
         t.start()
 
-        # Start polling the canny queue in the main thread
         self._poll_canny_queue()
 
     def _poll_canny_queue(self) -> None:
-        """Poll the Canny queue for results from the background worker thread."""
         if getattr(self, "_canny_poll_id", None) is not None:
             try:
                 self.after_cancel(self._canny_poll_id)
@@ -2769,7 +2734,6 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._canny_poll_id = self.after(50, self._poll_canny_queue)
 
     def _on_canny_preview_ready(self, req_id: float, path: str, low: int, high: int, edges_img) -> None:
-        """Callback from background thread when the Canny edges are successfully computed."""
         if getattr(self, "_latest_canny_req_id", None) != req_id:
             return
         if self.controller.model.state.input_image_path != path:
@@ -2795,13 +2759,11 @@ class PhoenixPromptView(WorkspaceFrame):
             self._on_canny_preview_error(req_id, str(e))
 
     def _on_canny_preview_error(self, req_id: float, error_msg: str) -> None:
-        """Callback from background thread if the Canny edge computation failed."""
         if getattr(self, "_latest_canny_req_id", None) != req_id:
             return
         self._show_canny_error(error_msg)
 
     def _show_canny_error(self, error_msg: str) -> None:
-        """Update UI to display a validation or calculation error for Canny edges."""
         self._dnd_canny_photo_ref = None
         self._canny_rendered_path = None
         self._canny_rendered_low = None
@@ -2820,19 +2782,16 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_canny_status_label.configure(text=f"⚠️ {display_err}", fg=error_color)
 
     def _clear_canny_error(self) -> None:
-        """Clear error text and state from the Canny status label."""
         if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
             self._dnd_canny_status_label.configure(text="", fg=PHOENIX_THEME.text_muted)
 
     def _set_canny_preview_stale(self) -> None:
-        """Configure Canny preview label to indicate a recalculation is in progress."""
         if hasattr(self, "_dnd_canny_preview_label") and self._dnd_canny_preview_label.winfo_exists():
             self._dnd_canny_preview_label.configure(image="", text="⏳", fg=PHOENIX_THEME.text_secondary)
         if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
             self._dnd_canny_status_label.configure(text=tr("calculating", "Berechne..."), fg=PHOENIX_THEME.text_secondary)
 
     def _clear_canny_preview(self) -> None:
-        """Fully clear the internal Canny preview state and UI elements."""
         self._dnd_canny_photo_ref = None
         self._canny_rendered_path = None
         self._canny_rendered_low = None
@@ -2843,7 +2802,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._dnd_canny_status_label.configure(text="")
 
     def _show_prompt_history_popup(self) -> None:
-        """Display the persistent prompt history popup menu under the history button."""
         history = self.controller.load_prompt_history(return_dicts=True)
         if not history:
             menu = tk.Menu(self, tearoff=0)
@@ -2877,7 +2835,6 @@ class PhoenixPromptView(WorkspaceFrame):
         menu.post(x, y)
 
     def _load_prompt_from_history(self, entry: str | dict) -> None:
-        """Load a selected prompt and configuration from history into the UI fields."""
         if isinstance(entry, dict):
             prompt = entry.get("prompt", "")
             neg_prompt = entry.get("negative_prompt", "")
@@ -2903,7 +2860,6 @@ class PhoenixPromptView(WorkspaceFrame):
                 self.model_var.set(model_name)
                 self._apply_generation_contract(model_name)
 
-            # If ControlNet parameters exist and are enabled, set them
             controlnet_enabled = entry.get("controlnet_enabled", False)
             if controlnet_enabled:
                 self.canny_low_var.set(entry.get("canny_low_threshold", 50))
@@ -2917,7 +2873,6 @@ class PhoenixPromptView(WorkspaceFrame):
             else:
                 self._clear_reference_image_state()
 
-            # Set other configuration fields
             if width is not None:
                 self.width_var.set(str(width))
             if height is not None:
@@ -2938,11 +2893,9 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._prompt_popup_text.insert("1.0", entry)
 
     def apply_generation_settings(self, settings: dict) -> None:
-        """Apply a dictionary of settings (from sidecar or history) to the UI."""
         self._load_prompt_from_history(settings)
 
     def _ensure_progress_style(self) -> None:
-        """Sustainably ensure the custom Phoenix progress bar style is active and correctly colored."""
         style = ttk.Style(self)
         style.configure(
             "Phoenix.Horizontal.TProgressbar",
@@ -2997,12 +2950,10 @@ class PhoenixPromptView(WorkspaceFrame):
             return
         self.active_tab = tab_name
 
-        # Hide all content frames
         self.tab_basic_content.grid_remove()
         self.tab_canny_content.grid_remove()
         self.tab_advanced_content.grid_remove()
 
-        # Show active content frame with clean spacing
         if tab_name == "basic":
             self.tab_basic_content.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=8)
         elif tab_name == "canny":
@@ -3052,7 +3003,6 @@ class PhoenixPromptView(WorkspaceFrame):
                     )
 
     def _show_templates_popup(self) -> None:
-        """Display a hierarchical popup menu with prompt templates categories and presets."""
         categories = self.controller.load_prompt_templates()
         if not categories:
             menu = tk.Menu(self, tearoff=0)
@@ -3113,7 +3063,6 @@ class PhoenixPromptView(WorkspaceFrame):
         menu.post(x, y)
 
     def _load_template_prompt(self, prompt: str) -> None:
-        """Load a prompt template into the input field."""
         self.prompt_text.delete("1.0", "end")
         self.prompt_text.insert("1.0", prompt)
         if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
@@ -3121,10 +3070,8 @@ class PhoenixPromptView(WorkspaceFrame):
             self._prompt_popup_text.insert("1.0", prompt)
 
     def _select_steps_preset(self, preset_name: str) -> None:
-        """Select a steps preset and update the steps scale value and UI colors."""
         self.active_steps_preset = preset_name
 
-        # Default maps (both SD1.5 and SD2.1 use: Schnell=10, Standard=20, Beste Qualität=30)
         val = 20
         if preset_name == "Schnell":
             val = 10
@@ -3137,7 +3084,6 @@ class PhoenixPromptView(WorkspaceFrame):
         self._update_steps_preset_colors()
 
     def _update_steps_preset_colors(self) -> None:
-        """Update background and foreground colors of the steps preset buttons based on active selection."""
         presets = {
             "Schnell": self.btn_preset_schnell,
             "Standard": self.btn_preset_standard,
@@ -3166,7 +3112,6 @@ class PhoenixPromptView(WorkspaceFrame):
                 )
 
     def _open_advanced_settings_popup(self) -> None:
-        """Open a modal/non-modal popup for advanced settings."""
         if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
             self._advanced_popup.focus()
             return
@@ -3178,7 +3123,6 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.resizable(False, False)
         self._advanced_popup = popup
 
-        # Center the popup relative to main window
         try:
             x = self.winfo_rootx() + (self.winfo_width() - 380) // 2
             y = self.winfo_rooty() + (self.winfo_height() - 520) // 2
@@ -3186,16 +3130,13 @@ class PhoenixPromptView(WorkspaceFrame):
         except Exception:
             pass
 
-        # Scrollable container inside popup to ensure everything fits perfectly
         container = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
         container.pack(fill="both", expand=True, padx=16, pady=16)
 
-        # Get active model contract
         contract = self.controller.select_model(self.model_var.get())
         if not contract:
             contract = {}
 
-        # ── Group: Image Size ─────────────────────────
         tk.Label(container, text=tr("image_size_title", "Image Size"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(0, 4))
 
         size_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
@@ -3215,7 +3156,6 @@ class PhoenixPromptView(WorkspaceFrame):
         popup_height_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         popup_height_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
 
-        # Build Locked Resolution View inside popup
         from resources.icons import IconManager
         popup_locked_res_frame = tk.Frame(size_frame, bg=PHOENIX_THEME.card_bg)
         popup_locked_res_frame.grid_columnconfigure(0, weight=1)
@@ -3246,7 +3186,6 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         popup_locked_hint_lbl.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
 
-        # Show either locked resolution or width/height dropdowns
         if contract.get("resolution_locked") is True:
             popup_width_label.grid_remove()
             popup_width_menu.grid_remove()
@@ -3260,18 +3199,15 @@ class PhoenixPromptView(WorkspaceFrame):
             popup_height_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
             popup_height_menu.grid(row=0, column=3, sticky="ew", pady=2)
 
-            # Configure options in width/height dropdowns
             self._configure_option_contract(popup_width_menu, self.width_var, contract.get("width", {}))
             self._configure_option_contract(popup_height_menu, self.height_var, contract.get("height", {}))
 
-        # ── Group: Sampling ───────────────────────────
         tk.Label(container, text=tr("sampling_title", "Sampling"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(10, 4))
 
         sampling_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         sampling_frame.pack(fill="x", pady=(0, 12))
         sampling_frame.grid_columnconfigure(0, weight=1)
 
-        # CFG Scale Slider
         tk.Label(sampling_frame, text=tr("cfg_scale_label_colon", "CFG Scale:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", pady=(0, 1))
         popup_cfg_scale = tk.Scale(
             sampling_frame, from_=1.0, to=20.0, resolution=0.5, orient="horizontal",
@@ -3282,7 +3218,6 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         popup_cfg_scale.grid(row=1, column=0, sticky="ew", pady=(0, 8))
 
-        # Configure CFG from contract
         cfg_spec = contract.get("cfg", {})
         cfg_options = {}
         if "min" in cfg_spec:
@@ -3294,7 +3229,6 @@ class PhoenixPromptView(WorkspaceFrame):
         if cfg_options:
             popup_cfg_scale.configure(**cfg_options)
 
-        # Sampler & Scheduler
         dropdown_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
         dropdown_frame.grid(row=2, column=0, sticky="ew", pady=(4, 0))
         dropdown_frame.grid_columnconfigure(0, weight=0)
@@ -3314,11 +3248,9 @@ class PhoenixPromptView(WorkspaceFrame):
         popup_scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         popup_scheduler_menu.grid(row=0, column=3, sticky="ew", pady=2)
 
-        # Configure Sampler & Scheduler from contract
         self._configure_option_contract(popup_sampler_menu, self.sampler_var, contract.get("sampler", {}))
         self._configure_option_contract(popup_scheduler_menu, self.scheduler_var, contract.get("scheduler", {}))
 
-        # ── Group: Output ─────────────────────────────
         tk.Label(container, text=tr("output_title", "Output"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(10, 4))
 
         output_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
@@ -3344,7 +3276,6 @@ class PhoenixPromptView(WorkspaceFrame):
         popup_batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         popup_batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
 
-        # OK button to close
         close_btn = tk.Button(
             container, text=tr("btn_close", "Schließen"), bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
             activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
@@ -3354,7 +3285,6 @@ class PhoenixPromptView(WorkspaceFrame):
         close_btn.pack(pady=(16, 0))
 
     def _open_expandable_prompt_popup(self) -> None:
-        """Open a large prompt editor popup (ca. 80% of main window size)."""
         if hasattr(self, "_prompt_popup") and self._prompt_popup.winfo_exists():
             self._prompt_popup.focus()
             return
@@ -3364,7 +3294,6 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.configure(bg=PHOENIX_THEME.card_bg)
         self._prompt_popup = popup
 
-        # Calculate dimensions: 80% of main window
         try:
             main_w = self.winfo_toplevel().winfo_width()
             main_h = self.winfo_toplevel().winfo_height()
@@ -3376,11 +3305,9 @@ class PhoenixPromptView(WorkspaceFrame):
         except Exception:
             popup.geometry("1120x720")
 
-        # Container
         container = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
         container.pack(fill="both", expand=True, padx=24, pady=24)
 
-        # Header with title & shortcut reminder
         header_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         header_frame.pack(fill="x", pady=(0, 12))
 
@@ -3396,7 +3323,6 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_caption, anchor="e"
         ).pack(side="right")
 
-        # Text widget container with Scrollbar
         text_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         text_frame.pack(fill="both", expand=True)
 
@@ -3415,12 +3341,10 @@ class PhoenixPromptView(WorkspaceFrame):
         scrollbar.configure(command=popup_text.yview)
         self._prompt_popup_text = popup_text
 
-        # Populate initial content
         initial_text = self.prompt_text.get("1.0", "end-1c")
         popup_text.insert("1.0", initial_text)
         popup_text.focus_set()
 
-        # Live Prompt Counter Label in Popup
         self.popup_counter_lbl = tk.Label(
             container,
             text=tr("chars_words_label", "Zeichen: {chars} | Wörter: {words}", chars=0, words=0),
@@ -3431,11 +3355,9 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.popup_counter_lbl.pack(fill="x", pady=(4, 0))
 
-        # Real-time synchronization
         popup_text.bind("<KeyRelease>", lambda e: self._sync_popup_prompt_to_main())
         self._update_prompt_counters()
 
-        # OK button to close
         btn_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         btn_frame.pack(fill="x", pady=(16, 0))
 
@@ -3447,11 +3369,9 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         close_btn.pack(anchor="center")
 
-        # Bind ESC key to close
         popup.bind("<Escape>", lambda e: popup.destroy())
 
     def _sync_popup_prompt_to_main(self) -> None:
-        """Synchronize text from popup editor to main prompt field."""
         if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
             content = self._prompt_popup_text.get("1.0", "end-1c")
             self.prompt_text.delete("1.0", "end")
@@ -3459,7 +3379,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._update_prompt_counters()
 
     def _sync_main_prompt_to_popup(self) -> None:
-        """Synchronize text from main prompt field to popup editor."""
         if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
             content = self.prompt_text.get("1.0", "end-1c")
             self._prompt_popup_text.delete("1.0", "end")
@@ -3467,12 +3386,10 @@ class PhoenixPromptView(WorkspaceFrame):
             self._update_prompt_counters()
 
     def _on_main_prompt_key(self) -> None:
-        """Key release handler for the main prompt text box."""
         self._sync_main_prompt_to_popup()
         self._update_prompt_counters()
 
     def _update_prompt_counters(self) -> None:
-        """Update character and word counts in both the main view and the popup if open."""
         content = self.prompt_text.get("1.0", "end-1c")
         char_count = len(content)
         word_count = len(content.split())
@@ -3485,7 +3402,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self.popup_counter_lbl.configure(text=counter_text)
 
     def _add_button_hover(self, button: tk.Button, hover_bg: str | None = None, hover_fg: str | None = None) -> None:
-        """Add modern, premium hover highlighting to a button."""
         original_bg = button.cget("bg")
         original_fg = button.cget("fg")
         h_bg = hover_bg or PHOENIX_THEME.accent
