@@ -7,6 +7,7 @@ import zipfile
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch, MagicMock
 
 from app.model_downloader import ModelDownloader
@@ -321,6 +322,113 @@ class ModelDownloaderTests(unittest.TestCase):
         expected_file = self.downloader.MODEL_TARGETS["sdxl_base"] / "sd_xl_base_1.0.safetensors"
         self.assertTrue(expected_file.exists())
         self.assertEqual(expected_file.read_bytes(), dummy_safetensors)
+
+    @patch("urllib.request.urlopen")
+    def test_resume_uses_range_and_preserves_existing_bytes(self, mock_urlopen: MagicMock) -> None:
+        complete = self._create_dummy_zip()
+        split = len(complete) // 2
+        partial = complete[:split]
+        remainder = complete[split:]
+        self.downloader.download_dir.mkdir(parents=True)
+        partial_path = self.downloader.download_dir / "sd15.zip.part"
+        partial_path.write_bytes(partial)
+
+        class PartialResponse:
+            status = 206
+            headers = {"Content-Length": str(len(remainder))}
+
+            def __init__(self):
+                self.data = io.BytesIO(remainder)
+
+            def read(self, amount=None):
+                return self.data.read(amount)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        mock_urlopen.return_value = PartialResponse()
+        reports = []
+        self.downloader.start_download(
+            "stable_diffusion_v1_5_qnn",
+            reports.append,
+            url="https://example.com/sd15.zip",
+            checksum=hashlib.sha256(complete).hexdigest(),
+        )
+        self.downloader._active_threads["stable_diffusion_v1_5_qnn"].join(5)
+
+        request = mock_urlopen.call_args[0][0]
+        self.assertEqual(request.headers["Range"], f"bytes={split}-")
+        self.assertEqual(reports[-1]["status"], "completed")
+        self.assertFalse(partial_path.exists())
+
+    @patch("urllib.request.urlopen")
+    def test_cancel_keeps_partial_file_for_resume(self, mock_urlopen: MagicMock) -> None:
+        class Response:
+            headers = {"Content-Length": "4096"}
+
+            def read(self, amount=None):
+                self_downloader.cancel_download("sdxl_base")
+                return b"x" * 1024
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        self_downloader = self.downloader
+        mock_urlopen.return_value = Response()
+        reports = []
+        self.downloader.start_download(
+            "sdxl_base",
+            reports.append,
+            url="https://example.com/model.safetensors",
+        )
+        self.downloader._active_threads["sdxl_base"].join(5)
+
+        self.assertEqual(reports[-1]["status"], "cancelled")
+        partial = self.downloader.download_dir / "model.safetensors.part"
+        self.assertTrue(partial.exists())
+        self.assertGreater(partial.stat().st_size, 0)
+
+    @patch("urllib.request.urlopen")
+    def test_unsafe_archive_is_rejected_before_extraction(self, mock_urlopen: MagicMock) -> None:
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("../escape.txt", "unsafe")
+        payload = buffer.getvalue()
+
+        class Response:
+            headers = {"Content-Length": str(len(payload))}
+
+            def __init__(self):
+                self.data = io.BytesIO(payload)
+
+            def read(self, amount=None):
+                return self.data.read(amount)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        mock_urlopen.return_value = Response()
+        reports = []
+        self.downloader.start_download(
+            "stable_diffusion_v1_5_qnn",
+            reports.append,
+            url="https://example.com/unsafe.zip",
+            checksum=hashlib.sha256(payload).hexdigest(),
+        )
+        self.downloader._active_threads["stable_diffusion_v1_5_qnn"].join(5)
+
+        self.assertEqual(reports[-1]["status"], "failed")
+        self.assertIn("Unsafe archive member", reports[-1]["error_message"])
+        self.assertFalse((self.temp_dir / "escape.txt").exists())
 
 
 if __name__ == "__main__":

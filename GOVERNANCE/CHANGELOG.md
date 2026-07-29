@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 11 – Model-Download absichern)
+
+### Geändert
+* Resumefähige `.part`-Downloads mit HTTP-Range und sicherem Neustart.
+* Teil-Downloads bleiben bei Abbruch oder Netzfehler erhalten.
+* Verpflichtende SHA-256-Prüfung vor Dateiübernahme und Registrierung.
+* Archivpfade und ZIP-Inhalt werden vor Extraktion validiert.
+* Keine UI-Änderungen.
+
+### Prüfung
+* 21 relevante Download-, Resume-, Integritäts- und Registry-Tests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 10 – Pipeline-Konfiguration vereinheitlichen)
 
 ### Geändert

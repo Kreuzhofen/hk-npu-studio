@@ -569,7 +569,18 @@ class ModelInstallService:
         """
         logger.info(f"Download triggered for model '{model_id}' from URL '{url}'.")
         self._set_package_status(model_id, status="Downloading")
-        result = self.download_service.download(url, progress_callback=progress_callback)
+        catalog_package = self.catalog_service.get_package(model_id)
+        expected_sha256 = (
+            str(catalog_package.get("checksum") or "")
+            if catalog_package
+            else ""
+        )
+        result = self.download_service.download(
+            url,
+            progress_callback=progress_callback,
+            expected_sha256=expected_sha256,
+            resume=True,
+        )
         if not result.success:
             self._set_package_status(model_id, status=f"Download Failed: {result.error_code}")
             return False

@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 import config
+from engine.logging_config import get_logger
+
+
+logger = get_logger("ModelDownloader")
 
 class ModelDownloader:
     """Manages background downloads, SHA256 checks, and archive extractions of NPU models."""
@@ -76,6 +80,17 @@ class ModelDownloader:
                 "error_message": f"No download URL found for model: {model_id}"
             })
             return
+        if not self._valid_sha256(target_checksum):
+            logger.error("Download abgelehnt: gültiger SHA-256 fehlt | model=%s", model_id)
+            progress_callback({
+                "status": "failed",
+                "bytes_downloaded": 0,
+                "total_bytes": None,
+                "percent": 0.0,
+                "speed": 0.0,
+                "error_message": "A valid SHA-256 checksum is required before download registration."
+            })
+            return
 
         thread = threading.Thread(
             target=self._download_worker,
@@ -97,6 +112,7 @@ class ModelDownloader:
         parsed = urllib.parse.urlparse(url)
         filename = Path(urllib.parse.unquote(parsed.path)).name or f"{model_id}.zip"
         download_path = self.download_dir / filename
+        partial_path = download_path.with_suffix(download_path.suffix + ".part")
 
         start_time = time.time()
 
@@ -104,15 +120,30 @@ class ModelDownloader:
         headers = {"User-Agent": "SnapdragonAIStudio/2.0"}
         if hf_token:
             headers["Authorization"] = f"Bearer {hf_token}"
+        existing_bytes = partial_path.stat().st_size if partial_path.exists() else 0
+        if existing_bytes:
+            headers["Range"] = f"bytes={existing_bytes}-"
         
         try:
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=30.0) as response:
                 content_length = response.headers.get("Content-Length")
-                total_bytes = int(content_length) if content_length else None
-                bytes_downloaded = 0
+                response_status = getattr(response, "status", None)
+                if response_status is None:
+                    getcode = getattr(response, "getcode", None)
+                    response_status = getcode() if callable(getcode) else None
+                resumed = bool(existing_bytes and response_status == 206)
+                if existing_bytes and not resumed:
+                    logger.warning("Server ignoriert Range; Teildownload wird neu gestartet | model=%s", model_id)
+                bytes_downloaded = existing_bytes if resumed else 0
+                response_bytes = int(content_length) if content_length else None
+                total_bytes = (
+                    bytes_downloaded + response_bytes
+                    if resumed and response_bytes is not None
+                    else response_bytes
+                )
 
-                with open(download_path, "wb") as out_file:
+                with open(partial_path, "ab" if resumed else "wb") as out_file:
                     while not self._cancel_flags.get(model_id, False):
                         chunk = response.read(1024 * 1024)
                         if not chunk:
@@ -134,16 +165,20 @@ class ModelDownloader:
                         })
 
             if self._cancel_flags.get(model_id, False):
-                self._cleanup_file(download_path)
                 progress_callback({
                     "status": "cancelled",
-                    "bytes_downloaded": 0,
+                    "bytes_downloaded": bytes_downloaded,
                     "total_bytes": total_bytes,
-                    "percent": 0.0,
+                    "percent": (bytes_downloaded / total_bytes) * 100.0 if total_bytes else 0.0,
                     "speed": 0.0,
                     "error_message": "Download cancelled by user."
                 })
                 return
+
+            if total_bytes is not None and partial_path.stat().st_size != total_bytes:
+                raise IOError(
+                    f"Incomplete download: expected {total_bytes} bytes, got {partial_path.stat().st_size} bytes."
+                )
 
             # Checksum verification
             if expected_checksum:
@@ -156,11 +191,12 @@ class ModelDownloader:
                     "error_message": None
                 })
                 sha256 = hashlib.sha256()
-                with open(download_path, "rb") as f:
+                with open(partial_path, "rb") as f:
                     while chunk := f.read(8192):
                         sha256.update(chunk)
                 computed = sha256.hexdigest().lower()
                 if computed != expected_checksum.lower():
+                    self._cleanup_file(partial_path)
                     raise ValueError(f"Checksum mismatch! Expected: {expected_checksum.lower()}, Got: {computed}")
 
             # Extraction
@@ -175,21 +211,25 @@ class ModelDownloader:
             target_dir = self.MODEL_TARGETS.get(model_id, config.TEMP_DIR)
             target_dir.mkdir(parents=True, exist_ok=True)
 
-            if zipfile.is_zipfile(download_path):
-                with zipfile.ZipFile(download_path, "r") as zip_ref:
+            if zipfile.is_zipfile(partial_path):
+                with zipfile.ZipFile(partial_path, "r") as zip_ref:
+                    self._validate_archive_paths(target_dir, zip_ref.namelist())
+                    if zip_ref.testzip() is not None:
+                        raise ValueError("ZIP archive contains a corrupt file.")
                     zip_ref.extractall(target_dir)
-                self._cleanup_file(download_path)
-            elif tarfile.is_tarfile(download_path):
-                with tarfile.open(download_path, "r:*") as tar_ref:
+                self._cleanup_file(partial_path)
+            elif tarfile.is_tarfile(partial_path):
+                with tarfile.open(partial_path, "r:*") as tar_ref:
+                    self._validate_archive_paths(target_dir, [member.name for member in tar_ref.getmembers()])
                     tar_ref.extractall(target_dir)
-                self._cleanup_file(download_path)
+                self._cleanup_file(partial_path)
             elif download_path.suffix.lower() in {".safetensors", ".bin", ".onnx", ".json"}:
                 import shutil
                 dest_path = target_dir / download_path.name
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
                 if dest_path.exists():
                     dest_path.unlink()
-                shutil.move(str(download_path), str(dest_path))
+                shutil.move(str(partial_path), str(dest_path))
             else:
                 raise ValueError("Unsupported archive format. Expected ZIP or TAR.")
 
@@ -203,7 +243,6 @@ class ModelDownloader:
             })
 
         except urllib.error.HTTPError as exc:
-            self._cleanup_file(download_path)
             if exc.code == 401:
                 from app.i18n import tr
                 error_msg = tr("auth_failed_hf_token", "Authentifizierung fehlgeschlagen: Bitte Hugging Face Token hinterlegen")
@@ -212,6 +251,12 @@ class ModelDownloader:
                 error_msg = tr("model_not_found_404", "Modell nicht gefunden: Die angeforderte Datei existiert nicht auf dem Server (404 Not Found).")
             else:
                 error_msg = f"HTTP Error {exc.code}: {exc.reason}"
+            logger.error(
+                "Modelldownload HTTP-Fehler | model=%s status=%s error=%s",
+                model_id,
+                exc.code,
+                error_msg,
+            )
             progress_callback({
                 "status": "failed",
                 "bytes_downloaded": 0,
@@ -222,7 +267,7 @@ class ModelDownloader:
             })
 
         except Exception as exc:
-            self._cleanup_file(download_path)
+            logger.error("Modelldownload fehlgeschlagen | model=%s error=%s", model_id, exc)
             progress_callback({
                 "status": "failed",
                 "bytes_downloaded": 0,
@@ -238,3 +283,18 @@ class ModelDownloader:
                 path.unlink()
         except OSError:
             pass
+
+    @staticmethod
+    def _valid_sha256(value: str | None) -> bool:
+        if value is None or len(value) != 64:
+            return False
+        return all(character in "0123456789abcdefABCDEF" for character in value)
+
+    @staticmethod
+    def _validate_archive_paths(target_dir: Path, names: list[str]) -> None:
+        root = target_dir.resolve()
+        for name in names:
+            try:
+                (target_dir / name).resolve().relative_to(root)
+            except ValueError as error:
+                raise ValueError(f"Unsafe archive member path: {name}") from error

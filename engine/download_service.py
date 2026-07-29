@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import hashlib
 import os
 import urllib.error
 import urllib.parse
@@ -65,10 +66,14 @@ class DownloadService:
         filename: str | None = None,
         progress_callback: ProgressCallback | None = None,
         overwrite: bool = False,
+        expected_sha256: str | None = None,
+        resume: bool = True,
     ) -> DownloadResult:
         self.reset_cancel()
         try:
-            return self._download(url, filename, progress_callback, overwrite)
+            return self._download(
+                url, filename, progress_callback, overwrite, expected_sha256, resume
+            )
         except DownloadError as exc:
             logger.error("Download failed: %s", exc.message)
             return DownloadResult(
@@ -83,6 +88,8 @@ class DownloadService:
         filename: str | None,
         progress_callback: ProgressCallback | None,
         overwrite: bool,
+        expected_sha256: str | None,
+        resume: bool,
     ) -> DownloadResult:
         parsed = urllib.parse.urlparse(url)
         if parsed.scheme not in {"http", "https"}:
@@ -108,16 +115,27 @@ class DownloadService:
                 f"Download target already exists: {target_path}",
             )
 
-        if partial_path.exists():
+        if partial_path.exists() and not resume:
             partial_path.unlink()
 
-        request = urllib.request.Request(url, headers={"User-Agent": "SnapdragonAIStudio/2.0"})
+        existing_bytes = partial_path.stat().st_size if partial_path.exists() else 0
+        headers = {"User-Agent": "SnapdragonAIStudio/2.0"}
+        if existing_bytes:
+            headers["Range"] = f"bytes={existing_bytes}-"
+        request = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                total_bytes = self._read_content_length(response)
-                bytes_downloaded = 0
+                status = getattr(response, "status", None)
+                resumed = bool(existing_bytes and status == 206)
+                response_bytes = self._read_content_length(response)
+                bytes_downloaded = existing_bytes if resumed else 0
+                total_bytes = (
+                    bytes_downloaded + response_bytes
+                    if resumed and response_bytes is not None
+                    else response_bytes
+                )
 
-                with open(partial_path, "wb") as out_file:
+                with open(partial_path, "ab" if resumed else "wb") as out_file:
                     while True:
                         if self._cancel_requested:
                             raise DownloadError(
@@ -134,10 +152,8 @@ class DownloadService:
                         self._emit_progress(progress_callback, bytes_downloaded, total_bytes)
 
         except TimeoutError as exc:
-            self._cleanup_partial(partial_path)
             raise DownloadError(DownloadErrorCode.TIMEOUT, f"Download timed out: {url}") from exc
         except urllib.error.URLError as exc:
-            self._cleanup_partial(partial_path)
             if isinstance(exc.reason, TimeoutError):
                 raise DownloadError(DownloadErrorCode.TIMEOUT, f"Download timed out: {url}") from exc
             raise DownloadError(
@@ -145,13 +161,11 @@ class DownloadService:
                 f"Network error while downloading {url}: {exc}",
             ) from exc
         except OSError as exc:
-            self._cleanup_partial(partial_path)
             raise DownloadError(
                 DownloadErrorCode.NETWORK_ERROR,
                 f"File or network error while downloading {url}: {exc}",
             ) from exc
         except DownloadError:
-            self._cleanup_partial(partial_path)
             raise
 
         if not partial_path.exists() or partial_path.stat().st_size <= 0:
@@ -163,10 +177,23 @@ class DownloadService:
 
         final_size = partial_path.stat().st_size
         if total_bytes is not None and final_size != total_bytes:
-            self._cleanup_partial(partial_path)
             raise DownloadError(
                 DownloadErrorCode.INCOMPLETE_DOWNLOAD,
                 f"Incomplete download: expected {total_bytes} bytes, got {final_size} bytes.",
+            )
+
+        if not self._valid_sha256(expected_sha256):
+            self._cleanup_partial(partial_path)
+            raise DownloadError(
+                DownloadErrorCode.INVALID_FILE,
+                "A valid SHA-256 checksum is required before registration.",
+            )
+        actual_sha256 = self._sha256(partial_path)
+        if actual_sha256 != expected_sha256.lower():
+            self._cleanup_partial(partial_path)
+            raise DownloadError(
+                DownloadErrorCode.INVALID_FILE,
+                f"SHA-256 mismatch: expected {expected_sha256.lower()}, got {actual_sha256}.",
             )
 
         if target_path.exists() and overwrite:
@@ -222,3 +249,19 @@ class DownloadService:
                 path.unlink()
         except OSError:
             logger.warning("Failed to remove partial download: %s", path)
+
+    @staticmethod
+    def _valid_sha256(value: str | None) -> bool:
+        return bool(
+            value
+            and len(value) == 64
+            and all(character in "0123456789abcdefABCDEF" for character in value)
+        )
+
+    @staticmethod
+    def _sha256(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
