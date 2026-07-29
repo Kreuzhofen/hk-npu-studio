@@ -4,25 +4,35 @@ import tkinter as tk
 from typing import Callable
 
 from engine.brand_manager import BrandManager
+from engine.theme_manager import ThemeManager
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
 from widgets.phoenix.controls.button import PhoenixButton
 
 
 class PhoenixSidebar(tk.Frame):
-    BUTTON_HEIGHT = 42
+    BUTTON_HEIGHT = 46
     BUTTON_RADIUS = 6
     BUTTON_PADX = 14
-    BUTTON_FONT = (PHOENIX_THEME.font_button[0], 10, "bold")
+    BUTTON_FONT = (PHOENIX_THEME.font_button[0], 11, "bold")
 
     ICON_COLORS = {
-        "home": "#60a5fa",
+        "home": "#3253DC",
         "prompt": "#a78bfa",
         "models": "#34d399",
         "gallery": "#fbbf24",
         "compare": "#2dd4bf",
-        "plugins": "#fb7185",
-        "settings": "#cbd5e1",
+        "plugins": "#94a3b8",
+        "settings": "#f87171",
+    }
+    LIGHT_ICON_COLORS = {
+        "home": "#2446C0",
+        "prompt": "#7C3AED",
+        "models": "#15803D",
+        "gallery": "#A16207",
+        "compare": "#0F766E",
+        "plugins": "#475569",
+        "settings": "#DC2626",
     }
 
     def __init__(
@@ -70,13 +80,14 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("settings", tr("nav_settings", "Settings"))
 
     def _nav_button(self, view_name: str, text: str) -> None:
+        icon_color = self._icon_color(view_name)
         button = PhoenixButton(
             self,
             text=text,
             command=lambda: self._navigate(view_name),
             button_type="nav",
             icon_name=view_name,
-            icon_color=self.ICON_COLORS.get(view_name, PHOENIX_THEME.accent),
+            icon_color=icon_color,
             height=self.BUTTON_HEIGHT,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_secondary,
@@ -93,13 +104,14 @@ class PhoenixSidebar(tk.Frame):
     def set_active(self, view_name: str) -> None:
         for name, button in self._buttons.items():
             if name == view_name:
+                active_color = self._icon_color(name)
                 button.configure(
                     button_type="nav_active",
                     height=self.BUTTON_HEIGHT,
                     bg=PHOENIX_THEME.panel_bg,
-                    fg=PHOENIX_THEME.text_primary,
+                    fg=active_color,
                     font=self.BUTTON_FONT,
-                    icon_color=self.ICON_COLORS.get(name, PHOENIX_THEME.accent),
+                    icon_color=active_color,
                 )
             else:
                 button.configure(
@@ -108,5 +120,14 @@ class PhoenixSidebar(tk.Frame):
                     bg=PHOENIX_THEME.panel_bg,
                     fg=PHOENIX_THEME.text_secondary,
                     font=self.BUTTON_FONT,
-                    icon_color=self.ICON_COLORS.get(name, PHOENIX_THEME.accent),
+                    icon_color=self._icon_color(name),
                 )
+
+    @classmethod
+    def _icon_color(cls, view_name: str) -> str:
+        palette = (
+            cls.LIGHT_ICON_COLORS
+            if ThemeManager.active_theme() == ThemeManager.PROFESSIONAL_LIGHT
+            else cls.ICON_COLORS
+        )
+        return palette.get(view_name, PHOENIX_THEME.accent)

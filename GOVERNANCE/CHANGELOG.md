@@ -4,6 +4,20 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-29 (Release Polish – Final)
+
+### Geändert
+* Linke Navigation mit 10–15 % größeren Icons und Texten sowie den finalen Bereichsfarben umgesetzt.
+* Aktiver Menüpunkt färbt Text, Icon und Seitenindikator einheitlich in der Bereichsfarbe.
+* Spanische Bezeichnungen für KI-Generierung und Modellmanager korrigiert.
+* Status-Badges, Modellmanager-Detailfelder und alle Katalog-Modellbeschreibungen vollständig lokalisiert.
+* Lokalisierungsvertrag auf 600 identische Schlüssel für Deutsch, Englisch und Spanisch erweitert.
+
+### Prüfung
+* 25 betroffene Navigations-, Lokalisierungs-, Modell-, Settings-, Vergleichs- und UX-Tests bestanden.
+* Produktcode vollständig kompiliert; Kontextmenüs, Löschfunktionen und Bildvergleich regressionsgeprüft.
+* Codesignierung und Veröffentlichung nicht durchgeführt.
+
 ## [2.0 RC1] – 2026-07-29 (Sprint 22 – Final Polish & UX Audit)
 
 ### Geändert

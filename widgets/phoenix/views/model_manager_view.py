@@ -167,13 +167,13 @@ class PhoenixModelManagerView(WorkspaceFrame):
             r += 1
             return val_lbl
 
-        self.det_name = _add_detail_row("Name:")
-        self.det_id = _add_detail_row("Modell-ID:")
-        self.det_backend = _add_detail_row("NPU Backend:")
-        self.det_arch = _add_detail_row("Architektur:")
-        self.det_format = _add_detail_row("Paket-Format:")
-        self.det_controlnet = _add_detail_row("ControlNet:")
-        self.det_status = _add_detail_row("Status:")
+        self.det_name = _add_detail_row(tr("name_colon", "Name:"))
+        self.det_id = _add_detail_row(tr("model_id_colon", "Modell-ID:"))
+        self.det_backend = _add_detail_row(tr("npu_backend_colon", "NPU-Backend:"))
+        self.det_arch = _add_detail_row(tr("architecture_colon", "Architektur:"))
+        self.det_format = _add_detail_row(tr("package_format_colon", "Paketformat:"))
+        self.det_controlnet = _add_detail_row(tr("controlnet_colon", "ControlNet:"))
+        self.det_status = _add_detail_row(tr("status_label_colon", "Status:"))
 
         tk.Label(
             self.insp_content,
@@ -265,7 +265,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 {
                     "id": "stable_diffusion_v1_5_qnn",
                     "name": "Stable Diffusion 1.5 (Qualcomm NPU)",
-                    "description": "Qualcomm precompiled Stable Diffusion 1.5 w8a16 model running on Hexagon NPU (HTP V73).",
+                    "description": tr("model_description_stable_diffusion_v1_5_qnn", "Qualcomm-vorkompiliertes Stable-Diffusion-1.5-W8A16-Modell für die Hexagon NPU (HTP V73)."),
                     "backend": "Qualcomm SD 1.5 (HTP V73)",
                     "installed": True,
                     "capabilities": {"controlnet": True}
@@ -273,7 +273,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 {
                     "id": "stable_diffusion_v2_1_qnn",
                     "name": "Stable Diffusion 2.1 (Qualcomm NPU)",
-                    "description": "Optimiertes SD 2.1 Modell für höhere Auflösungen auf Snapdragon X Elite.",
+                    "description": tr("model_description_stable_diffusion_v2_1_qnn", "Optimiertes SD-2.1-Modell für höhere Auflösungen auf Snapdragon X Elite."),
                     "backend": "Qualcomm SD 2.1 (HTP V73)",
                     "installed": True,
                     "capabilities": {"controlnet": False}
@@ -281,7 +281,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 {
                     "id": "sdxl_base",
                     "name": "SDXL Base 1.0 (NPU Package)",
-                    "description": "Snapdragon NPU Paket für SDXL Base Generierung.",
+                    "description": tr("model_description_sdxl_base", "Snapdragon-NPU-Paket für die SDXL-Base-Generierung."),
                     "backend": "Qualcomm QNN HTP",
                     "installed": False,
                     "capabilities": {"controlnet": False}
@@ -314,7 +314,12 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         for idx, model in enumerate(models):
             if isinstance(model, str):
-                model_dict = {"id": model, "name": model, "description": "Modell-Paket", "installed": True}
+                model_dict = {
+                    "id": model,
+                    "name": model,
+                    "description": tr("model_package_description", "Modellpaket"),
+                    "installed": True,
+                }
             else:
                 model_dict = model
             self._render_model_card(idx, model_dict, active_id)
@@ -352,15 +357,15 @@ class PhoenixModelManagerView(WorkspaceFrame):
         title_lbl.grid(row=0, column=0, sticky="w")
 
         if is_active:
-            badge_text = "  AKTIV  "
+            badge_text = f"  {tr('status_active', 'AKTIV')}  "
             badge_bg = PHOENIX_THEME.accent
             badge_fg = PHOENIX_THEME.text_on_accent
         elif model.get("installed", True):
-            badge_text = "  INSTALLIERT  "
+            badge_text = f"  {tr('status_installed', 'INSTALLIERT')}  "
             badge_bg = PHOENIX_THEME.elevated_bg
             badge_fg = PHOENIX_THEME.success
         else:
-            badge_text = "  DOWNLOAD BEREIT  "
+            badge_text = f"  {tr('status_download_ready', 'DOWNLOAD BEREIT')}  "
             badge_bg = PHOENIX_THEME.elevated_bg
             badge_fg = PHOENIX_THEME.text_muted
 
@@ -376,7 +381,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
         )
         badge.grid(row=0, column=1, sticky="e")
 
-        desc_text = model.get("description", "")
+        desc_text = self._localized_description(model)
         if len(desc_text) > 110:
             desc_text = desc_text[:107] + "..."
 
@@ -424,9 +429,17 @@ class PhoenixModelManagerView(WorkspaceFrame):
         has_controlnet = selected_model.get("capabilities", {}).get("controlnet", False)
         self.det_controlnet.configure(text=tr("controlnet_supported_canny", "Unterstützt (Canny)") if has_controlnet else tr("controlnet_not_supported", "Nicht unterstützt"))
         
-        status_str = "Aktiv" if is_active else ("Installiert" if selected_model.get("installed", True) else "Nicht installiert")
+        status_str = (
+            tr("status_active_title", "Aktiv")
+            if is_active
+            else (
+                tr("status_installed_title", "Installiert")
+                if selected_model.get("installed", True)
+                else tr("not_installed", "Nicht installiert")
+            )
+        )
         self.det_status.configure(text=status_str)
-        self.det_desc.configure(text=selected_model.get("description", "Keine Beschreibung verfügbar."))
+        self.det_desc.configure(text=self._localized_description(selected_model))
 
         if is_active:
             self.btn_activate.configure(
@@ -441,6 +454,14 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 button_type="primary",
                 icon_name="start"
             )
+
+    @staticmethod
+    def _localized_description(model: dict[str, Any]) -> str:
+        model_id = str(model.get("id", "")).replace("-", "_")
+        fallback = model.get("description") or tr(
+            "no_description_available", "Keine Beschreibung verfügbar."
+        )
+        return tr(f"model_description_{model_id}", fallback)
 
     def _on_activate_selected(self) -> None:
         if not self.selected_model_id or not self.controller:

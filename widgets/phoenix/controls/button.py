@@ -330,7 +330,7 @@ class PhoenixButton(tk.Canvas):
 
         icon_w = 0
         if self.icon_name:
-            icon_w = 16
+            icon_w = 18 if self.button_type in ("nav", "nav_active") else 16
 
         spacing = 8 if (self.text and self.icon_name) else 0
         total_content_w = icon_w + spacing + text_w
@@ -405,7 +405,15 @@ class PhoenixButton(tk.Canvas):
 
         if self.button_type == "nav_active":
             # Sleek vertical indicator line on the left edge
-            self.create_line(4, 8, 4, h - 8, fill=PHOENIX_THEME.accent, width=3, capstyle="round")
+            self.create_line(
+                4,
+                8,
+                4,
+                h - 8,
+                fill=self.icon_color or PHOENIX_THEME.accent,
+                width=3,
+                capstyle="round",
+            )
 
         if self.icon_name:
             icon_x = start_x + icon_w / 2
