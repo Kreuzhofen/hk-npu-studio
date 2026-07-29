@@ -15,9 +15,8 @@ logger = get_logger("ImageGenerationPipeline")
 
 class ImageGenerationPipeline:
     """
-    Manages the execution workflow of an image generation task.
-    Sequentially orchestrates: prepare -> validate -> execute -> finish -> cleanup.
-    Currently a stub awaiting physical acceleration backends.
+    Executes the shared prepare, validate, inference, finish and cleanup lifecycle
+    for CPU, ONNX and QNN generation backends.
     """
 
     def __init__(
@@ -46,7 +45,6 @@ class ImageGenerationPipeline:
             observe_running_job(self.job, self.backend_adapter)
         except Exception:
             pass
-        # Stub preparation: Create target directories, print logs
 
     def validate(self) -> bool:
         """Performs syntax, boundary, and model parameter validation checks."""

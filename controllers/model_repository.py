@@ -62,7 +62,7 @@ class ModelRepository:
     Acting as the Single Source of Truth for model metadata, validating structure,
     and handling updates back to disk.
 
-    Future Roadmap Hooks:
+    Repository responsibilities:
     - Model Download: Downloading large model weights from Hugging Face/API.
     - Model Installation: Unpacking and verify directory placements.
     - Model Update: Checking remote hashes/versions and pull updates.

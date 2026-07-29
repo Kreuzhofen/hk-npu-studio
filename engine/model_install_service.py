@@ -558,7 +558,7 @@ class ModelInstallService:
             return False
 
     # ==========================================
-    # FUTURE ROADMAP HOOKS FOR DOWNLOADS
+    # DOWNLOAD LIFECYCLE
     # ==========================================
     
     def start_download(

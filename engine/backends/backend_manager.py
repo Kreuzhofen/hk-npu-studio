@@ -5,7 +5,6 @@ from engine.backends.backend_adapter import BackendAdapter
 from engine.backends.cpu_backend_adapter import CPUBackendAdapter
 from engine.backends.qnn_backend_adapter import QNNBackendAdapter
 from engine.backends.onnx_backend_adapter import ONNXBackendAdapter
-from engine.backends.remote_backend_adapter import RemoteBackendAdapter
 from engine.backends.sd15_qnn_backend_adapter import StableDiffusion15QnnBackendAdapter
 from engine.backends.sd21_qnn_backend_adapter import StableDiffusion21QnnBackendAdapter
 from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
@@ -32,7 +31,6 @@ class BackendManager:
         self.register_backend(CPUBackendAdapter())
         self.register_backend(QNNBackendAdapter())
         self.register_backend(ONNXBackendAdapter())
-        self.register_backend(RemoteBackendAdapter())
         self.register_backend(StableDiffusion15QnnBackendAdapter())
         self.register_backend(StableDiffusion21QnnBackendAdapter())
         self.register_backend(ControlNetCannyQnnBackendAdapter())
@@ -165,11 +163,9 @@ class BackendManager:
                 return 1
             if isinstance(adapter, ONNXBackendAdapter):
                 return 2
-            if isinstance(adapter, RemoteBackendAdapter):
-                return 3
             if isinstance(adapter, CPUBackendAdapter):
                 return 5
-            return 4
+            return 3
 
         general_order = sorted(
             self._backends,

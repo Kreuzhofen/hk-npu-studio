@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 17 – Release-Readiness Core)
+
+### Geändert
+* Core vollständig auf TODO/FIXME/HACK und veraltete Platzhalter geprüft.
+* Nicht implementierten, ungenutzten Remote-Cloud-Stub aus Registry und Core entfernt.
+* Überholte Pipeline- und Download-Kommentare an den produktiven Stand angepasst.
+* Keine neuen Features oder UI-Änderungen.
+
+### Prüfung
+* 24 relevante Core-Tests und 6 Subtests bestanden; Core vollständig kompiliert.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 16 – Performance-Optimierung)
 
 ### Geändert

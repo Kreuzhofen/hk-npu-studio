@@ -9,11 +9,18 @@ from engine.backends.backend_adapter import BackendAdapter
 from engine.backends.cpu_backend_adapter import CPUBackendAdapter
 from engine.backends.onnx_backend_adapter import ONNXBackendAdapter
 from engine.backends.qnn_backend_adapter import QNNBackendAdapter
+from engine.backends.backend_manager import BackendManager
 from engine.inference_backend import InferenceBackend
 from engine.onnx_image_backend import OnnxImageBackend
 
 
 class BackendContractTests(unittest.TestCase):
+    def test_default_registry_contains_only_executable_local_backend_routes(self):
+        names = BackendManager().get_all_backend_names()
+
+        self.assertNotIn("Remote Cloud API (Stub)", names)
+        self.assertFalse(any("Remote" in name for name in names))
+
     def setUp(self) -> None:
         self.job = GenerationJob(
             session=GenerationSessionModel(model_name="contract_test_model")
