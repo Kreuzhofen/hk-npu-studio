@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from engine.job_lifecycle import JobStatus, fail_job, set_job_progress, set_job_status
+
 
 @dataclass
 class Job:
@@ -21,7 +23,7 @@ class Job:
     skill: str
     kwargs: dict[str, Any]
 
-    status: str = "queued"
+    status: str = JobStatus.QUEUED.value
     progress: float = 0.0
 
     result: Any = None
@@ -33,18 +35,18 @@ class Job:
 
     def start(self):
         """Markiert den Job als gestartet."""
-        self.status = "running"
+        set_job_status(self, JobStatus.RUNNING)
         self.started = datetime.now()
 
     def finish(self, result: Any):
         """Markiert den Job als erfolgreich beendet."""
-        self.status = "finished"
-        self.progress = 100.0
+        set_job_status(self, JobStatus.FINISHED)
+        set_job_progress(self, 1.0, notify=False)
         self.result = result
         self.finished = datetime.now()
 
     def fail(self, error: str):
         """Markiert den Job als fehlgeschlagen."""
-        self.status = "failed"
-        self.error = error
+        fail_job(self, error)
+        self.error = str(error)
         self.finished = datetime.now()

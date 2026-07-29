@@ -4,6 +4,21 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 3 – Job- & Pipeline-Engine stabilisieren)
+
+### Geändert
+* **Einheitlicher Jobstatus:** `JobStatus` standardisiert ausführbare Jobs auf `QUEUED`, `RUNNING`, `FINISHED`, `FAILED` und `CANCELLED`; historische englische und deutsche Werte werden kompatibel normalisiert.
+* **Einheitlicher Fortschritt:** Interner Fortschritt liegt durchgängig zwischen `0.0` und `1.0`; bestehende Callbacks erhalten weiterhin Prozentwerte zwischen `0` und `100`.
+* **Gemeinsamer Lebenszyklus:** Generation-, Legacy- und Phoenix-Jobs verwenden zentrale Funktionen für Statusübergänge, Fortschritt, Fehler und Abbruch.
+* **QNN-Fortschrittsmeldungen:** SD1.5, SD2.1 und ControlNet verwenden dieselbe Übersetzung von Worker-Ausgaben in lokalisierte Phasenmeldungen.
+* **Abbruchbehandlung:** Backend- und Scheduler-Abbrüche setzen Abbruchsignal und Status konsistent; aktive und wartende Batch-Jobs werden eindeutig beendet.
+* **Kompatibilität:** Ergebnisstatus, UI-Callbacks und bestehende Pipeline-Ausgaben bleiben erhalten; die UI wurde nicht geändert.
+
+### Prüfung
+* Vollständiger Python-Build mit `compileall`: erfolgreich.
+* Job-/Pipeline-Regression: 21 Tests und 20 Subtests bestanden.
+* Vollständige Testsuite: 137 Tests und 20 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 2 – Backend vereinheitlichen)
 
 ### Geändert

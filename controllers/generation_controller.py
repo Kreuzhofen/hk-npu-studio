@@ -8,6 +8,7 @@ from controllers.generation_queue import GenerationQueue
 from controllers.generation_result import GenerationResult
 from controllers.model_repository import ModelRepository
 from engine.backends.backend_manager import BackendManager
+from engine.job_lifecycle import JobStatus, get_job_status, set_job_status
 
 
 class GenerationController:
@@ -156,7 +157,7 @@ class GenerationController:
         loader = ModelLoaderService(repo)
         resolve_result = loader.resolve_model(job_session.model_name)
         if not resolve_result.success:
-            job.status = "FAILED"
+            job.fail(resolve_result.message)
             self.queue.clear_finished()
             self.is_generating = False
             return GenerationResult(
@@ -188,8 +189,11 @@ class GenerationController:
             result.metadata["routed_backend"] = selected_backend.get_backend_name()
 
         # Finalize and remove the active queue item.
-        if job.status != "CANCELLED":
-            job.status = "FINISHED" if result.success else "FAILED"
+        if get_job_status(job) != JobStatus.CANCELLED:
+            set_job_status(
+                job,
+                JobStatus.FINISHED if result.success else JobStatus.FAILED,
+            )
         self.queue.clear_finished()
         self.is_generating = False
 
@@ -211,7 +215,7 @@ class GenerationController:
             
         # Cancel all queued jobs as well
         for job in self.queue.get_all_jobs():
-            if job.status == "QUEUED":
+            if get_job_status(job) == JobStatus.QUEUED:
                 self.queue.cancel(job.job_id)
 
         # Notify active backend of cancel

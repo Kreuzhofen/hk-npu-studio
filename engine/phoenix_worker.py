@@ -9,6 +9,8 @@ Phoenix Engine 1.0
 
 import traceback
 
+from engine.job_lifecycle import JobStatus, fail_job, set_job_status
+
 
 class PhoenixWorker:
     """
@@ -23,9 +25,9 @@ class PhoenixWorker:
     """
 
     STATUS_IDLE = "idle"
-    STATUS_RUNNING = "running"
-    STATUS_DONE = "done"
-    STATUS_ERROR = "error"
+    STATUS_RUNNING = JobStatus.RUNNING.value
+    STATUS_DONE = JobStatus.FINISHED.value
+    STATUS_ERROR = JobStatus.FAILED.value
 
     def __init__(self, name="PhoenixWorker"):
         self.name = name
@@ -50,6 +52,7 @@ class PhoenixWorker:
 
         self.current_job = job
         self.status = self.STATUS_RUNNING
+        set_job_status(job, JobStatus.RUNNING)
         self.last_result = None
         self.last_error = None
 
@@ -57,6 +60,7 @@ class PhoenixWorker:
             result = task(job)
 
             self.status = self.STATUS_DONE
+            set_job_status(job, JobStatus.FINISHED)
             self.last_result = result
 
             return {
@@ -70,6 +74,7 @@ class PhoenixWorker:
             error = traceback.format_exc()
 
             self.status = self.STATUS_ERROR
+            fail_job(job, error)
             self.last_error = error
 
             return {

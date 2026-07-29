@@ -4,6 +4,7 @@ import time
 from typing import Any
 from controllers.generation_job import GenerationJob
 from controllers.generation_result import GenerationResult
+from engine.job_lifecycle import JobStatus, get_job_status, set_job_progress, set_job_status
 
 
 class ImageGenerationPipeline:
@@ -22,6 +23,8 @@ class ImageGenerationPipeline:
     def prepare(self) -> None:
         """Prepares folders, locks model weights, and primes NPU/CPU backend buffers."""
         self.start_time = time.time()
+        set_job_status(self.job, JobStatus.RUNNING)
+        set_job_progress(self.job, self.job.progress, "Pipeline gestartet", notify=False)
         # Stub preparation: Create target directories, print logs
 
     def validate(self) -> bool:
@@ -118,6 +121,7 @@ class ImageGenerationPipeline:
         try:
             self.prepare()
             if not self.validate():
+                self.job.fail("Pipeline validation failed: invalid parameters.")
                 return GenerationResult(
                     success=False,
                     status="ValidationError",
@@ -127,8 +131,15 @@ class ImageGenerationPipeline:
 
             result = self.execute()
             result = self.finish(result)
+            if get_job_status(self.job) != JobStatus.CANCELLED:
+                if result.success:
+                    set_job_status(self.job, JobStatus.FINISHED)
+                    set_job_progress(self.job, 1.0, "Pipeline abgeschlossen", notify=False)
+                else:
+                    self.job.fail(result.message)
             return result
         except Exception as error:
+            self.job.fail(error)
             return GenerationResult(
                 success=False,
                 status="PipelineError",

@@ -215,8 +215,9 @@ class StableDiffusion15QnnBackend(InferenceBackend):
         """Terminate the worker subprocess that owns the active QNN sessions."""
         import subprocess
 
-        job.cancel_requested.set()
-        job.status = "CANCELLED"
+        from engine.job_lifecycle import cancel_job
+
+        cancel_job(job)
         process = self._active_process
         if process is not None and process.poll() is None:
             process.terminate()
@@ -355,56 +356,9 @@ class StableDiffusion15QnnBackend(InferenceBackend):
             if line:
                 line_str = line.strip()
                 print(f"[QNN Worker] {line_str}")
-                # Keep lifecycle status RUNNING so GenerationQueue can locate the active job.
                 if not job.cancel_requested.is_set() and any(k in line_str for k in ["Preparing", "Loading", "Starting", "Tokenizing", "Running", "Decoding", "Saving", "Step", "Image", "Computing"]):
-                    # Estimate progress based on steps
-                    percent = None
-                    stage_text = None
-
-                    from app.i18n import tr
-
-                    if "Preparing Qualcomm QNN" in line_str:
-                        percent = 5.0
-                        stage_text = tr("npu_preparing", "NPU wird vorbereitet...")
-                    elif "Loading Text Encoder" in line_str:
-                        percent = 10.0
-                        stage_text = tr("model_loading_text_encoder", "Modell wird geladen (Text Encoder)...")
-                    elif "Loading UNet" in line_str:
-                        percent = 15.0
-                        stage_text = tr("model_loading_unet", "Modell wird geladen (UNet)...")
-                    elif "Loading VAE" in line_str:
-                        percent = 20.0
-                        stage_text = tr("model_loading_vae", "Modell wird geladen (VAE)...")
-                    elif "Tokenizing prompt" in line_str:
-                        percent = 25.0
-                        stage_text = tr("model_loading", "Modell wird geladen...")
-                    elif "Computing Canny edge image" in line_str:
-                        percent = 30.0
-                        stage_text = tr("controlnet_preprocessing", "ControlNet Vorverarbeitung...")
-                    elif "Step " in line_str and "/" in line_str:
-                        try:
-                            parts = line_str.split("Step ")[1].split(":")[0].split("/")
-                            curr = int(parts[0])
-                            total = int(parts[1])
-                            job.progress = float(curr) / float(total)
-                            percent = 30.0 + (job.progress * 55.0)
-                            stage_text = tr("sampling_phase", "Sampling Phase (Schritt {curr}/{total})...", curr=curr, total=total)
-                        except Exception:
-                            pass
-                    elif "Decoding image" in line_str:
-                        percent = 90.0
-                        stage_text = tr("vae_decoding", "VAE Decoding...")
-                    elif "Saving image" in line_str:
-                        percent = 95.0
-                        stage_text = tr("saving_image", "Bild wird gespeichert & Metadaten geschrieben...")
-
-                    if percent is not None and stage_text is not None:
-                        callback = getattr(job, "progress_callback", None)
-                        if callback:
-                            try:
-                                callback(percent, stage_text)
-                            except Exception:
-                                pass
+                    from engine.generation_progress import report_qnn_progress
+                    report_qnn_progress(job, line_str)
 
         process.wait()
         self._active_process = None

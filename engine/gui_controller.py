@@ -17,6 +17,7 @@ from engine.phoenix_adapter import PhoenixAdapter
 from engine.phoenix_queue import PhoenixQueue
 from engine.phoenix_scheduler import PhoenixScheduler
 from engine.phoenix_worker import PhoenixWorker
+from engine.job_lifecycle import JobStatus, get_job_status, set_job_status
 
 
 class GuiController:
@@ -106,7 +107,8 @@ class GuiController:
             {
                 "input_path": full_path,
                 "output_path": None,
-                "status": "wartet",
+                "status": JobStatus.QUEUED.value,
+                "progress": 0.0,
             }
         )
 
@@ -117,7 +119,7 @@ class GuiController:
         count = 0
 
         for job in self.phoenix_queue.get_jobs():
-            if job.get("status") == "wartet":
+            if get_job_status(job) == JobStatus.QUEUED:
                 count += 1
 
         return count
@@ -127,7 +129,7 @@ class GuiController:
 
         for job in self.phoenix_queue.get_jobs():
             if job["input_path"] == full_path:
-                job["status"] = status
+                set_job_status(job, status)
 
                 if output_path:
                     job["output_path"] = output_path

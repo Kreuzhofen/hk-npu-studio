@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
+from engine.job_lifecycle import cancel_job
 
 
 class InferenceBackend(ABC):
@@ -38,10 +39,7 @@ class InferenceBackend(ABC):
 
     def cancel(self, job: GenerationJob) -> str:
         """Markiert einen Auftrag über den gemeinsamen Abbruchpfad als abgebrochen."""
-        cancel_requested = getattr(job, "cancel_requested", None)
-        if cancel_requested is not None:
-            cancel_requested.set()
-        job.status = "CANCELLED"
+        cancel_job(job)
         return "Generation cancelled"
 
     def get_progress(self, job: GenerationJob) -> float:

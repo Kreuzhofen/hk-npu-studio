@@ -3,6 +3,7 @@ from __future__ import annotations
 from engine.backends.backend_adapter import BackendAdapter
 from controllers.generation_job import GenerationJob
 from controllers.generation_result import GenerationResult
+from engine.job_lifecycle import JobStatus, cancel_job, set_job_progress, set_job_status
 
 
 class RemoteBackendAdapter(BackendAdapter):
@@ -37,10 +38,10 @@ class RemoteBackendAdapter(BackendAdapter):
 
     def generate(self, job: GenerationJob) -> GenerationResult:
         print(f"[RemoteBackendAdapter] Sending API post request for job {job.job_id}...")
-        job.status = "RUNNING"
+        set_job_status(job, JobStatus.RUNNING)
         # TODO: Send request and await generation webhook/response
-        job.status = "FINISHED"
-        job.progress = 1.0
+        set_job_status(job, JobStatus.FINISHED)
+        set_job_progress(job, 1.0, notify=False)
         return GenerationResult(
             success=True,
             status="FINISHED",
@@ -53,7 +54,7 @@ class RemoteBackendAdapter(BackendAdapter):
 
     def cancel(self, job: GenerationJob) -> str:
         print(f"[RemoteBackendAdapter] Sending cancel signal to API server for job {job.job_id}...")
-        job.status = "CANCELLED"
+        cancel_job(job)
         return "Generation cancelled on cloud API (stub)"
 
     def get_progress(self, job: GenerationJob) -> float:

@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from uuid import UUID
 from controllers.generation_job import GenerationJob
+from engine.job_lifecycle import (
+    JobStatus,
+    TERMINAL_JOB_STATUSES,
+    cancel_job,
+    get_job_status,
+    set_job_status,
+)
 
 
 class GenerationQueue:
@@ -20,15 +27,15 @@ class GenerationQueue:
     def dequeue(self) -> GenerationJob | None:
         """Retrieve and return the next queued job, setting status to RUNNING."""
         for job in self._jobs:
-            if job.status == "QUEUED":
-                job.status = "RUNNING"
+            if get_job_status(job) == JobStatus.QUEUED:
+                set_job_status(job, JobStatus.RUNNING)
                 return job
         return None
 
     def current_job(self) -> GenerationJob | None:
         """Get the currently executing job if any."""
         for job in self._jobs:
-            if job.status == "RUNNING":
+            if get_job_status(job) == JobStatus.RUNNING:
                 return job
         return None
 
@@ -36,14 +43,16 @@ class GenerationQueue:
         """Cancel a job in the queue by its ID."""
         for job in self._jobs:
             if job.job_id == job_id:
-                job.cancel_requested.set()
-                job.status = "CANCELLED"
+                cancel_job(job)
                 return True
         return False
 
     def clear_finished(self) -> None:
         """Remove jobs that are FINISHED, FAILED, or CANCELLED from the queue."""
-        self._jobs = [job for job in self._jobs if job.status in ("QUEUED", "RUNNING")]
+        self._jobs = [
+            job for job in self._jobs
+            if get_job_status(job) not in TERMINAL_JOB_STATUSES
+        ]
 
     def get_all_jobs(self) -> list[GenerationJob]:
         """Return all jobs in the queue."""
@@ -51,7 +60,7 @@ class GenerationQueue:
 
     def get_queued_count(self) -> int:
         """Count jobs that are currently QUEUED."""
-        return sum(1 for job in self._jobs if job.status == "QUEUED")
+        return sum(1 for job in self._jobs if get_job_status(job) == JobStatus.QUEUED)
 
     def get_total_count(self) -> int:
         """Count all active/history jobs currently in the queue."""

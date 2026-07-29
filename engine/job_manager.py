@@ -64,8 +64,8 @@ class JobManager:
 
             job.finish(result)
 
-        except Exception as e:
-            job.fail(str(e))
+        except Exception as error:
+            job.fail(str(error))
             raise
 
         finally:

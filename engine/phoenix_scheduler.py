@@ -7,6 +7,14 @@ Created by Holger Kreuzhofen
 Phoenix Engine 1.0
 """
 
+from engine.job_lifecycle import (
+    JobStatus,
+    cancel_job,
+    get_job_status,
+    set_job_progress,
+    set_job_status,
+)
+
 
 class PhoenixScheduler:
     """
@@ -47,6 +55,8 @@ class PhoenixScheduler:
     def request_cancel(self):
         self.cancel_requested = True
         self.status = self.STATUS_CANCEL_REQUESTED
+        if self.current_job is not None:
+            cancel_job(self.current_job)
         return True
 
     def pause(self):
@@ -107,7 +117,7 @@ class PhoenixScheduler:
 
     def get_next_waiting_job(self, phoenix_queue):
         for job in phoenix_queue.get_jobs():
-            if job.get("status") == "wartet":
+            if get_job_status(job) == JobStatus.QUEUED:
                 return job
 
         return None
@@ -116,7 +126,7 @@ class PhoenixScheduler:
         count = 0
 
         for job in phoenix_queue.get_jobs():
-            if job.get("status") == "wartet":
+            if get_job_status(job) == JobStatus.QUEUED:
                 count += 1
 
         return count
@@ -143,7 +153,7 @@ class PhoenixScheduler:
 
         self.current_index += 1
         self.set_current_job(job)
-        job["status"] = "läuft"
+        set_job_status(job, JobStatus.RUNNING)
 
         if on_job_start:
             on_job_start(job)
@@ -153,7 +163,8 @@ class PhoenixScheduler:
         if result["status"] == worker.STATUS_DONE:
             output_path = result["result"]
 
-            job["status"] = "fertig"
+            set_job_status(job, JobStatus.FINISHED)
+            set_job_progress(job, 1.0, "Auftrag abgeschlossen", notify=False)
             job["output_path"] = output_path
 
             self.mark_job_done()
@@ -163,7 +174,8 @@ class PhoenixScheduler:
 
             return result
 
-        job["status"] = "Fehler"
+        set_job_status(job, JobStatus.FAILED)
+        job["error"] = result["error"]
         self.mark_job_failed()
 
         if on_job_error:
@@ -180,6 +192,13 @@ class PhoenixScheduler:
         on_job_done=None,
         on_job_error=None,
     ):
+        if self.cancel_requested:
+            for job in phoenix_queue.get_jobs():
+                if get_job_status(job) in (JobStatus.QUEUED, JobStatus.RUNNING):
+                    cancel_job(job)
+            self.status = self.STATUS_STOPPED
+            return []
+
         self.start()
 
         self.total_jobs = self.count_waiting_jobs(phoenix_queue)
@@ -211,6 +230,9 @@ class PhoenixScheduler:
                 results.append(result)
 
         if self.cancel_requested:
+            for job in phoenix_queue.get_jobs():
+                if get_job_status(job) in (JobStatus.QUEUED, JobStatus.RUNNING):
+                    cancel_job(job)
             self.status = self.STATUS_STOPPED
         else:
             self.status = self.STATUS_STOPPED

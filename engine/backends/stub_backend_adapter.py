@@ -3,6 +3,7 @@ from __future__ import annotations
 from controllers.generation_job import GenerationJob
 from controllers.generation_result import GenerationResult
 from engine.backends.backend_adapter import BackendAdapter
+from engine.job_lifecycle import JobStatus, set_job_progress, set_job_status
 
 
 class StubBackendAdapter(BackendAdapter):
@@ -41,10 +42,10 @@ class StubBackendAdapter(BackendAdapter):
     def generate(self, job: GenerationJob) -> GenerationResult:
         if self.GENERATE_MESSAGE:
             print(self.GENERATE_MESSAGE.format(job_id=job.job_id))
-        job.status = "RUNNING"
-        job.progress = max(float(job.progress), 0.1)
-        job.status = "FINISHED"
-        job.progress = 1.0
+        set_job_status(job, JobStatus.RUNNING)
+        set_job_progress(job, max(float(job.progress), 0.1), notify=False)
+        set_job_status(job, JobStatus.FINISHED)
+        set_job_progress(job, 1.0, notify=False)
         return GenerationResult(
             success=True,
             status="FINISHED",
