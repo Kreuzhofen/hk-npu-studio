@@ -12,6 +12,14 @@ logger = logging.getLogger("i18n")
 _current_language = "de_DE"
 _translations: dict[str, dict[str, str]] = {}
 LOCALES_DIR = Path(__file__).parent.parent / "locales"
+LANGUAGE_CODES = {
+    "Deutsch": "de_DE",
+    "English": "en_US",
+    "Español": "es_ES",
+    "de_DE": "de_DE",
+    "en_US": "en_US",
+    "es_ES": "es_ES",
+}
 
 # Try loading language from preferences on module load (skip under test environment)
 try:
@@ -19,7 +27,7 @@ try:
     if "unittest" not in sys.modules:
         _data = ConfigurationManager(PREFERENCES_PATH).load()
         _lang_val = _data.get("language", "Deutsch")
-        _current_language = "en_US" if _lang_val in {"English", "en_US"} else "de_DE"
+        _current_language = LANGUAGE_CODES.get(str(_lang_val), "de_DE")
 except Exception:
     pass
 

@@ -37,6 +37,8 @@ def test_compare_loads_shared_nested_sidecar_metadata(tmp_path):
 
 
 def test_compare_reports_metadata_differences_deterministically(tmp_path):
+    from app.i18n import set_language
+    set_language("de_DE")
     original = tmp_path / "original.png"
     output = tmp_path / "output.png"
     create_image(original, "blue")
@@ -55,8 +57,23 @@ def test_compare_reports_metadata_differences_deterministically(tmp_path):
 
     differences = controller.compare_metadata()
 
-    assert differences == {"seed", "sampler"}
+    assert differences == {"file_size", "seed", "sampler"}
     assert "Unterschiede" in controller.get_state().status
+
+
+def test_compare_includes_technical_image_differences(tmp_path):
+    original = tmp_path / "original.png"
+    output = tmp_path / "output.png"
+    Image.new("RGB", (32, 32), "blue").save(original)
+    Image.new("RGB", (64, 32), "blue").save(output)
+    controller = CompareWorkspaceController()
+    controller.load_original(original)
+    controller.load_output(output)
+
+    differences = controller.compare_metadata()
+
+    assert "resolution" in differences
+    assert "file_size" in differences
 
 
 def test_failed_compare_load_preserves_existing_image(tmp_path):

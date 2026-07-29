@@ -10,6 +10,7 @@ Phoenix UI
 import tkinter as tk
 from pathlib import Path
 
+from app.i18n import tr
 from resources.theme import Theme
 
 
@@ -42,7 +43,7 @@ class QueueCard(tk.Frame):
 
         self.title_label = tk.Label(
             self,
-            text="Batch Queue",
+            text=tr("batch_queue", "Batch-Warteschlange"),
             font=Theme.font("card_title"),
             anchor="w",
             bg=Theme.color("card"),
@@ -52,7 +53,7 @@ class QueueCard(tk.Frame):
 
         self.info_label = tk.Label(
             self,
-            text="Keine Jobs in der Warteschlange.",
+            text=tr("queue_empty", "Keine Jobs in der Warteschlange."),
             anchor="w",
             font=Theme.font("body"),
             bg=Theme.color("card"),
@@ -113,12 +114,12 @@ class QueueCard(tk.Frame):
 
         if not self.items:
             self.info_label.configure(
-                text="Keine Jobs in der Warteschlange."
+                text=tr("queue_empty", "Keine Jobs in der Warteschlange.")
             )
             return
 
         self.info_label.configure(
-            text=f"Jobs: {len(self.items)}"
+            text=f"{tr('jobs', 'Jobs')}: {len(self.items)}"
         )
 
         for index, job in enumerate(self.items, start=1):

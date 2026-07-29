@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter import ttk
 from pathlib import Path
 
+from app.i18n import tr
 from resources.theme import Theme
 
 
@@ -38,7 +39,7 @@ class JobCard(tk.Frame):
 
         self.title_label = tk.Label(
             self,
-            text="Job",
+            text=tr("job", "Job"),
             font=Theme.font("card_title"),
             anchor="w",
             bg=Theme.color("card"),
@@ -88,17 +89,17 @@ class JobCard(tk.Frame):
         self.start_time = None
         self.running = False
 
-        self.title_label.configure(text="Job")
-        self.plugin_label.configure(text="Plugin: -")
-        self.backend_label.configure(text="Backend: -")
-        self.input_label.configure(text="Eingabe: -")
-        self.output_label.configure(text="Ausgabe: -")
+        self.title_label.configure(text=tr("job", "Job"))
+        self.plugin_label.configure(text=f"{tr('plugin', 'Plugin')}: -")
+        self.backend_label.configure(text=f"{tr('backend', 'Backend')}: -")
+        self.input_label.configure(text=f"{tr('input', 'Eingabe')}: -")
+        self.output_label.configure(text=f"{tr('output_title', 'Ausgabe')}: -")
         self.status_label.configure(
-            text="Status: Bereit",
+            text=f"{tr('status', 'Status')}: {tr('ready', 'Bereit')}",
             fg=Theme.color("muted_text"),
         )
-        self.batch_label.configure(text="Batch: 0 / 0 (0%)")
-        self.runtime_label.configure(text="Laufzeit: 00:00")
+        self.batch_label.configure(text=f"{tr('batch', 'Batch')}: 0 / 0 (0%)")
+        self.runtime_label.configure(text=f"{tr('runtime', 'Laufzeit')}: 00:00")
 
         self.progress_bar.stop()
         self.progress_bar.configure(
@@ -112,25 +113,27 @@ class JobCard(tk.Frame):
 
         input_name = Path(input_path).name
 
-        self.title_label.configure(text="Aktueller Job")
-        self.plugin_label.configure(text=f"Plugin: {plugin}")
-        self.backend_label.configure(text=f"Backend: {backend}")
-        self.input_label.configure(text=f"Eingabe: {input_name}")
-        self.output_label.configure(text="Ausgabe: wird erstellt...")
+        self.title_label.configure(text=tr("current_job", "Aktueller Job"))
+        self.plugin_label.configure(text=f"{tr('plugin', 'Plugin')}: {plugin}")
+        self.backend_label.configure(text=f"{tr('backend', 'Backend')}: {backend}")
+        self.input_label.configure(text=f"{tr('input', 'Eingabe')}: {input_name}")
+        self.output_label.configure(
+            text=f"{tr('output_title', 'Ausgabe')}: {tr('being_created', 'wird erstellt...')}"
+        )
         self.status_label.configure(
-            text="Status: Bild wird verarbeitet...",
+            text=f"{tr('status', 'Status')}: {tr('image_processing', 'Bild wird verarbeitet...')}",
             fg=Theme.color("info"),
         )
-        self.runtime_label.configure(text="Laufzeit: 00:00")
+        self.runtime_label.configure(text=f"{tr('runtime', 'Laufzeit')}: 00:00")
 
     def finish_job(self, output_path):
         self.running = False
 
         output_name = Path(output_path).name
 
-        self.output_label.configure(text=f"Ausgabe: {output_name}")
+        self.output_label.configure(text=f"{tr('output_title', 'Ausgabe')}: {output_name}")
         self.status_label.configure(
-            text="Status: Fertig",
+            text=f"{tr('status', 'Status')}: {tr('finished', 'Fertig')}",
             fg=Theme.color("success"),
         )
 
@@ -139,9 +142,9 @@ class JobCard(tk.Frame):
     def fail_job(self):
         self.running = False
 
-        self.output_label.configure(text="Ausgabe: -")
+        self.output_label.configure(text=f"{tr('output_title', 'Ausgabe')}: -")
         self.status_label.configure(
-            text="Status: Fehler",
+            text=f"{tr('status', 'Status')}: {tr('error', 'Fehler')}",
             fg=Theme.color("error"),
         )
 
@@ -165,5 +168,5 @@ class JobCard(tk.Frame):
         seconds = elapsed % 60
 
         self.runtime_label.configure(
-            text=f"Laufzeit: {minutes:02d}:{seconds:02d}"
+            text=f"{tr('runtime', 'Laufzeit')}: {minutes:02d}:{seconds:02d}"
         )

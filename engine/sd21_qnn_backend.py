@@ -7,6 +7,7 @@ Utilizes a subprocess worker to isolate QAIRT 2.45.41 from QAIRT 2.47 system dri
 
 from __future__ import annotations
 
+from app.i18n import tr
 import html
 import json
 import logging
@@ -308,7 +309,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             return GenerationResponse(
                 success=False,
                 status="CANCELLED",
-                message="Generation cancelled.",
+                message=tr("generation_cancelled", "Generierung abgebrochen."),
                 model_name=params.model_name,
             )
 
@@ -361,7 +362,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 return GenerationResponse(
                     success=False,
                     status="CANCELLED",
-                    message="Generation cancelled.",
+                    message=tr("generation_cancelled", "Generierung abgebrochen."),
                     model_name=params.model_name,
                 )
             if not line and process.poll() is not None:
@@ -382,7 +383,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             return GenerationResponse(
                 success=False,
                 status="CANCELLED",
-                message="Generation cancelled.",
+                message=tr("generation_cancelled", "Generierung abgebrochen."),
                 model_name=params.model_name,
             )
 

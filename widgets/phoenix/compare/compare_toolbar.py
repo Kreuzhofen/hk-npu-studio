@@ -70,7 +70,7 @@ class CompareToolbar(WorkspaceToolbarBase):
         group = self.group_frame()
         self.toolbar_button(
             group,
-            IconManager.get_label("folder", "Original"),
+            IconManager.get_label("folder", tr("compare_left_title", "Original")),
             self.on_open_original,
             self.BUTTON_WIDTH_WIDE,
         ).pack(side="left")
@@ -120,14 +120,14 @@ class CompareToolbar(WorkspaceToolbarBase):
         group = self.group_frame()
         self.toolbar_button(
             group,
-            IconManager.get_label("refresh", "Sync"),
+            IconManager.get_label("refresh", tr("compare_sync_short", "Sync")),
             self.on_sync,
             self.BUTTON_WIDTH_MEDIUM,
         ).pack(side="left")
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
         self.toolbar_button(
             group,
-            IconManager.get_label("compare", "Swap"),
+            IconManager.get_label("compare", tr("compare_swap", "Tauschen")),
             self.on_swap,
             self.BUTTON_WIDTH_MEDIUM,
         ).pack(side="left")

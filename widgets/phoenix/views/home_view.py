@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import time
 import tkinter as tk
+from tkinter import messagebox
 import shutil
 from typing import Callable
 
@@ -175,6 +176,27 @@ class PhoenixHomeView(tk.Frame):
             pady=(0, PHOENIX_THEME.space_md),
         )
         self._last_card.grid_columnconfigure(0, weight=1)
+        tk.Button(
+            self._last_card,
+            text=tr("home_delete_all", "Alle löschen"),
+            command=self._delete_all_generations,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.danger,
+            activebackground=PHOENIX_THEME.danger,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            padx=PHOENIX_THEME.button_pad_x,
+            pady=PHOENIX_THEME.space_xs,
+            font=PHOENIX_THEME.font_button,
+            cursor="hand2",
+        ).grid(
+            row=0,
+            column=1,
+            sticky="e",
+            padx=PHOENIX_THEME.card_pad_x,
+            pady=(8, 4),
+        )
         
         self._previews_inner_frame = tk.Frame(self._last_card, bg=PHOENIX_THEME.card_bg)
         self._previews_inner_frame.grid(
@@ -268,7 +290,7 @@ class PhoenixHomeView(tk.Frame):
         ).grid(
             row=0,
             column=0,
-            columnspan=2,
+            columnspan=1,
             sticky="ew",
             padx=PHOENIX_THEME.card_pad_x,
             pady=(8, 4),
@@ -527,6 +549,22 @@ class PhoenixHomeView(tk.Frame):
             )
             name_lbl.pack(padx=4, pady=(0, 4))
 
+            delete_btn = tk.Button(
+                tile_frame,
+                text="×",
+                command=lambda path=gen.path: self._delete_generation(path),
+                bg=PHOENIX_THEME.elevated_bg,
+                fg=PHOENIX_THEME.danger,
+                activebackground=PHOENIX_THEME.danger,
+                activeforeground=PHOENIX_THEME.text_on_accent,
+                relief="flat",
+                bd=0,
+                font=PHOENIX_THEME.font_button,
+                cursor="hand2",
+                width=2,
+            )
+            delete_btn.place(relx=1.0, x=-4, y=4, anchor="ne")
+
             # Hover function closure
             def make_hover_func(f=tile_frame, il=img_lbl, nl=name_lbl):
                 return lambda active: (
@@ -543,3 +581,62 @@ class PhoenixHomeView(tk.Frame):
                 w.bind("<Enter>", lambda _e, h=hover_func: h(True), add="+")
                 w.bind("<Leave>", lambda _e, h=hover_func: h(False), add="+")
                 w.bind("<Button-1>", click_func, add="+")
+                w.bind(
+                    "<Button-3>",
+                    lambda event, path=gen.path: self._show_generation_menu(event, path),
+                    add="+",
+                )
+
+    def _show_generation_menu(self, event: tk.Event, path: Path) -> None:
+        menu = tk.Menu(
+            self,
+            tearoff=False,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_body,
+        )
+        menu.add_command(
+            label=tr("home_delete_generation", "Generierung löschen"),
+            command=lambda: self._delete_generation(path),
+        )
+        menu.tk_popup(event.x_root, event.y_root)
+
+    @staticmethod
+    def _generation_files(path: Path) -> tuple[Path, ...]:
+        return path, path.with_suffix(".json")
+
+    def _delete_generation(self, path: Path) -> None:
+        if not messagebox.askyesno(
+            tr("home_delete_generation_title", "Generierung löschen"),
+            tr(
+                "home_delete_generation_confirm",
+                "Soll die ausgewählte Generierung einschließlich Metadaten dauerhaft gelöscht werden?",
+            ),
+            parent=self,
+        ):
+            return
+        for candidate in self._generation_files(path):
+            candidate.unlink(missing_ok=True)
+        self.refresh(force=True)
+
+    def _delete_all_generations(self) -> None:
+        candidates = [path for path in OUTPUT_DIR.glob("*.png") if path.is_file()]
+        if not candidates:
+            return
+        if not messagebox.askyesno(
+            tr("home_delete_all_title", "Alle Generierungen löschen"),
+            tr(
+                "home_delete_all_confirm",
+                "Sollen wirklich alle Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
+            ),
+            parent=self,
+        ):
+            return
+        for path in candidates:
+            for candidate in self._generation_files(path):
+                candidate.unlink(missing_ok=True)
+        self.refresh(force=True)

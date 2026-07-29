@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.i18n import tr
 import time
 from typing import Any
 from controllers.generation_job import GenerationJob
@@ -80,7 +81,7 @@ class ImageGenerationPipeline:
         return GenerationResult(
             success=False,
             status=JobStatus.CANCELLED.value,
-            message="Generation cancelled.",
+            message=tr("generation_cancelled", "Generierung abgebrochen."),
             model_name=(
                 self.job.parameters.model_name
                 if self.job and self.job.session
@@ -184,11 +185,19 @@ class ImageGenerationPipeline:
             if self.job.cancel_requested.is_set():
                 return self._cancelled_result()
             if not self.validate():
-                self.job.fail("Pipeline validation failed: invalid parameters.")
+                self.job.fail(
+                    tr(
+                        "pipeline_validation_failed",
+                        "Pipeline-Validierung fehlgeschlagen: ungültige Parameter.",
+                    )
+                )
                 return GenerationResult(
                     success=False,
                     status="ValidationError",
-                    message="Pipeline validation failed: invalid parameters.",
+                    message=tr(
+                        "pipeline_validation_failed",
+                        "Pipeline-Validierung fehlgeschlagen: ungültige Parameter.",
+                    ),
                     model_name=self.job.parameters.model_name if (self.job and self.job.session) else "Unknown"
                 )
 

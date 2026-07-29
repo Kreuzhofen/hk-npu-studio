@@ -254,20 +254,20 @@ class GalleryThumbnailArea(tk.Frame):
             font=PHOENIX_THEME.font_body,
         )
         menu.add_command(
-            label="Öffnen",
+            label=tr("open", "Öffnen"),
             command=lambda img=image: self.on_double_click(img),
         )
         menu.add_command(
-            label="Im Explorer anzeigen",
+            label=tr("btn_open_in_explorer", "Im Explorer anzeigen"),
             command=lambda img=image: self._open_in_explorer(img),
         )
         menu.add_command(
-            label="In Review Workspace übernehmen",
+            label=tr("open_in_review", "In Review öffnen"),
             command=lambda img=image: self._transfer_to_review(img),
         )
         menu.add_separator()
         menu.add_command(
-            label="Löschen",
+            label=tr("delete", "Löschen"),
             command=lambda img=image: self._delete_image(img),
         )
         self._context_menu = menu
@@ -293,7 +293,7 @@ class GalleryThumbnailArea(tk.Frame):
                 self.confirmed = False
                 super().__init__(
                     master,
-                    title="Löschen bestätigen",
+                    title=tr("delete_confirm_title", "Löschen bestätigen"),
                     size=(420, 220),
                     min_size=(350, 180),
                     resizable=False,

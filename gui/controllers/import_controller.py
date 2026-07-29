@@ -10,6 +10,8 @@ Phoenix UI
 from pathlib import Path
 from tkinter import filedialog
 
+from app.i18n import tr
+
 
 class ImportController:
     """
@@ -21,10 +23,10 @@ class ImportController:
 
     def select_images(self):
         filenames = filedialog.askopenfilenames(
-            title="Bilder auswählen",
+            title=tr("select_images_title", "Bilder auswählen"),
             filetypes=[
-                ("Bilddateien", "*.png *.jpg *.jpeg *.bmp *.webp"),
-                ("Alle Dateien", "*.*"),
+                (tr("image_files", "Bilddateien"), "*.png *.jpg *.jpeg *.bmp *.webp"),
+                (tr("all_files", "Alle Dateien"), "*.*"),
             ],
         )
 
@@ -35,7 +37,7 @@ class ImportController:
 
     def select_folder(self):
         folder = filedialog.askdirectory(
-            title="Ordner mit Bildern auswählen"
+            title=tr("select_image_folder_title", "Ordner mit Bildern auswählen")
         )
 
         if not folder:

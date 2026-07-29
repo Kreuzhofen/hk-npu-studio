@@ -61,11 +61,13 @@ class ApplicationController:
         
         # Theme
         theme_val = prefs.get("theme", "Dunkel")
-        update_phoenix_theme("dark" if theme_val == "Dunkel" else "light")
+        dark_theme_values = {"Dunkel", "Dark", "dark", "professional_dark"}
+        update_phoenix_theme("dark" if theme_val in dark_theme_values else "light")
         
         # Language
         lang_val = prefs.get("language", "Deutsch")
-        set_language("de_DE" if lang_val == "Deutsch" else "en_US")
+        from app.i18n import LANGUAGE_CODES
+        set_language(LANGUAGE_CODES.get(str(lang_val), "de_DE"))
         
         self.app.geometry("1400x900")
         self.app.configure(bg=PHOENIX_THEME.app_bg)

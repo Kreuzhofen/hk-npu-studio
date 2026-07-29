@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.i18n import tr
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
@@ -209,7 +210,7 @@ class ModelLoaderService:
                 success=False,
                 model_id=model_id,
                 backend=model.get("recommended_backend") or model.get("backend") or "Unknown",
-                message="Model is not installed."
+                message=tr("model_not_installed_message", "Modell ist nicht installiert.")
             )
 
         validation = self.repository.validate_model_installation(model_id)
@@ -217,7 +218,10 @@ class ModelLoaderService:
             return ModelResolveResult(
                 success=False,
                 model_id=model_id,
-                message="Model registry validation is unavailable.",
+                message=tr(
+                    "model_registry_validation_unavailable",
+                    "Registry-Validierung des Modells ist nicht verfügbar.",
+                ),
             )
         if validation.status == ModelHealthStatus.INVALID:
             return ModelResolveResult(
@@ -233,7 +237,10 @@ class ModelLoaderService:
                 success=False,
                 model_id=model_id,
                 backend=model.get("recommended_backend") or model.get("backend") or "Unknown",
-                message="Model installation path is empty."
+                message=tr(
+                    "model_installation_path_empty",
+                    "Installationspfad des Modells ist leer.",
+                )
             )
 
         p = Path(path_str)
@@ -258,7 +265,7 @@ class ModelLoaderService:
             model_path=path_str,
             files=files,
             backend=backend,
-            message="Model resolved successfully.",
+            message=tr("model_resolved_successfully", "Modell erfolgreich aufgelöst."),
             warnings=warnings
         )
 

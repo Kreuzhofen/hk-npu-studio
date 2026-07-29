@@ -5,6 +5,7 @@ from pathlib import Path
 from PIL import Image, ImageOps
 Image.MAX_IMAGE_PIXELS = None
 
+from app.i18n import tr
 from controllers.compare_workspace_model import (
     CompareImageMetadata,
     CompareWorkspaceModel,
@@ -69,20 +70,30 @@ class CompareWorkspaceController:
 
     def swap_images(self) -> None:
         if self.model.original_image is None and self.model.output_image is None:
-            self.model.set_status("Keine Bilder zum Tauschen geladen")
+            self.model.set_status(tr("compare_swap_missing", "Keine Bilder zum Tauschen geladen"))
             return
         self.model.swap_images()
 
     def set_error(self, message: str) -> None:
-        self.model.set_status(f"Fehler: {message}")
+        self.model.set_status(f"{tr('error', 'Fehler')}: {message}")
 
     def compare_metadata(self) -> set[str]:
         """Return differing metadata fields for the two loaded images."""
         state = self.get_state()
         if state.original_metadata is None or state.output_metadata is None:
-            self.model.set_status("Metadatenvergleich benötigt zwei Bilder")
+            self.model.set_status(
+                tr("compare_metadata_requires_two", "Metadatenvergleich benötigt zwei Bilder")
+            )
             return set()
-        fields = ("prompt", "seed", "sampler")
+        fields = (
+            "resolution",
+            "image_format",
+            "color_mode",
+            "file_size",
+            "prompt",
+            "seed",
+            "sampler",
+        )
         differences = {
             field
             for field in fields
@@ -90,14 +101,16 @@ class CompareWorkspaceController:
             != getattr(state.output_metadata, field)
         }
         self.model.set_status(
-            "Metadaten verglichen"
+            tr("compare_metadata_equal", "Metadaten verglichen")
             if not differences
-            else "Metadaten verglichen - Unterschiede farblich hervorgehoben"
+            else tr(
+                "compare_metadata_differences",
+                "Metadaten verglichen – Unterschiede farblich hervorgehoben",
+            )
         )
         return differences
 
     def status_items(self) -> dict[str, str]:
-        from app.i18n import tr
         state = self.get_state()
         original_name = state.original_metadata.filename if (state.original_loaded and state.original_metadata) else tr("not_loaded", "Nicht geladen")
         output_name = state.output_metadata.filename if (state.output_loaded and state.output_metadata) else tr("not_loaded", "Nicht geladen")
@@ -106,30 +119,29 @@ class CompareWorkspaceController:
         status_val = tr("ready", "Bereit") if state.status == "Bereit" else state.status
         
         return {
-            "Original": original_name,
-            "Output": output_name,
-            "Zoom": state.zoom_label,
-            "Sync": sync_val,
-            "Status": status_val,
+            tr("compare_left_title", "Original"): original_name,
+            tr("output_title", "Ausgabe"): output_name,
+            tr("zoom", "Zoom"): state.zoom_label,
+            tr("compare_sync_short", "Sync"): sync_val,
+            tr("status", "Status"): status_val,
         }
 
     def inspector_sections(self) -> dict[str, tuple[str, ...]]:
-        from app.i18n import tr
         state = self.get_state()
         sync_val = tr("synchronized", "Synchron") if state.sync_label == "Synchron" else state.sync_label
         status_val = tr("ready", "Bereit") if state.status == "Bereit" else state.status
         
         return {
-            "Original": self._metadata_lines(state.original_metadata),
-            "Output": self._metadata_lines(state.output_metadata),
-            "Bildinformationen": (
-                f"Zoom: {state.zoom_label}",
+            tr("compare_left_title", "Original"): self._metadata_lines(state.original_metadata),
+            tr("output_title", "Ausgabe"): self._metadata_lines(state.output_metadata),
+            tr("image_information", "Bildinformationen"): (
+                f"{tr('zoom', 'Zoom')}: {state.zoom_label}",
                 f"{tr('compare_sync_label', 'Synchronisation')}: {sync_val}",
                 self._resolution_delta_label(state),
             ),
-            "Verarbeitung": (
-                "AI-Daten: -",
-                "Pipeline: Manuelle Vergleichsansicht",
+            tr("processing", "Verarbeitung"): (
+                f"{tr('ai_data', 'AI-Daten')}: -",
+                f"{tr('pipeline', 'Pipeline')}: {tr('manual_compare_view', 'Manuelle Vergleichsansicht')}",
                 f"{tr('status', 'Status')}: {tr('compare_ready_status', 'Bereit für Qualitätskontrolle') if state.status == 'Bereit' else status_val}",
             ),
         }
@@ -137,10 +149,14 @@ class CompareWorkspaceController:
     def _load_image(self, filename: str | Path) -> tuple[Image.Image, CompareImageMetadata]:
         path = Path(filename)
         if not path.exists():
-            raise FileNotFoundError(f"Datei nicht gefunden: {path}")
+            raise FileNotFoundError(f"{tr('file_not_found', 'Datei nicht gefunden')}: {path}")
 
         with Image.open(path) as source_image:
-            image_format = source_image.format or path.suffix.lstrip(".").upper() or "Unbekannt"
+            image_format = (
+                source_image.format
+                or path.suffix.lstrip(".").upper()
+                or tr("unknown", "Unbekannt")
+            )
             image = ImageOps.exif_transpose(source_image)
             color_mode = image.mode
             orig_w, orig_h = image.size
@@ -180,24 +196,29 @@ class CompareWorkspaceController:
 
     def _metadata_lines(self, metadata: CompareImageMetadata | None) -> tuple[str, ...]:
         if metadata is None:
-            return ("Datei: -", "Auflösung: -", "Format: -", "Größe: -")
+            return (
+                f"{tr('file', 'Datei')}: -",
+                f"{tr('resolution', 'Auflösung')}: -",
+                f"{tr('format', 'Format')}: -",
+                f"{tr('size', 'Größe')}: -",
+            )
         return (
-            f"Datei: {metadata.filename}",
-            f"Auflösung: {metadata.resolution}",
-            f"Format: {metadata.image_format}",
-            f"Farbmodus: {metadata.color_mode}",
-            f"Größe: {metadata.file_size}",
-            f"Pfad: {metadata.path}",
+            f"{tr('file', 'Datei')}: {metadata.filename}",
+            f"{tr('resolution', 'Auflösung')}: {metadata.resolution}",
+            f"{tr('format', 'Format')}: {metadata.image_format}",
+            f"{tr('color_mode', 'Farbmodus')}: {metadata.color_mode}",
+            f"{tr('size', 'Größe')}: {metadata.file_size}",
+            f"{tr('path', 'Pfad')}: {metadata.path}",
         )
 
     def _resolution_delta_label(self, state: CompareWorkspaceState) -> str:
         original = state.original_metadata
         output = state.output_metadata
         if original is None or output is None:
-            return "Vergleich: wartet auf beide Bilder"
+            return tr("compare_waiting_for_both", "Vergleich: wartet auf beide Bilder")
         if original.resolution == output.resolution:
-            return "Vergleich: gleiche Auflösung"
-        return "Vergleich: unterschiedliche Auflösung"
+            return tr("compare_same_resolution", "Vergleich: gleiche Auflösung")
+        return tr("compare_different_resolution", "Vergleich: unterschiedliche Auflösung")
 
     def _format_file_size(self, size_bytes: int) -> str:
         size = float(size_bytes)

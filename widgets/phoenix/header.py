@@ -4,6 +4,7 @@ import tkinter as tk
 
 from PIL import Image, ImageTk
 
+from app.i18n import tr
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
@@ -26,7 +27,7 @@ class PhoenixHeader(tk.Frame):
 
         logo = self.brand.logo_image(48)
         logo = logo.resize((35, 35), Image.Resampling.LANCZOS)
-        self.logo_image = ImageTk.PhotoImage(logo)
+        self.logo_image = ImageTk.PhotoImage(logo, master=self)
         tk.Label(
             left,
             image=self.logo_image,
@@ -39,23 +40,23 @@ class PhoenixHeader(tk.Frame):
 
         self.title_label = tk.Label(
             title_group,
-            text=self.brand.app_name(),
+            text=self.brand.engine_name(),
             bg=PHOENIX_THEME.header_bg,
-            fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_section,
+            fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_title,
             anchor="w",
         )
-        self.title_label.pack(side="top", anchor="w", pady=(9, 0))
+        self.title_label.pack(side="top", anchor="w", pady=(6, 0))
 
         self.view_label = tk.Label(
             title_group,
-            text="Home",
+            text=f"{self.brand.app_name()} · {tr('nav_home', 'Home')}",
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="w",
         )
-        self.view_label.pack(side="top", anchor="w", pady=(0, 8))
+        self.view_label.pack(side="top", anchor="w", pady=(0, 7))
 
         badge = tk.Label(
             self,
@@ -69,4 +70,4 @@ class PhoenixHeader(tk.Frame):
         badge.pack(side="right", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_xs))
 
     def set_view(self, title: str) -> None:
-        self.view_label.configure(text=title)
+        self.view_label.configure(text=f"{self.brand.app_name()} · {title}")

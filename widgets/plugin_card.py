@@ -9,6 +9,7 @@ Phoenix UI
 
 import tkinter as tk
 
+from app.i18n import tr
 from resources.theme import Theme
 
 
@@ -31,7 +32,7 @@ class PluginCard(tk.Frame):
 
         self.title_label = tk.Label(
             self,
-            text="Plugin",
+            text=tr("plugin", "Plugin"),
             font=Theme.font("card_title"),
             anchor="w",
             bg=Theme.color("card"),
@@ -41,7 +42,7 @@ class PluginCard(tk.Frame):
 
         self.name_label = tk.Label(
             self,
-            text="Name: -",
+            text=f"{tr('name', 'Name')}: -",
             anchor="w",
             font=Theme.font("body"),
             bg=Theme.color("card"),
@@ -51,7 +52,7 @@ class PluginCard(tk.Frame):
 
         self.backend_label = tk.Label(
             self,
-            text="Backend: -",
+            text=f"{tr('backend', 'Backend')}: -",
             anchor="w",
             font=Theme.font("body"),
             bg=Theme.color("card"),
@@ -61,7 +62,7 @@ class PluginCard(tk.Frame):
 
         self.status_label = tk.Label(
             self,
-            text="Status: -",
+            text=f"{tr('status', 'Status')}: -",
             anchor="w",
             font=Theme.font("body"),
             bg=Theme.color("card"),

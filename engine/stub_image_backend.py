@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.i18n import tr
 import time
 import datetime
 import json
@@ -134,7 +135,10 @@ class StubImageBackend(InferenceBackend):
         return GenerationResponse(
             success=True,
             status="FINISHED",
-            message="Local image generation completed successfully.",
+            message=tr(
+                "local_generation_completed",
+                "Lokale Bildgenerierung erfolgreich abgeschlossen.",
+            ),
             image_path=str(dummy_image_path),
             thumbnail_path=str(dummy_image_path),
             backend_name=backend_name,

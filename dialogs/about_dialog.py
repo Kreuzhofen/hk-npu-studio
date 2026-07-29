@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import tkinter as tk
 
+from app.i18n import tr
 from dialogs.studio_dialog import StudioDialog
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -20,7 +21,7 @@ class AboutDialog(StudioDialog):
     def __init__(self, master: tk.Misc, brand: BrandManager):
         super().__init__(
             master,
-            title=f"About {brand.app_name()}",
+            title=f"{tr('about', 'Über')} {brand.app_name()}",
             brand=brand,
             size=(460, 700),
             min_size=(420, 640),
@@ -79,7 +80,7 @@ class AboutDialog(StudioDialog):
 
         tk.Label(
             self.body,
-            text="Created by",
+            text=tr("created_by", "Erstellt von"),
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
@@ -95,7 +96,10 @@ class AboutDialog(StudioDialog):
 
         tk.Label(
             self.body,
-            text="Founder • Product Owner • Release Manager",
+            text=tr(
+                "creator_roles",
+                "Gründer • Product Owner • Release Manager",
+            ),
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
@@ -117,4 +121,4 @@ class AboutDialog(StudioDialog):
             bg=PHOENIX_THEME.card_bg,
         ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_xl))
 
-        self.add_footer_button("OK", self.close)
+        self.add_footer_button(tr("ok", "OK"), self.close)

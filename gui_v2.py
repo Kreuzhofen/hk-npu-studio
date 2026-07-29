@@ -26,6 +26,7 @@ except ImportError:
     DND_AVAILABLE = False
 
 from gui.controllers.application_controller import ApplicationController
+from widgets.text_context_menu import install_text_context_menu
 
 
 BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
@@ -36,6 +37,7 @@ class SnapdragonAIStudioV2(BaseWindow):
     def __init__(self):
         super().__init__()
         self.withdraw()
+        install_text_context_menu(self)
 
         self.application_controller = ApplicationController(
             self,

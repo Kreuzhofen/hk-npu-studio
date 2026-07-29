@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import tkinter as tk
 
+from app.i18n import tr
 from dialogs.studio_dialog import StudioDialog
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -20,7 +21,7 @@ class PluginManagerDialog(StudioDialog):
     def __init__(self, master: tk.Misc):
         super().__init__(
             master,
-            title="Plugin Manager",
+            title=tr("plugin_manager", "Plugin-Manager"),
             brand=getattr(master, "brand", BrandManager()),
             size=(560, 420),
             min_size=(480, 360),
@@ -32,8 +33,11 @@ class PluginManagerDialog(StudioDialog):
 
     def _build_ui(self) -> None:
         self.add_title(
-            "Plugin Manager",
-            "Verfügbare Studio-Plugins und ihre Laufzeitumgebung.",
+            tr("plugin_manager", "Plugin-Manager"),
+            tr(
+                "plugin_manager_subtitle",
+                "Verfügbare Studio-Plugins und ihre Laufzeitumgebung.",
+            ),
         )
 
         plugin_card = self.add_card()
@@ -47,7 +51,7 @@ class PluginManagerDialog(StudioDialog):
 
         tk.Label(
             content,
-            text="Plugin",
+            text=tr("plugin", "Plugin"),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_card_title,
@@ -63,20 +67,23 @@ class PluginManagerDialog(StudioDialog):
             anchor="w",
         ).pack(fill="x", pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_md))
 
-        self._info_row(content, "Typ", "Image Upscale")
-        self._info_row(content, "Backend", "QNN / Snapdragon NPU")
-        self._info_row(content, "Status", "Bereit")
+        self._info_row(content, tr("type", "Typ"), tr("image_upscale", "Bildskalierung"))
+        self._info_row(content, tr("backend", "Backend"), "QNN / Snapdragon NPU")
+        self._info_row(content, tr("status", "Status"), tr("ready", "Bereit"))
 
         tk.Label(
             self.body,
-            text="Weitere Plugins folgen in späteren Versionen.",
+            text=tr(
+                "more_plugins_later",
+                "Weitere Plugins folgen in späteren Versionen.",
+            ),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="w",
         ).pack(fill="x", pady=(PHOENIX_THEME.space_xs, 0))
 
-        self.add_footer_button("OK", self.close)
+        self.add_footer_button(tr("ok", "OK"), self.close)
 
     def _info_row(self, master: tk.Misc, label: str, value: str) -> None:
         row = tk.Frame(master, bg=PHOENIX_THEME.elevated_bg)

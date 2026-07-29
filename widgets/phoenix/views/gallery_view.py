@@ -155,7 +155,7 @@ class PhoenixGalleryView(WorkspaceFrame):
     def _on_open_folder(self) -> None:
         from tkinter import filedialog
         folder = filedialog.askdirectory(
-            title="Bilderordner auswählen",
+            title=tr("open_folder_dialog_title", "Bilderordner auswählen"),
             initialdir=self.controller.current_folder or ""
         )
         if folder:

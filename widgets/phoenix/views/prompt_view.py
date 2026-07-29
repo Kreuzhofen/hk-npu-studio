@@ -2270,7 +2270,7 @@ class PhoenixPromptView(WorkspaceFrame):
     def _on_dnd_click(self, event=None) -> None:
         from tkinter import filedialog
         file_path = filedialog.askopenfilename(
-            title="Referenzbild auswählen",
+            title=tr("reference_image_dialog_title", "Referenzbild auswählen"),
             filetypes=[
                 ("Bilddateien", "*.png *.jpg *.jpeg *.webp"),
                 ("PNG Image", "*.png"),
@@ -2927,7 +2927,7 @@ class PhoenixPromptView(WorkspaceFrame):
         history = self.controller.load_prompt_history(return_dicts=True)
         if not history:
             menu = tk.Menu(self, tearoff=0)
-            menu.add_command(label="Verlauf leer", state="disabled")
+            menu.add_command(label=tr("history_empty", "Verlauf leer"), state="disabled")
             menu.configure(
                 bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_body, relief="flat", bd=1,
@@ -3128,7 +3128,7 @@ class PhoenixPromptView(WorkspaceFrame):
         categories = self.controller.load_prompt_templates()
         if not categories:
             menu = tk.Menu(self, tearoff=0)
-            menu.add_command(label="Keine Vorlagen gefunden", state="disabled")
+            menu.add_command(label=tr("templates_empty", "Keine Vorlagen gefunden"), state="disabled")
             menu.configure(
                 bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_body, relief="flat", bd=1,

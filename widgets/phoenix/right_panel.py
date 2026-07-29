@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 
+from app.i18n import tr
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
@@ -18,10 +19,10 @@ class PhoenixRightPanel(tk.Frame):
         self.stop_button: tk.Button | None = None
         self.output_button: tk.Button | None = None
 
-        self._status_value: tk.StringVar = tk.StringVar(value="Ready")
-        self._plugin_value: tk.StringVar = tk.StringVar(value="Nicht verbunden")
-        self._backend_value: tk.StringVar = tk.StringVar(value="Noch keine Engine aktiv")
-        self._file_value: tk.StringVar = tk.StringVar(value="Keine Auswahl")
+        self._status_value: tk.StringVar = tk.StringVar(value=tr("ready", "Bereit"))
+        self._plugin_value: tk.StringVar = tk.StringVar(value=tr("not_connected", "Nicht verbunden"))
+        self._backend_value: tk.StringVar = tk.StringVar(value=tr("no_engine_active", "Noch keine Engine aktiv"))
+        self._file_value: tk.StringVar = tk.StringVar(value=tr("no_selection", "Keine Auswahl"))
 
         self.grid_propagate(False)
         self.pack_propagate(False)
@@ -35,7 +36,7 @@ class PhoenixRightPanel(tk.Frame):
 
         self.title_lbl = tk.Label(
             self.title_frame,
-            text="Inspector",
+            text=tr("inspector_title", "Inspector"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_title,
@@ -45,7 +46,7 @@ class PhoenixRightPanel(tk.Frame):
 
         self.subtitle_lbl = tk.Label(
             self.title_frame,
-            text="Aktionen und Status",
+            text=tr("actions_and_status", "Aktionen und Status"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
@@ -75,7 +76,7 @@ class PhoenixRightPanel(tk.Frame):
         self.disable_output_button()
 
     def _build_actions_section(self) -> None:
-        section = self._section("Aktionen")
+        section = self._section(tr("title_actions", "Aktionen"))
         section.pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_md))
 
         self.start_button = self._button(section, "▶ Start", self._start_plugin)
@@ -84,11 +85,11 @@ class PhoenixRightPanel(tk.Frame):
         self.stop_button = self._button(section, "■ Stop", self._stop_plugin)
         self.stop_button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(0, PHOENIX_THEME.space_sm))
 
-        self.output_button = self._button(section, "📂 Output öffnen", self._open_output)
+        self.output_button = self._button(section, f"📂 {tr('menu_open_output', 'Output-Ordner öffnen')}", self._open_output)
         self.output_button.pack(fill="x", padx=PHOENIX_THEME.space_md, pady=(0, PHOENIX_THEME.space_md))
 
     def _build_status_section(self) -> None:
-        section = self._section("Status")
+        section = self._section(tr("status", "Status"))
         section.pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_md))
 
         self._info_row(section, "Runtime", self._status_value)
@@ -96,16 +97,16 @@ class PhoenixRightPanel(tk.Frame):
         self._info_row(section, "Backend", self._backend_value)
 
     def _build_info_section(self) -> None:
-        section = self._section("Datei")
+        section = self._section(tr("file", "Datei"))
         section.pack(fill="both", expand=True, padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_lg))
 
-        self._info_row(section, "Auswahl", self._file_value)
+        self._info_row(section, tr("selection", "Auswahl"), self._file_value)
 
         tk.Label(
             section,
-            text=(
-                "Der Inspector zeigt künftig Details zum aktiven Job, "
-                "zur Queue und zum letzten Output."
+            text=tr(
+                "inspector_future_details",
+                "Der Inspector zeigt Details zum aktiven Job, zur Warteschlange und zur letzten Ausgabe.",
             ),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,

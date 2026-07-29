@@ -4,6 +4,21 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-29 (Sprint 22 – Final Polish & UX Audit)
+
+### Geändert
+* Spanisch vollständig ergänzt; Deutsch, Englisch und Spanisch auf 577 identische Schlüssel und konsistente Platzhalter vereinheitlicht.
+* Automatisches Lokalisierungs-Audit für Sprachdateien, Produktoberflächen und verbliebene deutsche Texte in Englisch/Spanisch ergänzt.
+* Phoenix-Branding, Light-Theme-Settings-Icon, Kontraste, Terminologie und DPI-Darstellung nachgeschärft.
+* Gemeinsames Kontextmenü für Texteingaben sowie einzelnes und bestätigtes vollständiges Löschen letzter Generierungen ergänzt.
+* Bildvergleich als technischer Metadatenvergleich vereinfacht und um relevante Bild-, Datei- und Generierungsunterschiede erweitert.
+* Inno-Setup-Installer auf Englisch, Deutsch und Spanisch lokalisiert.
+
+### Prüfung
+* 78 betroffene Tests und 9 Subtests bestanden; Produktcode vollständig kompiliert.
+* ARM64-Anwendung und Installer gebaut und validiert; Installation, installierte Startdiagnose und Deinstallation erfolgreich.
+* Codesignierung und Veröffentlichung nicht durchgeführt.
+
 ## [2.0 RC1] – 2026-07-29 (Release-Vorbereitung)
 
 ### Geändert

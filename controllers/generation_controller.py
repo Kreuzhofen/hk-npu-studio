@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.i18n import tr
 from pathlib import Path
 from typing import Any
 from controllers.generation_session import GenerationSessionModel
@@ -52,7 +53,7 @@ class GenerationController:
         return GenerationResult(
             success=False,
             status="CANCELLED",
-            message="Generation cancelled.",
+            message=tr("generation_cancelled", "Generierung abgebrochen."),
             model_name=job.session.model_name,
         )
 

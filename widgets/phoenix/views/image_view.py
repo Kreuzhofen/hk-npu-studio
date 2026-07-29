@@ -6,6 +6,7 @@ from pathlib import Path
 from PIL import Image, ImageOps, ImageTk
 Image.MAX_IMAGE_PIXELS = None
 
+from app.i18n import tr
 from widgets.phoenix.preview.compare_controller import CompareController
 from widgets.phoenix.preview.compare_renderer import CompareRenderer
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -117,7 +118,7 @@ class PhoenixImageView(tk.Frame):
 
         self.title_label = tk.Label(
             self,
-            text="Image Workspace",
+            text=tr("image_workspace", "Bild-Workspace"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=("Segoe UI", 22, "bold"),
@@ -127,7 +128,7 @@ class PhoenixImageView(tk.Frame):
 
         self.path_label = tk.Label(
             self,
-            text="Noch kein Bild geladen.",
+            text=tr("no_image_loaded", "Noch kein Bild geladen."),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 11),
@@ -164,7 +165,7 @@ class PhoenixImageView(tk.Frame):
 
         tk.Label(
             self.compare_toolbar,
-            text="Compare",
+            text=tr("nav_compare", "Vergleich"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
@@ -173,10 +174,10 @@ class PhoenixImageView(tk.Frame):
 
         for index, (mode, label) in enumerate(
             (
-                ("side", "Side"),
-                ("slider", "Slider"),
-                ("overlay", "Overlay"),
-                ("difference", "Difference"),
+                ("side", tr("compare_mode_side", "Nebeneinander")),
+                ("slider", tr("compare_mode_slider", "Schieberegler")),
+                ("overlay", tr("compare_mode_overlay", "Überlagerung")),
+                ("difference", tr("compare_mode_difference", "Differenz")),
             )
         ):
             button = tk.Button(
@@ -200,7 +201,7 @@ class PhoenixImageView(tk.Frame):
 
         tk.Label(
             self.compare_toolbar,
-            text="Zoom",
+            text=tr("zoom", "Zoom"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
@@ -247,7 +248,7 @@ class PhoenixImageView(tk.Frame):
 
         self.zoom_value_label = tk.Label(
             self.compare_toolbar,
-            text="Zoom: Fit",
+            text=f"{tr('zoom', 'Zoom')}: Fit",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=("Segoe UI", 9, "bold"),
@@ -269,7 +270,7 @@ class PhoenixImageView(tk.Frame):
 
         tk.Label(
             original_preview,
-            text="Original",
+            text=tr("compare_left_title", "Original"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
@@ -278,7 +279,7 @@ class PhoenixImageView(tk.Frame):
 
         self.preview_label = tk.Label(
             original_preview,
-            text="Keine Vorschau verfügbar",
+            text=tr("preview_unavailable", "Keine Vorschau verfügbar"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 12),
@@ -300,7 +301,7 @@ class PhoenixImageView(tk.Frame):
 
         tk.Label(
             output_preview,
-            text="Bearbeitet",
+            text=tr("edited", "Bearbeitet"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
@@ -309,7 +310,7 @@ class PhoenixImageView(tk.Frame):
 
         self.output_preview_label = tk.Label(
             output_preview,
-            text="Noch kein Output",
+            text=tr("no_output_yet", "Noch keine Ausgabe"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 12),
@@ -330,7 +331,7 @@ class PhoenixImageView(tk.Frame):
 
         tk.Label(
             gallery_frame,
-            text="Gallery",
+            text=tr("nav_gallery", "Galerie"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
             font=("Segoe UI", 9, "bold"),
@@ -384,11 +385,13 @@ class PhoenixImageView(tk.Frame):
         info_host.grid_columnconfigure(0, weight=1, uniform="image_info_cards")
         info_host.grid_columnconfigure(1, weight=1, uniform="image_info_cards")
 
-        image_info = self._build_info_card(info_host, "Bildinformationen")
+        image_info = self._build_info_card(
+            info_host, tr("image_information", "Bildinformationen")
+        )
         image_info.grid(row=0, column=0, sticky="nsew", padx=(0, panel_gap // 2))
         self.image_info_value = tk.Label(
             image_info,
-            text="Keine Bildinformationen verfügbar.",
+            text=tr("no_image_information", "Keine Bildinformationen verfügbar."),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=("Segoe UI", 9),
@@ -397,11 +400,13 @@ class PhoenixImageView(tk.Frame):
         )
         self.image_info_value.pack(fill="x", padx=card_padding, pady=(0, card_padding))
 
-        output_info = self._build_info_card(info_host, "Ausgabeinformationen")
+        output_info = self._build_info_card(
+            info_host, tr("output_information", "Ausgabeinformationen")
+        )
         output_info.grid(row=0, column=1, sticky="nsew", padx=(panel_gap // 2, 0))
         self.output_info_value = tk.Label(
             output_info,
-            text="Keine Ausgabeinformationen verfügbar.",
+            text=tr("no_output_information", "Keine Ausgabeinformationen verfügbar."),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=("Segoe UI", 9),
@@ -458,22 +463,28 @@ class PhoenixImageView(tk.Frame):
             self.original_display_image = None
             self.output_display_image = None
             self.compare_controller.set_images(None, None)
-            self.path_label.configure(text=f"Bild nicht gefunden: {image_path}")
-            self.image_info_value.configure(text="Keine Bildinformationen verfügbar.")
-            self.output_info_value.configure(text="Keine Ausgabeinformationen verfügbar.")
+            self.path_label.configure(
+                text=f"{tr('image_not_found', 'Bild nicht gefunden')}: {image_path}"
+            )
+            self.image_info_value.configure(
+                text=tr("no_image_information", "Keine Bildinformationen verfügbar.")
+            )
+            self.output_info_value.configure(
+                text=tr("no_output_information", "Keine Ausgabeinformationen verfügbar.")
+            )
             self.preview_label.configure(
                 image="",
-                text="Bild nicht gefunden",
+                text=tr("image_not_found", "Bild nicht gefunden"),
             )
             self.output_preview_label.configure(
                 image="",
-                text="Noch kein Output",
+                text=tr("no_output_yet", "Noch keine Ausgabe"),
             )
             return
 
         try:
             with Image.open(image_path) as source_image:
-                image_format = source_image.format or "Unbekannt"
+                image_format = source_image.format or tr("unknown", "Unbekannt")
                 source_image = ImageOps.exif_transpose(source_image)
                 image_mode = source_image.mode
                 image_size = source_image.size
@@ -491,18 +502,17 @@ class PhoenixImageView(tk.Frame):
             self.path_label.configure(text=str(image_path))
             self.image_info_value.configure(
                 text=(
-                    f"Dateiname: {image_path.name}\n"
-                    f"Auflösung: {image_size[0]} x {image_size[1]}\n"
-                    f"Format: {image_format}\n"
-                    f"Farbmodus: {image_mode}\n"
-                    f"Dateigröße: {file_size}"
+                    f"{tr('filename', 'Dateiname')}: {image_path.name}\n"
+                    f"{tr('resolution', 'Auflösung')}: {image_size[0]} x {image_size[1]}\n"
+                    f"{tr('format', 'Format')}: {image_format}\n"
+                    f"{tr('color_mode', 'Farbmodus')}: {image_mode}\n"
+                    f"{tr('file_size', 'Dateigröße')}: {file_size}"
                 )
             )
             self.output_info_value.configure(
-                text=(
-                    "Output: Noch nicht erzeugt\n"
-                    "Generation Engine: Nicht verbunden\n"
-                    "Backend: Noch keine Engine aktiv"
+                text=tr(
+                    "output_not_generated_details",
+                    "Ausgabe: noch nicht erzeugt\nGenerierungs-Engine: nicht verbunden\nBackend: noch keine Engine aktiv",
                 )
             )
             self._apply_compare_view_state()
@@ -513,11 +523,15 @@ class PhoenixImageView(tk.Frame):
             self.original_display_image = None
             self.compare_controller.set_images(None, self.output_display_image)
             self.path_label.configure(text=str(image_path))
-            self.image_info_value.configure(text="Keine Bildinformationen verfügbar.")
-            self.output_info_value.configure(text="Keine Ausgabeinformationen verfügbar.")
+            self.image_info_value.configure(
+                text=tr("no_image_information", "Keine Bildinformationen verfügbar.")
+            )
+            self.output_info_value.configure(
+                text=tr("no_output_information", "Keine Ausgabeinformationen verfügbar.")
+            )
             self.preview_label.configure(
                 image="",
-                text=f"Vorschaufehler:\n{error}",
+                text=f"{tr('preview_error', 'Vorschaufehler')}:\n{error}",
             )
 
     def show_output_image(self, filename: str | Path) -> None:
@@ -530,16 +544,18 @@ class PhoenixImageView(tk.Frame):
                 self.original_display_image,
                 None,
             )
-            self.output_info_value.configure(text="Output: Nicht gefunden")
+            self.output_info_value.configure(
+                text=tr("output_not_found", "Ausgabe nicht gefunden")
+            )
             self.output_preview_label.configure(
                 image="",
-                text="Output nicht gefunden",
+                text=tr("output_not_found", "Ausgabe nicht gefunden"),
             )
             return
 
         try:
             with Image.open(image_path) as source_image:
-                image_format = source_image.format or "Unbekannt"
+                image_format = source_image.format or tr("unknown", "Unbekannt")
                 source_image = ImageOps.exif_transpose(source_image)
                 image_mode = source_image.mode
                 image_size = source_image.size
@@ -553,11 +569,11 @@ class PhoenixImageView(tk.Frame):
             )
             self.output_info_value.configure(
                 text=(
-                    f"Output: {image_path.name}\n"
-                    f"Auflösung: {image_size[0]} x {image_size[1]}\n"
-                    f"Format: {image_format}\n"
-                    f"Farbmodus: {image_mode}\n"
-                    f"Dateigröße: {file_size}"
+                    f"{tr('output_title', 'Ausgabe')}: {image_path.name}\n"
+                    f"{tr('resolution', 'Auflösung')}: {image_size[0]} x {image_size[1]}\n"
+                    f"{tr('format', 'Format')}: {image_format}\n"
+                    f"{tr('color_mode', 'Farbmodus')}: {image_mode}\n"
+                    f"{tr('file_size', 'Dateigröße')}: {file_size}"
                 )
             )
             self._apply_compare_view_state()
@@ -569,10 +585,12 @@ class PhoenixImageView(tk.Frame):
                 self.original_display_image,
                 None,
             )
-            self.output_info_value.configure(text="Keine Ausgabeinformationen verfügbar.")
+            self.output_info_value.configure(
+                text=tr("no_output_information", "Keine Ausgabeinformationen verfügbar.")
+            )
             self.output_preview_label.configure(
                 image="",
-                text=f"Output-Fehler:\n{error}",
+                text=f"{tr('output_error', 'Ausgabefehler')}:\n{error}",
             )
 
     def show_image_pair(self, input_filename: str | Path, output_filename: str | Path) -> None:
@@ -753,9 +771,11 @@ class PhoenixImageView(tk.Frame):
 
         if hasattr(self, "zoom_value_label"):
             if self.zoom_mode == "fit":
-                self.zoom_value_label.configure(text="Zoom: Fit")
+                self.zoom_value_label.configure(text=f"{tr('zoom', 'Zoom')}: Fit")
             else:
-                self.zoom_value_label.configure(text=f"Zoom: {int(self.zoom_level * 100)} %")
+                self.zoom_value_label.configure(
+                    text=f"{tr('zoom', 'Zoom')}: {int(self.zoom_level * 100)} %"
+                )
 
     def _update_compare_mode_buttons(self) -> None:
         selected_border = getattr(PHOENIX_THEME, "accent", "#3B82F6")
@@ -912,16 +932,20 @@ class PhoenixImageView(tk.Frame):
         self.output_display_image = None
         self.compare_controller.set_images(None, None)
         self._reset_compare_view_state()
-        self.path_label.configure(text="Noch kein Bild geladen.")
-        self.image_info_value.configure(text="Keine Bildinformationen verfügbar.")
-        self.output_info_value.configure(text="Keine Ausgabeinformationen verfügbar.")
+        self.path_label.configure(text=tr("no_image_loaded", "Noch kein Bild geladen."))
+        self.image_info_value.configure(
+            text=tr("no_image_information", "Keine Bildinformationen verfügbar.")
+        )
+        self.output_info_value.configure(
+            text=tr("no_output_information", "Keine Ausgabeinformationen verfügbar.")
+        )
         self.preview_label.configure(
             image="",
-            text="Keine Vorschau verfügbar",
+            text=tr("preview_unavailable", "Keine Vorschau verfügbar"),
         )
         self.output_preview_label.configure(
             image="",
-            text="Noch kein Output",
+            text=tr("no_output_yet", "Noch keine Ausgabe"),
         )
 
     def _format_file_size(self, size_bytes: int) -> str:

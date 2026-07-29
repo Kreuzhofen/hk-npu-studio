@@ -333,14 +333,19 @@ class PhoenixPluginView(WorkspaceFrame):
         )
 
     def _on_browse_plugin(self) -> None:
-        folder = filedialog.askdirectory(title="Wähle einen Plugin-Ordner")
+        folder = filedialog.askdirectory(
+            title=tr("plugin_choose_folder_title", "Plugin-Ordner auswählen")
+        )
         if folder:
             self.install_path_var.set(folder)
 
     def _on_install_plugin(self) -> None:
         src = self.install_path_var.get().strip()
         if not src:
-            messagebox.showwarning("Warnung", "Bitte wähle zuerst einen Plugin-Ordner aus.")
+            messagebox.showwarning(
+                tr("warning", "Warnung"),
+                tr("plugin_choose_folder_warning", "Bitte wähle zuerst einen Plugin-Ordner aus."),
+            )
             return
 
         try:

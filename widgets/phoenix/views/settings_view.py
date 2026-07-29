@@ -65,7 +65,6 @@ class PhoenixSettingsView(tk.Frame):
         
         self._build()
         self._load_values()
-        self._setup_context_menus()
 
     def _add_button_hover(self, button: tk.Button, hover_bg: str | None = None, hover_fg: str | None = None) -> None:
         original_bg = button.cget("bg")
@@ -401,7 +400,10 @@ class PhoenixSettingsView(tk.Frame):
         self.theme_cb = ttk.Combobox(
             ui_form,
             textvariable=self.theme_var,
-            values=["Dunkel", "Hell"],
+            values=[
+                tr("theme_dark", "Dunkel"),
+                tr("theme_light", "Hell"),
+            ],
             state="readonly",
             style="Phoenix.TCombobox",
             font=PHOENIX_THEME.font_body,
@@ -421,7 +423,7 @@ class PhoenixSettingsView(tk.Frame):
         self.language_cb = ttk.Combobox(
             ui_form,
             textvariable=self.language_var,
-            values=["Deutsch", "English", "Español", "Français"],
+            values=["Deutsch", "English", "Español"],
             state="readonly",
             style="Phoenix.TCombobox",
             font=PHOENIX_THEME.font_body,
@@ -542,14 +544,20 @@ class PhoenixSettingsView(tk.Frame):
 
     def _browse_output_dir(self) -> None:
         initial = self.out_dir_entry.get().strip() or r"C:\SnapdragonAI"
-        folder = filedialog.askdirectory(title="Standard-Ausgabeordner wählen", initialdir=initial)
+        folder = filedialog.askdirectory(
+            title=tr("settings_choose_output_dir", "Standard-Ausgabeordner wählen"),
+            initialdir=initial,
+        )
         if folder:
             self.out_dir_entry.delete(0, tk.END)
             self.out_dir_entry.insert(0, os.path.normpath(folder))
 
     def _browse_models_dir(self) -> None:
         initial = self.models_dir_entry.get().strip() or r"C:\SnapdragonAI"
-        folder = filedialog.askdirectory(title="Modell-Verzeichnis wählen", initialdir=initial)
+        folder = filedialog.askdirectory(
+            title=tr("settings_choose_models_dir", "Modell-Verzeichnis wählen"),
+            initialdir=initial,
+        )
         if folder:
             self.models_dir_entry.delete(0, tk.END)
             self.models_dir_entry.insert(0, os.path.normpath(folder))
@@ -572,7 +580,7 @@ class PhoenixSettingsView(tk.Frame):
         self.models_dir_entry.insert(0, models_dir)
         
         # UI & Language
-        self.theme_var.set(prefs.get("theme", "Dunkel"))
+        self.theme_var.set(self._theme_display_value(prefs.get("theme", "Dunkel")))
         self.language_var.set(prefs.get("language", "Deutsch"))
         
         # Hugging Face Access Token
@@ -590,7 +598,7 @@ class PhoenixSettingsView(tk.Frame):
         old_theme = prefs.get("theme", "Dunkel")
         old_lang = prefs.get("language", "Deutsch")
         
-        new_theme = self.theme_var.get()
+        new_theme = self._theme_storage_value(self.theme_var.get())
         new_lang = self.language_var.get()
         
         settings = {
@@ -645,7 +653,7 @@ class PhoenixSettingsView(tk.Frame):
         self.models_dir_entry.delete(0, tk.END)
         self.models_dir_entry.insert(0, r"C:\SnapdragonAI\models")
         
-        self.theme_var.set("Dunkel")
+        self.theme_var.set(tr("theme_dark", "Dunkel"))
         self.language_var.set("Deutsch")
         
         self.token_entry.delete(0, tk.END)
@@ -656,6 +664,17 @@ class PhoenixSettingsView(tk.Frame):
             text=tr("settings_reset_success", "Einstellungen auf Standardwerte zurückgesetzt."),
             fg=PHOENIX_THEME.text_secondary
         )
+
+    @staticmethod
+    def _theme_storage_value(display_value: str) -> str:
+        dark_values = {"Dunkel", "Dark", tr("theme_dark", "Dunkel")}
+        return "Dunkel" if display_value in dark_values else "Hell"
+
+    @staticmethod
+    def _theme_display_value(stored_value: str) -> str:
+        if stored_value in {"Dunkel", "Dark", "dark", "professional_dark"}:
+            return tr("theme_dark", "Dunkel")
+        return tr("theme_light", "Hell")
 
     def _test_token(self) -> None:
         self.status_lbl.configure(

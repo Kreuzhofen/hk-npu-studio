@@ -9,6 +9,7 @@ Phoenix UI
 
 from tkinter import ttk
 
+from app.i18n import tr
 from widgets.base_card import BaseCard
 
 
@@ -18,11 +19,11 @@ class PreviewCard(BaseCard):
     """
 
     def __init__(self, master):
-        super().__init__(master, "Vorschau")
+        super().__init__(master, tr("preview", "Vorschau"))
 
         self.preview_label = ttk.Label(
             self,
-            text="Keine Vorschau verfügbar",
+            text=tr("preview_unavailable", "Keine Vorschau verfügbar"),
             anchor="center",
             justify="center",
         )
@@ -40,7 +41,7 @@ class PreviewCard(BaseCard):
         """
 
         self.preview_label.configure(
-            text="Keine Vorschau verfügbar",
+            text=tr("preview_unavailable", "Keine Vorschau verfügbar"),
             image="",
         )
 

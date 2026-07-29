@@ -12,6 +12,7 @@ from pathlib import Path
 
 from PIL import Image, ImageTk
 
+from app.i18n import tr
 
 class ThumbnailGallery(tk.Frame):
 
@@ -34,7 +35,7 @@ class ThumbnailGallery(tk.Frame):
 
         self.title_label = tk.Label(
             header,
-            text="Galerie",
+            text=tr("nav_gallery", "Galerie"),
             font=("Segoe UI", 10, "bold"),
             anchor="w",
         )
@@ -42,14 +43,14 @@ class ThumbnailGallery(tk.Frame):
 
         self.toggle_button = tk.Button(
             header,
-            text="Miniaturen anzeigen",
+            text=tr("show_thumbnails", "Miniaturen anzeigen"),
             command=self.toggle_view_mode,
         )
         self.toggle_button.pack(side="right")
 
         self.info_label = tk.Label(
             self,
-            text="Noch keine Bilder geladen.",
+            text=tr("no_images_loaded", "Noch keine Bilder geladen."),
             anchor="w",
         )
         self.info_label.pack(fill="x", pady=(4, 6))
@@ -63,10 +64,10 @@ class ThumbnailGallery(tk.Frame):
 
         if self.view_mode == "list":
             self.view_mode = "thumbnails"
-            self.toggle_button.configure(text="Liste anzeigen")
+            self.toggle_button.configure(text=tr("show_list", "Liste anzeigen"))
         else:
             self.view_mode = "list"
-            self.toggle_button.configure(text="Miniaturen anzeigen")
+            self.toggle_button.configure(text=tr("show_thumbnails", "Miniaturen anzeigen"))
 
         self._refresh()
 
@@ -98,10 +99,10 @@ class ThumbnailGallery(tk.Frame):
     def _refresh(self):
 
         if not self.items:
-            self.info_label.configure(text="Noch keine Bilder geladen.")
+            self.info_label.configure(text=tr("no_images_loaded", "Noch keine Bilder geladen."))
         else:
             self.info_label.configure(
-                text=f"Bilder geladen: {len(self.items)}"
+                text=f"{tr('images_loaded', 'Bilder geladen')}: {len(self.items)}"
             )
 
         if self.view_mode == "list":

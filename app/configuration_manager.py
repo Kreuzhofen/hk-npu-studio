@@ -193,7 +193,7 @@ class ConfigurationManager:
         validated["theme"] = theme
 
         language = string_value("language", allow_empty=False)
-        if language not in {"Deutsch", "English", "de_DE", "en_US"}:
+        if language not in {"Deutsch", "English", "Español", "de_DE", "en_US", "es_ES"}:
             errors.append("language: unbekannte Sprache")
             language = str(DEFAULT_PREFERENCES["language"])
         validated["language"] = language

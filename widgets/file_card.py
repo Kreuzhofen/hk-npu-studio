@@ -9,6 +9,7 @@ Phoenix UI
 
 import tkinter as tk
 
+from app.i18n import tr
 from resources.theme import Theme
 
 
@@ -31,7 +32,7 @@ class FileCard(tk.Frame):
 
         self.title_label = tk.Label(
             self,
-            text="Aktuelles Bild",
+            text=tr("current_image", "Aktuelles Bild"),
             font=Theme.font("card_title"),
             anchor="w",
             bg=Theme.color("card"),

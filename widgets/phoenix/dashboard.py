@@ -4,6 +4,7 @@ import tkinter as tk
 from dataclasses import dataclass
 from typing import Any
 
+from app.i18n import tr
 from widgets.phoenix.cards.progress_card import PhoenixProgressCard
 from widgets.phoenix.cards.status_card import PhoenixStatusCard
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -11,11 +12,11 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 @dataclass(frozen=True)
 class PhoenixDashboardSnapshot:
-    workspace_status: str = "Aktiv"
-    batch_status: str = "Bereit"
+    workspace_status: str = tr("active", "Aktiv")
+    batch_status: str = tr("ready", "Bereit")
     lifecycle_status: str = "Idle"
-    output_status: str = "Kein Output ausgewählt"
-    detail: str = "Phoenix Dashboard Foundation ist bereit."
+    output_status: str = tr("no_output_selected", "Keine Ausgabe ausgewählt")
+    detail: str = tr("dashboard_ready", "Phoenix-Dashboard ist bereit.")
     current: int = 0
     total: int = 0
     percent: int = 0
@@ -35,7 +36,7 @@ class PhoenixDashboard(tk.Frame):
     def _build(self) -> None:
         tk.Label(
             self,
-            text="Dashboard",
+            text=tr("dashboard", "Dashboard"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_title,
@@ -44,7 +45,10 @@ class PhoenixDashboard(tk.Frame):
 
         tk.Label(
             self,
-            text="Phoenix Statuszentrale für Batch-Lifecycle, Engine, Queue und Output.",
+            text=tr(
+                "dashboard_subtitle",
+                "Phoenix-Statuszentrale für Batch-Lifecycle, Engine, Warteschlange und Ausgabe.",
+            ),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_body,
@@ -58,18 +62,18 @@ class PhoenixDashboard(tk.Frame):
         cards_host.grid_rowconfigure(0, weight=1, uniform="dashboard_rows")
         cards_host.grid_rowconfigure(1, weight=1, uniform="dashboard_rows")
 
-        self._create_status_card(cards_host, "workspace", "Workspace", "Bereit", 0, 0)
-        self._create_status_card(cards_host, "batch", "Batch", "Bereit", 0, 1)
+        self._create_status_card(cards_host, "workspace", tr("workspace", "Workspace"), tr("ready", "Bereit"), 0, 0)
+        self._create_status_card(cards_host, "batch", tr("batch", "Batch"), tr("ready", "Bereit"), 0, 1)
         self._create_status_card(cards_host, "engine", "Engine", "Idle", 1, 0)
-        self._create_status_card(cards_host, "output", "Output", "Kein Output", 1, 1)
+        self._create_status_card(cards_host, "output", tr("output_title", "Ausgabe"), tr("no_output", "Keine Ausgabe"), 1, 1)
 
         self._progress_card = PhoenixProgressCard(
             self,
-            title="Queue Progress",
+            title=tr("queue_progress", "Warteschlangenfortschritt"),
             current=0,
             total=0,
             percent=0,
-            detail="Noch kein Batch gestartet.",
+            detail=tr("no_batch_started", "Noch kein Batch gestartet."),
         )
         self._progress_card.pack(fill="x", padx=PHOENIX_THEME.space_xl, pady=(0, 16))
 
@@ -97,10 +101,10 @@ class PhoenixDashboard(tk.Frame):
                 return self._coerce_snapshot(provider())
             except Exception:
                 return PhoenixDashboardSnapshot(
-                    batch_status="Unbekannt",
-                    lifecycle_status="Unbekannt",
-                    output_status="Unbekannt",
-                    detail="Dashboard-Daten konnten nicht gelesen werden.",
+                    batch_status=tr("unknown", "Unbekannt"),
+                    lifecycle_status=tr("unknown", "Unbekannt"),
+                    output_status=tr("unknown", "Unbekannt"),
+                    detail=tr("dashboard_read_failed", "Dashboard-Daten konnten nicht gelesen werden."),
                 )
 
         return PhoenixDashboardSnapshot()
@@ -111,11 +115,11 @@ class PhoenixDashboard(tk.Frame):
 
         if isinstance(data, dict):
             return PhoenixDashboardSnapshot(
-                workspace_status=str(data.get("workspace_status", "Aktiv")),
-                batch_status=str(data.get("batch_status", "Bereit")),
+                workspace_status=str(data.get("workspace_status", tr("active", "Aktiv"))),
+                batch_status=str(data.get("batch_status", tr("ready", "Bereit"))),
                 lifecycle_status=str(data.get("lifecycle_status", "Idle")),
-                output_status=str(data.get("output_status", "Kein Output ausgewählt")),
-                detail=str(data.get("detail", "Phoenix Dashboard Foundation ist bereit.")),
+                output_status=str(data.get("output_status", tr("no_output_selected", "Keine Ausgabe ausgewählt"))),
+                detail=str(data.get("detail", tr("dashboard_ready", "Phoenix-Dashboard ist bereit."))),
                 current=int(data.get("current", 0)),
                 total=int(data.get("total", 0)),
                 percent=int(data.get("percent", 0)),
@@ -124,14 +128,14 @@ class PhoenixDashboard(tk.Frame):
         return PhoenixDashboardSnapshot()
 
     def _render(self, snapshot: PhoenixDashboardSnapshot) -> None:
-        self._update_card("workspace", "Workspace", snapshot.workspace_status, "Phoenix UI aktiv.")
-        self._update_card("batch", "Batch", snapshot.batch_status, snapshot.detail)
-        self._update_card("engine", "Engine", snapshot.lifecycle_status, "Controller-/Lifecycle-Schicht.")
-        self._update_card("output", "Output", snapshot.output_status, "Letzter bekannter Output.")
+        self._update_card("workspace", tr("workspace", "Workspace"), snapshot.workspace_status, tr("phoenix_ui_active", "Phoenix UI aktiv."))
+        self._update_card("batch", tr("batch", "Batch"), snapshot.batch_status, snapshot.detail)
+        self._update_card("engine", "Engine", snapshot.lifecycle_status, tr("lifecycle_layer", "Controller-/Lifecycle-Schicht."))
+        self._update_card("output", tr("output_title", "Ausgabe"), snapshot.output_status, tr("last_known_output", "Letzte bekannte Ausgabe."))
 
         if self._progress_card is not None:
             self._progress_card.update(
-                title="Queue Progress",
+                title=tr("queue_progress", "Warteschlangenfortschritt"),
                 current=snapshot.current,
                 total=snapshot.total,
                 percent=snapshot.percent,
