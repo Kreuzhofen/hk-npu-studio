@@ -10,6 +10,11 @@ from engine.backends.sd15_qnn_backend_adapter import StableDiffusion15QnnBackend
 from engine.backends.sd21_qnn_backend_adapter import StableDiffusion21QnnBackendAdapter
 from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
 from engine.backends.discovery_result import DiscoveryResult
+from engine.error_diagnostics import diagnose_exception
+from engine.logging_config import get_logger
+
+
+logger = get_logger("BackendManager")
 
 
 class BackendManager:
@@ -39,6 +44,7 @@ class BackendManager:
         """Register an inference backend adapter."""
         name = adapter.get_backend_name()
         self._backends[name] = adapter
+        logger.debug("Backend registriert | backend=%s", name)
 
     def get_backend(self, name: str) -> BackendAdapter | None:
         """Get registered backend adapter by name."""
@@ -61,12 +67,32 @@ class BackendManager:
         """Initialize all registered backends that are supported on local hardware."""
         for backend in self._backends.values():
             if backend.is_available():
-                backend.initialize()
+                try:
+                    backend.initialize()
+                except Exception as error:
+                    diagnose_exception(
+                        logger,
+                        error,
+                        category="backend",
+                        context="initialize_all",
+                        backend_name=backend.get_backend_name(),
+                    )
+                    raise
 
     def shutdown_all(self) -> None:
         """Shutdown all registered backends, freeing resources."""
         for backend in self._backends.values():
-            backend.shutdown()
+            try:
+                backend.shutdown()
+            except Exception as error:
+                diagnose_exception(
+                    logger,
+                    error,
+                    category="backend",
+                    context="shutdown_all",
+                    backend_name=backend.get_backend_name(),
+                )
+                raise
 
     def get_available_backends(self) -> list[str]:
         """List names of registered backends that are available on this hardware."""
@@ -118,8 +144,13 @@ class BackendManager:
                     model_dict = repo.get_model(model)
                     if model_dict:
                         preferred = model_dict.get("recommended_backend") or model_dict.get("backend")
-                except Exception:
-                    pass
+                except Exception as error:
+                    diagnose_exception(
+                        logger,
+                        error,
+                        category="backend",
+                        context="resolve_model_preference",
+                    )
             
             if preferred and preferred in self._backends:
                 target_backend_name = preferred

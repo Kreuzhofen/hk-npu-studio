@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import logging
 import inspect
 from typing import Any
 from engine.inference_backend import InferenceBackend
+from engine.logging_config import get_logger
 from engine.runtime_model import RuntimeModel
 
-logger = logging.getLogger("InferenceBackendFactory")
+logger = get_logger("InferenceBackendFactory")
 
 
 class InferenceBackendFactory:

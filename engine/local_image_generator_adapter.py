@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import time
-import logging
 from pathlib import Path
 from typing import Any
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
+from engine.logging_config import get_logger
 from engine.runtime_model import RuntimeModel
 
-logger = logging.getLogger("LocalImageGeneratorAdapter")
+logger = get_logger("LocalImageGeneratorAdapter")
 
 
 class LocalImageGeneratorAdapter:

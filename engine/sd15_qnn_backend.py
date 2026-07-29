@@ -31,8 +31,9 @@ if project_root not in sys.path:
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
+from engine.logging_config import get_logger
 
-logger = logging.getLogger("StableDiffusion15QnnBackend")
+logger = get_logger("StableDiffusion15QnnBackend")
 DEFAULT_NEGATIVE_PROMPT = "blurry, low quality, distorted"
 
 

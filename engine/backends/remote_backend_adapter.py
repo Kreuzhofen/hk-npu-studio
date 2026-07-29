@@ -4,6 +4,10 @@ from engine.backends.backend_adapter import BackendAdapter
 from controllers.generation_job import GenerationJob
 from controllers.generation_result import GenerationResult
 from engine.job_lifecycle import JobStatus, cancel_job, set_job_progress, set_job_status
+from engine.logging_config import get_logger
+
+
+logger = get_logger("RemoteBackendAdapter")
 
 
 class RemoteBackendAdapter(BackendAdapter):
@@ -37,6 +41,7 @@ class RemoteBackendAdapter(BackendAdapter):
         return ["flux_1_ultra_api", "sd_3_medium_api"]
 
     def generate(self, job: GenerationJob) -> GenerationResult:
+        logger.info("Remote-Generierung gestartet | job_id=%s", job.job_id)
         print(f"[RemoteBackendAdapter] Sending API post request for job {job.job_id}...")
         set_job_status(job, JobStatus.RUNNING)
         # TODO: Send request and await generation webhook/response
@@ -53,6 +58,7 @@ class RemoteBackendAdapter(BackendAdapter):
         )
 
     def cancel(self, job: GenerationJob) -> str:
+        logger.warning("Remote-Abbruch angefordert | job_id=%s", job.job_id)
         print(f"[RemoteBackendAdapter] Sending cancel signal to API server for job {job.job_id}...")
         cancel_job(job)
         return "Generation cancelled on cloud API (stub)"

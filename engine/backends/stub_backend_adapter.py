@@ -4,6 +4,10 @@ from controllers.generation_job import GenerationJob
 from controllers.generation_result import GenerationResult
 from engine.backends.backend_adapter import BackendAdapter
 from engine.job_lifecycle import JobStatus, set_job_progress, set_job_status
+from engine.logging_config import get_logger
+
+
+logger = get_logger("StubBackendAdapter")
 
 
 class StubBackendAdapter(BackendAdapter):
@@ -20,10 +24,12 @@ class StubBackendAdapter(BackendAdapter):
     CANCEL_MESSAGE = "Generation cancelled (stub)"
 
     def initialize(self) -> None:
+        logger.info("Backend wird initialisiert | backend=%s", self.get_backend_name())
         if self.INITIALIZE_MESSAGE:
             print(self.INITIALIZE_MESSAGE)
 
     def shutdown(self) -> None:
+        logger.info("Backend wird beendet | backend=%s", self.get_backend_name())
         if self.SHUTDOWN_MESSAGE:
             print(self.SHUTDOWN_MESSAGE)
 
@@ -40,12 +46,22 @@ class StubBackendAdapter(BackendAdapter):
         return list(self.SUPPORTED_MODELS)
 
     def generate(self, job: GenerationJob) -> GenerationResult:
+        logger.info(
+            "Stub-Generierung gestartet | backend=%s | job_id=%s",
+            self.get_backend_name(),
+            job.job_id,
+        )
         if self.GENERATE_MESSAGE:
             print(self.GENERATE_MESSAGE.format(job_id=job.job_id))
         set_job_status(job, JobStatus.RUNNING)
         set_job_progress(job, max(float(job.progress), 0.1), notify=False)
         set_job_status(job, JobStatus.FINISHED)
         set_job_progress(job, 1.0, notify=False)
+        logger.info(
+            "Stub-Generierung abgeschlossen | backend=%s | job_id=%s",
+            self.get_backend_name(),
+            job.job_id,
+        )
         return GenerationResult(
             success=True,
             status="FINISHED",
@@ -57,6 +73,11 @@ class StubBackendAdapter(BackendAdapter):
         )
 
     def cancel(self, job: GenerationJob) -> str:
+        logger.warning(
+            "Stub-Generierung abgebrochen | backend=%s | job_id=%s",
+            self.get_backend_name(),
+            job.job_id,
+        )
         if self.CANCEL_LOG_MESSAGE:
             print(self.CANCEL_LOG_MESSAGE.format(job_id=job.job_id))
         super().cancel(job)

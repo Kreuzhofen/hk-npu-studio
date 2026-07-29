@@ -14,6 +14,7 @@ import ctypes
 import hashlib
 import json
 import logging
+from engine.logging_config import get_logger
 import os
 import platform
 import subprocess
@@ -38,7 +39,7 @@ from engine.sd21_qnn_backend import SimpleCLIPTokenizer, StableDiffusion21DDIMSc
 from controllers.generation_job import GenerationJob
 from controllers.generation_session import GenerationSessionModel
 
-logger = logging.getLogger("QnnExecutionProbe")
+logger = get_logger("QnnExecutionProbe")
 
 
 def _memory_snapshot() -> dict[str, int | None]:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,7 @@ from engine.onnx_component_inspector import OnnxComponentInspector
 from engine.onnx_provider_service import OnnxProviderService
 from engine.sdxl_scheduler_service import SDXLSchedulerService
 
-logger = logging.getLogger("UNetService")
+logger = get_logger("UNetService")
 
 
 class UNetService:

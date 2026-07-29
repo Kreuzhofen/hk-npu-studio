@@ -11,6 +11,11 @@ from collections import deque
 
 from engine.job import Job
 from engine.phoenix_adapter import PhoenixAdapter
+from engine.error_diagnostics import diagnose_exception
+from engine.logging_config import get_logger
+
+
+logger = get_logger("JobManager")
 
 
 class JobManager:
@@ -34,6 +39,7 @@ class JobManager:
 
         job = Job(skill=skill, kwargs=kwargs)
         self.jobs.append(job)
+        logger.info("Job eingereiht | skill=%s", skill)
 
         return job
 
@@ -65,7 +71,13 @@ class JobManager:
             job.finish(result)
 
         except Exception as error:
-            job.fail(str(error))
+            diagnose_exception(
+                logger,
+                error,
+                category="job",
+                context="job_manager_run_next",
+                job=job,
+            )
             raise
 
         finally:

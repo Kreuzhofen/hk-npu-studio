@@ -9,6 +9,10 @@ from controllers.generation_result import GenerationResult
 from controllers.model_repository import ModelRepository
 from engine.backends.backend_manager import BackendManager
 from engine.job_lifecycle import JobStatus, get_job_status, set_job_status
+from engine.logging_config import get_logger
+
+
+logger = get_logger("GenerationController")
 
 
 class GenerationController:
@@ -128,6 +132,7 @@ class GenerationController:
         """
         is_valid, msg = self.validate_session()
         if not is_valid:
+            logger.warning("Validierung fehlgeschlagen: %s", msg)
             print(f"Validation failed: {msg}")
             return GenerationResult(
                 success=False,
@@ -141,6 +146,7 @@ class GenerationController:
         job = GenerationJob(session=job_session, progress_callback=progress_callback)
         self.queue.enqueue(job)
         self.queue.dequeue()
+        logger.info("Job eingereiht | job_id=%s | model=%s", job.job_id, job_session.model_name)
         self.is_generating = True
         print("--- [GenerationController: Job Enqueued] ---")
         print(f"Job ID: {job.job_id}")
@@ -158,6 +164,12 @@ class GenerationController:
         resolve_result = loader.resolve_model(job_session.model_name)
         if not resolve_result.success:
             job.fail(resolve_result.message)
+            logger.error(
+                "Modellauflösung fehlgeschlagen | job_id=%s | model=%s | message=%s",
+                job.job_id,
+                job_session.model_name,
+                resolve_result.message,
+            )
             self.queue.clear_finished()
             self.is_generating = False
             return GenerationResult(
@@ -175,6 +187,11 @@ class GenerationController:
         # Update active backend on manager so UI status/refresh reflects the routed selection
         if selected_backend:
             self.backend_manager.set_active_backend(selected_backend.get_backend_name())
+            logger.info(
+                "Backend ausgewählt | job_id=%s | backend=%s",
+                job.job_id,
+                selected_backend.get_backend_name(),
+            )
 
         from controllers.generation_pipeline import ImageGenerationPipeline
         pipeline = ImageGenerationPipeline(job=job, backend_adapter=selected_backend)
@@ -224,6 +241,10 @@ class GenerationController:
             active_backend.cancel(current)
 
         print("--- [GenerationController: Cancel Generation] ---")
+        logger.info(
+            "Generierungsabbruch angefordert | active_job=%s",
+            getattr(current, "job_id", None),
+        )
         print("All jobs in queue cancelled.")
         print("--------------------------------------------------")
         

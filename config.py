@@ -4,6 +4,7 @@ BASE = Path(r"C:\SnapdragonAI")
 INPUT_DIR = BASE / "input"
 OUTPUT_DIR = BASE / "output"
 DATA_DIR = BASE / "data"
+LOG_DIR = BASE / "logs"
 ASSET_INDEX_DB = DATA_DIR / "asset_index.sqlite3"
 PREFERENCES_PATH = DATA_DIR / "preferences.json"
 PROMPT_HISTORY_PATH = DATA_DIR / "prompt_history.json"
@@ -28,6 +29,10 @@ TILE_SIZE = 128
 SCALE = 4
 OUT_TILE_SIZE = TILE_SIZE * SCALE
 REALESRGAN_OUTPUT_SHAPE = (1, OUT_TILE_SIZE, OUT_TILE_SIZE, 3)
+
+LOG_LEVEL = "INFO"
+LOG_MAX_BYTES = 5 * 1024 * 1024
+LOG_BACKUP_COUNT = 5
 
 import json
 import os

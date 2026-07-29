@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 from controllers.generation_job import GenerationJob
 from controllers.model_repository import ModelRepository
 from engine.model_loader_service import ModelLoaderService
 from engine.generation_response import GenerationResponse
 from engine.local_image_generator_adapter import LocalImageGeneratorAdapter
+from engine.logging_config import get_logger
 from engine.runtime_model import RuntimeModel
 
-logger = logging.getLogger("GenerationExecutor")
+logger = get_logger("GenerationExecutor")
 
 
 class GenerationExecutor:

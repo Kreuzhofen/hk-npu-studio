@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 from engine.backends.stub_backend_adapter import StubBackendAdapter
+from engine.error_diagnostics import diagnose_exception
+from engine.logging_config import get_logger
+
+
+logger = get_logger("QNNBackendAdapter")
 
 
 class QNNBackendAdapter(StubBackendAdapter):
@@ -27,6 +32,13 @@ class QNNBackendAdapter(StubBackendAdapter):
                 QNNBackendAdapter._cached_is_available = bool(
                     result.qnn_sdk_found and result.qnn_tools_found
                 )
-            except Exception:
+            except Exception as error:
+                diagnose_exception(
+                    logger,
+                    error,
+                    category="backend",
+                    context="qnn_availability",
+                    backend_name=self.get_backend_name(),
+                )
                 QNNBackendAdapter._cached_is_available = False
         return QNNBackendAdapter._cached_is_available

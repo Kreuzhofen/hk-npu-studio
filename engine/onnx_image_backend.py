@@ -11,10 +11,11 @@ from PIL import Image, ImageDraw, ImageFont
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
+from engine.logging_config import get_logger
 from engine.onnx_provider_service import OnnxProviderService
 from engine.runtime_model import RuntimeModel
 
-logger = logging.getLogger("OnnxImageBackend")
+logger = get_logger("OnnxImageBackend")
 
 
 class OnnxImageBackend(InferenceBackend):

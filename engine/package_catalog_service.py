@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+from engine.logging_config import get_logger
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from config import BASE
 
-logger = logging.getLogger("PackageCatalogService")
+logger = get_logger("PackageCatalogService")
 
 
 @dataclass(frozen=True)

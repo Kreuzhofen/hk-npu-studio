@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import logging
+from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-logger = logging.getLogger("SDXLSchedulerService")
+logger = get_logger("SDXLSchedulerService")
 
 
 class SDXLSchedulerService:

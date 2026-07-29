@@ -4,6 +4,25 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 4 – Logging & Fehlerdiagnose professionalisieren)
+
+### Hinzugefügt
+* **Zentrale Protokollierung:** `engine/logging_config.py` erstellt automatisch `logs/snapdragon_ai_studio.log` und konfiguriert strukturierte Einträge mit Zeitstempel, Log-Level, Loggername und Thread.
+* **Logrotation:** Die UTF-8-Protokolldatei rotiert bei 5 MiB; maximal fünf Sicherungsdateien werden aufbewahrt.
+* **Fehlervertrag:** Domänenspezifische Basisklassen für Backend-, Pipeline-, Job- und Konfigurationsfehler wurden ergänzt.
+* **Strukturierte Diagnosen:** `diagnose_exception()` protokolliert Kategorie, Kontext, Exception-Typ, Meldung, Job-ID und Backend einschließlich Traceback.
+* **Tests:** Automatische Verzeichniserstellung, strukturiertes Format, Rotation und Job-Fehlerdiagnose werden direkt geprüft.
+
+### Geändert
+* Backend-, ONNX-/QNN-Service-, Pipeline-, Executor-, JobManager- und Worker-Komponenten verwenden die zentrale Logger-Konfiguration und strukturierte Level.
+* Stille bzw. verstreute Kernfehlerpfade wurden an die gemeinsame Diagnose angebunden.
+* Bestehende Konsolenausgaben, Ergebnisverträge und UI-Verhalten bleiben erhalten.
+
+### Prüfung
+* Vollständiger Python-Build mit `compileall`: erfolgreich.
+* Logging-/Job-/Backend-/QNN-Regression: 22 Tests und 11 Subtests bestanden.
+* Vollständige Testsuite: 140 Tests und 20 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 3 – Job- & Pipeline-Engine stabilisieren)
 
 ### Geändert

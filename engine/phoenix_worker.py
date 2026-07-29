@@ -9,7 +9,12 @@ Phoenix Engine 1.0
 
 import traceback
 
+from engine.error_diagnostics import diagnose_exception
 from engine.job_lifecycle import JobStatus, fail_job, set_job_status
+from engine.logging_config import get_logger
+
+
+logger = get_logger("PhoenixWorker")
 
 
 class PhoenixWorker:
@@ -70,10 +75,17 @@ class PhoenixWorker:
                 "error": None,
             }
 
-        except Exception:
+        except Exception as exception:
             error = traceback.format_exc()
 
             self.status = self.STATUS_ERROR
+            diagnose_exception(
+                logger,
+                exception,
+                category="job",
+                context="phoenix_worker_run",
+                job=job,
+            )
             fail_job(job, error)
             self.last_error = error
 

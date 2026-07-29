@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger("OnnxComponentInspector")
+logger = get_logger("OnnxComponentInspector")
 
 
 _TENSOR_DTYPES = {

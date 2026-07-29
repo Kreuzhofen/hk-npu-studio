@@ -9,9 +9,10 @@ from PIL import Image, ImageDraw, ImageFont
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
+from engine.logging_config import get_logger
 from engine.runtime_model import RuntimeModel
 
-logger = logging.getLogger("StubImageBackend")
+logger = get_logger("StubImageBackend")
 
 
 class StubImageBackend(InferenceBackend):

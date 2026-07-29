@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import os
 import logging
+from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any, TypedDict
 
 from controllers.model_repository import ModelRepository
 
-logger = logging.getLogger("ModelLoaderService")
+logger = get_logger("ModelLoaderService")
 
 
 class ModelLoadPlan(TypedDict):

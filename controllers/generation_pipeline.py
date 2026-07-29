@@ -4,7 +4,12 @@ import time
 from typing import Any
 from controllers.generation_job import GenerationJob
 from controllers.generation_result import GenerationResult
+from engine.error_diagnostics import diagnose_exception
 from engine.job_lifecycle import JobStatus, get_job_status, set_job_progress, set_job_status
+from engine.logging_config import get_logger
+
+
+logger = get_logger("ImageGenerationPipeline")
 
 
 class ImageGenerationPipeline:
@@ -105,10 +110,13 @@ class ImageGenerationPipeline:
                         "reference_image_path": reference_image_path
                     })
 
-                except Exception as e:
-                    import logging
-                    logger = logging.getLogger("ImageGenerationPipeline")
-                    logger.error(f"Failed to post-process sidecar JSON: {e}")
+                except Exception as error:
+                    diagnose_exception(
+                        logger,
+                        error,
+                        category="pipeline",
+                        context="sidecar_postprocessing",
+                    )
         return result
 
     def cleanup(self) -> None:
@@ -139,7 +147,13 @@ class ImageGenerationPipeline:
                     self.job.fail(result.message)
             return result
         except Exception as error:
-            self.job.fail(error)
+            diagnose_exception(
+                logger,
+                error,
+                category="pipeline",
+                context="pipeline_run",
+                job=self.job,
+            )
             return GenerationResult(
                 success=False,
                 status="PipelineError",

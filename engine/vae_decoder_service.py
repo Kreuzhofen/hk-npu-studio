@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any
 import numpy as np
@@ -8,7 +9,7 @@ from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
 from engine.onnx_provider_service import OnnxProviderService
 
-logger = logging.getLogger("VAEDecoderService")
+logger = get_logger("VAEDecoderService")
 
 class VAEDecoderService:
     """
