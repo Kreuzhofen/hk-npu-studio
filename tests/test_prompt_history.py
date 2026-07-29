@@ -76,9 +76,17 @@ class PromptHistoryTests(unittest.TestCase):
         self.assertNotIn("Failed prompt", history)
 
         # Mock queue_generation to return success=True
+        generated_image = Path(self.temp_dir.name) / "generated.png"
+        generated_image.write_bytes(b"test image")
+
         class MockGenCtrlSuccess:
             def queue_generation(self, *args, **kwargs):
-                return GenerationResult(success=True, status="SUCCESS", message="Done")
+                return GenerationResult(
+                    success=True,
+                    status="SUCCESS",
+                    message="Done",
+                    image_path=str(generated_image),
+                )
 
         self.controller.generation_controller = MockGenCtrlSuccess()
         self.model.update_state(prompt="Successful prompt")

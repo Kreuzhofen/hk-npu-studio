@@ -6,14 +6,16 @@ Branding
 Created by Holger Kreuzhofen
 """
 
+from engine.release_config import RELEASE
+
 
 class Branding:
     """
     Zentrale Branding-Informationen.
     """
 
-    APP_NAME = "Snapdragon AI Studio"
-    APP_VERSION = "2.0 Preview"
+    APP_NAME = RELEASE.app_name
+    APP_VERSION = RELEASE.display_version
 
     ENGINE_NAME = "Phoenix Engine"
     ENGINE_VERSION = "1.0"

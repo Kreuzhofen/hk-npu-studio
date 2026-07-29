@@ -415,11 +415,12 @@ class ControlNetUITests(unittest.TestCase):
         self.assertEqual(self.view.conditioning_strength_var.get(), 1.0)
 
         # 6. Werte werden bis zum Backend weitergegeben
-        job = GenerationJob(self.controller.generation_controller.session)
-        job.session.canny_low_threshold = 45
-        job.session.canny_high_threshold = 120
-        job.session.controlnet_conditioning_scale = 0.85
-        job.session.input_image_path = "some_path.png"
+        session = self.controller.generation_controller.session
+        session.canny_low_threshold = 45
+        session.canny_high_threshold = 120
+        session.controlnet_conditioning_scale = 0.85
+        session.input_image_path = "some_path.png"
+        job = GenerationJob(session)
 
         backend = InferenceBackendFactory.get_backend("Qualcomm ControlNet Canny (HTP V73)")
 

@@ -16,7 +16,7 @@ AppId={{8D9D455C-4C15-4A61-9685-21F67C5D4A44}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#Publisher}
-DefaultDirName={autopf}\Snapdragon AI Studio
+DefaultDirName={localappdata}\Programs\Snapdragon AI Studio
 DefaultGroupName={#AppName}
 OutputDir=..\dist\installer
 OutputBaseFilename=SnapdragonAIStudio-{#AppVersion}-ARM64-Setup
@@ -25,7 +25,7 @@ Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=arm64
 ArchitecturesInstallIn64BitMode=arm64
-PrivilegesRequired=admin
+PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\{#ExecutableName}
 WizardStyle=modern
 

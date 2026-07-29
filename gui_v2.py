@@ -8,7 +8,9 @@ Phoenix UI
 """
 
 import os
+import json
 import subprocess
+import sys
 import tkinter as tk
 from pathlib import Path
 
@@ -327,10 +329,31 @@ class SnapdragonAIStudioV2(BaseWindow):
 
 
 def main():
+    if "--release-smoke-test" in sys.argv:
+        report = run_startup_diagnostics()
+        print(
+            json.dumps(
+                {
+                    "safe_to_start": report.safe_to_start,
+                    "selected_backend": report.selected_backend,
+                    "fallback_active": report.fallback_active,
+                    "checks": [
+                        {
+                            "category": check.category,
+                            "status": check.status.value,
+                        }
+                        for check in report.checks
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0 if report.safe_to_start else 1
     run_startup_diagnostics()
     app = SnapdragonAIStudioV2()
     app.mainloop()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -1,16 +1,24 @@
+import os
+import sys
 from pathlib import Path
 
-BASE = Path(r"C:\SnapdragonAI")
-INPUT_DIR = BASE / "input"
-OUTPUT_DIR = BASE / "output"
-DATA_DIR = BASE / "data"
-LOG_DIR = BASE / "logs"
+BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+USER_BASE = (
+    Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    / "Snapdragon AI Studio"
+    if getattr(sys, "frozen", False)
+    else BASE
+)
+INPUT_DIR = USER_BASE / "input"
+OUTPUT_DIR = USER_BASE / "output"
+DATA_DIR = USER_BASE / "data"
+LOG_DIR = USER_BASE / "logs"
 ASSET_INDEX_DB = DATA_DIR / "asset_index.sqlite3"
 PREFERENCES_PATH = DATA_DIR / "preferences.json"
 PROMPT_HISTORY_PATH = DATA_DIR / "prompt_history.json"
 PROMPT_TEMPLATES_PATH = BASE / "resources" / "prompt_templates.json"
-TEMP_DIR = BASE / "temp"
-MODELS_DIR = BASE / "models"
+TEMP_DIR = USER_BASE / "temp"
+MODELS_DIR = USER_BASE / "models"
 PLUGINS_DIR = BASE / "plugins"
 WORKFLOWS_DIR = BASE / "workflows"
 

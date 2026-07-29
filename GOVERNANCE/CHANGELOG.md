@@ -4,6 +4,20 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-29 (Release-Vorbereitung)
+
+### Geändert
+* Reproduzierbare PyInstaller-/Inno-Setup-Pipeline für native Windows-ARM64-Artefakte eingerichtet.
+* Release-Metadaten, Ressourcen und veränderliche Benutzerdaten für installierte Builds getrennt.
+* Lokale Modellpfade, Laufzeitlogs und Python-Cachedateien aus Release-Paketen ausgeschlossen.
+* SHA-256-Artefaktmanifest und automatisierbarer Diagnose-Smoke-Test ergänzt.
+
+### Prüfung
+* ARM64-PE-Header und Version geprüft; portable und installierte Diagnose erfolgreich.
+* Installation und Deinstallation mit Inno Setup 6.7.3 erfolgreich.
+* 248 Tests und 23 Subtests bestanden; Produktcode vollständig kompiliert.
+* Codesignierung und Veröffentlichung nicht durchgeführt.
+
 ## [2.0 RC1] – 2026-07-29 (Sprint 21 – Release Candidate)
 
 ### Geändert
