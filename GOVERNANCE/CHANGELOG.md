@@ -4,6 +4,27 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 7 – Modell-Ladeprozess stabilisieren)
+
+### Hinzugefügt
+* **Gemeinsamer Lade-Lebenszyklus:** `ModelLoaderService` steuert CPU-, ONNX- und QNN-Modelle über die Zustände `UNLOADED`, `LOADING`, `LOADED`, `UNLOADING` und `FAILED`.
+* **Race-Condition-Schutz:** Lock und Condition serialisieren Laden, Entladen und Wechseln; parallele Loads desselben Modells teilen Runtime und Backend über Referenzzählung.
+* **Sichere Modell-Sessions:** Kontextgebundene Nutzung garantiert die Ressourcenfreigabe bei Erfolg, Fehler und Abbruch.
+* **Ladediagnose:** Strukturierte Fehlerdiagnosen erfassen Registry-, Initialisierungs-, Kompatibilitäts-, Freigabe- und Bereinigungsfehler.
+* **Lifecycle-Tests:** Doppel-Loads, konkurrierende Loads, Initialisierungsfehler, ungültige Installationen, Modellwechsel und Ausnahmefreigabe werden direkt geprüft.
+
+### Geändert
+* Registry-Status und Installationsstruktur werden vor jeder Backend-Initialisierung validiert.
+* Backend-Auswahl, RuntimeModel-Erzeugung und Load-Plan verwenden einen gemeinsamen atomaren Ladepfad.
+* Generation Controller und Generation Executor geben geladene Ressourcen in `finally`-Pfaden zuverlässig frei.
+* Veraltete deklarative Modelllisten werden diagnostiziert, ohne bestehendes registriertes CPU-/ONNX-/QNN-Routing zu blockieren.
+* Bestehende Funktionalität und UI bleiben unverändert.
+
+### Prüfung
+* Vollständiger Python-Build mit `compileall`: erfolgreich.
+* Loader-/Registry-/Backend-Vertragstests: 18 Tests bestanden.
+* Vollständige Testsuite: 160 Tests und 20 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 6 – Model Manager professionalisieren)
 
 ### Hinzugefügt

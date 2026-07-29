@@ -10,6 +10,7 @@ from controllers.model_repository import ModelRepository
 from engine.backends.backend_manager import BackendManager
 from engine.job_lifecycle import JobStatus, get_job_status, set_job_status
 from engine.logging_config import get_logger
+from engine.model_loader_service import ModelLoaderService
 
 
 logger = get_logger("GenerationController")
@@ -31,6 +32,7 @@ class GenerationController:
         self.queue = GenerationQueue()
         self.backend_manager = BackendManager()
         self.repository = repository or ModelRepository()
+        self.model_loader = ModelLoaderService(self.repository)
         self.is_generating = False
 
     @staticmethod
@@ -157,45 +159,42 @@ class GenerationController:
         # Resolve model metadata
         repo = self.repository
         # Verify model installation prior to execution
-        from engine.model_loader_service import ModelLoaderService
-        loader = ModelLoaderService(repo)
-        resolve_result = loader.resolve_model(job_session.model_name)
-        if not resolve_result.success:
-            job.fail(resolve_result.message)
+        load_result = self.model_loader.load_model(
+            job_session.model_name, self.backend_manager
+        )
+        if not load_result.success or load_result.loaded_model is None:
+            job.fail(load_result.message)
             logger.error(
                 "Modellauflösung fehlgeschlagen | job_id=%s | model=%s | message=%s",
                 job.job_id,
                 job_session.model_name,
-                resolve_result.message,
+                load_result.message,
             )
             self.queue.clear_finished()
             self.is_generating = False
             return GenerationResult(
                 success=False,
                 status="LoadError",
-                message=resolve_result.message,
+                message=load_result.message,
                 model_name=job_session.model_name
             )
 
-        # Route job through the pipeline to the best backend adapter
-        selected_backend = repo.resolve_backend(
-            job_session.model_name, self.backend_manager
-        )
-        if selected_backend is None:
-            selected_backend = self.backend_manager.get_active_backend()
-
-        # Update active backend on manager so UI status/refresh reflects the routed selection
-        if selected_backend:
-            self.backend_manager.set_active_backend(selected_backend.get_backend_name())
+        try:
+            # Route through the backend atomically bound by the shared loader.
+            selected_backend = load_result.loaded_model.backend_adapter
+            self.backend_manager.set_active_backend(
+                selected_backend.get_backend_name()
+            )
             logger.info(
                 "Backend ausgewählt | job_id=%s | backend=%s",
                 job.job_id,
                 selected_backend.get_backend_name(),
             )
-
-        from controllers.generation_pipeline import ImageGenerationPipeline
-        pipeline = ImageGenerationPipeline(job=job, backend_adapter=selected_backend)
-        result = pipeline.run()
+            from controllers.generation_pipeline import ImageGenerationPipeline
+            pipeline = ImageGenerationPipeline(job=job, backend_adapter=selected_backend)
+            result = pipeline.run()
+        finally:
+            self.model_loader.unload_model(job_session.model_name)
 
         if job.cancel_requested.is_set():
             result = self.discard_cancelled_output(result, job)

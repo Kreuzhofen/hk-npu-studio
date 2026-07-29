@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-import os
-import logging
-from engine.logging_config import get_logger
+from contextlib import contextmanager
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import Any, TypedDict
+from threading import Condition, RLock
+from typing import Any, Iterator, TypedDict
 
 from controllers.model_repository import ModelRepository
+from engine.error_diagnostics import diagnose_exception
+from engine.logging_config import get_logger
+from engine.model_registry import ModelHealthStatus
+from engine.runtime_model import RuntimeModel
 
 logger = get_logger("ModelLoaderService")
 
@@ -43,6 +48,32 @@ class ModelResolveResult:
         self.warnings = warnings or []
 
 
+class ModelLoadState(str, Enum):
+    UNLOADED = "UNLOADED"
+    LOADING = "LOADING"
+    LOADED = "LOADED"
+    UNLOADING = "UNLOADING"
+    FAILED = "FAILED"
+
+
+@dataclass
+class LoadedModel:
+    model_id: str
+    runtime_model: RuntimeModel
+    backend_adapter: Any
+    references: int = 1
+
+
+@dataclass
+class ModelLoadResult:
+    success: bool
+    model_id: str
+    state: ModelLoadState
+    message: str
+    loaded_model: LoadedModel | None = None
+    reused: bool = False
+
+
 class ModelLoaderService:
     """
     Foundation service for resolving and loading installed model metadata.
@@ -51,6 +82,20 @@ class ModelLoaderService:
 
     def __init__(self, repository: ModelRepository | None = None) -> None:
         self.repository = repository or ModelRepository()
+        self._condition = Condition(RLock())
+        self._state = ModelLoadState.UNLOADED
+        self._loaded: LoadedModel | None = None
+        self._last_error: str | None = None
+
+    @property
+    def state(self) -> ModelLoadState:
+        with self._condition:
+            return self._state
+
+    @property
+    def loaded_model_id(self) -> str | None:
+        with self._condition:
+            return self._loaded.model_id if self._loaded else None
 
     def check_model_installed(self, model_id: str) -> bool:
         """
@@ -160,6 +205,21 @@ class ModelLoaderService:
                 message="Model is not installed."
             )
 
+        validation = self.repository.validate_model_installation(model_id)
+        if validation is None:
+            return ModelResolveResult(
+                success=False,
+                model_id=model_id,
+                message="Model registry validation is unavailable.",
+            )
+        if validation.status == ModelHealthStatus.INVALID:
+            return ModelResolveResult(
+                success=False,
+                model_id=model_id,
+                backend=model.get("recommended_backend") or model.get("backend") or "Unknown",
+                message="Model installation is invalid: " + "; ".join(validation.messages),
+            )
+
         path_str = model.get("path")
         if not path_str:
             return ModelResolveResult(
@@ -194,3 +254,184 @@ class ModelLoaderService:
             message="Model resolved successfully.",
             warnings=warnings
         )
+
+    def load_model(self, model_id: str, backend_manager: Any = None) -> ModelLoadResult:
+        """Atomically resolve and initialize one model/backend combination."""
+        with self._condition:
+            while self._state in (ModelLoadState.LOADING, ModelLoadState.UNLOADING):
+                self._condition.wait()
+
+            if self._loaded and self._loaded.model_id == model_id:
+                self._loaded.references += 1
+                return ModelLoadResult(
+                    True,
+                    model_id,
+                    ModelLoadState.LOADED,
+                    "Model is already loaded; existing runtime reused.",
+                    self._loaded,
+                    reused=True,
+                )
+            if self._loaded is not None:
+                return ModelLoadResult(
+                    False,
+                    model_id,
+                    self._state,
+                    f"Model '{self._loaded.model_id}' is still loaded.",
+                )
+            self._state = ModelLoadState.LOADING
+            self._last_error = None
+
+        adapter = None
+        try:
+            resolve_result = self.resolve_model(model_id)
+            if not resolve_result.success:
+                raise RuntimeError(resolve_result.message)
+
+            if backend_manager is None:
+                from engine.backends.backend_manager import BackendManager
+
+                backend_manager = BackendManager()
+            adapter = self.repository.resolve_backend(model_id, backend_manager)
+            if adapter is None:
+                raise RuntimeError("No compatible and available backend was found.")
+
+            supported = adapter.get_supported_models()
+            if supported and model_id not in supported:
+                logger.warning(
+                    "Backend-Kompatibilitätsliste enthält Modell nicht; registriertes Routing bleibt maßgeblich "
+                    "| model=%s backend=%s",
+                    model_id,
+                    adapter.get_backend_name(),
+                )
+
+            adapter.initialize()
+            load_plan = self.build_model_load_plan(model_id)
+            runtime_model = RuntimeModel(
+                model_id=resolve_result.model_id,
+                model_path=resolve_result.model_path or "",
+                files=resolve_result.files,
+                backend=resolve_result.backend,
+                load_plan=load_plan,
+            )
+            loaded = LoadedModel(model_id, runtime_model, adapter)
+            with self._condition:
+                self._loaded = loaded
+                self._state = ModelLoadState.LOADED
+                self._condition.notify_all()
+            logger.info(
+                "Modell geladen | model=%s backend=%s files=%s",
+                model_id,
+                adapter.get_backend_name(),
+                len(resolve_result.files),
+            )
+            return ModelLoadResult(
+                True,
+                model_id,
+                ModelLoadState.LOADED,
+                "Model loaded successfully.",
+                loaded,
+            )
+        except Exception as error:
+            if adapter is not None:
+                try:
+                    adapter.shutdown()
+                except Exception as cleanup_error:
+                    diagnose_exception(
+                        logger,
+                        cleanup_error,
+                        category="model_loading",
+                        context="load_failure_cleanup",
+                        backend_name=adapter.get_backend_name(),
+                    )
+            diagnostic = diagnose_exception(
+                logger,
+                error,
+                category="model_loading",
+                context="load_model",
+                backend_name=adapter.get_backend_name() if adapter else None,
+            )
+            with self._condition:
+                self._loaded = None
+                self._state = ModelLoadState.FAILED
+                self._last_error = diagnostic.message
+                self._condition.notify_all()
+            return ModelLoadResult(
+                False,
+                model_id,
+                ModelLoadState.FAILED,
+                diagnostic.message,
+            )
+
+    def unload_model(self, model_id: str | None = None, *, force: bool = False) -> bool:
+        """Release a model reference and shut its backend down at the last release."""
+        with self._condition:
+            while self._state in (ModelLoadState.LOADING, ModelLoadState.UNLOADING):
+                self._condition.wait()
+            loaded = self._loaded
+            if loaded is None:
+                self._state = ModelLoadState.UNLOADED
+                return True
+            if model_id is not None and loaded.model_id != model_id:
+                return False
+            if loaded.references > 1 and not force:
+                loaded.references -= 1
+                return True
+            self._state = ModelLoadState.UNLOADING
+
+        success = True
+        try:
+            loaded.backend_adapter.shutdown()
+        except Exception as error:
+            success = False
+            diagnose_exception(
+                logger,
+                error,
+                category="model_loading",
+                context="unload_model",
+                backend_name=loaded.backend_adapter.get_backend_name(),
+            )
+        finally:
+            with self._condition:
+                self._loaded = None
+                self._state = ModelLoadState.UNLOADED
+                self._condition.notify_all()
+        logger.info("Modell entladen | model=%s", loaded.model_id)
+        return success
+
+    def switch_model(
+        self, model_id: str, backend_manager: Any = None
+    ) -> ModelLoadResult:
+        """Switch models without leaving stale resources after a failed load."""
+        with self._condition:
+            current_id = self._loaded.model_id if self._loaded else None
+            references = self._loaded.references if self._loaded else 0
+        if current_id == model_id:
+            return self.load_model(model_id, backend_manager)
+        if references > 1:
+            return ModelLoadResult(
+                False,
+                model_id,
+                ModelLoadState.LOADED,
+                f"Model '{current_id}' is still in use.",
+            )
+        if current_id is not None and not self.unload_model(current_id):
+            return ModelLoadResult(
+                False,
+                model_id,
+                ModelLoadState.FAILED,
+                f"Model '{current_id}' could not be unloaded safely.",
+            )
+        return self.load_model(model_id, backend_manager)
+
+    @contextmanager
+    def model_session(
+        self, model_id: str, backend_manager: Any = None
+    ) -> Iterator[LoadedModel]:
+        """Acquire a loaded model and guarantee release on success, failure, or cancellation."""
+        result = self.load_model(model_id, backend_manager)
+        if not result.success or result.loaded_model is None:
+            raise RuntimeError(result.message)
+        try:
+            yield result.loaded_model
+        finally:
+            self.unload_model(model_id)
