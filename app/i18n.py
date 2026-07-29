@@ -4,6 +4,8 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+from app.configuration_manager import ConfigurationManager
+from config import PREFERENCES_PATH
 
 logger = logging.getLogger("i18n")
 
@@ -15,12 +17,9 @@ LOCALES_DIR = Path(__file__).parent.parent / "locales"
 try:
     import sys
     if "unittest" not in sys.modules:
-        _pref_path = Path(r"C:\SnapdragonAI\data\preferences.json")
-        if _pref_path.exists():
-            with open(_pref_path, "r", encoding="utf-8") as _f:
-                _data = json.load(_f)
-                _lang_val = _data.get("language", "Deutsch")
-                _current_language = "en_US" if _lang_val == "English" else "de_DE"
+        _data = ConfigurationManager(PREFERENCES_PATH).load()
+        _lang_val = _data.get("language", "Deutsch")
+        _current_language = "en_US" if _lang_val in {"English", "en_US"} else "de_DE"
 except Exception:
     pass
 

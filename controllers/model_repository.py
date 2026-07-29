@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from config import PREFERENCES_PATH
+from app.configuration_manager import ConfigurationManager
 
 
 class ModelCapabilities:
@@ -176,35 +177,15 @@ class ModelRepository:
 
     @classmethod
     def _load_active_model_preference(cls) -> str | None:
-        try:
-            data = json.loads(cls._preferences_path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, json.JSONDecodeError):
-            return None
-        value = data.get("active_model_id") if isinstance(data, dict) else None
+        data = ConfigurationManager(cls._preferences_path).load()
+        value = data.get("active_model_id")
         return str(value) if value else None
 
     @classmethod
     def _save_active_model_preference(cls, model_id: str | None) -> None:
-        path = cls._preferences_path
-        temporary_path = path.with_suffix(path.suffix + ".tmp")
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            data = {}
-            if path.exists():
-                try:
-                    data = json.loads(path.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
-            if not isinstance(data, dict):
-                data = {}
-            data["active_model_id"] = model_id
-            temporary_path.write_text(
-                json.dumps(data, indent=2),
-                encoding="utf-8",
-            )
-            temporary_path.replace(path)
-        except OSError:
-            temporary_path.unlink(missing_ok=True)
+        ConfigurationManager(cls._preferences_path).save(
+            {"active_model_id": model_id}
+        )
 
     def get_generation_parameters(self, model_id: str) -> dict[str, Any] | None:
         """Return the model-owned generation control contract, if declared."""

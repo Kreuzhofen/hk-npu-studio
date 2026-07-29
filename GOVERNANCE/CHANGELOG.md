@@ -4,6 +4,25 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 5 – Konfigurationssystem vereinheitlichen)
+
+### Hinzugefügt
+* **Versioniertes Schema:** Preferences verwenden das rückwärtskompatible Schema v2 mit `schema_version`.
+* **Zentrale Verwaltung:** `ConfigurationManager` kapselt Laden, Validieren, Migrieren, Zusammenführen und atomisches Speichern.
+* **Migrationen:** Unversionierte, verschachtelte und ältere Schlüssel-/Wertformate werden automatisch auf Schema v2 übertragen.
+* **Validierung:** Modell-ID, Token, Threads, Execution Provider, Hardwarebeschleunigung, Pfade, Theme und Sprache werden typ- und wertegeprüft.
+* **Vorwärtskompatibilität:** Unbekannte Konfigurationsschlüssel bleiben bei Migration und Speicherung erhalten.
+
+### Geändert
+* `config.py`, `SettingsManager`, `ModelRepository` und `i18n` verwenden denselben Preferences-Pfad und dieselbe Persistenzlogik.
+* Schreibvorgänge erfolgen atomar über eine temporäre Datei.
+* Bestehende UI-Schlüssel und Stringwerte bleiben unverändert kompatibel; die UI wurde nicht geändert.
+
+### Prüfung
+* Vollständiger Python-Build mit `compileall`: erfolgreich.
+* Konfigurations-, Settings-, Preferences- und i18n-Regression: 24 Tests bestanden.
+* Vollständige Testsuite: 146 Tests und 20 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 4 – Logging & Fehlerdiagnose professionalisieren)
 
 ### Hinzugefügt

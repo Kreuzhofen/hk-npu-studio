@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
+from typing import Any
 import config
+from app.configuration_manager import ConfigurationManager
 
 class SettingsManager:
     """Manages persistent application settings/preferences stored in preferences.json."""
@@ -13,50 +14,20 @@ class SettingsManager:
         return config.PREFERENCES_PATH
 
     @classmethod
-    def load_settings(cls) -> dict[str, str]:
-        path = cls.get_preferences_path()
-        if not path.exists():
-            return {}
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict):
-                    return data
-        except Exception:
-            pass
-        return {}
+    def load_settings(cls) -> dict[str, Any]:
+        return ConfigurationManager(cls.get_preferences_path()).load()
 
     @classmethod
-    def save_settings(cls, settings: dict[str, str]) -> bool:
-        path = cls.get_preferences_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temp_path = path.with_suffix(path.suffix + ".tmp")
-        try:
-            # Merge with existing settings
-            current = cls.load_settings()
-            current.update(settings)
-            
-            with open(temp_path, "w", encoding="utf-8") as f:
-                json.dump(current, f, indent=2)
-            temp_path.replace(path)
-            
-            # Apply hf_token dynamically to config and environment
-            if "hf_token" in settings:
-                token = settings["hf_token"]
-                config.HF_TOKEN = token
-                if token:
-                    os.environ["HF_TOKEN"] = token
-                else:
-                    os.environ.pop("HF_TOKEN", None)
-                    
-            return True
-        except Exception:
-            if temp_path.exists():
-                try:
-                    temp_path.unlink()
-                except OSError:
-                    pass
-            return False
+    def save_settings(cls, settings: dict[str, Any]) -> bool:
+        saved = ConfigurationManager(cls.get_preferences_path()).save(settings)
+        if saved and "hf_token" in settings:
+            token = str(settings["hf_token"]).strip()
+            config.HF_TOKEN = token
+            if token:
+                os.environ["HF_TOKEN"] = token
+            else:
+                os.environ.pop("HF_TOKEN", None)
+        return saved
 
     @classmethod
     def get_hf_token(cls) -> str:

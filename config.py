@@ -34,18 +34,11 @@ LOG_LEVEL = "INFO"
 LOG_MAX_BYTES = 5 * 1024 * 1024
 LOG_BACKUP_COUNT = 5
 
-import json
 import os
+from app.configuration_manager import ConfigurationManager
 
-HF_TOKEN = ""
-try:
-    if PREFERENCES_PATH.exists():
-        with open(PREFERENCES_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                HF_TOKEN = data.get("hf_token", "")
-except Exception:
-    pass
+_PREFERENCES = ConfigurationManager(PREFERENCES_PATH).load()
+HF_TOKEN = str(_PREFERENCES.get("hf_token", ""))
 
 if HF_TOKEN:
     os.environ["HF_TOKEN"] = HF_TOKEN
