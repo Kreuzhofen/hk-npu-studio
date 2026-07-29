@@ -8,6 +8,8 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
+* **Sprint 16 – Performance-Optimierung:** Die Sprint-15-Metriken können nun pro Vorgang nach Anzahl, Fehlern sowie Gesamt-, Mittel-, Min- und Max-Laufzeit aggregiert ausgewertet werden. Beim Modellladen wurde ein doppelter rekursiver Paketbaum-Scan entfernt; bereits aufgelöste Dateilisten werden für den Ladeplan wiederverwendet. Einzelmetriken schreiben nur noch auf DEBUG-Level und vermeiden damit synchrone INFO-Datei-I/O in Lade-, Inference- und Freigabepfaden. 20 relevante Tests sind erfolgreich; Funktionalität und UI wurden nicht geändert.
+
 * **Sprint 15 – Performance-Messung:** Ein zentraler, threadsicherer und begrenzter Metrikspeicher erfasst monotone Laufzeiten für Modellladen, Inference und Ressourcenfreigabe. Einheitliche interne Datensätze enthalten Vorgang, Dauer, Erfolg, Zeitstempel und Kontext-Tags; auch Fehlerpfade werden gemessen, während Fehler der Messinfrastruktur den Programmablauf nicht beeinflussen. 18 relevante Tests sind erfolgreich; Optimierungen und UI-Änderungen wurden nicht vorgenommen.
 
 * **Sprint 14 – Ressourcenüberwachung:** Eine zentrale, passive Ressourcenüberwachung erfasst CPU- und RAM-Auslastung sowie Verfügbarkeit und Health-Status des aktiven CPU-, ONNX- oder QNN/NPU-Backends. Laufende Jobs werden über den gemeinsamen Lebenszyklus gedrosselt beobachtet; einheitlich klassifizierte Ressourcenwarnungen stehen intern bereit und werden strukturiert protokolliert. Messfehler beeinflussen die Jobausführung nicht. 21 relevante Tests und 5 Subtests sind erfolgreich; Funktionalität und UI wurden nicht geändert.

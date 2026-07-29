@@ -138,7 +138,9 @@ class ModelLoaderService:
                 return []
         return []
 
-    def build_model_load_plan(self, model_id: str) -> ModelLoadPlan | None:
+    def build_model_load_plan(
+        self, model_id: str, *, resolved_files: list[str] | None = None
+    ) -> ModelLoadPlan | None:
         """
         Compiles a non-executable step-by-step loading plan containing files, paths, and target backend.
         """
@@ -148,7 +150,11 @@ class ModelLoaderService:
             
         path = model.get("path", "")
         backend = model.get("recommended_backend") or model.get("backend") or "Unknown"
-        files = self.get_model_files(model_id)
+        files = (
+            list(resolved_files)
+            if resolved_files is not None
+            else self.get_model_files(model_id)
+        )
         
         # Build non-executable plan steps
         steps = [
@@ -311,7 +317,9 @@ class ModelLoaderService:
                 )
 
             adapter.initialize()
-            load_plan = self.build_model_load_plan(model_id)
+            load_plan = self.build_model_load_plan(
+                model_id, resolved_files=resolve_result.files
+            )
             runtime_model = RuntimeModel(
                 model_id=resolve_result.model_id,
                 model_path=resolve_result.model_path or "",

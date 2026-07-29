@@ -59,6 +59,26 @@ def test_metrics_can_be_filtered_by_operation():
     assert inference[0].duration_seconds == 2.0
 
 
+def test_summary_evaluates_duration_and_failures_by_operation():
+    metrics = PerformanceMetrics()
+    metrics.record(PerformanceOperation.MODEL_LOAD, 0.2, success=True)
+    metrics.record(PerformanceOperation.MODEL_LOAD, 0.4, success=False)
+    metrics.record(PerformanceOperation.INFERENCE, 2.0, success=True)
+
+    summary = metrics.get_summary()
+
+    assert summary["model_load"] == {
+        "count": 2,
+        "failures": 1,
+        "total_seconds": 0.6000000000000001,
+        "average_seconds": 0.30000000000000004,
+        "minimum_seconds": 0.2,
+        "maximum_seconds": 0.4,
+    }
+    assert summary["inference"]["average_seconds"] == 2.0
+    assert "resource_release" not in summary
+
+
 def test_store_is_bounded():
     metrics = PerformanceMetrics(max_metrics=2)
     metrics.record(PerformanceOperation.MODEL_LOAD, 1, success=True)

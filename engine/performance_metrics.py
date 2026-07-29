@@ -68,7 +68,7 @@ class PerformanceMetrics:
         )
         with self._lock:
             self._metrics.append(metric)
-        logger.info(
+        logger.debug(
             "Performance | operation=%s duration_ms=%.3f success=%s tags=%s",
             metric.operation.value,
             metric.duration_seconds * 1000.0,
@@ -113,6 +113,25 @@ class PerformanceMetrics:
         if normalized is None:
             return values
         return [metric for metric in values if metric.operation is normalized]
+
+    def get_summary(self) -> dict[str, dict[str, float | int]]:
+        """Aggregate the collected Sprint-15 metrics without additional I/O."""
+        summary: dict[str, dict[str, float | int]] = {}
+        for operation in PerformanceOperation:
+            metrics = self.get_metrics(operation)
+            if not metrics:
+                continue
+            durations = [metric.duration_seconds for metric in metrics]
+            total = sum(durations)
+            summary[operation.value] = {
+                "count": len(metrics),
+                "failures": sum(not metric.success for metric in metrics),
+                "total_seconds": total,
+                "average_seconds": total / len(metrics),
+                "minimum_seconds": min(durations),
+                "maximum_seconds": max(durations),
+            }
+        return summary
 
     def clear(self) -> None:
         with self._lock:

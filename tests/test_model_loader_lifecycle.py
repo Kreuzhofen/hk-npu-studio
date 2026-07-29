@@ -101,6 +101,26 @@ class ModelLoaderLifecycleTests(unittest.TestCase):
         self.assertEqual(backend.shutdown_calls, 1)
         self.assertEqual(loader.state, ModelLoadState.UNLOADED)
 
+    def test_model_package_tree_is_scanned_only_once_per_load(self):
+        self.add_model("demo")
+        loader = self.loader()
+        backend = FakeBackend()
+        original_get_files = loader.get_model_files
+        scan_count = 0
+
+        def counted_get_files(model_id):
+            nonlocal scan_count
+            scan_count += 1
+            return original_get_files(model_id)
+
+        loader.get_model_files = counted_get_files
+
+        result = loader.load_model("demo", FakeBackendManager(backend))
+
+        self.assertTrue(result.success)
+        self.assertEqual(scan_count, 1)
+        loader.unload_model("demo")
+
     def test_parallel_load_is_initialized_only_once(self):
         self.add_model("demo")
         loader = self.loader()

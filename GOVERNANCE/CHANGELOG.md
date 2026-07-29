@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 16 – Performance-Optimierung)
+
+### Geändert
+* Aggregierte Auswertung der Laufzeitmetriken je Vorgang.
+* Doppelten rekursiven Paketbaum-Scan beim Modellladen entfernt.
+* Einzelmetriken von synchronem INFO-Logging auf DEBUG reduziert.
+* Keine Funktions- oder UI-Änderungen.
+
+### Prüfung
+* 20 relevante Performance-, Modell-Lifecycle- und Inference-Tests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 15 – Performance-Messung)
 
 ### Geändert
