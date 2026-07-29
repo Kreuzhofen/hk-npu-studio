@@ -135,7 +135,7 @@ class OnnxImageBackend(InferenceBackend):
                 
         return results
 
-    def is_available(self) -> tuple[bool, str]:
+    def check_availability(self) -> tuple[bool, str]:
         """
         Check if onnxruntime library is importable and log its metadata.
         Returns a tuple of (is_available, status_message).
@@ -178,6 +178,10 @@ class OnnxImageBackend(InferenceBackend):
         except ImportError as e:
             return False, f"ONNX Runtime is not installed on this system: {e}"
 
+    def is_available(self) -> bool:
+        available, _ = self.check_availability()
+        return available
+
     def generate(self, job: GenerationJob) -> GenerationResponse:
         model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
         backend_name = OnnxProviderService.runtime_label()
@@ -189,7 +193,7 @@ class OnnxImageBackend(InferenceBackend):
         )
 
         # 1. Check ONNX Runtime availability
-        available, check_msg = self.is_available()
+        available, check_msg = self.check_availability()
         if not available:
             logger.error(f"[OnnxImageBackend] {check_msg}")
             print(f"[OnnxImageBackend] {check_msg}")

@@ -4,6 +4,20 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 2 – Backend vereinheitlichen)
+
+### Geändert
+* **Gemeinsamer Backend-Vertrag:** `InferenceBackend` definiert jetzt die gemeinsame Schnittstelle für Routing-Adapter und physische CPU-, ONNX- und QNN-Backends einschließlich Lebenszyklus, Verfügbarkeit, Metadaten, Generierung, Abbruch, Fortschritt und Zustandsprüfung.
+* **Adapter-Konsolidierung:** CPU-, ONNX- und generischer QNN-Stub verwenden `StubBackendAdapter` für ihre identische Zustands- und Ergebnislogik.
+* **QNN-Routing-Konsolidierung:** SD1.5-, SD2.1- und ControlNet-QNN-Adapter verwenden `QnnProductBackendAdapter` für Delegation, laufende Backend-Bindung und Abbruch.
+* **ONNX-Verfügbarkeit:** Die boolesche Vertragsmethode `is_available()` ist von der detaillierten Diagnose `check_availability()` getrennt.
+* **Kompatibilität:** UI, Backend-Namen, Versionen, Meldungen, Auswahlreihenfolge und produktive QNN-Pfade bleiben unverändert.
+
+### Prüfung
+* Vollständiger Python-Build mit `compileall`: erfolgreich.
+* Backend- und QNN-Regression: 32 Tests und 6 Subtests bestanden.
+* Vollständige Testsuite: 129 Tests und 15 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 1 – Projektbasis stabilisieren)
 
 ### Geändert

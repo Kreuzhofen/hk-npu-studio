@@ -1,68 +1,17 @@
 from __future__ import annotations
 
-from engine.backends.backend_adapter import BackendAdapter
-from controllers.generation_job import GenerationJob
-from controllers.generation_result import GenerationResult
+from engine.backends.stub_backend_adapter import StubBackendAdapter
 
 
-class CPUBackendAdapter(BackendAdapter):
-    """
-    CPU-based local inference reference adapter.
-    Uses pure PyTorch (CPU) or NumPy fallbacks for testing and model evaluation.
-    
-    Future Integration:
-    - Text Encoders: CLIP ViT-L, T5-XXL (run on CPU for RAM saving)
-    - VAE: AutoencoderKL decoding steps
-    - Models: SDXL Base, Stable Diffusion 3 Medium, Flux.1 Dev
-    - Schedulers: DPMSolverMultistepScheduler, EulerDiscreteScheduler
-    """
+class CPUBackendAdapter(StubBackendAdapter):
+    """Lokaler CPU-Referenzadapter und garantierter Rückfallpfad."""
 
-    def initialize(self) -> None:
-        print("[CPUBackendAdapter] Initializing CPU inference context...")
-
-    def shutdown(self) -> None:
-        print("[CPUBackendAdapter] Cleaning up CPU inference context...")
-
-    def is_available(self) -> bool:
-        return True  # CPU is always available as fallback
-
-    def get_backend_name(self) -> str:
-        return "CPU (Stub)"
-
-    def get_backend_version(self) -> str:
-        return "0.1.0-stub"
-
-    def get_supported_models(self) -> list[str]:
-        return ["sd_xl_base_1.0", "sd_1.5_resnet"]
-
-    def generate(self, job: GenerationJob) -> GenerationResult:
-        print(f"[CPUBackendAdapter] Starting generation stub for job {job.job_id}...")
-        job.status = "RUNNING"
-        job.progress = 0.1
-        # TODO: Implement local CPU pipeline scheduler loop:
-        # 1. Encode prompt using Text Encoder (CLIP/T5)
-        # 2. Iterate scheduler denoising steps over latent noise tensor
-        # 3. Decode latents using VAE decoder
-        # 4. Save result image and update job.result_path
-        job.status = "FINISHED"
-        job.progress = 1.0
-        return GenerationResult(
-            success=True,
-            status="FINISHED",
-            message="Bildgenerierung auf CPU erfolgreich abgeschlossen (Stub).",
-            image_path=None,
-            thumbnail_path=None,
-            backend_name=self.get_backend_name(),
-            model_name=job.session.model_name if (job and job.session) else "Unknown",
-        )
-
-    def cancel(self, job: GenerationJob) -> str:
-        print(f"[CPUBackendAdapter] Cancelling job {job.job_id}...")
-        job.status = "CANCELLED"
-        return "Generation cancelled (stub)"
-
-    def get_progress(self, job: GenerationJob) -> float:
-        return job.progress
-
-    def health_check(self) -> bool:
-        return True
+    BACKEND_NAME = "CPU (Stub)"
+    BACKEND_VERSION = "0.1.0-stub"
+    SUPPORTED_MODELS = ("sd_xl_base_1.0", "sd_1.5_resnet")
+    INITIALIZE_MESSAGE = "[CPUBackendAdapter] Initializing CPU inference context..."
+    SHUTDOWN_MESSAGE = "[CPUBackendAdapter] Cleaning up CPU inference context..."
+    GENERATE_MESSAGE = "[CPUBackendAdapter] Starting generation stub for job {job_id}..."
+    SUCCESS_MESSAGE = "Bildgenerierung auf CPU erfolgreich abgeschlossen (Stub)."
+    CANCEL_LOG_MESSAGE = "[CPUBackendAdapter] Cancelling job {job_id}..."
+    CANCEL_MESSAGE = "Generation cancelled (stub)"

@@ -1,27 +1,16 @@
 from __future__ import annotations
 
-from engine.backends.backend_adapter import BackendAdapter
-from controllers.generation_job import GenerationJob
-from controllers.generation_result import GenerationResult
+from engine.backends.qnn_product_backend_adapter import QnnProductBackendAdapter
 
 
-class StableDiffusion15QnnBackendAdapter(BackendAdapter):
+class StableDiffusion15QnnBackendAdapter(QnnProductBackendAdapter):
     """
     Qualcomm Hexagon HTP Backend adapter for SD1.5.
     """
 
-    def __init__(self) -> None:
-        self._running_backend = None
-
-    def set_running_backend(self, backend) -> None:
-        """Bind the physical backend instance currently executing this adapter's job."""
-        self._running_backend = backend
-
-    def initialize(self) -> None:
-        print("[StableDiffusion15QnnBackendAdapter] Running on Qualcomm Hexagon HTP")
-
-    def shutdown(self) -> None:
-        pass
+    INITIALIZE_MESSAGE = (
+        "[StableDiffusion15QnnBackendAdapter] Running on Qualcomm Hexagon HTP"
+    )
 
     def is_available(self) -> bool:
         # Verify model files and QNN runtime are present
@@ -39,28 +28,6 @@ class StableDiffusion15QnnBackendAdapter(BackendAdapter):
 
     def get_supported_models(self) -> list[str]:
         return ["stable_diffusion_v1_5_qnn"]
-
-    def generate(self, job: GenerationJob) -> GenerationResult:
-        # Route to physical QNN backend
-        from engine.inference_backend_factory import InferenceBackendFactory
-        backend = InferenceBackendFactory.get_backend(self.get_backend_name())
-        self._running_backend = backend
-        try:
-            return backend.generate(job)
-        finally:
-            if self._running_backend is backend:
-                self._running_backend = None
-
-    def cancel(self, job: GenerationJob) -> str:
-        job.cancel_requested.set()
-        job.status = "CANCELLED"
-        backend = self._running_backend
-        if backend is not None:
-            backend.cancel(job)
-        return "Generation cancelled"
-
-    def get_progress(self, job: GenerationJob) -> float:
-        return job.progress
 
     def health_check(self) -> bool:
         return True
