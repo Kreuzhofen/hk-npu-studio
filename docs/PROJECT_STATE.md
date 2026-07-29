@@ -8,6 +8,8 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
+* **Sprint 14 – Ressourcenüberwachung:** Eine zentrale, passive Ressourcenüberwachung erfasst CPU- und RAM-Auslastung sowie Verfügbarkeit und Health-Status des aktiven CPU-, ONNX- oder QNN/NPU-Backends. Laufende Jobs werden über den gemeinsamen Lebenszyklus gedrosselt beobachtet; einheitlich klassifizierte Ressourcenwarnungen stehen intern bereit und werden strukturiert protokolliert. Messfehler beeinflussen die Jobausführung nicht. 21 relevante Tests und 5 Subtests sind erfolgreich; Funktionalität und UI wurden nicht geändert.
+
 * **Sprint 13 – Start- und Diagnoseprüfung:** Vor dem Aufbau der Anwendung werden Umgebung, registrierte Backends und Modelldefinitionen UI-unabhängig geprüft. Die Ergebnisse sind nach Kategorie und Schweregrad strukturiert protokolliert; Fehler einzelner Prüfungen bleiben isoliert und führen zu einem sicheren CPU-Fallback beziehungsweise einem Start ohne aktives Modell statt zu einem Absturz. 17 relevante Tests und 6 Subtests sind erfolgreich; die UI wurde nicht geändert.
 
 * **Sprint 12 – Model-Update absichern:** Neuere lokale Modellpakete werden in einem separaten Staging-Verzeichnis aufgebaut und validiert, anschließend atomar gegen die aktive Installation getauscht. Bis zum erfolgreichen Registry-Commit bleibt ein Backup für den Rollback erhalten; gleichalte, ältere oder fehlerhafte Pakete werden abgewiesen. 27 relevante Tests sind erfolgreich; die UI wurde nicht geändert.

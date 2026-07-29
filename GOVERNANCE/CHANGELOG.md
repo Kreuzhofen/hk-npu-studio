@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 14 – Ressourcenüberwachung)
+
+### Geändert
+* Zentrale Erfassung von CPU, RAM und aktivem Backend-/NPU-Zustand.
+* Gedrosselte, passive Überwachung laufender Jobs im gemeinsamen Lebenszyklus.
+* Einheitliche interne Warnungen für Ressourcenengpässe und Backendzustände.
+* Keine Funktions- oder UI-Änderungen.
+
+### Prüfung
+* 21 relevante Ressourcen-, Job- und Pipeline-Tests sowie 5 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 13 – Start- und Diagnoseprüfung)
 
 ### Geändert

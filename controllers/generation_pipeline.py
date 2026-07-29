@@ -40,6 +40,12 @@ class ImageGenerationPipeline:
             return
         set_job_status(self.job, JobStatus.RUNNING)
         set_job_progress(self.job, self.job.progress, "Pipeline gestartet", notify=False)
+        try:
+            from engine.resource_monitor import observe_running_job
+
+            observe_running_job(self.job, self.backend_adapter)
+        except Exception:
+            pass
         # Stub preparation: Create target directories, print logs
 
     def validate(self) -> bool:

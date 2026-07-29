@@ -68,6 +68,8 @@ def set_job_status(job: Any, status: JobStatus | str) -> JobStatus:
         job["status"] = normalized.value
     else:
         job.status = normalized.value
+    if normalized is JobStatus.RUNNING:
+        _observe_resources(job)
     return normalized
 
 
@@ -94,7 +96,19 @@ def set_job_progress(
             callback(round(normalized * 100.0, 10), message)
         except Exception:
             pass
+    if get_job_status(job) is JobStatus.RUNNING:
+        _observe_resources(job)
     return normalized
+
+
+def _observe_resources(job: Any) -> None:
+    """Keep monitoring passive: diagnostics must never affect job behavior."""
+    try:
+        from engine.resource_monitor import observe_running_job
+
+        observe_running_job(job, getattr(job, "backend_adapter", None))
+    except Exception:
+        pass
 
 
 def cancel_job(job: Any) -> None:
