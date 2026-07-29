@@ -79,10 +79,15 @@ def draw_vector_icon(
 
     elif name == "settings":
         # Draw a gear shape
+        from engine.theme_manager import ThemeManager
+        draw_color = color
+        if ThemeManager.active_theme() == ThemeManager.PROFESSIONAL_LIGHT and color == PHOENIX_THEME.text_secondary:
+            draw_color = PHOENIX_THEME.text_primary
+
         # Inner circle
-        ids.append(canvas.create_oval(x - r*0.3, y - r*0.3, x + r*0.3, y + r*0.3, outline=color, fill="", width=stroke_width))
+        ids.append(canvas.create_oval(x - r*0.3, y - r*0.3, x + r*0.3, y + r*0.3, outline=draw_color, fill="", width=stroke_width))
         # Outer circle
-        ids.append(canvas.create_oval(x - r*0.65, y - r*0.65, x + r*0.65, y + r*0.65, outline=color, fill="", width=stroke_width))
+        ids.append(canvas.create_oval(x - r*0.65, y - r*0.65, x + r*0.65, y + r*0.65, outline=draw_color, fill="", width=stroke_width))
         # Spokes (8 spokes around)
         import math
         for i in range(8):
@@ -91,7 +96,7 @@ def draw_vector_icon(
             y1 = y + math.sin(angle) * r*0.65
             x2 = x + math.cos(angle) * r*0.85
             y2 = y + math.sin(angle) * r*0.85
-            ids.append(canvas.create_line(x1, y1, x2, y2, fill=color, width=stroke_width * 1.5, capstyle="round"))
+            ids.append(canvas.create_line(x1, y1, x2, y2, fill=draw_color, width=stroke_width * 1.5, capstyle="round"))
 
     elif name == "plugins":
         # Draw double diamonds (premium plugins style)
