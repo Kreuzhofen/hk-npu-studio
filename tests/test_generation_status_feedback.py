@@ -3,11 +3,15 @@ from __future__ import annotations
 import unittest
 import queue
 import tkinter as tk
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from widgets.phoenix.views.prompt_view import PhoenixPromptView
 from controllers.prompt_workspace_controller import PromptWorkspaceController
 from controllers.generation_job import GenerationJob
 from controllers.generation_session import GenerationSessionModel
+from controllers.generation_result import GenerationResult
 
 
 class GenerationStatusFeedbackTests(unittest.TestCase):
@@ -41,6 +45,36 @@ class GenerationStatusFeedbackTests(unittest.TestCase):
         self.assertIn("45 %", self.view.progress_stage_label.cget("text"))
         self.assertEqual(self.view.status_label.cget("text"), "Status: Sampling Phase (Schritt 9/20)...")
         self.assertEqual(self.view.insp_gen_status.cget("text"), "Sampling Phase (Schritt 9/20)...")
+
+    def test_late_progress_does_not_overwrite_terminal_state(self) -> None:
+        self.view._generation_running = False
+        self.view.status_label.configure(text="Status: CANCELLED")
+        self.view.insp_gen_status.configure(text="CANCELLED")
+
+        self.view._handle_generation_progress(95.0, "Bild wird gespeichert")
+
+        self.assertEqual(self.view.status_label.cget("text"), "Status: CANCELLED")
+        self.assertEqual(self.view.insp_gen_status.cget("text"), "CANCELLED")
+
+    def test_save_as_copies_the_last_successful_preview(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "generated.png"
+            destination = Path(temp_dir) / "saved.png"
+            source.write_bytes(b"generated-image")
+            self.controller.last_response = GenerationResult(
+                success=True,
+                status="FINISHED",
+                message="done",
+                image_path=str(source),
+            )
+
+            with patch(
+                "tkinter.filedialog.asksaveasfilename",
+                return_value=str(destination),
+            ):
+                self.view._on_save_as()
+
+            self.assertEqual(destination.read_bytes(), b"generated-image")
 
     def test_all_phases_are_mapped_correctly(self) -> None:
         """2. Alle 5 Inferenzphasen werden korrekt auf Prozentwerte und deutsche Bezeichnungen abgebildet."""

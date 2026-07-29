@@ -8,6 +8,8 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
+* **Sprint 18 – UI-Workflow stabilisieren:** Der bestehende Ablauf Bildgenerierung, Fortschritt, Vorschau und „Speichern unter“ wurde gegen Erfolg, Fehler, Abbruch und Wiederholung abgesichert. Fehlgeschlagene, abgebrochene oder scheinbar erfolgreiche Versuche ohne Bilddatei verdrängen die letzte gültige Vorschau nicht; verspätete Fortschrittsereignisse können Terminalzustände nicht mehr überschreiben. Ein erfolgreicher Wiederholungsversuch ersetzt die Vorschau deterministisch. 20 relevante UI-/Controller-Tests und 9 Subtests sind erfolgreich; es gab keine optische Neugestaltung und keine neuen Features.
+
 * **Sprint 17 – Release-Readiness (Core):** Der Core wurde auf TODO/FIXME/HACK-Markierungen, veraltete Platzhalter und Referenzen geprüft. Der ungenutzte Remote-Cloud-Stub wurde aus Backend-Registry und Core entfernt, da er ohne Implementierung Verfügbarkeit und erfolgreichen Abschluss meldete. Überholte Stub-/Roadmap-Kommentare wurden an den produktiven Stand angepasst. 24 relevante Tests und 6 Subtests sind erfolgreich; der gesamte Core kompiliert fehlerfrei. Neue Features und UI-Änderungen wurden nicht vorgenommen.
 
 * **Sprint 16 – Performance-Optimierung:** Die Sprint-15-Metriken können nun pro Vorgang nach Anzahl, Fehlern sowie Gesamt-, Mittel-, Min- und Max-Laufzeit aggregiert ausgewertet werden. Beim Modellladen wurde ein doppelter rekursiver Paketbaum-Scan entfernt; bereits aufgelöste Dateilisten werden für den Ladeplan wiederverwendet. Einzelmetriken schreiben nur noch auf DEBUG-Level und vermeiden damit synchrone INFO-Datei-I/O in Lade-, Inference- und Freigabepfaden. 20 relevante Tests sind erfolgreich; Funktionalität und UI wurden nicht geändert.

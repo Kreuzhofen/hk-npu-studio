@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 from controllers.prompt_workspace_model import PromptWorkspaceModel, PromptWorkspaceState
@@ -26,6 +27,7 @@ class PromptWorkspaceController:
         self.repository = repository or getattr(generation_controller, "repository", None) or ModelRepository()
         self.generation_controller = generation_controller or GenerationController(repository=self.repository)
         self.last_response: Any = None
+        self.last_attempt_response: Any = None
 
         # Dynamically populate model names from the data-driven repository
         self.AVAILABLE_MODELS = [m["id"] for m in self.repository.get_product_models()]
@@ -133,8 +135,14 @@ class PromptWorkspaceController:
         else:
             status_msg = "Abgeschlossen" if result.success else f"Fehler: {result.message}"
         self.model.update_state(status=status_msg)
-        self.last_response = result
-        if result.success and result.status != "CANCELLED":
+        self.last_attempt_response = result
+        if (
+            result.success
+            and result.status != "CANCELLED"
+            and result.image_path
+            and Path(result.image_path).is_file()
+        ):
+            self.last_response = result
             self.save_prompt_to_history(self.model.state.prompt)
         return result
 

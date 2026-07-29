@@ -1733,17 +1733,31 @@ class PhoenixPromptView(WorkspaceFrame):
         self._generation_running = False
         self._cancel_progress_tick()
         cancelled = result.status == "CANCELLED"
+        output_path = Path(result.image_path) if result.image_path else None
+        presentable_success = bool(
+            result.success
+            and not cancelled
+            and output_path is not None
+            and output_path.is_file()
+        )
+        if result.success and not cancelled and not presentable_success:
+            result.success = False
+            result.message = tr(
+                "generation_output_missing",
+                "Die Generierung wurde beendet, aber die Bilddatei fehlt.",
+            )
+            self.controller.model.update_state(status=f"Fehler: {result.message}")
         
-        if result.success and not cancelled:
+        if presentable_success:
             self._progress_current_step = self._progress_total_steps
 
         if cancelled:
             self._set_progress(self._progress_percent, tr("status_cancelled", "CANCELLED"), self._step_text())
         else:
-            self._set_progress(100, tr("status_completed", "Fertig") if result.success else tr("status_failed", "Fehler"), self._step_text())
+            self._set_progress(100, tr("status_completed", "Fertig") if presentable_success else tr("status_failed", "Fehler"), self._step_text())
         self._set_generation_busy(False)
 
-        if result.success:
+        if presentable_success:
             self._append_generation_diagnostic(result, "before_finish_callback")
             self._notify_generation_finished(result)
             self._append_generation_diagnostic(result, "after_finish_callback")
@@ -1837,7 +1851,7 @@ class PhoenixPromptView(WorkspaceFrame):
         pass
 
     def _handle_generation_progress(self, percent: float, stage: str) -> None:
-        if not self._is_view_alive():
+        if not self._is_view_alive() or not self._generation_running:
             return
 
         step_text = "-"

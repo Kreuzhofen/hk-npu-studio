@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 18 – UI-Workflow stabilisieren)
+
+### Geändert
+* Generierungsfluss von Fortschritt bis Vorschau und Speichern stabilisiert.
+* Letztes gültiges Bild bleibt nach Fehler oder Abbruch verfügbar.
+* Verspätete Fortschrittsereignisse überschreiben keine Terminalzustände.
+* Fehlende Erfolgsdateien werden sicher als Fehler behandelt.
+* Keine optische Neugestaltung oder neuen Features.
+
+### Prüfung
+* 20 relevante UI-/Controller-Tests und 9 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 17 – Release-Readiness Core)
 
 ### Geändert
