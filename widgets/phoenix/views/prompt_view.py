@@ -123,6 +123,7 @@ from controllers.prompt_workspace_controller import PromptWorkspaceController
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
+from app.runtime_localization import localize_runtime_text
 
 try:
     from tkinterdnd2 import DND_FILES
@@ -1652,9 +1653,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         is_valid, msg = self.controller.generation_controller.validate_session()
         if not is_valid:
-            self.controller.model.update_state(
-                status=f"{tr('error', 'Fehler')}: {msg}"
-            )
+            self.controller.model.update_state(status=f"error: {msg}")
             self.refresh()
             messagebox.showerror(tr("validation_error", "Validierungsfehler"), msg)
             return
@@ -1748,9 +1747,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 "generation_output_missing",
                 "Die Generierung wurde beendet, aber die Bilddatei fehlt.",
             )
-            self.controller.model.update_state(
-                status=f"{tr('error', 'Fehler')}: {result.message}"
-            )
+            self.controller.model.update_state(status=f"error: {result.message}")
         
         if presentable_success:
             self._progress_current_step = self._progress_total_steps
@@ -1777,9 +1774,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self._generation_running = False
         self._cancel_progress_tick()
-        self.controller.model.update_state(
-            status=f"{tr('error', 'Fehler')}: {error}"
-        )
+        self.controller.model.update_state(status=f"error: {error}")
         self._set_progress(100, "Fehler", self._step_text())
         self._set_generation_busy(False)
         messagebox.showerror(tr("nav_ai_generate", "KI-Generierung"), str(error))
@@ -1821,7 +1816,9 @@ class PhoenixPromptView(WorkspaceFrame):
             bg=PHOENIX_THEME.button_active if busy else PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_on_accent if busy else PHOENIX_THEME.text_disabled,
         )
-        status_text = tr("status_generating", "Generierung läuft") if busy else self.controller.get_state().status
+        status_text = localize_runtime_text(
+            "generating" if busy else self.controller.get_state().status
+        )
         status_text_lower = status_text.lower()
         if status_text_lower == "idle":
             status_text = tr("ready", "Bereit")
@@ -1979,7 +1976,8 @@ class PhoenixPromptView(WorkspaceFrame):
 
         state = self.controller.get_state()
         if not self._generation_running:
-            self.status_label.configure(text=tr("status_prefix", "Status: {status}", status=state.status))
+            localized_status = localize_runtime_text(state.status)
+            self.status_label.configure(text=tr("status_prefix", "Status: {status}", status=localized_status))
 
         active_backend_name = "None"
         queued_count = 0
@@ -2003,7 +2001,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_model.configure(text=state.selected_model if state.selected_model else "-")
         self.insp_backend.configure(text=active_backend_name)
         if not self._generation_running:
-            self.insp_gen_status.configure(text=state.status)
+            self.insp_gen_status.configure(text=localize_runtime_text(state.status))
         self.insp_queue.configure(
             text=tr("job_count", "{count} Job(s)", count=queued_count)
         )
@@ -2254,7 +2252,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
             current_status = self.controller.model.state.status
             if current_status and ("Fehler" in current_status or "Validierung" in current_status):
-                self.controller.model.update_state(status=tr("ready", "Bereit"))
+                self.controller.model.update_state(status="ready")
 
             self.refresh()
         finally:
@@ -2463,7 +2461,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         current_status = self.controller.model.state.status
         if current_status and ("Fehler" in current_status or "Validierung" in current_status):
-            self.controller.model.update_state(status=tr("ready", "Bereit"))
+            self.controller.model.update_state(status="ready")
 
         self.refresh()
 

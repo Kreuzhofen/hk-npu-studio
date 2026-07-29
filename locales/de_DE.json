@@ -699,5 +699,10 @@
   "queue_status_processing": "Wird verarbeitet",
   "queue_status_finished": "Fertig",
   "queue_status_error": "Fehler",
-  "queue_status_deferred": "Zurückgestellt"
+  "queue_status_deferred": "Zurückgestellt",
+  "queue": "Warteschlange",
+  "worker": "Worker",
+  "worker_busy": "Worker beschäftigt",
+  "queue_empty_short": "Warteschlange leer",
+  "batch_runtime_detail": "{queue} · Fortschritt: {current}/{total} ({percent}%) · {worker}"
 }

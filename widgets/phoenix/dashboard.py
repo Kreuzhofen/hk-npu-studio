@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.i18n import tr
+from app.runtime_localization import localize_runtime_text
 from widgets.phoenix.cards.progress_card import PhoenixProgressCard
 from widgets.phoenix.cards.status_card import PhoenixStatusCard
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -12,11 +13,11 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 @dataclass(frozen=True)
 class PhoenixDashboardSnapshot:
-    workspace_status: str = tr("active", "Aktiv")
-    batch_status: str = tr("ready", "Bereit")
-    lifecycle_status: str = "Idle"
-    output_status: str = tr("no_output_selected", "Keine Ausgabe ausgewählt")
-    detail: str = tr("dashboard_ready", "Phoenix-Dashboard ist bereit.")
+    workspace_status: str = "active"
+    batch_status: str = "ready"
+    lifecycle_status: str = "idle"
+    output_status: str = "no_output"
+    detail: str = ""
     current: int = 0
     total: int = 0
     percent: int = 0
@@ -64,7 +65,7 @@ class PhoenixDashboard(tk.Frame):
 
         self._create_status_card(cards_host, "workspace", tr("workspace", "Workspace"), tr("ready", "Bereit"), 0, 0)
         self._create_status_card(cards_host, "batch", tr("batch", "Batch"), tr("ready", "Bereit"), 0, 1)
-        self._create_status_card(cards_host, "engine", "Engine", "Idle", 1, 0)
+        self._create_status_card(cards_host, "engine", "Engine", tr("idle", "Inaktiv"), 1, 0)
         self._create_status_card(cards_host, "output", tr("output_title", "Ausgabe"), tr("no_output", "Keine Ausgabe"), 1, 1)
 
         self._progress_card = PhoenixProgressCard(
@@ -115,9 +116,9 @@ class PhoenixDashboard(tk.Frame):
 
         if isinstance(data, dict):
             return PhoenixDashboardSnapshot(
-                workspace_status=str(data.get("workspace_status", tr("active", "Aktiv"))),
-                batch_status=str(data.get("batch_status", tr("ready", "Bereit"))),
-                lifecycle_status=str(data.get("lifecycle_status", "Idle")),
+                workspace_status=str(data.get("workspace_status", "active")),
+                batch_status=str(data.get("batch_status", "ready")),
+                lifecycle_status=str(data.get("lifecycle_status", "idle")),
                 output_status=str(data.get("output_status", tr("no_output_selected", "Keine Ausgabe ausgewählt"))),
                 detail=str(data.get("detail", tr("dashboard_ready", "Phoenix-Dashboard ist bereit."))),
                 current=int(data.get("current", 0)),
@@ -128,10 +129,11 @@ class PhoenixDashboard(tk.Frame):
         return PhoenixDashboardSnapshot()
 
     def _render(self, snapshot: PhoenixDashboardSnapshot) -> None:
-        self._update_card("workspace", tr("workspace", "Workspace"), snapshot.workspace_status, tr("phoenix_ui_active", "Phoenix UI aktiv."))
-        self._update_card("batch", tr("batch", "Batch"), snapshot.batch_status, snapshot.detail)
-        self._update_card("engine", "Engine", snapshot.lifecycle_status, tr("lifecycle_layer", "Controller-/Lifecycle-Schicht."))
-        self._update_card("output", tr("output_title", "Ausgabe"), snapshot.output_status, tr("last_known_output", "Letzte bekannte Ausgabe."))
+        self._update_card("workspace", tr("workspace", "Workspace"), localize_runtime_text(snapshot.workspace_status), tr("phoenix_ui_active", "Phoenix UI aktiv."))
+        detail = snapshot.detail or tr("dashboard_ready", "Phoenix-Dashboard ist bereit.")
+        self._update_card("batch", tr("batch", "Batch"), localize_runtime_text(snapshot.batch_status), detail)
+        self._update_card("engine", "Engine", localize_runtime_text(snapshot.lifecycle_status), tr("lifecycle_layer", "Controller-/Lifecycle-Schicht."))
+        self._update_card("output", tr("output_title", "Ausgabe"), localize_runtime_text(snapshot.output_status), tr("last_known_output", "Letzte bekannte Ausgabe."))
 
         if self._progress_card is not None:
             self._progress_card.update(
@@ -139,7 +141,7 @@ class PhoenixDashboard(tk.Frame):
                 current=snapshot.current,
                 total=snapshot.total,
                 percent=snapshot.percent,
-                detail=snapshot.detail,
+                detail=detail,
             )
 
     def _update_card(self, key: str, title: str, value: str, detail: str) -> None:

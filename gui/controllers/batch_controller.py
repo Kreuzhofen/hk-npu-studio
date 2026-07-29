@@ -22,8 +22,8 @@ from app.i18n import tr
 class BatchController:
     """Controls batch processing and runtime UI updates for the GUI."""
 
-    PLUGIN_NAME = tr("not_connected", "Nicht verbunden")
-    BACKEND_NAME = tr("no_engine_active", "Noch keine Engine aktiv")
+    PLUGIN_NAME = "not_connected"
+    BACKEND_NAME = "no_engine_active"
     STATUS_BACKEND_NAME = "Stub"
 
     def __init__(self, app):
@@ -56,6 +56,14 @@ class BatchController:
 
     def is_batch_busy(self):
         return self.state_machine.is_busy()
+
+    @staticmethod
+    def _plugin_name() -> str:
+        return tr("not_connected", "Nicht verbunden")
+
+    @staticmethod
+    def _backend_name() -> str:
+        return tr("no_engine_active", "Noch keine Engine aktiv")
 
     def _append_activity(self, message):
         self.activity_log.append(message)
@@ -115,16 +123,20 @@ class BatchController:
         if waiting_jobs:
             queue_label = tr("queue_waiting", "Warteschlange: {count} wartend", count=waiting_jobs)
         else:
-            queue_label = "Queue leer"
+            queue_label = tr("queue_empty_short", "Warteschlange leer")
 
-        detail = (
-            f"{queue_label} · "
-            f"Fortschritt: {current}/{total} ({percent}%) · "
-            f"{worker_label}"
+        detail = tr(
+            "batch_runtime_detail",
+            "{queue} · Fortschritt: {current}/{total} ({percent}%) · {worker}",
+            queue=queue_label,
+            current=current,
+            total=total,
+            percent=percent,
+            worker=worker_label,
         )
 
         return {
-            "workspace_status": "Aktiv",
+            "workspace_status": tr("status_active_title", "Aktiv"),
             "batch_status": batch_label,
             "lifecycle_status": lifecycle_label,
             "output_status": output_label,
@@ -136,8 +148,8 @@ class BatchController:
             "waiting_jobs": waiting_jobs,
             "current_job": current_job,
             "last_output": output_label,
-            "plugin": self.PLUGIN_NAME,
-            "backend": self.BACKEND_NAME,
+            "plugin": self._plugin_name(),
+            "backend": self._backend_name(),
             "activity": list(self.activity_log),
         }
 
@@ -175,8 +187,8 @@ class BatchController:
         self.ui.set_batch_progress(0, waiting_jobs, 0)
 
         self.ui.set_plugin(
-            self.PLUGIN_NAME,
-            self.BACKEND_NAME,
+            self._plugin_name(),
+            self._backend_name(),
             tr("batch_running", "Batch läuft..."),
         )
         self._append_activity(tr("batch_started", "Batch gestartet"))
@@ -206,8 +218,8 @@ class BatchController:
         self.runtime.request_cancel()
         self.ui.disable_cancel_button()
         self.ui.set_plugin(
-            self.PLUGIN_NAME,
-            self.BACKEND_NAME,
+            self._plugin_name(),
+            self._backend_name(),
             tr("cancel_requested", "Abbruch angefordert"),
         )
         self.ui.log(
@@ -309,29 +321,17 @@ class BatchController:
         percent = progress.get("percent", 0)
         batch_state = self.state_machine.get_state()
 
-        engine_status_label = {
-            "idle": "Ready",
-            "running": "Running",
-            "paused": "Paused",
-            "stopped": "Stopped",
-            "cancel_requested": "Stopping",
-        }.get(engine_status, engine_status)
-
-        worker_status_label = {
-            "idle": "Idle",
-            "running": "Busy",
-            "done": "Done",
-            "error": "Error",
-        }.get(worker_status, worker_status)
+        engine_status_label = engine_status
+        worker_status_label = worker_status
 
         if batch_state == "running":
-            engine_status_label = "Running"
+            engine_status_label = "running"
         elif batch_state == "stopping":
-            engine_status_label = "Stopping"
+            engine_status_label = "stopping"
         elif batch_state == "finished":
-            engine_status_label = "Finished"
+            engine_status_label = "finished"
         elif batch_state == "error":
-            engine_status_label = "Error"
+            engine_status_label = "error"
 
         self.application.set_status_bar(
             engine_status=engine_status_label,
@@ -371,14 +371,14 @@ class BatchController:
         if not self.ui.is_phoenix():
             self.application.select_loaded_image(input_path)
         self.ui.start_job(
-            plugin=self.PLUGIN_NAME,
-            backend=self.BACKEND_NAME,
+            plugin=self._plugin_name(),
+            backend=self._backend_name(),
             input_path=input_path,
         )
         self._apply_progress()
         self.ui.set_plugin(
-            self.PLUGIN_NAME,
-            self.BACKEND_NAME,
+            self._plugin_name(),
+            self._backend_name(),
             tr("running_ellipsis", "Läuft..."),
         )
         self.ui.log(tr("processing_file", "Verarbeite: {file}", file=Path(input_path).name))
@@ -440,8 +440,8 @@ class BatchController:
             log_text = tr("batch_completed_count", "Batch abgeschlossen: {count} Job(s)", count=len(results))
 
         self.ui.set_plugin(
-            self.PLUGIN_NAME,
-            self.BACKEND_NAME,
+            self._plugin_name(),
+            self._backend_name(),
             status_text,
         )
         self._append_activity(tr("batch_completed", "Batch abgeschlossen"))
@@ -460,8 +460,8 @@ class BatchController:
         self.ui.disable_cancel_button()
         self.ui.disable_output_button()
         self.ui.set_plugin(
-            self.PLUGIN_NAME,
-            self.BACKEND_NAME,
+            self._plugin_name(),
+            self._backend_name(),
             tr("batch_error", "Batch-Fehler"),
         )
         self.ui.fail_job()

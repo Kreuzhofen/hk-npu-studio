@@ -4,6 +4,20 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-29 (Localization Hotfix)
+
+### Geändert
+* Sprachneutrale kanonische Zustände für Prompt-, Batch-, Worker-, Queue- und Lifecycle-Abläufe eingeführt.
+* Zentrale Laufzeitlokalisierung für deutsche, englische und spanische Status-/Enumvarianten ergänzt.
+* Statusleiste, Plugin-/Jobkarten, Queue, Prompt-Inspector, Dashboard, Galerie und Vergleich an der UI-Grenze angebunden.
+* Dynamische Fehlerpräfixe, Phasen, Fortschrittstexte und Backendstatus vereinheitlicht.
+* Lokalisierungsvertrag auf 704 identische Schlüssel erweitert.
+
+### Prüfung
+* Vollständiger App-Start und dynamische Statuswechsel in Deutsch, Englisch und Spanisch erfolgreich.
+* 27 relevante Tests und 9 Subtests bestanden; Produktcode vollständig kompiliert.
+* Keine gemischten Bildschirme festgestellt.
+
 ## [2.0 RC1] – 2026-07-29 (Visual Localization Fix)
 
 ### Geändert

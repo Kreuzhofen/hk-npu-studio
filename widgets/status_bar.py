@@ -9,6 +9,8 @@ Phoenix UI
 
 import tkinter as tk
 
+from app.i18n import tr
+from app.runtime_localization import localize_runtime_text
 from engine.brand_manager import BrandManager
 from resources.theme import Theme
 
@@ -41,34 +43,36 @@ class StatusBar(tk.Frame):
         self.status_label.pack(fill="x")
 
         self.set_status(
-            engine_status="Ready",
+            engine_status="ready",
             queue_count=0,
-            worker_status="Idle",
+            worker_status="idle",
             backend="QNN",
             percent=0,
         )
 
     def set_status(
         self,
-        engine_status="Ready",
+        engine_status="ready",
         queue_count=0,
-        worker_status="Idle",
+        worker_status="idle",
         backend="QNN",
         percent=0,
     ):
+        localized_engine = localize_runtime_text(engine_status)
+        localized_worker = localize_runtime_text(worker_status)
         text = (
             f"{BrandManager.ENGINE_NAME} │ "
-            f"{engine_status} │ "
-            f"Queue: {queue_count} │ "
-            f"Worker: {worker_status} │ "
-            f"Backend: {backend} │ "
+            f"{localized_engine} │ "
+            f"{tr('queue', 'Warteschlange')}: {queue_count} │ "
+            f"{tr('worker', 'Worker')}: {localized_worker} │ "
+            f"{tr('backend', 'Backend')}: {backend} │ "
             f"{percent}% │ "
             f"v{BrandManager.APP_VERSION}"
         )
 
         self.status_label.configure(text=text)
 
-        status_lower = engine_status.lower()
+        status_lower = str(engine_status).lower()
 
         if "running" in status_lower or "läuft" in status_lower:
             self.status_label.configure(fg=Theme.color("info"))

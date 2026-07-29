@@ -128,12 +128,12 @@ class PromptWorkspaceController:
 
     def generate_image(self, notify_workflow: bool = True, progress_callback: Any = None) -> GenerationResult:
         # Delegate to GenerationController and update status.
-        self.model.update_state(status="Generierung läuft")
+        self.model.update_state(status="generating")
         result = self.generation_controller.queue_generation(notify_workflow=notify_workflow, progress_callback=progress_callback)
         if result.status == "CANCELLED":
-            status_msg = "CANCELLED"
+            status_msg = "cancelled"
         else:
-            status_msg = "Abgeschlossen" if result.success else f"Fehler: {result.message}"
+            status_msg = "completed" if result.success else f"error: {result.message}"
         self.model.update_state(status=status_msg)
         self.last_attempt_response = result
         if (
@@ -278,5 +278,5 @@ class PromptWorkspaceController:
     def cancel_generation(self) -> str:
         """Use the existing generation-controller cancellation path."""
         status = self.generation_controller.cancel_generation()
-        self.model.update_state(status="CANCELLED")
+        self.model.update_state(status="cancelled")
         return status

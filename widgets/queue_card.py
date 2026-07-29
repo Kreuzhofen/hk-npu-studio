@@ -11,6 +11,7 @@ import tkinter as tk
 from pathlib import Path
 
 from app.i18n import tr
+from app.runtime_localization import localize_runtime_text
 from resources.theme import Theme
 
 
@@ -126,13 +127,7 @@ class QueueCard(tk.Frame):
             filename = Path(job["input_path"]).name
             status = job["status"]
             icon = self.STATUS_ICONS.get(status, "•")
-            localized_status = {
-                "wartet": tr("queue_status_waiting", "Wartet"),
-                "verarbeitet": tr("queue_status_processing", "Wird verarbeitet"),
-                "fertig": tr("queue_status_finished", "Fertig"),
-                "fehler": tr("queue_status_error", "Fehler"),
-                "zurückgestellt": tr("queue_status_deferred", "Zurückgestellt"),
-            }.get(str(status).lower(), str(status))
+            localized_status = localize_runtime_text(status)
 
             self.listbox.insert(
                 tk.END,

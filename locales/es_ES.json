@@ -698,5 +698,10 @@
   "queue_status_processing": "Procesando",
   "queue_status_finished": "Finalizado",
   "queue_status_error": "Error",
-  "queue_status_deferred": "Aplazado"
+  "queue_status_deferred": "Aplazado",
+  "queue": "Cola",
+  "worker": "Proceso",
+  "worker_busy": "Proceso ocupado",
+  "queue_empty_short": "Cola vacía",
+  "batch_runtime_detail": "{queue} · Progreso: {current}/{total} ({percent}%) · {worker}"
 }

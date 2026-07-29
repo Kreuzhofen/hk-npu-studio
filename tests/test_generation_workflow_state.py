@@ -55,7 +55,7 @@ def test_failed_retry_preserves_last_successful_output(tmp_path, monkeypatch):
 
     assert controller.last_response is success
     assert controller.last_attempt_response is failure
-    assert controller.get_state().status == "Fehler: backend failed"
+    assert controller.get_state().status == "error: backend failed"
 
 
 def test_cancelled_retry_preserves_last_successful_output(tmp_path, monkeypatch):
@@ -75,7 +75,7 @@ def test_cancelled_retry_preserves_last_successful_output(tmp_path, monkeypatch)
 
     assert controller.last_response is success
     assert controller.last_attempt_response is cancelled
-    assert controller.get_state().status == "CANCELLED"
+    assert controller.get_state().status == "cancelled"
 
 
 def test_successful_retry_replaces_previous_preview_output(tmp_path, monkeypatch):

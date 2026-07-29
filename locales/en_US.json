@@ -699,5 +699,10 @@
   "queue_status_processing": "Processing",
   "queue_status_finished": "Finished",
   "queue_status_error": "Error",
-  "queue_status_deferred": "Deferred"
+  "queue_status_deferred": "Deferred",
+  "queue": "Queue",
+  "worker": "Worker",
+  "worker_busy": "Worker busy",
+  "queue_empty_short": "Queue empty",
+  "batch_runtime_detail": "{queue} · Progress: {current}/{total} ({percent}%) · {worker}"
 }

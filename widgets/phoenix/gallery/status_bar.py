@@ -4,6 +4,7 @@ import tkinter as tk
 
 from widgets.phoenix.layout.workspace import WorkspaceStatusBar
 from app.i18n import tr
+from app.runtime_localization import localize_runtime_text
 
 
 class GalleryStatusBar(WorkspaceStatusBar):
@@ -23,7 +24,7 @@ class GalleryStatusBar(WorkspaceStatusBar):
         self.add_item(tr("zoom", "Zoom"), tr("size_medium", "Mittel"), 4)
         self.add_divider(5)
         
-        display_status = tr("ready", "Bereit") if status == "Bereit" else status
+        display_status = localize_runtime_text(status)
         self.add_item(tr("status", "Status"), display_status, 6, sticky="e")
 
     def update_values(
@@ -46,5 +47,5 @@ class GalleryStatusBar(WorkspaceStatusBar):
             "Status": tr("status", "Status"),
         }
         display_label = mapping.get(label, label)
-        display_value = tr("ready", "Bereit") if value == "Bereit" else value
+        display_value = localize_runtime_text(value)
         super().update_item(display_label, display_value)

@@ -10,6 +10,7 @@ Phoenix UI
 import tkinter as tk
 
 from app.i18n import tr
+from app.runtime_localization import localize_runtime_text
 from resources.theme import Theme
 
 
@@ -71,11 +72,12 @@ class PluginCard(tk.Frame):
         self.status_label.pack(fill="x")
 
     def set_plugin(self, name, backend, status):
+        localized_status = localize_runtime_text(status)
         self.name_label.configure(text=f"{tr('name', 'Name')}: {name}")
         self.backend_label.configure(text=f"{tr('backend', 'Backend')}: {backend}")
-        self.status_label.configure(text=f"{tr('status', 'Status')}: {status}")
+        self.status_label.configure(text=f"{tr('status', 'Status')}: {localized_status}")
 
-        status_lower = status.lower()
+        status_lower = str(status).lower()
 
         if "fehler" in status_lower:
             self.status_label.configure(fg=Theme.color("error"))

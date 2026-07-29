@@ -16,7 +16,7 @@ class PromptWorkspaceState:
     sampler: str = "Euler a"
     scheduler: str = "Normal"
     batch_count: int = 1
-    status: str = "Bereit"
+    status: str = "ready"
     input_image_path: str | None = None
     canny_low_threshold: int = 50
     canny_high_threshold: int = 150
