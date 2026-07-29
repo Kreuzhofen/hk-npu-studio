@@ -8,6 +8,7 @@ import traceback
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from app.i18n import tr
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
@@ -555,9 +556,15 @@ class OnnxImageBackend(InferenceBackend):
             success=True,
             status="FINISHED",
             message=(
-                "ONNX local image generation completed successfully."
+                tr(
+                    "onnx_generation_completed",
+                    "Lokale ONNX-Bildgenerierung erfolgreich abgeschlossen.",
+                )
                 if not response_metadata["alpha_fallback"]
-                else "ONNX alpha fallback image generated successfully; no real model weights were used."
+                else tr(
+                    "onnx_alpha_fallback_completed",
+                    "ONNX-Alpha-Fallbackbild erzeugt; es wurden keine echten Modellgewichte verwendet.",
+                )
             ),
             image_path=str(dummy_image_path),
             thumbnail_path=str(dummy_image_path),

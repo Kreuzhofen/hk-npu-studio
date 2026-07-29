@@ -315,21 +315,39 @@ class PhoenixPluginView(WorkspaceFrame):
 
     def _on_uninstall_plugin(self, plugin_id: str) -> None:
         confirm = messagebox.askyesno(
-            "Plugin entfernen",
-            f"Möchtest du das Plugin '{plugin_id}' wirklich dauerhaft deinstallieren?",
+            tr("plugin_remove_title", "Plugin entfernen"),
+            tr(
+                "plugin_remove_confirm",
+                "Möchtest du das Plugin '{plugin}' wirklich dauerhaft deinstallieren?",
+                plugin=plugin_id,
+            ),
         )
         if confirm:
             try:
                 self.controller.uninstall_plugin(plugin_id)
                 self.refresh()
-                messagebox.showinfo("Erfolg", f"Das Plugin '{plugin_id}' wurde erfolgreich deinstalliert.")
+                messagebox.showinfo(
+                    tr("success", "Erfolg"),
+                    tr(
+                        "plugin_uninstall_success",
+                        "Das Plugin '{plugin}' wurde erfolgreich deinstalliert.",
+                        plugin=plugin_id,
+                    ),
+                )
             except Exception as e:
-                messagebox.showerror("Fehler", f"Plugin konnte nicht deinstalliert werden: {e}")
+                messagebox.showerror(
+                    tr("error", "Fehler"),
+                    tr("plugin_uninstall_failed", "Plugin konnte nicht deinstalliert werden: {error}", error=e),
+                )
 
     def _on_configure_plugin(self, plugin_id: str) -> None:
         messagebox.showinfo(
-            "Plugin-Einstellungen",
-            f"Konfiguration für das Plugin '{plugin_id}' ist derzeit bereit für die Integration der Engine.",
+            tr("plugin_settings_title", "Plugin-Einstellungen"),
+            tr(
+                "plugin_settings_message",
+                "Konfiguration für das Plugin '{plugin}' ist für die Integration der Engine bereit.",
+                plugin=plugin_id,
+            ),
         )
 
     def _on_browse_plugin(self) -> None:
@@ -352,6 +370,16 @@ class PhoenixPluginView(WorkspaceFrame):
             plugin_id = self.controller.install_plugin(src)
             self.install_path_var.set("")
             self.refresh()
-            messagebox.showinfo("Erfolg", f"Das Plugin '{plugin_id}' wurde erfolgreich installiert.")
+            messagebox.showinfo(
+                tr("success", "Erfolg"),
+                tr(
+                    "plugin_install_success",
+                    "Das Plugin '{plugin}' wurde erfolgreich installiert.",
+                    plugin=plugin_id,
+                ),
+            )
         except Exception as e:
-            messagebox.showerror("Fehler", f"Plugin-Installation fehlgeschlagen: {e}")
+            messagebox.showerror(
+                tr("error", "Fehler"),
+                tr("plugin_install_failed", "Plugin-Installation fehlgeschlagen: {error}", error=e),
+            )

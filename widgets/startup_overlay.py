@@ -6,6 +6,7 @@ from typing import Optional
 from PIL import ImageTk
 
 from engine.brand_manager import BrandManager
+from app.i18n import tr
 
 
 class StartupOverlay(tk.Toplevel):
@@ -78,7 +79,11 @@ class StartupOverlay(tk.Toplevel):
 
         self.status_label = tk.Label(
             container,
-            text=f"Initializing {self.brand.engine_name()}...",
+            text=tr(
+                "initializing_engine",
+                "{engine} wird initialisiert...",
+                engine=self.brand.engine_name(),
+            ),
             font=(self.brand.font("FONT_BODY"), 12),
             fg=self.brand.color("COLOR_TEXT"),
             bg=self.brand.color("COLOR_BACKGROUND"),

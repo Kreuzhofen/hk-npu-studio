@@ -306,7 +306,7 @@ class GalleryThumbnailArea(tk.Frame):
 
                 tk.Label(
                     self.body,
-                    text=f"Datei: {filename}",
+                    text=f"{tr('file', 'Datei')}: {filename}",
                     font=PHOENIX_THEME.font_body,
                     fg=PHOENIX_THEME.text_primary,
                     bg=PHOENIX_THEME.card_bg,

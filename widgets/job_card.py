@@ -156,7 +156,13 @@ class JobCard(tk.Frame):
             value=percent,
         )
         self.batch_label.configure(
-            text=f"Batch: {current} / {total} ({percent}%)"
+            text=tr(
+                "batch_progress",
+                "Batch: {current} / {total} ({percent}%)",
+                current=current,
+                total=total,
+                percent=percent,
+            )
         )
 
     def update_runtime(self):

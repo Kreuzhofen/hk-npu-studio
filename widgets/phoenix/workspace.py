@@ -7,21 +7,22 @@ from widgets.phoenix.dashboard import PhoenixDashboard
 from widgets.phoenix.header import PhoenixHeader
 from widgets.phoenix.sidebar import PhoenixSidebar
 from widgets.phoenix.theme import PHOENIX_THEME
+from app.i18n import tr
 
 
 class PhoenixWorkspace(tk.Frame):
     """Phoenix Workspace v1.0."""
 
-    VIEW_TITLES: dict[str, str] = {
-        "home": "Home",
-        "dashboard": "Dashboard",
-        "plugins": "Plugins",
-        "settings": "Settings",
-        "image": "Image",
-        "gallery": "Gallery",
-        "compare": "Compare",
-        "prompt": "AI Generate",
-        "models": "AI Model Manager",
+    VIEW_TITLE_KEYS: dict[str, tuple[str, str]] = {
+        "home": ("nav_home", "Startseite"),
+        "dashboard": ("dashboard_title", "Dashboard"),
+        "plugins": ("nav_plugins", "Erweiterungen"),
+        "settings": ("nav_settings", "Einstellungen"),
+        "image": ("image_workspace", "Bild-Workspace"),
+        "gallery": ("nav_gallery", "Galerie"),
+        "compare": ("nav_compare", "Vergleich"),
+        "prompt": ("nav_ai_generate", "KI-Generierung"),
+        "models": ("nav_ai_model_manager", "Modell-Manager"),
     }
 
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
@@ -129,7 +130,7 @@ class PhoenixWorkspace(tk.Frame):
 
         self.current_view = view_name
         self.sidebar.set_active(view_name)
-        self.header.set_view(self.VIEW_TITLES.get(view_name, view_name.title()))
+        self.header.set_view(self._view_title(view_name))
 
         refresh = getattr(view, "refresh", None)
         if callable(refresh):
@@ -154,7 +155,11 @@ class PhoenixWorkspace(tk.Frame):
 
         tk.Label(
             frame,
-            text=f"{self.VIEW_TITLES.get(view_name, view_name.title())} konnte nicht geladen werden",
+            text=tr(
+                "view_load_failed",
+                "{view} konnte nicht geladen werden",
+                view=self._view_title(view_name),
+            ),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=("Segoe UI", 18, "bold"),
@@ -175,6 +180,14 @@ class PhoenixWorkspace(tk.Frame):
         PhoenixDashboard(frame, controller=self.controller).pack(fill="both", expand=True)
 
         return frame
+
+    @classmethod
+    def _view_title(cls, view_name: str) -> str:
+        key, fallback = cls.VIEW_TITLE_KEYS.get(
+            view_name,
+            ("unknown_view", view_name.title()),
+        )
+        return tr(key, fallback)
 
     def open_home(self) -> None:
         self.show_view("home")

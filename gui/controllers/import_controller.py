@@ -53,13 +53,11 @@ class ImportController:
 
         if valid_files:
             self._log(
-                f"Ordner geladen: {Path(folder_path).name} "
-                f"({len(valid_files)} Bilder)"
+                tr("folder_loaded_images", "Ordner geladen: {folder} ({count} Bilder)", folder=Path(folder_path).name, count=len(valid_files))
             )
         else:
             self._log(
-                f"Keine unterstützten Bilder im Ordner gefunden: "
-                f"{folder_path}"
+                tr("folder_no_supported_images", "Keine unterstützten Bilder im Ordner gefunden: {folder}", folder=folder_path)
             )
 
     def load_image_files(self, filenames):
@@ -69,17 +67,16 @@ class ImportController:
         valid_files = result["valid_files"]
 
         if not valid_files:
-            self._log("Keine gültigen Bilddateien geladen.")
+            self._log(tr("no_valid_images_loaded", "Keine gültigen Bilddateien geladen."))
             return
 
         if len(valid_files) == 1:
             self._log(
-                f"1 Bild geladen und zur Queue hinzugefügt: "
-                f"{Path(valid_files[0]).name}"
+                tr("one_image_queued", "1 Bild geladen und zur Warteschlange hinzugefügt: {file}", file=Path(valid_files[0]).name)
             )
         else:
             self._log(
-                f"{len(valid_files)} Bilder geladen und zur Queue hinzugefügt."
+                tr("images_queued", "{count} Bilder geladen und zur Warteschlange hinzugefügt.", count=len(valid_files))
             )
 
     def _handle_import_result(self, result):

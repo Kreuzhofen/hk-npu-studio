@@ -6,6 +6,7 @@ import threading
 import unittest
 from pathlib import Path
 
+from app.i18n import tr
 from controllers.model_repository import ModelRepository
 from engine.model_loader_service import ModelLoadState, ModelLoaderService
 
@@ -173,7 +174,12 @@ class ModelLoaderLifecycleTests(unittest.TestCase):
         result = loader.load_model("broken", FakeBackendManager(backend))
 
         self.assertFalse(result.success)
-        self.assertIn("invalid", result.message.lower())
+        expected_prefix = tr(
+            "model_installation_invalid",
+            "Modellinstallation ist ungültig: {details}",
+            details="",
+        ).split(":")[0]
+        self.assertIn(expected_prefix.lower(), result.message.lower())
         self.assertEqual(backend.initialize_calls, 0)
 
     def test_switch_releases_old_backend_before_loading_new_model(self):

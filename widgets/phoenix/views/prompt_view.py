@@ -1652,9 +1652,11 @@ class PhoenixPromptView(WorkspaceFrame):
 
         is_valid, msg = self.controller.generation_controller.validate_session()
         if not is_valid:
-            self.controller.model.update_state(status=f"Fehler: {msg}")
+            self.controller.model.update_state(
+                status=f"{tr('error', 'Fehler')}: {msg}"
+            )
             self.refresh()
-            messagebox.showerror("Validierungsfehler", msg)
+            messagebox.showerror(tr("validation_error", "Validierungsfehler"), msg)
             return
 
         self._generation_running = True
@@ -1746,7 +1748,9 @@ class PhoenixPromptView(WorkspaceFrame):
                 "generation_output_missing",
                 "Die Generierung wurde beendet, aber die Bilddatei fehlt.",
             )
-            self.controller.model.update_state(status=f"Fehler: {result.message}")
+            self.controller.model.update_state(
+                status=f"{tr('error', 'Fehler')}: {result.message}"
+            )
         
         if presentable_success:
             self._progress_current_step = self._progress_total_steps
@@ -1763,7 +1767,7 @@ class PhoenixPromptView(WorkspaceFrame):
             self._append_generation_diagnostic(result, "after_finish_callback")
         elif not cancelled:
             self._append_generation_diagnostic(result, "generation_failed", result.message)
-            messagebox.showerror("AI Generate", result.message)
+            messagebox.showerror(tr("nav_ai_generate", "KI-Generierung"), result.message)
 
         self.refresh()
 
@@ -1773,10 +1777,12 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self._generation_running = False
         self._cancel_progress_tick()
-        self.controller.model.update_state(status=f"Fehler: {error}")
+        self.controller.model.update_state(
+            status=f"{tr('error', 'Fehler')}: {error}"
+        )
         self._set_progress(100, "Fehler", self._step_text())
         self._set_generation_busy(False)
-        messagebox.showerror("AI Generate", str(error))
+        messagebox.showerror(tr("nav_ai_generate", "KI-Generierung"), str(error))
         self.refresh()
 
     def _notify_generation_finished(self, result) -> None:
@@ -1815,7 +1821,7 @@ class PhoenixPromptView(WorkspaceFrame):
             bg=PHOENIX_THEME.button_active if busy else PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_on_accent if busy else PHOENIX_THEME.text_disabled,
         )
-        status_text = "Generierung läuft" if busy else self.controller.get_state().status
+        status_text = tr("status_generating", "Generierung läuft") if busy else self.controller.get_state().status
         status_text_lower = status_text.lower()
         if status_text_lower == "idle":
             status_text = tr("ready", "Bereit")
@@ -1858,7 +1864,7 @@ class PhoenixPromptView(WorkspaceFrame):
         if "Schritt " in stage:
             try:
                 parts = stage.split("Schritt ")[1].split(")...")[0]
-                step_text = f"Step {parts}"
+                step_text = f"{tr('step', 'Schritt')} {parts}"
             except Exception:
                 step_text = "-"
 
@@ -1998,7 +2004,9 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_backend.configure(text=active_backend_name)
         if not self._generation_running:
             self.insp_gen_status.configure(text=state.status)
-        self.insp_queue.configure(text=f"{queued_count} Job(s)")
+        self.insp_queue.configure(
+            text=tr("job_count", "{count} Job(s)", count=queued_count)
+        )
 
         self.insp_size.configure(text=f"{state.width} × {state.height}")
         self.insp_steps.configure(text=str(state.steps))
@@ -2246,7 +2254,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
             current_status = self.controller.model.state.status
             if current_status and ("Fehler" in current_status or "Validierung" in current_status):
-                self.controller.model.update_state(status="Bereit")
+                self.controller.model.update_state(status=tr("ready", "Bereit"))
 
             self.refresh()
         finally:
@@ -2255,7 +2263,8 @@ class PhoenixPromptView(WorkspaceFrame):
     def _update_model_description(self, model_id: str) -> None:
         model = self.controller.repository.get_model(model_id)
         description = model.get("description", "") if model else ""
-        self.model_description_var.set(str(description))
+        description_key = f"model_description_{model_id.replace('-', '_')}"
+        self.model_description_var.set(tr(description_key, str(description)))
 
     def _on_image_drop(self, event) -> None:
         if not event.data:
@@ -2285,15 +2294,28 @@ class PhoenixPromptView(WorkspaceFrame):
     def _load_reference_image(self, file_path: str) -> None:
         path = Path(file_path)
         if not path.exists() or not path.is_file():
-            self._clear_reference_image_state(error_message="Datei existiert nicht oder ist kein Bild.")
+            self._clear_reference_image_state(
+                error_message=tr(
+                    "reference_file_invalid",
+                    "Datei existiert nicht oder ist kein Bild.",
+                )
+            )
             return
 
         ext = path.suffix.lower()
         if ext not in (".png", ".jpg", ".jpeg", ".webp"):
-            self._clear_reference_image_state(error_message="Format nicht unterstützt (nur PNG, JPG, JPEG, WebP).")
+            self._clear_reference_image_state(
+                error_message=tr(
+                    "reference_format_unsupported",
+                    "Format nicht unterstützt (nur PNG, JPG, JPEG, WebP).",
+                )
+            )
             messagebox.showerror(
-                "Ungültiges Format",
-                "Es werden nur Bilddateien in den Formaten PNG, JPG, JPEG und WebP unterstützt."
+                tr("invalid_format_title", "Ungültiges Format"),
+                tr(
+                    "supported_image_formats_only",
+                    "Es werden nur Bilddateien in den Formaten PNG, JPG, JPEG und WebP unterstützt.",
+                ),
             )
             return
 
@@ -2347,7 +2369,10 @@ class PhoenixPromptView(WorkspaceFrame):
         except Exception as e:
             logger.exception("Failed to load reference image: %s", file_path)
             self._clear_reference_image_state(error_message=f"Fehler: {str(e)}")
-            messagebox.showerror("Fehler beim Laden", f"Das Bild konnte nicht geladen werden:\n{e}")
+            messagebox.showerror(
+                tr("image_load_failed_title", "Fehler beim Laden"),
+                tr("image_load_failed_message", "Das Bild konnte nicht geladen werden:\n{error}", error=e),
+            )
 
     def _get_controlnet_params(self) -> tuple[int, int, float]:
         try:
@@ -2438,7 +2463,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         current_status = self.controller.model.state.status
         if current_status and ("Fehler" in current_status or "Validierung" in current_status):
-            self.controller.model.update_state(status="Bereit")
+            self.controller.model.update_state(status=tr("ready", "Bereit"))
 
         self.refresh()
 

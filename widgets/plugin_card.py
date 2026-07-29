@@ -71,9 +71,9 @@ class PluginCard(tk.Frame):
         self.status_label.pack(fill="x")
 
     def set_plugin(self, name, backend, status):
-        self.name_label.configure(text=f"Name: {name}")
-        self.backend_label.configure(text=f"Backend: {backend}")
-        self.status_label.configure(text=f"Status: {status}")
+        self.name_label.configure(text=f"{tr('name', 'Name')}: {name}")
+        self.backend_label.configure(text=f"{tr('backend', 'Backend')}: {backend}")
+        self.status_label.configure(text=f"{tr('status', 'Status')}: {status}")
 
         status_lower = status.lower()
 

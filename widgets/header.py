@@ -9,6 +9,7 @@ Phoenix UI
 
 import tkinter as tk
 
+from app.i18n import tr
 from engine.brand_manager import BrandManager
 from resources.theme import Theme
 
@@ -71,7 +72,7 @@ class Header(tk.Frame):
 
         self.version_label = tk.Label(
             right,
-            text=f"Version {self.brand.version()}",
+            text=tr("version_value", "Version {version}", version=self.brand.version()),
             font=Theme.font("small"),
             fg=Theme.color("muted_text"),
             bg=Theme.color("card"),

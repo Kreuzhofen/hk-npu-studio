@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 from config import TEMP_DIR
+from app.i18n import tr
 
 logger = logging.getLogger("DownloadService")
 
@@ -212,7 +213,11 @@ class DownloadService:
             path=target_path,
             bytes_downloaded=final_size,
             total_bytes=total_bytes,
-            message=f"Downloaded package to {target_path}",
+            message=tr(
+                "package_downloaded_to",
+                "Paket heruntergeladen nach {path}",
+                path=target_path,
+            ),
         )
 
     @staticmethod

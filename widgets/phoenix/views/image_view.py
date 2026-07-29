@@ -248,7 +248,7 @@ class PhoenixImageView(tk.Frame):
 
         self.zoom_value_label = tk.Label(
             self.compare_toolbar,
-            text=f"{tr('zoom', 'Zoom')}: Fit",
+            text=f"{tr('zoom', 'Zoom')}: {tr('fit', 'Einpassen')}",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=("Segoe UI", 9, "bold"),
@@ -771,7 +771,9 @@ class PhoenixImageView(tk.Frame):
 
         if hasattr(self, "zoom_value_label"):
             if self.zoom_mode == "fit":
-                self.zoom_value_label.configure(text=f"{tr('zoom', 'Zoom')}: Fit")
+                self.zoom_value_label.configure(
+                    text=f"{tr('zoom', 'Zoom')}: {tr('fit', 'Einpassen')}"
+                )
             else:
                 self.zoom_value_label.configure(
                     text=f"{tr('zoom', 'Zoom')}: {int(self.zoom_level * 100)} %"

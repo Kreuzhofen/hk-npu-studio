@@ -202,7 +202,11 @@ class ModelLoaderService:
             return ModelResolveResult(
                 success=False,
                 model_id=model_id,
-                message=f"Model '{model_id}' is not registered in the repository."
+                message=tr(
+                    "model_not_registered",
+                    "Modell '{model}' ist nicht in der Registry registriert.",
+                    model=model_id,
+                )
             )
 
         if not model.get("installed", False):
@@ -228,7 +232,11 @@ class ModelLoaderService:
                 success=False,
                 model_id=model_id,
                 backend=model.get("recommended_backend") or model.get("backend") or "Unknown",
-                message="Model installation is invalid: " + "; ".join(validation.messages),
+                message=tr(
+                    "model_installation_invalid",
+                    "Modellinstallation ist ungültig: {details}",
+                    details="; ".join(validation.messages),
+                ),
             )
 
         path_str = model.get("path")
@@ -249,13 +257,19 @@ class ModelLoaderService:
                 success=False,
                 model_id=model_id,
                 backend=model.get("recommended_backend") or model.get("backend") or "Unknown",
-                message=f"Model files not found at installed location: '{path_str}'"
+                message=tr(
+                    "model_files_location_missing",
+                    "Modelldateien wurden am Installationsort nicht gefunden: '{path}'",
+                    path=path_str,
+                )
             )
 
         files = self.get_model_files(model_id)
         warnings = []
         if not files:
-            warnings.append(f"Model path exists but contains no files.")
+            warnings.append(
+                tr("model_path_empty", "Modellpfad existiert, enthält aber keine Dateien.")
+            )
 
         backend = model.get("recommended_backend") or model.get("backend") or "Unknown"
 

@@ -4,6 +4,20 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-29 (Visual Localization Fix)
+
+### Geändert
+* Statischen Lokalisierungs-Audit auf Dialogargumente, Status-/Logpfade und nachträglich konfigurierte Widgettexte erweitert.
+* View-Titel, Startoverlay, Import-/Batch-/Queue-Zustände und Hardware-/Cache-Meldungen vollständig lokalisiert.
+* Plugin- und Bildformatdialoge sowie Download-, Modelllade-, ONNX- und QNN-Ergebnismeldungen vereinheitlicht.
+* Rohe Modellbeschreibungen in KI-Generierung und Modellmanager durch lokalisierte Katalogtexte ersetzt.
+* Sprachdateien auf 699 identische Schlüssel für Deutsch, Englisch und Spanisch erweitert.
+
+### Prüfung
+* Vollständiger Anwendungsstart für Deutsch, Englisch und Spanisch erfolgreich.
+* Alle neun Phoenix-Seiten, Haupt-/Kontextmenüs, Dialogpfade, Modelltexte und Installerdefinition geprüft: 0 gemischte Oberflächen, 0 fremdsprachige UI-Texte.
+* 54 relevante Tests und 9 Subtests bestanden; Produktcode vollständig kompiliert.
+
 ## [2.0 RC1] – 2026-07-29 (Release Polish – Final)
 
 ### Geändert

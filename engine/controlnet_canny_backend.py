@@ -526,7 +526,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             return GenerationResponse(
                 success=True,
                 status="FINISHED",
-                message=result_data.get("message", "Generierung abgeschlossen."),
+                message=result_data.get("message", tr("generation_completed", "Generierung abgeschlossen.")),
                 image_path=result_data.get("image_path"),
                 thumbnail_path=result_data.get("image_path"),
                 generation_time=result_data.get("generation_time", 0.0),
@@ -538,7 +538,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             return GenerationResponse(
                 success=False,
                 status="PipelineError",
-                message=result_data.get("message", "Pipeline fehlgeschlagen."),
+                message=result_data.get("message", tr("pipeline_failed", "Pipeline fehlgeschlagen.")),
                 model_name=params.model_name
             )
 

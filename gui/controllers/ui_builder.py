@@ -9,6 +9,7 @@ Phoenix UI
 
 import tkinter as tk
 
+from app.i18n import tr
 from gui.ui_mode import UIMode
 from resources.theme import Theme
 from widgets.header import Header
@@ -204,13 +205,17 @@ class UIBuilder:
 
     def _log_runtime_capabilities(self):
         if self.dnd_available:
-            self.app.log_card.log("Drag & Drop ist verfügbar.")
+            self.app.log_card.log(tr("dnd_available", "Drag & Drop ist verfügbar."))
         else:
             self.app.log_card.log(
-                "Drag & Drop nicht verfügbar. "
-                "Installiere optional: pip install tkinterdnd2"
+                tr(
+                    "dnd_unavailable",
+                    "Drag & Drop nicht verfügbar. Optional installieren: pip install tkinterdnd2",
+                )
             )
 
     def _log_not_available(self):
         if hasattr(self.app, "log_card"):
-            self.app.log_card.log("Diese Funktion ist noch nicht verfügbar.")
+            self.app.log_card.log(
+                tr("function_not_available", "Diese Funktion ist noch nicht verfügbar.")
+            )

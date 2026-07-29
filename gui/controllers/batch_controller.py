@@ -16,13 +16,14 @@ from controllers.application_adapter import create_application_adapter
 from controllers.batch_runtime_adapter import create_batch_runtime_adapter
 from controllers.batch_ui_adapter import create_batch_ui_adapter
 from engine.batch_state_machine import BatchStateMachine
+from app.i18n import tr
 
 
 class BatchController:
     """Controls batch processing and runtime UI updates for the GUI."""
 
-    PLUGIN_NAME = "Nicht verbunden"
-    BACKEND_NAME = "Noch keine Engine aktiv"
+    PLUGIN_NAME = tr("not_connected", "Nicht verbunden")
+    BACKEND_NAME = tr("no_engine_active", "Noch keine Engine aktiv")
     STATUS_BACKEND_NAME = "Stub"
 
     def __init__(self, app):
@@ -79,40 +80,40 @@ class BatchController:
         last_output = self.runtime.get_last_output()
 
         batch_label = {
-            "idle": "Bereit",
-            "ready": "Bereit",
-            "running": "Läuft",
-            "stopping": "Stoppt",
-            "finished": "Abgeschlossen",
-            "error": "Fehler",
+            "idle": tr("ready", "Bereit"),
+            "ready": tr("ready", "Bereit"),
+            "running": tr("running", "Läuft"),
+            "stopping": tr("stopping", "Stoppt"),
+            "finished": tr("finished", "Abgeschlossen"),
+            "error": tr("error", "Fehler"),
         }.get(batch_state, str(batch_state))
 
         lifecycle_label = {
-            "idle": "Idle",
-            "running": "Running",
-            "paused": "Paused",
-            "stopped": "Stopped",
-            "cancel_requested": "Stopping",
+            "idle": tr("idle", "Inaktiv"),
+            "running": tr("running", "Läuft"),
+            "paused": tr("paused", "Pausiert"),
+            "stopped": tr("stopped", "Gestoppt"),
+            "cancel_requested": tr("stopping", "Stoppt"),
         }.get(scheduler_status, str(scheduler_status))
 
         worker_label = {
-            "idle": "Worker idle",
-            "running": "Worker aktiv",
-            "done": "Worker fertig",
-            "error": "Worker Fehler",
+            "idle": tr("worker_idle", "Worker inaktiv"),
+            "running": tr("worker_running", "Worker aktiv"),
+            "done": tr("worker_done", "Worker fertig"),
+            "error": tr("worker_error", "Worker-Fehler"),
         }.get(worker_status, str(worker_status))
 
-        output_label = "Kein Output ausgewählt"
+        output_label = tr("no_output_selected", "Kein Output ausgewählt")
         if last_output:
             output_label = Path(last_output).name
 
         if self.current_job_path:
             current_job = Path(self.current_job_path).name
         else:
-            current_job = "Kein aktiver Job"
+            current_job = tr("no_active_job", "Kein aktiver Job")
 
         if waiting_jobs:
-            queue_label = f"Queue: {waiting_jobs} wartend"
+            queue_label = tr("queue_waiting", "Warteschlange: {count} wartend", count=waiting_jobs)
         else:
             queue_label = "Queue leer"
 
@@ -143,8 +144,11 @@ class BatchController:
     def start_plugin(self):
         if not self.state_machine.can_start():
             self.ui.log(
-                f"Batch kann im aktuellen Zustand nicht gestartet werden: "
-                f"{self.state_machine.get_state()}"
+                tr(
+                    "batch_cannot_start",
+                    "Batch kann im aktuellen Zustand nicht gestartet werden: {state}",
+                    state=self.state_machine.get_state(),
+                )
             )
             return
 
@@ -153,7 +157,7 @@ class BatchController:
 
         if waiting_jobs <= 0:
             self.state_machine.reset()
-            self.ui.log("Keine wartenden Jobs in der Queue.")
+            self.ui.log(tr("no_waiting_jobs", "Keine wartenden Jobs in der Warteschlange."))
             return
 
         self.state_machine.set_ready()
@@ -173,10 +177,12 @@ class BatchController:
         self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
-            "Batch läuft...",
+            tr("batch_running", "Batch läuft..."),
         )
-        self._append_activity("Batch gestartet")
-        self.ui.log(f"Starte Batch-Verarbeitung: {waiting_jobs} Job(s)")
+        self._append_activity(tr("batch_started", "Batch gestartet"))
+        self.ui.log(
+            tr("batch_starting", "Starte Batch-Verarbeitung: {count} Job(s)", count=waiting_jobs)
+        )
 
         thread = threading.Thread(
             target=self._worker_batch,
@@ -187,8 +193,11 @@ class BatchController:
     def cancel_processing(self):
         if not self.state_machine.can_stop():
             self.ui.log(
-                f"Abbruch ist im aktuellen Zustand nicht möglich: "
-                f"{self.state_machine.get_state()}"
+                tr(
+                    "cancel_not_possible",
+                    "Abbruch ist im aktuellen Zustand nicht möglich: {state}",
+                    state=self.state_machine.get_state(),
+                )
             )
             return
 
@@ -199,9 +208,14 @@ class BatchController:
         self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
-            "Abbruch angefordert",
+            tr("cancel_requested", "Abbruch angefordert"),
         )
-        self.ui.log("Abbruch angefordert. Der aktuelle Job wird noch beendet.")
+        self.ui.log(
+            tr(
+                "cancel_current_job_finishing",
+                "Abbruch angefordert. Der aktuelle Job wird noch beendet.",
+            )
+        )
 
     def _prepare_gallery_selection_batch(self):
         self.deferred_gallery_jobs = []
@@ -234,7 +248,13 @@ class BatchController:
                 self.deferred_gallery_jobs.append(input_path)
 
         if selected_found:
-            self.ui.log(f"Gallery-Auswahl aktiv: {Path(selected_path).name}")
+            self.ui.log(
+                tr(
+                    "gallery_selection_active",
+                    "Galerieauswahl aktiv: {file}",
+                    file=Path(selected_path).name,
+                )
+            )
 
     def _restore_deferred_gallery_jobs(self):
         for input_path in self.deferred_gallery_jobs:
@@ -359,15 +379,17 @@ class BatchController:
         self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
-            "Läuft...",
+            tr("running_ellipsis", "Läuft..."),
         )
-        self.ui.log(f"Verarbeite: {Path(input_path).name}")
+        self.ui.log(tr("processing_file", "Verarbeite: {file}", file=Path(input_path).name))
 
     def _handle_job_done(self, value):
         input_path, output_path = value
 
         self.runtime.set_last_output(output_path)
-        self._append_activity(f"Job fertig: {Path(input_path).name}")
+        self._append_activity(
+            tr("job_finished_file", "Job fertig: {file}", file=Path(input_path).name)
+        )
         self.ui.enable_output_button()
         self.ui.finish_job(output_path)
         self.ui.add_thumbnail_image(output_path)
@@ -376,8 +398,12 @@ class BatchController:
         self.ui.show_image_pair(input_path, output_path)
         self._apply_progress()
         self.ui.log(
-            f"Fertig: {Path(input_path).name} -> "
-            f"{Path(output_path).name}"
+            tr(
+                "processing_finished_files",
+                "Fertig: {input} → {output}",
+                input=Path(input_path).name,
+                output=Path(output_path).name,
+            )
         )
 
     def _handle_job_error(self, value):
@@ -386,7 +412,7 @@ class BatchController:
         self.ui.fail_job()
         self.application.refresh_queue()
         self._apply_progress()
-        self.ui.log(f"Fehler bei: {Path(input_path).name}")
+        self.ui.log(tr("processing_error_file", "Fehler bei: {file}", file=Path(input_path).name))
         self.ui.log(error)
 
     def _handle_batch_done(self, results):
@@ -407,18 +433,18 @@ class BatchController:
         self._apply_progress()
 
         if self.cancel_requested:
-            status_text = "Batch abgebrochen"
-            log_text = f"Batch abgebrochen nach {len(results)} Job(s)."
+            status_text = tr("batch_cancelled", "Batch abgebrochen")
+            log_text = tr("batch_cancelled_after", "Batch nach {count} Job(s) abgebrochen.", count=len(results))
         else:
-            status_text = "Batch fertig"
-            log_text = f"Batch abgeschlossen: {len(results)} Job(s)"
+            status_text = tr("batch_finished", "Batch fertig")
+            log_text = tr("batch_completed_count", "Batch abgeschlossen: {count} Job(s)", count=len(results))
 
         self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
             status_text,
         )
-        self._append_activity("Batch abgeschlossen")
+        self._append_activity(tr("batch_completed", "Batch abgeschlossen"))
         self.application.refresh_queue()
         self.ui.log(log_text)
 
@@ -426,7 +452,7 @@ class BatchController:
         self.state_machine.fail(value)
         self.current_job_path = None
         self._restore_deferred_gallery_jobs()
-        self._append_activity("Batch Fehler")
+        self._append_activity(tr("batch_error", "Batch-Fehler"))
 
         self.ui.enable_file_card()
         self.ui.enable_start_button()
@@ -436,10 +462,10 @@ class BatchController:
         self.ui.set_plugin(
             self.PLUGIN_NAME,
             self.BACKEND_NAME,
-            "Batch Fehler",
+            tr("batch_error", "Batch-Fehler"),
         )
         self.ui.fail_job()
         self.application.refresh_queue()
         self._apply_progress()
-        self.ui.log("BATCH-FEHLER:")
+        self.ui.log(tr("batch_error_heading", "BATCH-FEHLER:"))
         self.ui.log(value)

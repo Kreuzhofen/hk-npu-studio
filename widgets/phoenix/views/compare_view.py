@@ -307,4 +307,4 @@ class PhoenixCompareView(WorkspaceFrame):
     def _handle_error(self, error: Exception) -> None:
         message = str(error) or error.__class__.__name__
         self.controller.set_error(message)
-        messagebox.showerror("Compare Workspace", message)
+        messagebox.showerror(tr("compare_title", "Bildvergleich"), message)

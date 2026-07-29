@@ -12,7 +12,31 @@ LOCALES_DIR = PROJECT_ROOT / "locales"
 REQUIRED_LOCALES = ("de_DE", "en_US", "es_ES")
 PRODUCT_ROOTS = ("app", "controllers", "dialogs", "engine", "gui", "widgets")
 UI_TEXT_KEYWORDS = {"text", "title", "message", "label"}
-ALLOWED_PRODUCT_NAMES = {"RealESRGAN"}
+VISIBLE_CALLS = {
+    "_log",
+    "log",
+    "showerror",
+    "showinfo",
+    "showwarning",
+    "askokcancel",
+    "askyesno",
+}
+ALLOWED_PRODUCT_NAMES = {
+    "RealESRGAN",
+    "message",
+    "alpha_fallback",
+    "gallery",
+    "search",
+    "image",
+    "name",
+    "prompt -",
+    "seed -",
+    "sampler -",
+    "id -",
+    "backend Qualcomm QNN HTP",
+    "architecture ARM64 / Hexagon NPU",
+    "format Snapdragon Model Package",
+}
 GERMAN_WORDS = re.compile(
     r"\b(?:Abbrechen|Aktivieren|Alle|Ausgabe|Auswählen|Bearbeitet|Bereit|"
     r"Bild(?:er)?|Datei|Einstellungen|Fehler|Galerie|Generierung|Kein(?:e|en)?|"
@@ -112,16 +136,49 @@ def hardcoded_ui_strings() -> list[str]:
             for parent in ast.walk(tree)
             for child in ast.iter_child_nodes(parent)
         }
+        candidates: list[ast.AST] = []
         for node in ast.walk(tree):
-            if not (
+            if (
                 isinstance(node, ast.keyword)
                 and node.arg in UI_TEXT_KEYWORDS
-                and isinstance(node.value, ast.Constant)
-                and isinstance(node.value.value, str)
-                and re.search(r"[A-Za-zÄÖÜäöüß]{2}", node.value.value)
             ):
+                candidates.append(node.value)
+            elif isinstance(node, ast.Call):
+                call_name = (
+                    node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else ""
+                )
+                if call_name in VISIBLE_CALLS:
+                    candidates.extend(node.args)
+
+        for value_node in candidates:
+            literal_parts: list[str] = []
+            for child in ast.walk(value_node):
+                if not (
+                    isinstance(child, ast.Constant)
+                    and isinstance(child.value, str)
+                ):
+                    continue
+                ancestor = parents.get(child)
+                translated_child = False
+                while ancestor is not None and ancestor is not value_node:
+                    if (
+                        isinstance(ancestor, ast.Call)
+                        and isinstance(ancestor.func, ast.Name)
+                        and ancestor.func.id == "tr"
+                    ):
+                        translated_child = True
+                        break
+                    ancestor = parents.get(ancestor)
+                if not translated_child:
+                    literal_parts.append(child.value)
+            visible_text = " ".join(literal_parts)
+            if not re.search(r"[A-Za-zÄÖÜäöüß]{2}", visible_text):
                 continue
-            parent = parents.get(node.value)
+            parent = value_node
             translated = False
             while parent is not None:
                 if (
@@ -132,10 +189,14 @@ def hardcoded_ui_strings() -> list[str]:
                     translated = True
                     break
                 parent = parents.get(parent)
-            if not translated and node.value.value not in ALLOWED_PRODUCT_NAMES:
+            if (
+                not translated
+                and visible_text not in ALLOWED_PRODUCT_NAMES
+                and not visible_text.startswith(("http://", "https://"))
+            ):
                 violations.append(
-                    f"{path.relative_to(PROJECT_ROOT)}:{node.value.lineno}: "
-                    f"{node.value.value!r}"
+                    f"{path.relative_to(PROJECT_ROOT)}:{value_node.lineno}: "
+                    f"{visible_text!r}"
                 )
     return violations
 

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from PIL import Image, ImageTk
 from engine.startup_diagnostics import run_startup_diagnostics
+from app.i18n import tr
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -63,7 +64,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         dropped_paths = self.tk.splitlist(event.data)
 
         if not dropped_paths:
-            self._log("Drag & Drop: keine Datei erkannt.")
+            self._log(tr("drop_no_file", "Drag & Drop: keine Datei erkannt."))
             return
 
         files = []
@@ -149,13 +150,13 @@ class SnapdragonAIStudioV2(BaseWindow):
             self.preview_image = ImageTk.PhotoImage(image)
             self.preview_card.set_image(self.preview_image)
 
-            self._log(f"Vorschau aktualisiert: {Path(filename).name}")
+            self._log(tr("preview_updated", "Vorschau aktualisiert: {file}", file=Path(filename).name))
 
         except Exception as error:
             self.preview_card.set_text(
-                f"Vorschaufehler:\n{error}"
+                tr("preview_error_detail", "Vorschaufehler:\n{error}", error=error)
             )
-            self._log(f"Vorschaufehler: {error}")
+            self._log(tr("preview_error_detail_inline", "Vorschaufehler: {error}", error=error))
 
     def start_plugin(self):
         self.batch_controller.start_plugin()
@@ -167,7 +168,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         last_output = self.controller.get_last_output()
 
         if not last_output:
-            self._log("Noch kein Output vorhanden.")
+            self._log(tr("no_output_available", "Noch kein Output vorhanden."))
             return
 
         if hasattr(self, "phoenix_workspace"):
@@ -186,42 +187,42 @@ class SnapdragonAIStudioV2(BaseWindow):
         output_path = Path(output_file)
 
         if not output_path.exists():
-            self._log(f"Output nicht gefunden: {output_path}")
+            self._log(tr("output_not_found_detail", "Output nicht gefunden: {path}", path=output_path))
             self._disable_output_button()
             return
 
         try:
             os.startfile(output_path)
-            self._log(f"Output geöffnet: {output_path.name}")
+            self._log(tr("output_opened", "Output geöffnet: {path}", path=output_path.name))
 
         except Exception as error:
-            self._log(f"Output konnte nicht geöffnet werden: {error}")
+            self._log(tr("output_open_failed", "Output konnte nicht geöffnet werden: {error}", error=error))
 
     def _open_output_directory(self):
         output_directory = self.controller.get_last_output_directory()
 
         if not output_directory:
-            self._log("Kein Output-Ordner vorhanden.")
+            self._log(tr("no_output_folder", "Kein Output-Ordner vorhanden."))
             return
 
         output_path = Path(output_directory)
 
         if not output_path.exists():
-            self._log(f"Output-Ordner nicht gefunden: {output_path}")
+            self._log(tr("output_folder_not_found", "Output-Ordner nicht gefunden: {path}", path=output_path))
             self._disable_output_button()
             return
 
         try:
             os.startfile(output_path)
-            self._log(f"Output-Ordner geöffnet: {output_path}")
+            self._log(tr("output_folder_opened", "Output-Ordner geöffnet: {path}", path=output_path))
 
         except Exception:
             try:
                 subprocess.Popen(["explorer", str(output_path)])
-                self._log(f"Output-Ordner geöffnet: {output_path}")
+                self._log(tr("output_folder_opened", "Output-Ordner geöffnet: {path}", path=output_path))
 
             except Exception as error:
-                self._log(f"Output-Ordner konnte nicht geöffnet werden: {error}")
+                self._log(tr("output_folder_open_failed", "Output-Ordner konnte nicht geöffnet werden: {error}", error=error))
 
     def _disable_output_button(self):
         if hasattr(self, "toolbar"):
@@ -243,7 +244,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             try:
                 subprocess.Popen(["explorer", str(OUTPUT_DIR)])
             except Exception as e:
-                self._log(f"Fehler beim Öffnen des Output-Ordners: {e}")
+                self._log(tr("output_folder_open_failed", "Output-Ordner konnte nicht geöffnet werden: {error}", error=e))
 
     def open_models_dir(self):
         from config import BASE, MODELS_DIR
@@ -258,7 +259,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             try:
                 subprocess.Popen(["explorer", str(models_dir)])
             except Exception as e:
-                self._log(f"Fehler beim Öffnen des Modell-Ordners: {e}")
+                self._log(tr("models_folder_open_failed", "Modellordner konnte nicht geöffnet werden: {error}", error=e))
 
     def exit_app(self):
         self.destroy()
@@ -268,21 +269,21 @@ class SnapdragonAIStudioV2(BaseWindow):
         gc.collect()
         from tkinter import messagebox
         messagebox.showinfo(
-            "VRAM / NPU Cache leeren",
-            "Der VRAM und NPU Cache wurden erfolgreich geleert und ungenutzte Ressourcen freigegeben."
+            tr("clear_cache_title", "VRAM-/NPU-Cache leeren"),
+            tr("clear_cache_success", "VRAM- und NPU-Cache wurden erfolgreich geleert und ungenutzte Ressourcen freigegeben.")
         )
 
     def hardware_info(self):
         import platform
         from tkinter import messagebox
         info = [
-            "Hardware-Informationen:",
-            f"Betriebssystem: {platform.system()} {platform.machine()}",
-            "Prozessor: Qualcomm Snapdragon X Elite (ARM64)",
-            "NPU-Beschleunigung: Qualcomm Hexagon NPU (HTP)",
-            "Execution Provider: QNNExecutionProvider / CPU fallback",
+            tr("hardware_information", "Hardware-Informationen:"),
+            tr("operating_system", "Betriebssystem: {value}", value=f"{platform.system()} {platform.machine()}"),
+            tr("processor", "Prozessor: {value}", value="Qualcomm Snapdragon X Elite (ARM64)"),
+            tr("npu_acceleration", "NPU-Beschleunigung: {value}", value="Qualcomm Hexagon NPU (HTP)"),
+            tr("execution_provider_value", "Execution Provider: {value}", value="QNNExecutionProvider / CPU fallback"),
         ]
-        messagebox.showinfo("Hardware-Info", "\n".join(info))
+        messagebox.showinfo(tr("hardware_info_title", "Hardware-Info"), "\n".join(info))
 
     def toggle_fullscreen(self, event=None):
         is_fullscreen = self.attributes("-fullscreen")
@@ -310,7 +311,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             try:
                 subprocess.Popen(["explorer", str(PLUGINS_DIR)])
             except Exception as e:
-                self._log(f"Fehler beim Öffnen des Plugin-Ordners: {e}")
+                self._log(tr("plugins_folder_open_failed", "Pluginordner konnte nicht geöffnet werden: {error}", error=e))
 
     def show_log(self):
         log_path = Path(r"C:\SnapdragonAI\logs\app.log")
@@ -325,7 +326,7 @@ class SnapdragonAIStudioV2(BaseWindow):
             try:
                 subprocess.Popen(["explorer", str(log_path)])
             except Exception as e:
-                self._log(f"Fehler beim Öffnen der Log-Datei: {e}")
+                self._log(tr("log_file_open_failed", "Logdatei konnte nicht geöffnet werden: {error}", error=e))
 
 
 

@@ -5,10 +5,14 @@ import re
 import tkinter as tk
 from pathlib import Path
 
+import pytest
+
 from app.i18n import set_language
 from widgets.phoenix.theme import update_phoenix_theme
 from widgets.phoenix.sidebar import PhoenixSidebar
+from widgets.phoenix.workspace import PhoenixWorkspace
 from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
+from widgets.menu_bar import MenuBar
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -18,7 +22,15 @@ GERMAN_UI = re.compile(
 )
 
 
-def test_sidebar_visual_contract_in_all_languages():
+@pytest.fixture(scope="module")
+def tk_root():
+    root = tk.Tk()
+    root.withdraw()
+    yield root
+    root.destroy()
+
+
+def test_sidebar_visual_contract_in_all_languages(tk_root):
     expected_labels = {
         "de_DE": ("Startseite", "KI-Generierung", "Modell-Manager"),
         "en_US": ("Home", "AI Generate", "AI Model Manager"),
@@ -34,15 +46,13 @@ def test_sidebar_visual_contract_in_all_languages():
         "settings": "#f87171",
     }
 
-    root = tk.Tk()
-    root.withdraw()
     try:
         for theme_name in ("dark", "light"):
             update_phoenix_theme(theme_name)
             for locale, labels in expected_labels.items():
                 set_language(locale)
-                sidebar = PhoenixSidebar(root)
-                root.update_idletasks()
+                sidebar = PhoenixSidebar(tk_root)
+                tk_root.update_idletasks()
 
                 assert PhoenixSidebar.BUTTON_HEIGHT == 46
                 assert PhoenixSidebar.BUTTON_FONT[1] == 11
@@ -63,7 +73,6 @@ def test_sidebar_visual_contract_in_all_languages():
                     assert button.normal_fg == expected_theme_colors[name]
                 sidebar.destroy()
     finally:
-        root.destroy()
         set_language("de_DE")
         update_phoenix_theme("dark")
 
@@ -91,3 +100,103 @@ def test_model_descriptions_are_localized_for_every_catalog_model():
         assert localized["es_ES"][model_id]
         assert not GERMAN_UI.search(localized["en_US"][model_id])
         assert not GERMAN_UI.search(localized["es_ES"][model_id])
+
+
+def _visible_widget_texts(widget: tk.Misc) -> list[str]:
+    texts: list[str] = []
+    try:
+        value = widget.cget("text")
+        if isinstance(value, str) and value.strip():
+            texts.append(value.strip())
+    except (AttributeError, tk.TclError):
+        value = getattr(widget, "text", "")
+        if isinstance(value, str) and value.strip():
+            texts.append(value.strip())
+    for child in widget.winfo_children():
+        texts.extend(_visible_widget_texts(child))
+    return texts
+
+
+def test_all_phoenix_pages_are_language_pure_at_runtime(tk_root):
+    foreign_markers = {
+        "de_DE": re.compile(
+            r"\b(?:Settings|Generate|Available|Installed|Download Ready|No recent|Properties)\b",
+            re.IGNORECASE,
+        ),
+        "en_US": re.compile(
+            r"\b(?:Einstellungen|Generierung|Verfügbar|Installiert|Beschreibung|Löschen|Abbrechen)\b",
+            re.IGNORECASE,
+        ),
+        "es_ES": re.compile(
+            r"\b(?:Einstellungen|Generierung|Verfügbar|Installiert|Beschreibung|"
+            r"Settings|Generate|Available|Installed|Download Ready|No recent|Properties)\b",
+            re.IGNORECASE,
+        ),
+    }
+
+    try:
+        for locale, marker in foreign_markers.items():
+            set_language(locale)
+            workspace = PhoenixWorkspace(tk_root)
+            workspace.pack(fill="both", expand=True)
+            for view_name in workspace._view_factories:
+                workspace.show_view(view_name)
+                tk_root.update_idletasks()
+                view = workspace._views[view_name]
+                assert "could not be loaded" not in " ".join(_visible_widget_texts(view))
+
+            visible_texts = _visible_widget_texts(workspace)
+            mixed = [
+                text
+                for text in visible_texts
+                if marker.search(re.sub(r"https?://\S+|huggingface\.co/\S+", "", text))
+            ]
+            assert mixed == []
+            workspace.destroy()
+    finally:
+        set_language("de_DE")
+
+
+def _menu_labels(menu: tk.Menu) -> list[str]:
+    labels: list[str] = []
+    end = menu.index("end")
+    if end is None:
+        return labels
+    for index in range(end + 1):
+        if menu.type(index) in {"separator", "tearoff"}:
+            continue
+        label = menu.entrycget(index, "label")
+        if label:
+            labels.append(label)
+        submenu_name = (
+            menu.entrycget(index, "menu")
+            if menu.type(index) == "cascade"
+            else ""
+        )
+        if submenu_name:
+            labels.extend(_menu_labels(menu.nametowidget(submenu_name)))
+    return labels
+
+
+def test_main_menu_and_installer_cover_all_supported_languages(tk_root):
+    try:
+        expected_file_menu = {
+            "de_DE": "Datei",
+            "en_US": "File",
+            "es_ES": "Archivo",
+        }
+        for locale, expected in expected_file_menu.items():
+            set_language(locale)
+            menu_bar = MenuBar(tk_root)
+            labels = _menu_labels(menu_bar.menu)
+            assert labels[0] == expected
+            assert len(labels) >= 15
+            menu_bar.menu.destroy()
+    finally:
+        set_language("de_DE")
+
+    installer = (
+        PROJECT_ROOT / "installer" / "snapdragon_ai_studio.iss"
+    ).read_text(encoding="utf-8")
+    for language in ("english", "german", "spanish"):
+        assert f'Name: "{language}"' in installer
