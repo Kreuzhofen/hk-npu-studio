@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 10 – Pipeline-Konfiguration vereinheitlichen)
+
+### Geändert
+* Unveränderlicher zentraler Parametersnapshot pro Generation-Job.
+* Einheitliche Parameterübergabe an Pipeline, CPU, ONNX und QNN.
+* Doppelte QNN-Parameter-Serialisierung entfernt.
+* Keine UI-Änderungen.
+
+### Prüfung
+* 32 relevante Parameter-, Pipeline-, Sidecar-, Job-, Backend- und QNN-Tests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 9 – Speicherverwaltung absichern)
 
 ### Geändert

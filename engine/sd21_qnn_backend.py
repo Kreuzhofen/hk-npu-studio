@@ -299,6 +299,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
         return text_encoder_session, unet_session, vae_session, provider_diagnostics
 
     def generate(self, job: GenerationJob) -> GenerationResponse:
+        params = job.parameters
         # Main Process Mode: Spawn worker subprocess to isolate QAIRT 2.45
         logger.info("[Main Process] Spawning worker subprocess for SD2.1 QNN...")
         print("[Main Process] Spawning worker subprocess for SD2.1 QNN...")
@@ -308,7 +309,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 success=False,
                 status="CANCELLED",
                 message="Generation cancelled.",
-                model_name=job.session.model_name,
+                model_name=params.model_name,
             )
 
         # Create temporary json files for communication
@@ -320,19 +321,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
         output_json_path.unlink(missing_ok=True)
 
         # Serialize job parameters
-        job_data = {
-            "prompt": job.session.prompt,
-            "negative_prompt": job.session.negative_prompt,
-            "seed": job.session.seed,
-            "steps": job.session.steps,
-            "cfg_scale": job.session.cfg_scale,
-            "width": job.session.width,
-            "height": job.session.height,
-            "output_directory": job.session.output_directory,
-            "output_prefix": job.session.output_prefix,
-            "model_name": job.session.model_name,
-            "job_id": str(job.job_id)
-        }
+        job_data = job.parameters.to_worker_dict(job.job_id)
 
         with open(input_json_path, "w", encoding="utf-8") as f:
             json.dump(job_data, f, indent=2)
@@ -373,7 +362,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                     success=False,
                     status="CANCELLED",
                     message="Generation cancelled.",
-                    model_name=job.session.model_name,
+                    model_name=params.model_name,
                 )
             if not line and process.poll() is not None:
                 break
@@ -394,7 +383,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 success=False,
                 status="CANCELLED",
                 message="Generation cancelled.",
-                model_name=job.session.model_name,
+                model_name=params.model_name,
             )
 
         # Check if output json exists
@@ -405,7 +394,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 success=False,
                 status="PipelineError",
                 message=err_msg,
-                model_name=job.session.model_name
+                model_name=params.model_name
             )
 
         with open(output_json_path, "r", encoding="utf-8") as f:
@@ -427,7 +416,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 thumbnail_path=result_data.get("image_path"),
                 generation_time=result_data.get("generation_time", 0.0),
                 backend_name="Qualcomm Stable Diffusion 2.1 (HTP V73)",
-                model_name=job.session.model_name,
+                model_name=params.model_name,
                 metadata=result_data.get("metadata", {})
             )
         else:
@@ -435,7 +424,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 success=False,
                 status="PipelineError",
                 message=result_data.get("message", "Pipeline fehlgeschlagen."),
-                model_name=job.session.model_name
+                model_name=params.model_name
             )
 
     def _execute_generation_physical(self, job_data: dict[str, Any]) -> dict[str, Any]:

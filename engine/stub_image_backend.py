@@ -29,22 +29,23 @@ class StubImageBackend(InferenceBackend):
         self.runtime_model = None
 
     def generate(self, job: GenerationJob) -> GenerationResponse:
-        model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
+        params = job.parameters
+        model_name = self.runtime_model.model_id if self.runtime_model else params.model_name
         backend_name = self.backend_name
         
         # Setup unique image path using prefix, timestamp and job ID
-        output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
+        output_dir = Path(params.output_directory) if params.output_directory else Path("output")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        prefix = job.session.output_prefix if job.session.output_prefix else "generate"
+        prefix = params.output_prefix if params.output_prefix else "generate"
         timestamp = int(time.time())
         filename = f"{prefix}_{timestamp}_{str(job.job_id)[:8]}.png"
         dummy_image_path = output_dir / filename
         
         # Create a valid PNG image with visible diagnostic content using Pillow
         try:
-            w = job.session.width if job.session.width > 0 else 512
-            h = job.session.height if job.session.height > 0 else 512
+            w = params.width if params.width > 0 else 512
+            h = params.height if params.height > 0 else 512
 
             # Try to load standard TrueType fonts with fallback
             try:
@@ -81,10 +82,10 @@ class StubImageBackend(InferenceBackend):
             # Draw metadata values
             draw.text((40, 165), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
             draw.text((40, 195), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
-            draw.text((40, 225), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
+            draw.text((40, 225), f"Seed: {params.seed} | Steps: {params.steps} | CFG: {params.cfg_scale}", fill="#9aa7b2", font=font_body)
 
             # Draw truncated prompt preview
-            prompt_str = job.session.prompt
+            prompt_str = params.prompt
             truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
             draw.text((40, 265), "Prompt Preview:", fill="#e8edf2", font=font_body)
             draw.text((40, 290), f'"{truncated_prompt}"', fill="#3b82f6", font=font_prompt)
@@ -99,18 +100,18 @@ class StubImageBackend(InferenceBackend):
 
         # Prepare sidecar metadata dictionary
         response_metadata = {
-            "prompt": job.session.prompt,
-            "negative_prompt": job.session.negative_prompt,
+            "prompt": params.prompt,
+            "negative_prompt": params.negative_prompt,
             "model": model_name,
             "backend": backend_name,
-            "seed": job.session.seed,
-            "width": job.session.width,
-            "height": job.session.height,
-            "steps": job.session.steps,
-            "cfg": job.session.cfg_scale,
-            "sampler": job.session.sampler,
-            "scheduler": job.session.scheduler,
-            "batch_count": job.session.batch_size,
+            "seed": params.seed,
+            "width": params.width,
+            "height": params.height,
+            "steps": params.steps,
+            "cfg": params.cfg_scale,
+            "sampler": params.sampler,
+            "scheduler": params.scheduler,
+            "batch_count": params.batch_size,
             "created_at": datetime.datetime.now().isoformat()
         }
 

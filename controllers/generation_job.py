@@ -7,7 +7,7 @@ from pathlib import Path
 from threading import Event
 from typing import Any
 
-from controllers.generation_session import GenerationSessionModel
+from controllers.generation_session import GenerationSessionModel, PipelineParameters
 from engine.job_lifecycle import (
     JobStatus,
     cancel_job,
@@ -33,6 +33,10 @@ class GenerationJob:
     error_message: str | None = None
     cancel_requested: Event = field(default_factory=Event, repr=False, compare=False)
     progress_callback: Any = None
+    parameters: PipelineParameters = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        self.parameters = PipelineParameters.from_session(self.session)
 
     def transition_to(self, status: JobStatus | str) -> JobStatus:
         return set_job_status(self, status)

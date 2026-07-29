@@ -8,6 +8,8 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
+* **Sprint 10 – Pipeline-Konfiguration vereinheitlichen:** Jeder Generation-Job besitzt einen unveränderlichen zentralen Parametersnapshot. Pipeline sowie CPU-, ONNX- und QNN-Backends verwenden denselben Vertrag; drei doppelte QNN-Serialisierungen wurden entfernt. 32 relevante Tests sind erfolgreich; die UI wurde nicht geändert.
+
 * **Sprint 9 – Speicherverwaltung absichern:** Physische CPU-, ONNX- und QNN-Backends werden nach jeder Generierung zentral heruntergefahren. ONNX-Komponentensitzungen werden auch bei Fehlern freigegeben; QNN-Workerprozesse, Pipes und Hostreferenzen werden nach Erfolg, Fehler und Abbruch geschlossen. 28 relevante Tests sind erfolgreich; die UI wurde nicht geändert.
 
 * **Sprint 8 – Inference-Pipeline absichern:** Der bestehende zentrale Ablauf verwendet eine bereits geladene Runtime ohne zweiten Load, validiert numerische Eingaben einheitlich und normalisiert Backend-Ergebnisse. Fehler und ungültige Rückgaben setzen den Job zuverlässig auf `FAILED`; Abbrüche behalten auch gegenüber verspäteten Erfolgsresultaten Vorrang. Freigabe- und UI-Verhalten bleiben unverändert. Betroffene Tests: 34 erfolgreich; Gesamtcheck: 166 Tests und 20 Subtests erfolgreich.

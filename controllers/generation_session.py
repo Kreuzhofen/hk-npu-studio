@@ -4,6 +4,37 @@ from dataclasses import dataclass, asdict
 from typing import Any
 
 
+@dataclass(frozen=True)
+class PipelineParameters:
+    """Immutable parameter contract shared by CPU, ONNX, and QNN pipelines."""
+    prompt: str
+    negative_prompt: str
+    model_name: str
+    width: int
+    height: int
+    steps: int
+    cfg_scale: float
+    seed: int
+    sampler: str
+    scheduler: str
+    batch_size: int
+    output_directory: str
+    output_prefix: str
+    input_image_path: str | None
+    canny_low_threshold: int
+    canny_high_threshold: int
+    controlnet_conditioning_scale: float
+
+    @classmethod
+    def from_session(cls, session: "GenerationSessionModel") -> "PipelineParameters":
+        return cls(**session.to_dict())
+
+    def to_worker_dict(self, job_id: Any) -> dict[str, Any]:
+        values = asdict(self)
+        values["job_id"] = str(job_id)
+        return values
+
+
 @dataclass
 class GenerationSessionModel:
     """

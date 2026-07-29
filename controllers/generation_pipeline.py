@@ -46,7 +46,7 @@ class ImageGenerationPipeline:
         """Performs syntax, boundary, and model parameter validation checks."""
         if not self.job or not self.job.session:
             return False
-        session = self.job.session
+        session = self.job.parameters
         if (
             isinstance(session.width, bool)
             or not isinstance(session.width, int)
@@ -78,7 +78,7 @@ class ImageGenerationPipeline:
             status=JobStatus.CANCELLED.value,
             message="Generation cancelled.",
             model_name=(
-                self.job.session.model_name
+                self.job.parameters.model_name
                 if self.job and self.job.session
                 else "Unknown"
             ),
@@ -90,7 +90,7 @@ class ImageGenerationPipeline:
         if not isinstance(result.metadata, dict):
             result.metadata = {}
         if not result.model_name or result.model_name == "Unknown":
-            result.model_name = self.job.session.model_name
+            result.model_name = self.job.parameters.model_name
         if self.job.cancel_requested.is_set() or get_job_status(self.job) == JobStatus.CANCELLED:
             return self._cancelled_result()
         if result.success:
@@ -115,7 +115,8 @@ class ImageGenerationPipeline:
                     sidecar_path = image_path.with_suffix(".json")
 
                     # Read repository to find if active model supports ControlNet
-                    model_name = self.job.session.model_name
+                    params = self.job.parameters
+                    model_name = params.model_name
                     repo = ModelRepository()
                     model_meta = repo.get_model(model_name)
                     controlnet_enabled = False
@@ -125,10 +126,10 @@ class ImageGenerationPipeline:
 
                     # Prepare ControlNet fields
                     controlnet_model = "canny" if controlnet_enabled else None
-                    canny_low_threshold = int(self.job.session.canny_low_threshold) if controlnet_enabled else None
-                    canny_high_threshold = int(self.job.session.canny_high_threshold) if controlnet_enabled else None
-                    controlnet_conditioning_scale = float(self.job.session.controlnet_conditioning_scale) if controlnet_enabled else None
-                    reference_image_path = self.job.session.input_image_path if controlnet_enabled else None
+                    canny_low_threshold = int(params.canny_low_threshold) if controlnet_enabled else None
+                    canny_high_threshold = int(params.canny_high_threshold) if controlnet_enabled else None
+                    controlnet_conditioning_scale = float(params.controlnet_conditioning_scale) if controlnet_enabled else None
+                    reference_image_path = params.input_image_path if controlnet_enabled else None
 
                     # If sidecar exists, load it, modify it, and save it back.
                     # If it doesn't exist, we can create one!
@@ -184,7 +185,7 @@ class ImageGenerationPipeline:
                     success=False,
                     status="ValidationError",
                     message="Pipeline validation failed: invalid parameters.",
-                    model_name=self.job.session.model_name if (self.job and self.job.session) else "Unknown"
+                    model_name=self.job.parameters.model_name if (self.job and self.job.session) else "Unknown"
                 )
 
             result = self._normalize_result(self.execute())
@@ -208,7 +209,7 @@ class ImageGenerationPipeline:
                 success=False,
                 status="PipelineError",
                 message=str(error),
-                model_name=self.job.session.model_name if (self.job and self.job.session) else "Unknown"
+                model_name=self.job.parameters.model_name if (self.job and self.job.session) else "Unknown"
             )
         finally:
             self.cleanup()

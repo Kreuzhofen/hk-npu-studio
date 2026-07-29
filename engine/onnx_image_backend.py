@@ -188,13 +188,14 @@ class OnnxImageBackend(InferenceBackend):
         self.runtime_model = None
 
     def generate(self, job: GenerationJob) -> GenerationResponse:
-        model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
+        params = job.parameters
+        model_name = self.runtime_model.model_id if self.runtime_model else params.model_name
         backend_name = OnnxProviderService.runtime_label()
         save_diagnostic_log_path = self._build_save_diagnostic_log_path(job)
         self._append_save_diagnostic(
             save_diagnostic_log_path,
             "generation_start",
-            f"job_id={job.job_id}, model={model_name}, size={job.session.width}x{job.session.height}, steps={job.session.steps}"
+            f"job_id={job.job_id}, model={model_name}, size={params.width}x{params.height}, steps={params.steps}"
         )
 
         # 1. Check ONNX Runtime availability
@@ -324,19 +325,19 @@ class OnnxImageBackend(InferenceBackend):
                     print(f"  -> Component '{comp}' status is '{status}'. Expected path: '{comp_path}'")
             
         embedder = TextEmbeddingService(pkg)
-        embed_res = embedder.embed_prompt_sdxl(job.session.prompt, job.session.negative_prompt)
+        embed_res = embedder.embed_prompt_sdxl(params.prompt, params.negative_prompt)
 
         # 4.5. Integrate UNetService and scheduler foundation for latent denoising
         from engine.unet_service import UNetService
         unet_service = UNetService(pkg)
         scheduler_service = SDXLSchedulerService(pkg.get_component_path("scheduler"))
-        w = job.session.width if job.session.width > 0 else 512
-        h = job.session.height if job.session.height > 0 else 512
-        timesteps = scheduler_service.build_timesteps(job.session.steps, job.session.scheduler)
+        w = params.width if params.width > 0 else 512
+        h = params.height if params.height > 0 else 512
+        timesteps = scheduler_service.build_timesteps(params.steps, params.scheduler)
         time_ids = scheduler_service.build_time_ids(w, h)
-        scheduler_metadata = scheduler_service.describe(job.session.steps, job.session.scheduler, w, h, job.session.cfg_scale)
+        scheduler_metadata = scheduler_service.describe(params.steps, params.scheduler, w, h, params.cfg_scale)
         
-        init_latents = unet_service.generate_initial_latents(w, h, seed=job.session.seed)
+        init_latents = unet_service.generate_initial_latents(w, h, seed=params.seed)
         unet_res = unet_service.run_denoising_loop(
             init_latents,
             timesteps=timesteps,
@@ -345,7 +346,7 @@ class OnnxImageBackend(InferenceBackend):
             time_ids=time_ids,
             negative_embeddings=embed_res["negative_embeddings"],
             negative_pooled_embeddings=embed_res["negative_pooled_embeddings"],
-            guidance_scale=job.session.cfg_scale,
+            guidance_scale=params.cfg_scale,
         )
 
         # 4.7. Integrate VAEDecoderService for VAE Latent Decoding
@@ -353,7 +354,7 @@ class OnnxImageBackend(InferenceBackend):
         vae_service = VAEDecoderService(pkg)
         try:
             self._append_save_diagnostic(save_diagnostic_log_path, "before_vae_decode")
-            vae_res = vae_service.decode_latents(unet_res["latents"], prompt=job.session.prompt)
+            vae_res = vae_service.decode_latents(unet_res["latents"], prompt=params.prompt)
             self._append_save_diagnostic(
                 save_diagnostic_log_path,
                 "after_vae_decode",
@@ -379,10 +380,10 @@ class OnnxImageBackend(InferenceBackend):
         alpha_fallback = bool(not package_ready or embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"])
 
         # 5. Generate visual PNG and JSON output using the session and job parameters
-        output_dir = Path(job.session.output_directory) if job.session.output_directory else Path("output")
+        output_dir = Path(params.output_directory) if params.output_directory else Path("output")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        prefix = job.session.output_prefix if job.session.output_prefix else "generate"
+        prefix = params.output_prefix if params.output_prefix else "generate"
         timestamp = int(time.time())
         filename = f"{prefix}_{timestamp}_{str(job.job_id)[:8]}.png"
         dummy_image_path = output_dir / filename
@@ -430,7 +431,7 @@ class OnnxImageBackend(InferenceBackend):
 
                 draw.text((40, 155), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
                 draw.text((40, 175), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
-                draw.text((40, 195), f"Seed: {job.session.seed} | Steps: {job.session.steps} | CFG: {job.session.cfg_scale}", fill="#9aa7b2", font=font_body)
+                draw.text((40, 195), f"Seed: {params.seed} | Steps: {params.steps} | CFG: {params.cfg_scale}", fill="#9aa7b2", font=font_body)
 
                 tokens_str = str(embed_res["tokens"][:8]) + "..." if len(embed_res["tokens"]) > 8 else str(embed_res["tokens"])
                 draw.text((40, 215), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
@@ -439,7 +440,7 @@ class OnnxImageBackend(InferenceBackend):
                 draw.text((40, 275), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
                 draw.text((40, 295), f"Decoder: {vae_res['backend']}", fill="#9aa7b2", font=font_body)
 
-                prompt_str = job.session.prompt
+                prompt_str = params.prompt
                 truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
                 draw.text((40, 325), "Prompt Preview:", fill="#e8edf2", font=font_body)
                 draw.text((40, 350), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
@@ -474,18 +475,18 @@ class OnnxImageBackend(InferenceBackend):
 
         # Prepare sidecar metadata dictionary
         response_metadata = {
-            "prompt": job.session.prompt,
-            "negative_prompt": job.session.negative_prompt,
+            "prompt": params.prompt,
+            "negative_prompt": params.negative_prompt,
             "model": model_name,
             "backend": backend_name,
-            "seed": job.session.seed,
-            "width": job.session.width,
-            "height": job.session.height,
-            "steps": job.session.steps,
-            "cfg": job.session.cfg_scale,
-            "sampler": job.session.sampler,
-            "scheduler": job.session.scheduler,
-            "batch_count": job.session.batch_size,
+            "seed": params.seed,
+            "width": params.width,
+            "height": params.height,
+            "steps": params.steps,
+            "cfg": params.cfg_scale,
+            "sampler": params.sampler,
+            "scheduler": params.scheduler,
+            "batch_count": params.batch_size,
             "created_at": datetime.datetime.now().isoformat(),
             "onnx_model_file": onnx_model_path,
             "prompt_tokens": embed_res["tokens"],
@@ -499,7 +500,7 @@ class OnnxImageBackend(InferenceBackend):
             "is_mock_unet": unet_res["is_mock"],
             "guidance_prepared": unet_res.get("guidance_prepared", False),
             "guidance_applied": unet_res.get("guidance_applied", False),
-            "guidance_scale": unet_res.get("guidance_scale", job.session.cfg_scale),
+            "guidance_scale": unet_res.get("guidance_scale", params.cfg_scale),
             "scheduler_metadata": scheduler_metadata,
             "timesteps": unet_res.get("timesteps", []),
             "step_count": unet_res.get("step_count", 0),
