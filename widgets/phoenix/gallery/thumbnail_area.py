@@ -385,10 +385,6 @@ class GalleryThumbnailArea(tk.Frame):
                 gallery_view.controller.refresh()
                 gallery_view._refresh_ui()
 
-    def _on_generate_with_active_model_todo(self) -> None:
-        """Hook/TODO: Generates a new asset using the active model as a guide."""
-        pass
-
     def _on_free_space_click(self, event: tk.Event) -> None:
         if event.widget in {self.canvas, self.grid_frame}:
             self.focus_gallery()

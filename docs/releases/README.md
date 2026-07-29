@@ -22,3 +22,6 @@ python tools/build_installer.py
 
 Die Ausgabe wird unter `dist/installer/` erzeugt. Der Build-Schritt veröffentlicht
 oder signiert das Paket nicht automatisch.
+
+Der Status und die manuellen Freigabeschritte des vorbereiteten Kandidaten sind
+in [RC1_CHECKLIST.md](RC1_CHECKLIST.md) dokumentiert.

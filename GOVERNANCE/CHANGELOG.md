@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-29 (Sprint 21 – Release Candidate)
+
+### Geändert
+* Fail-closed Auto-Update-Vertrag für HTTPS, ARM64, SemVer und SHA-256.
+* Verifizierte Installer werden resumefähig und atomar bereitgestellt, nicht gestartet.
+* Release-Identität auf `2.0 RC1` / `2.0.0-rc.1` vereinheitlicht.
+* RC1-Checkliste und manuelle Veröffentlichungsprüfungen dokumentiert.
+* Kein Release veröffentlicht.
+
+### Prüfung
+* 67 relevante End-to-End-/Release-Tests und 3 Subtests bestanden; Produktcode vollständig kompiliert.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 20 – Produktreife & Release I)
 
 ### Geändert
