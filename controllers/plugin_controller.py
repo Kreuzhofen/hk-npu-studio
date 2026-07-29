@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from pathlib import Path
+from uuid import uuid4
 
+from engine.plugin_info import PluginInfo
 
 class PluginMetadata:
     def __init__(
@@ -43,12 +46,22 @@ class PluginController:
                 self.enabled_states = {}
 
     def save_config(self) -> None:
+        staging: Path | None = None
         try:
             self.plugins_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.config_path, "w", encoding="utf-8") as f:
+            staging = self.config_path.with_name(
+                f".{self.config_path.name}.{uuid4().hex}.tmp"
+            )
+            with staging.open("w", encoding="utf-8", newline="\n") as f:
                 json.dump(self.enabled_states, f, indent=4)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(staging, self.config_path)
         except Exception:
             pass
+        finally:
+            if staging is not None:
+                staging.unlink(missing_ok=True)
 
     def get_plugins(self, filter_type: str = "Alle", search_query: str = "") -> list[PluginMetadata]:
         """Discover and return plugins under the plugins folder, filtered by state and query."""
@@ -119,11 +132,26 @@ class PluginController:
             raise FileNotFoundError(f"Installationsquelle nicht gefunden: {src}")
 
         if src.is_dir():
-            plugin_id = src.name
+            manifest_path = src / "plugin.json"
+            entrypoint = src / "plugin.py"
+            if not manifest_path.is_file() or not entrypoint.is_file():
+                raise ValueError("Plugin benötigt plugin.json und plugin.py.")
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                plugin_id = PluginInfo.from_json(manifest).id
+            except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
+                raise ValueError(f"Ungültiges Plugin-Manifest: {error}") from error
             dest = self.plugins_dir / plugin_id
             if dest.exists():
                 raise FileExistsError(f"Ein Plugin mit der ID '{plugin_id}' ist bereits installiert.")
-            shutil.copytree(src, dest)
+            self.plugins_dir.mkdir(parents=True, exist_ok=True)
+            staging = self.plugins_dir / f".{plugin_id}.{uuid4().hex}.tmp"
+            try:
+                shutil.copytree(src, staging)
+                os.replace(staging, dest)
+            finally:
+                if staging.exists():
+                    shutil.rmtree(staging)
             self.enabled_states[plugin_id] = True
             self.save_config()
             return plugin_id

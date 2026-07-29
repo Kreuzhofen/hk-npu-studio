@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 20 – Produktreife & Release I)
+
+### Geändert
+* Vergleichsansicht auf gemeinsamen Metadatenvertrag und testbare Differenzen finalisiert.
+* Plugin-Manifeste, Aktivierungszustände und atomare Installation abgesichert.
+* `release.json` als zentrale Release-Konfiguration eingeführt.
+* ARM64-Inno-Setup-Konfiguration und validierendes Buildskript vorbereitet.
+* Kein Release ausgeführt.
+
+### Prüfung
+* 20 relevante Compare-, Plugin-, Release-/Installer- und Metadatentests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 19 – Galerie & Dateiverwaltung absichern)
 
 ### Geändert

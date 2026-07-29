@@ -157,39 +157,6 @@ class PhoenixCompareView(WorkspaceFrame):
             self._handle_error(error)
         self.refresh()
 
-    def _show_context_menu(self, event: tk.Event) -> None:
-        """Displays the right-click context menu with generation hooks."""
-        menu = tk.Menu(
-            self,
-            tearoff=False,
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_body,
-        )
-        menu.add_command(
-            label=tr("compare_regenerate_todo", "Erneut generieren (TODO)"),
-            command=self._on_regenerate_todo,
-            state="disabled"
-        )
-        menu.add_command(
-            label=tr("compare_generate_with_current_model_todo", "Mit aktuellem Modell generieren (TODO)"),
-            command=self._on_generate_current_model_todo,
-            state="disabled"
-        )
-        menu.post(event.x_root, event.y_root)
-
-    def _on_regenerate_todo(self) -> None:
-        """Hook/TODO: Triggers regeneration of the selected output."""
-        pass
-
-    def _on_generate_current_model_todo(self) -> None:
-        """Hook/TODO: Triggers generation of the original source using the current active model."""
-        pass
-
     def _build_status_bar(self) -> None:
         self.status_bar = CompareStatusBar(self.status_slot, self.controller.status_items())
         self.status_bar.grid(row=0, column=0, sticky="ew")
@@ -264,29 +231,19 @@ class PhoenixCompareView(WorkspaceFrame):
             val_lbl.configure(fg=PHOENIX_THEME.text_primary)
 
     def _compare_metadata(self) -> None:
-        state = self.controller.get_state()
-        orig_meta = state.original_metadata
-        out_meta = state.output_metadata
-        
-        if orig_meta and out_meta:
-            prompt_diff = getattr(orig_meta, "prompt", "-") != getattr(out_meta, "prompt", "-")
-            seed_diff = getattr(orig_meta, "seed", "-") != getattr(out_meta, "seed", "-")
-            sampler_diff = getattr(orig_meta, "sampler", "-") != getattr(out_meta, "sampler", "-")
-            
+        differences = self.controller.compare_metadata()
+        if differences:
             diff_color = PHOENIX_THEME.accent
-            
-            if prompt_diff:
+            if "prompt" in differences:
                 self.original_panel.meta_prompt_val.configure(fg=diff_color)
                 self.result_panel.meta_prompt_val.configure(fg=diff_color)
-            if seed_diff:
+            if "seed" in differences:
                 self.original_panel.meta_seed_val.configure(fg=diff_color)
                 self.result_panel.meta_seed_val.configure(fg=diff_color)
-            if sampler_diff:
+            if "sampler" in differences:
                 self.original_panel.meta_sampler_val.configure(fg=diff_color)
                 self.result_panel.meta_sampler_val.configure(fg=diff_color)
-                
-            self.controller.model.set_status("Metadaten verglichen - Unterschiede farblich hervorgehoben")
-            self.status_bar.update_values(self.controller.status_items())
+        self.status_bar.update_values(self.controller.status_items())
 
     def _on_original_selected(self, filename: str) -> None:
         if filename in ("Keine Auswahl", "No Selection", tr("no_selection", "Keine Auswahl")):

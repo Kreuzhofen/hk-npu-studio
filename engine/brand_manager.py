@@ -4,6 +4,7 @@ from pathlib import Path
 from PIL import Image
 
 from engine.theme_manager import ThemeManager
+from engine.release_config import RELEASE
 
 
 @dataclass(frozen=True)
@@ -20,13 +21,13 @@ class BrandState:
 class BrandManager:
     """Central branding and asset manager for Snapdragon AI Studio."""
 
-    APP_NAME = "Snapdragon AI Studio"
-    APP_VERSION = "2.0 Preview"
+    APP_NAME = RELEASE.app_name
+    APP_VERSION = RELEASE.display_version
 
     ENGINE_NAME = "Phoenix Engine"
     ENGINE_VERSION = "1.0"
 
-    AUTHOR = "Holger Kreuzhofen"
+    AUTHOR = RELEASE.publisher
     COPYRIGHT = "© 2026 Holger Kreuzhofen\nAll rights reserved."
 
     SLOGAN = "Phoenix Engine"

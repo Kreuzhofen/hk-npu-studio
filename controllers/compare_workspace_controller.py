@@ -10,6 +10,7 @@ from controllers.compare_workspace_model import (
     CompareWorkspaceModel,
     CompareWorkspaceState,
 )
+from engine.asset_files import read_asset_metadata
 
 
 class CompareWorkspaceController:
@@ -75,6 +76,26 @@ class CompareWorkspaceController:
     def set_error(self, message: str) -> None:
         self.model.set_status(f"Fehler: {message}")
 
+    def compare_metadata(self) -> set[str]:
+        """Return differing metadata fields for the two loaded images."""
+        state = self.get_state()
+        if state.original_metadata is None or state.output_metadata is None:
+            self.model.set_status("Metadatenvergleich benötigt zwei Bilder")
+            return set()
+        fields = ("prompt", "seed", "sampler")
+        differences = {
+            field
+            for field in fields
+            if getattr(state.original_metadata, field)
+            != getattr(state.output_metadata, field)
+        }
+        self.model.set_status(
+            "Metadaten verglichen"
+            if not differences
+            else "Metadaten verglichen - Unterschiede farblich hervorgehoben"
+        )
+        return differences
+
     def status_items(self) -> dict[str, str]:
         from app.i18n import tr
         state = self.get_state()
@@ -138,16 +159,11 @@ class CompareWorkspaceController:
         seed = "-"
         sampler = "-"
         sidecar = path.with_suffix(".json")
-        if sidecar.exists():
-            try:
-                import json
-                with open(sidecar, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    prompt = data.get("prompt", "-")
-                    seed = str(data.get("seed", "-"))
-                    sampler = data.get("sampler", "-")
-            except Exception:
-                pass
+        data, metadata_error = read_asset_metadata(sidecar)
+        if not metadata_error:
+            prompt = str(data.get("prompt", "-"))
+            seed = str(data.get("seed", "-"))
+            sampler = str(data.get("sampler", "-"))
 
         metadata = CompareImageMetadata(
             path=path,
