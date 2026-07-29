@@ -13,6 +13,7 @@ import tkinter as tk
 from pathlib import Path
 
 from PIL import Image, ImageTk
+from engine.startup_diagnostics import run_startup_diagnostics
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -325,6 +326,11 @@ class SnapdragonAIStudioV2(BaseWindow):
 
 
 
-if __name__ == "__main__":
+def main():
+    run_startup_diagnostics()
     app = SnapdragonAIStudioV2()
     app.mainloop()
+
+
+if __name__ == "__main__":
+    main()

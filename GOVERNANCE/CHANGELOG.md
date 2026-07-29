@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 13 – Start- und Diagnoseprüfung)
+
+### Geändert
+* Fail-safe Startprüfung für Umgebung, Backend-Verfügbarkeit und Modellstatus.
+* Strukturierte Klassifikation und Protokollierung je Diagnosekategorie.
+* Sicherer CPU-Fallback beziehungsweise Start ohne aktives Modell bei Diagnosefehlern.
+* Keine UI-Änderungen.
+
+### Prüfung
+* 17 relevante Start-, Backend- und Registry-Tests sowie 6 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 12 – Model-Update absichern)
 
 ### Geändert
