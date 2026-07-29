@@ -7,6 +7,7 @@ from controllers.generation_result import GenerationResult
 from engine.error_diagnostics import diagnose_exception
 from engine.job_lifecycle import JobStatus, get_job_status, set_job_progress, set_job_status
 from engine.logging_config import get_logger
+from engine.runtime_model import RuntimeModel
 
 
 logger = get_logger("ImageGenerationPipeline")
@@ -19,15 +20,24 @@ class ImageGenerationPipeline:
     Currently a stub awaiting physical acceleration backends.
     """
 
-    def __init__(self, job: GenerationJob, backend_adapter: Any) -> None:
+    def __init__(
+        self,
+        job: GenerationJob,
+        backend_adapter: Any,
+        runtime_model: RuntimeModel | None = None,
+    ) -> None:
         self.job = job
         self.backend_adapter = backend_adapter
+        self.runtime_model = runtime_model
         self.start_time: float = 0.0
         self.end_time: float = 0.0
 
     def prepare(self) -> None:
         """Prepares folders, locks model weights, and primes NPU/CPU backend buffers."""
         self.start_time = time.time()
+        if self.job.cancel_requested.is_set():
+            set_job_status(self.job, JobStatus.CANCELLED)
+            return
         set_job_status(self.job, JobStatus.RUNNING)
         set_job_progress(self.job, self.job.progress, "Pipeline gestartet", notify=False)
         # Stub preparation: Create target directories, print logs
@@ -36,20 +46,58 @@ class ImageGenerationPipeline:
         """Performs syntax, boundary, and model parameter validation checks."""
         if not self.job or not self.job.session:
             return False
-        
-        # Verify resolution parameter bounds
-        width = self.job.session.width
-        height = self.job.session.height
-        if width <= 0 or height <= 0:
+        session = self.job.session
+        if (
+            isinstance(session.width, bool)
+            or not isinstance(session.width, int)
+            or isinstance(session.height, bool)
+            or not isinstance(session.height, int)
+            or session.width <= 0
+            or session.height <= 0
+            or isinstance(session.steps, bool)
+            or not isinstance(session.steps, int)
+            or session.steps <= 0
+        ):
             return False
-            
         return True
 
     def execute(self) -> GenerationResult:
         """Runs the active BackendAdapter to synthesize the image output."""
         from engine.generation_executor import GenerationExecutor
         executor = GenerationExecutor()
-        return executor.execute(self.job, self.backend_adapter)
+        return executor.execute(
+            self.job,
+            self.backend_adapter,
+            runtime_model=self.runtime_model,
+        )
+
+    def _cancelled_result(self) -> GenerationResult:
+        set_job_status(self.job, JobStatus.CANCELLED)
+        return GenerationResult(
+            success=False,
+            status=JobStatus.CANCELLED.value,
+            message="Generation cancelled.",
+            model_name=(
+                self.job.session.model_name
+                if self.job and self.job.session
+                else "Unknown"
+            ),
+        )
+
+    def _normalize_result(self, result: Any) -> GenerationResult:
+        if not isinstance(result, GenerationResult):
+            raise TypeError("Inference backend returned no valid GenerationResult.")
+        if not isinstance(result.metadata, dict):
+            result.metadata = {}
+        if not result.model_name or result.model_name == "Unknown":
+            result.model_name = self.job.session.model_name
+        if self.job.cancel_requested.is_set() or get_job_status(self.job) == JobStatus.CANCELLED:
+            return self._cancelled_result()
+        if result.success:
+            result.status = JobStatus.FINISHED.value
+        elif not result.status:
+            result.status = JobStatus.FAILED.value
+        return result
 
     def finish(self, result: GenerationResult) -> GenerationResult:
         """Appends generation performance metrics, saves metadata files, and triggers workflow callbacks."""
@@ -128,6 +176,8 @@ class ImageGenerationPipeline:
         """Orchestrator executing the complete pipeline flow and returning the final GenerationResult."""
         try:
             self.prepare()
+            if self.job.cancel_requested.is_set():
+                return self._cancelled_result()
             if not self.validate():
                 self.job.fail("Pipeline validation failed: invalid parameters.")
                 return GenerationResult(
@@ -137,7 +187,7 @@ class ImageGenerationPipeline:
                     model_name=self.job.session.model_name if (self.job and self.job.session) else "Unknown"
                 )
 
-            result = self.execute()
+            result = self._normalize_result(self.execute())
             result = self.finish(result)
             if get_job_status(self.job) != JobStatus.CANCELLED:
                 if result.success:

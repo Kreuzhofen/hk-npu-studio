@@ -191,7 +191,11 @@ class GenerationController:
                 selected_backend.get_backend_name(),
             )
             from controllers.generation_pipeline import ImageGenerationPipeline
-            pipeline = ImageGenerationPipeline(job=job, backend_adapter=selected_backend)
+            pipeline = ImageGenerationPipeline(
+                job=job,
+                backend_adapter=selected_backend,
+                runtime_model=load_result.loaded_model.runtime_model,
+            )
             result = pipeline.run()
         finally:
             self.model_loader.unload_model(job_session.model_name)

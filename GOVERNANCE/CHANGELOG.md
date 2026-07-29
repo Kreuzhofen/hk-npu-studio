@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 8 – Inference-Pipeline absichern)
+
+### Geändert
+* Bereits geladene Runtimes werden ohne redundanten zweiten Modell-Load an den Executor übergeben.
+* Eingaben und Backend-Ergebnisse werden zentral validiert bzw. normalisiert.
+* Fehler, ungültige Ergebnisse und Abbrüche werden konsistent an die Job-Engine weitergegeben.
+* Keine Architektur- oder UI-Erweiterung.
+
+### Prüfung
+* 34 betroffene Tests bestanden; kurzer Gesamtcheck: 166 Tests und 20 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 7 – Modell-Ladeprozess stabilisieren)
 
 ### Hinzugefügt
