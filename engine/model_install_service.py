@@ -636,6 +636,17 @@ class ModelInstallService:
             result["message"] = "Invalid: Package ist nicht installiert."
             return result
 
+        registry_validation = self.repository.validate_model_installation(
+            model_id, verify_hashes=True
+        )
+        if registry_validation is not None:
+            for issue in registry_validation.issues:
+                add_issue(issue.message)
+            if registry_validation.checked_hashes:
+                result["checksum_hint"] = (
+                    f"{registry_validation.checked_hashes} SHA-256-Prüfung(en) erfolgreich."
+                )
+
         model_path = str(model.get("path") or "").strip()
         if not model_path:
             add_issue("Package-Pfad fehlt im Repository-Eintrag.")
@@ -755,7 +766,9 @@ class ModelInstallService:
             result["runtime_hint"] = ", ".join(sorted(runtimes)) if runtimes else "Runtime fehlt"
 
         checksum = catalog_package.get("checksum") if catalog_package else None
-        if checksum:
+        if registry_validation is not None and registry_validation.checked_hashes:
+            pass
+        elif checksum:
             result["checksum_hint"] = "Checksumme definiert; keine lokale Prüfinfrastruktur aktiv."
             result["warnings"].append("Checksumme wurde nicht geprüft, weil keine lokale Prüfinfrastruktur angebunden ist.")
         else:

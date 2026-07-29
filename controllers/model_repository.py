@@ -8,6 +8,11 @@ from typing import Any
 
 from config import PREFERENCES_PATH
 from app.configuration_manager import ConfigurationManager
+from engine.logging_config import get_logger
+from engine.model_registry import ModelHealthStatus, ModelRegistry
+
+
+logger = get_logger("ModelRepository")
 
 
 class ModelCapabilities:
@@ -91,6 +96,7 @@ class ModelRepository:
         else:
             self.models_dir = models_dir
 
+        self.registry = ModelRegistry()
         self._models: dict[str, dict[str, Any]] = {}
         self.load_repository()
 
@@ -98,27 +104,15 @@ class ModelRepository:
         """
         Scan directory and load all valid model JSON definitions.
         """
-        self._models.clear()
-        if not os.path.exists(self.models_dir):
-            print(f"[ModelRepository] Warning: Directory {self.models_dir} does not exist.")
-            return
+        from engine.backends.backend_manager import BackendManager
 
-        for filename in sorted(os.listdir(self.models_dir)):
-            if filename.endswith(".json"):
-                filepath = os.path.join(self.models_dir, filename)
-                try:
-                    with open(filepath, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                    
-                    if self._validate_model_data(data):
-                        model_id = data["id"]
-                        # Keep track of file path for updates
-                        data["_filepath"] = filepath
-                        self._models[model_id] = data
-                    else:
-                        print(f"[ModelRepository] Error: Validation failed for {filename}")
-                except Exception as e:
-                    print(f"[ModelRepository] Error loading {filename}: {e}")
+        backend_names = BackendManager().get_all_backend_names()
+        self.registry.load_directory(
+            self.models_dir, available_backends=backend_names
+        )
+        self._models = {
+            model["id"]: model for model in self.registry.get_all_models()
+        }
 
         selectable_models = [
             model_id for model_id in self._models if self.is_selectable_model(model_id)
@@ -136,13 +130,37 @@ class ModelRepository:
         """
         Validate required schema fields.
         """
-        required_fields = {
-            "id", "display_name", "author", "version", "license",
-            "description", "category", "backend", "recommended_backend",
-            "minimum_ram_gb", "recommended_ram_gb", "supports",
-            "installed", "downloaded", "path", "status", "capabilities"
-        }
-        return required_fields.issubset(data.keys())
+        return self.registry.validate_metadata(data).valid
+
+    def get_validation_report(self, model_id: str):
+        """Return the latest metadata validation report for a model."""
+        return self.registry.get_report(model_id)
+
+    def get_invalid_models(self):
+        """Return invalid definition reports keyed by source filename."""
+        return self.registry.get_invalid_reports()
+
+    def validate_model_installation(
+        self, model_id: str, *, verify_hashes: bool = False
+    ):
+        """Validate installed files, package structure, and optional hashes."""
+        model = self.get_model(model_id)
+        if model is None:
+            return None
+        return self.registry.validate_installation(
+            model, verify_hashes=verify_hashes
+        )
+
+    def resolve_backend(self, model_id: str, backend_manager=None):
+        """Resolve a model backend through the shared backend registry."""
+        model = self.get_model(model_id)
+        if model is None:
+            return None
+        if backend_manager is None:
+            from engine.backends.backend_manager import BackendManager
+
+            backend_manager = BackendManager()
+        return backend_manager.get_best_backend(model)
 
     def get_model(self, model_id: str) -> dict[str, Any] | None:
         """
@@ -395,18 +413,15 @@ class ModelRepository:
         model = self.get_model(model_id)
         if not model:
             return PackageStatus.NOT_INSTALLED
-            
-        installed = model.get("installed", False)
-        if not installed:
+
+        validation = self.registry.validate_installation(model)
+        if validation.status == ModelHealthStatus.NOT_INSTALLED:
             return PackageStatus.NOT_INSTALLED
-            
+        if not validation.valid:
+            return PackageStatus.INVALID
+
         model_path = model.get("path") or ""
-        if not model_path:
-            return PackageStatus.NOT_INSTALLED
-            
         base_dir = Path(model_path)
-        if not base_dir.exists():
-            return PackageStatus.NOT_INSTALLED
             
         package_json_path = base_dir / "package.json"
         if not package_json_path.exists():

@@ -4,6 +4,25 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 6 – Model Manager professionalisieren)
+
+### Hinzugefügt
+* **Zentrale ModelRegistry:** Einheitliche Verwaltung von Modellmetadaten, Validierungsberichten und Installationszuständen.
+* **Metadatenschema v1:** Bestehende Definitionen werden rückwärtskompatibel normalisiert und auf Pflichtfelder, Typen und Backend-Kompatibilität geprüft.
+* **Sichere Modellvalidierung:** Installationspfad, Manifest-ID, Paketstruktur, deklarierte Komponenten und gegen Verzeichnisausbruch geschützte Komponentenpfade werden validiert.
+* **Optionale Integritätsprüfung:** Deklarierte SHA-256-Werte werden auf Wunsch gestreamt geprüft; Manipulationen und ungültige Hashangaben führen zu einem eindeutigen Invalid-Status.
+* **Fehlerquarantäne:** Nicht lesbare oder strukturell ungültige Modelldefinitionen werden nicht aktiviert und bleiben über Diagnoseberichte auswertbar.
+
+### Geändert
+* `ModelRepository`, lokale SMP-Paketvalidierung und Generationsrouting verwenden die gemeinsame Registry und Backend-Auflösung.
+* Backend-Inkompatibilität wird diagnostiziert, ohne zukünftige oder testweise Modellmetadaten vorschnell aus dem Katalog zu entfernen.
+* Bestehende Modell-, Paket- und UI-Verträge bleiben kompatibel; die UI wurde nicht geändert.
+
+### Prüfung
+* Vollständiger Python-Build mit `compileall`: erfolgreich.
+* Registry-/Backend-Vertragstests: 12 Tests bestanden.
+* Vollständige Testsuite: 154 Tests und 20 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 5 – Konfigurationssystem vereinheitlichen)
 
 ### Hinzugefügt
