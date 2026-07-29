@@ -129,6 +129,7 @@ class TextEmbeddingService:
         token_array = np.array([tokens], dtype=np.int64)
 
         if self.package.is_fully_ready() and component_path and Path(component_path).exists():
+            session = None
             try:
                 session = OnnxProviderService.create_session(component_path, component_name)
                 inputs = self._build_encoder_inputs(session, token_array)
@@ -137,7 +138,6 @@ class TextEmbeddingService:
                 hidden = self._resolve_hidden_output(component_name, outputs, fallback_width)
                 pooled = self._resolve_pooled_output(component_name, outputs, hidden, fallback_width)
                 metadata["session_providers"] = OnnxProviderService.session_providers(session)
-                del session
                 return {
                     "embeddings": hidden,
                     "pooled_embeddings": pooled,
@@ -147,6 +147,9 @@ class TextEmbeddingService:
             except Exception as exc:
                 logger.warning("[TextEmbeddingService] %s run failed/skipped: %s", component_name, exc)
                 print(f"[TextEmbeddingService] {component_name} run failed/skipped: {exc}")
+            finally:
+                OnnxProviderService.release_session(session)
+                session = None
 
         rng_seed = abs(hash((component_name, tuple(tokens[:12])))) % (2**32)
         rng = np.random.default_rng(rng_seed)

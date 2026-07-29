@@ -25,6 +25,9 @@ class StubImageBackend(InferenceBackend):
         self.backend_name = backend_name
         self.runtime_model = runtime_model
 
+    def shutdown(self) -> None:
+        self.runtime_model = None
+
     def generate(self, job: GenerationJob) -> GenerationResponse:
         model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
         backend_name = self.backend_name

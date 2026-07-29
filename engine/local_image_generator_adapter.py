@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
+from engine.error_diagnostics import diagnose_exception
 from engine.logging_config import get_logger
 from engine.runtime_model import RuntimeModel
 
@@ -42,5 +43,19 @@ class LocalImageGeneratorAdapter:
         try:
             return backend.generate(job)
         finally:
-            if callable(bind_running_backend):
-                bind_running_backend(None)
+            try:
+                shutdown = getattr(backend, "shutdown", None)
+                if callable(shutdown):
+                    shutdown()
+            except Exception as error:
+                diagnose_exception(
+                    logger,
+                    error,
+                    category="backend",
+                    context="physical_backend_shutdown",
+                    job=job,
+                    backend_name=backend_name,
+                )
+            finally:
+                if callable(bind_running_backend):
+                    bind_running_backend(None)

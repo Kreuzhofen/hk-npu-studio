@@ -229,6 +229,27 @@ class StableDiffusion15QnnBackend(InferenceBackend):
                 process.wait()
         return "CANCELLED"
 
+    def shutdown(self) -> None:
+        """Release worker handles and host-side references without changing job state."""
+        import subprocess
+
+        process = self._active_process
+        try:
+            if process is not None and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+            stdout = getattr(process, "stdout", None)
+            if stdout is not None:
+                stdout.close()
+        finally:
+            self._active_process = None
+            self.tokenizer = None
+            self.scheduler = None
+
     def _setup_sessions(self, model_dir: Path) -> tuple[Any, Any, Any, dict[str, Any]]:
         import onnxruntime as ort
         import onnxruntime_qnn as qnn

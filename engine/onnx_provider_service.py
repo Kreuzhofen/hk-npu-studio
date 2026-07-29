@@ -318,6 +318,18 @@ class OnnxProviderService:
             return []
 
     @classmethod
+    def release_session(cls, session: Any) -> None:
+        """Release optional session-owned resources without masking inference errors."""
+        if session is None:
+            return
+        close = getattr(session, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception as exc:
+                logger.warning("ONNX-Session konnte nicht sauber geschlossen werden: %s", exc)
+
+    @classmethod
     def runtime_label(cls, session_provider_lists: list[list[str]] | None = None) -> str:
         cls.initialize()
         provider_lists = session_provider_lists or []

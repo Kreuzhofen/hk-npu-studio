@@ -43,6 +43,7 @@ class UNetService:
         logger.info(f"[UNetService] Resolving UNet component from: '{unet_path}'")
 
         if self.package.is_fully_ready() and unet_path and Path(unet_path).exists():
+            session = None
             try:
                 logger.info(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
                 print(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
@@ -55,7 +56,6 @@ class UNetService:
                 logger.info(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
                 print(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
                 metadata["session_providers"] = OnnxProviderService.session_providers(session)
-                del session
                 return {
                     "noise_pred": output_noise,
                     "latent_shape": list(latents.shape),
@@ -66,6 +66,9 @@ class UNetService:
             except Exception as exc:
                 logger.warning(f"[UNetService] UNet InferenceSession run failed/skipped: {exc}")
                 print(f"[UNetService] UNet InferenceSession run failed/skipped: {exc}")
+            finally:
+                OnnxProviderService.release_session(session)
+                session = None
 
         mock_noise = np.random.randn(*latents.shape).astype(np.float32)
         logger.info(f"[UNetService] Generated mock UNet noise prediction with shape: {mock_noise.shape}")

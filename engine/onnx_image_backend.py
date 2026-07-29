@@ -183,6 +183,10 @@ class OnnxImageBackend(InferenceBackend):
         available, _ = self.check_availability()
         return available
 
+    def shutdown(self) -> None:
+        """Drop model references after each isolated generation."""
+        self.runtime_model = None
+
     def generate(self, job: GenerationJob) -> GenerationResponse:
         model_name = self.runtime_model.model_id if self.runtime_model else job.session.model_name
         backend_name = OnnxProviderService.runtime_label()
@@ -254,6 +258,7 @@ class OnnxImageBackend(InferenceBackend):
         if onnx_model_path:
             logger.info(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX files. Verifying: '{onnx_model_path}'")
             print(f"[OnnxImageBackend] Found {len(onnx_files)} ONNX files. Verifying: '{onnx_model_path}'")
+            session = None
             try:
                 session = OnnxProviderService.create_session(onnx_model_path, "root_model")
                 inputs = [x.name for x in session.get_inputs()]
@@ -261,10 +266,12 @@ class OnnxImageBackend(InferenceBackend):
                 session_providers = OnnxProviderService.session_providers(session)
                 logger.info(f"[OnnxImageBackend] Root InferenceSession verified. Providers: {session_providers}, Inputs: {inputs}, Outputs: {outputs}")
                 print(f"[OnnxImageBackend] Root InferenceSession verified. Providers: {session_providers}, Inputs: {inputs}, Outputs: {outputs}")
-                del session
             except Exception as e:
                 logger.warning(f"[OnnxImageBackend] Root model loadability check skipped/failed (will use components fallback): {e}")
                 print(f"[OnnxImageBackend] Root model loadability check skipped/failed (will use components fallback): {e}")
+            finally:
+                OnnxProviderService.release_session(session)
+                session = None
         else:
             logger.info("[OnnxImageBackend] No root ONNX model file found (SMP components layout mode).")
             print("[OnnxImageBackend] No root ONNX model file found (SMP components layout mode).")

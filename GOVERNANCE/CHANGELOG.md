@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 9 – Speicherverwaltung absichern)
+
+### Geändert
+* Garantierter Backend-Shutdown nach Erfolg, Fehler und Abbruch.
+* ONNX-Sessions werden in `finally`-Pfaden freigegeben.
+* QNN-Worker, Pipes und Hostreferenzen werden zuverlässig geschlossen.
+* Keine UI-Änderungen.
+
+### Prüfung
+* 28 relevante Ressourcen-, Lifecycle-, Pipeline-, Backend- und QNN-Tests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 8 – Inference-Pipeline absichern)
 
 ### Geändert

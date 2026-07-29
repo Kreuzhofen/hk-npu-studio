@@ -35,6 +35,7 @@ class VAEDecoderService:
         
         # Try to run VAE Decoder using ONNX Runtime if package is fully ready
         if self.package.is_fully_ready() and vae_path and Path(vae_path).exists():
+            session = None
             try:
                 logger.info(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")
                 print(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")
@@ -50,9 +51,6 @@ class VAEDecoderService:
                 logger.info(f"[VAEDecoderService] VAE ONNX run successful. Output shape: {vae_output.shape}")
                 print(f"[VAEDecoderService] VAE ONNX run successful. Output shape: {vae_output.shape}")
                 metadata["session_providers"] = OnnxProviderService.session_providers(session)
-                
-                # Cleanup session
-                del session
                 
                 # Postprocess VAE output tensor: shape (1, 3, H, W)
                 image_arr = vae_output[0]
@@ -70,6 +68,9 @@ class VAEDecoderService:
             except Exception as e:
                 logger.warning(f"[VAEDecoderService] VAE InferenceSession run failed/skipped: {e}")
                 print(f"[VAEDecoderService] VAE InferenceSession run failed/skipped: {e}")
+            finally:
+                OnnxProviderService.release_session(session)
+                session = None
                 
         # Fallback Mock Decoding: Generate a stunning procedural diagnostic preview image
         logger.info(f"[VAEDecoderService] Fallback to procedural mock decoder. Shape: (1, 3, {img_h}, {img_w})")
