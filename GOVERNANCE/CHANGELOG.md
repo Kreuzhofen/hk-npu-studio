@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 12 – Model-Update absichern)
+
+### Geändert
+* Versionsprüfung für installierte Modelle und Katalogstände.
+* Validiertes Staging mit atomarem Austausch der Installation.
+* Automatischer Rollback auf die vorige Version bei Swap- oder Registry-Fehlern.
+* Registry-Commit erst nach erfolgreicher Kandidatenvalidierung.
+* Keine UI-Änderungen.
+
+### Prüfung
+* 27 relevante Update-, Registry-, Paketqualifikations- und Integritätstests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 11 – Model-Download absichern)
 
 ### Geändert

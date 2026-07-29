@@ -6,6 +6,7 @@ import shutil
 import logging
 import urllib.parse
 import zipfile
+from uuid import uuid4
 from pathlib import Path
 from typing import Callable, Any
 
@@ -53,6 +54,8 @@ class ModelInstallService:
             updates["path"] = path
         if status is not None:
             updates["status"] = status
+        if version is not None:
+            updates["version"] = version
         if updates:
             self.repository.update_model(model_id, **updates)
 
@@ -796,11 +799,146 @@ class ModelInstallService:
 
     def update_package(self, model_id: str, new_source_path: str) -> bool:
         """
-        Replace an installed package with a newer local SMP package source.
-        No network access or downloads are performed.
+        Atomically replace an installed package after staging and validation.
+        The previous package remains available for rollback until the registry commit succeeds.
         """
         logger.info(f"Triggering local package update for '{model_id}' from '{new_source_path}'")
-        return self.install_package(model_id, new_source_path)
+        model = self.repository.get_model(model_id)
+        if not model or model.get("installed") is not True:
+            logger.error("Package update rejected: '%s' is not installed.", model_id)
+            return False
+
+        source_info = self._validate_local_package_source(model_id, new_source_path)
+        manifest = source_info.get("manifest")
+        if not source_info.get("success") or not isinstance(manifest, dict):
+            logger.error(
+                "Package update source invalid | model=%s message=%s",
+                model_id,
+                source_info.get("message"),
+            )
+            return False
+
+        installed_version = str(model.get("version") or "")
+        package_version = self._manifest_version(manifest)
+        if installed_version and not self._is_version_older(
+            installed_version, package_version
+        ):
+            logger.error(
+                "Package update rejected: version is not newer | model=%s installed=%s candidate=%s",
+                model_id,
+                installed_version,
+                package_version,
+            )
+            return False
+
+        package_dir = Path(str(model.get("path") or ""))
+        if not package_dir.exists() or not package_dir.is_dir():
+            logger.error("Package update rejected: installed path is invalid | model=%s", model_id)
+            return False
+
+        operation_id = uuid4().hex
+        staging_dir = package_dir.parent / f".{package_dir.name}.update-{operation_id}"
+        backup_dir = package_dir.parent / f".{package_dir.name}.backup-{operation_id}"
+        previous = {
+            "installed": bool(model.get("installed")),
+            "downloaded": bool(model.get("downloaded")),
+            "path": str(model.get("path") or ""),
+            "status": str(model.get("status") or ""),
+            "version": installed_version,
+        }
+        swapped = False
+        try:
+            self._copy_local_package_source(new_source_path, staging_dir, source_info)
+            candidate = dict(model)
+            candidate.update(
+                {
+                    "installed": True,
+                    "downloaded": True,
+                    "path": str(staging_dir.resolve()),
+                    "version": package_version,
+                    "status": "Ready",
+                }
+            )
+            validation = self.repository.registry.validate_installation(
+                candidate, verify_hashes=True
+            )
+            if not validation.valid:
+                raise ValueError(
+                    "Staged package validation failed: "
+                    + "; ".join(validation.messages)
+                )
+
+            package_dir.replace(backup_dir)
+            staging_dir.replace(package_dir)
+            swapped = True
+
+            if not self.repository.update_model(
+                model_id,
+                installed=True,
+                downloaded=True,
+                path=str(package_dir.resolve()),
+                status="Ready",
+                version=package_version,
+            ):
+                raise RuntimeError("Registry update failed after package swap.")
+
+            try:
+                shutil.rmtree(backup_dir)
+            except OSError as cleanup_error:
+                logger.warning(
+                    "Update-Backup konnte nach erfolgreichem Commit nicht entfernt werden "
+                    "| model=%s path=%s error=%s",
+                    model_id,
+                    backup_dir,
+                    cleanup_error,
+                )
+            logger.info(
+                "Package update committed | model=%s previous=%s version=%s",
+                model_id,
+                installed_version,
+                package_version,
+            )
+            return True
+        except Exception as exc:
+            logger.error("Package update failed; rolling back | model=%s error=%s", model_id, exc)
+            try:
+                if swapped:
+                    if package_dir.exists():
+                        shutil.rmtree(package_dir)
+                    if backup_dir.exists():
+                        backup_dir.replace(package_dir)
+                self.repository.update_model(model_id, **previous)
+            except Exception as rollback_error:
+                logger.critical(
+                    "Package rollback failed | model=%s error=%s",
+                    model_id,
+                    rollback_error,
+                )
+            return False
+        finally:
+            if staging_dir.exists():
+                try:
+                    shutil.rmtree(staging_dir)
+                except OSError as cleanup_error:
+                    logger.warning(
+                        "Update-Artefakt konnte nicht entfernt werden | path=%s error=%s",
+                        staging_dir,
+                        cleanup_error,
+                    )
+
+    def check_for_update(self, model_id: str) -> bool:
+        """Return whether the catalog contains a newer version for an installed model."""
+        model = self.repository.get_model(model_id)
+        catalog = self.catalog_service.get_package(model_id)
+        if not model or model.get("installed") is not True or not catalog:
+            return False
+        installed_version = str(model.get("version") or "")
+        catalog_version = str(catalog.get("version") or "")
+        return bool(
+            installed_version
+            and catalog_version
+            and self._is_version_older(installed_version, catalog_version)
+        )
 
     def remove_package(self, model_id: str) -> bool:
         """
