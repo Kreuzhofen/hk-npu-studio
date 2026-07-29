@@ -11,6 +11,7 @@ from controllers.model_repository import ModelRepository
 from engine.error_diagnostics import diagnose_exception
 from engine.logging_config import get_logger
 from engine.model_registry import ModelHealthStatus
+from engine.performance_metrics import PerformanceOperation, measured
 from engine.runtime_model import RuntimeModel
 
 logger = get_logger("ModelLoaderService")
@@ -255,6 +256,11 @@ class ModelLoaderService:
             warnings=warnings
         )
 
+    @measured(
+        PerformanceOperation.MODEL_LOAD,
+        tags=lambda self, model_id, backend_manager=None: {"model_id": model_id},
+        success=lambda result: result.success,
+    )
     def load_model(self, model_id: str, backend_manager: Any = None) -> ModelLoadResult:
         """Atomically resolve and initialize one model/backend combination."""
         with self._condition:
@@ -362,6 +368,14 @@ class ModelLoaderService:
                 diagnostic.message,
             )
 
+    @measured(
+        PerformanceOperation.RESOURCE_RELEASE,
+        tags=lambda self, model_id=None, force=False: {
+            "model_id": model_id or self.loaded_model_id or "none",
+            "force": force,
+        },
+        success=bool,
+    )
     def unload_model(self, model_id: str | None = None, *, force: bool = False) -> bool:
         """Release a model reference and shut its backend down at the last release."""
         with self._condition:

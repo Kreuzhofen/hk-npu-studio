@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 15 – Performance-Messung)
+
+### Geändert
+* Einheitliche interne Laufzeitmetriken für Modellladen, Inference und Freigabe.
+* Threadsicherer, begrenzter Metrikspeicher mit Erfolg und Kontext-Tags.
+* Messfehler bleiben vollständig vom ausgeführten Vorgang isoliert.
+* Keine Optimierungen oder UI-Änderungen.
+
+### Prüfung
+* 18 relevante Performance-, Modell-Lifecycle- und Inference-Tests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 14 – Ressourcenüberwachung)
 
 ### Geändert

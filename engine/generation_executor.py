@@ -7,6 +7,7 @@ from engine.model_loader_service import ModelLoaderService
 from engine.generation_response import GenerationResponse
 from engine.local_image_generator_adapter import LocalImageGeneratorAdapter
 from engine.logging_config import get_logger
+from engine.performance_metrics import PerformanceOperation, performance_metrics
 from engine.runtime_model import RuntimeModel
 
 logger = get_logger("GenerationExecutor")
@@ -60,7 +61,14 @@ class GenerationExecutor:
             print(f"[Executor] Target Backend: {backend_name}")
             logger.info(f"[Executor] Dispatching to LocalImageGeneratorAdapter with backend: {backend_name}")
             print(f"[Executor] Dispatching to LocalImageGeneratorAdapter with backend: {backend_name}")
-            response = adapter.generate(job, runtime_model=runtime_model)
+            with performance_metrics.measure(
+                PerformanceOperation.INFERENCE,
+                job_id=job.job_id,
+                model_id=model_name,
+                backend=backend_name,
+            ) as measurement:
+                response = adapter.generate(job, runtime_model=runtime_model)
+                measurement.success = bool(response.success)
         finally:
             if load_result is not None:
                 self.loader_service.unload_model(model_name)

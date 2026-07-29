@@ -8,6 +8,8 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
+* **Sprint 15 – Performance-Messung:** Ein zentraler, threadsicherer und begrenzter Metrikspeicher erfasst monotone Laufzeiten für Modellladen, Inference und Ressourcenfreigabe. Einheitliche interne Datensätze enthalten Vorgang, Dauer, Erfolg, Zeitstempel und Kontext-Tags; auch Fehlerpfade werden gemessen, während Fehler der Messinfrastruktur den Programmablauf nicht beeinflussen. 18 relevante Tests sind erfolgreich; Optimierungen und UI-Änderungen wurden nicht vorgenommen.
+
 * **Sprint 14 – Ressourcenüberwachung:** Eine zentrale, passive Ressourcenüberwachung erfasst CPU- und RAM-Auslastung sowie Verfügbarkeit und Health-Status des aktiven CPU-, ONNX- oder QNN/NPU-Backends. Laufende Jobs werden über den gemeinsamen Lebenszyklus gedrosselt beobachtet; einheitlich klassifizierte Ressourcenwarnungen stehen intern bereit und werden strukturiert protokolliert. Messfehler beeinflussen die Jobausführung nicht. 21 relevante Tests und 5 Subtests sind erfolgreich; Funktionalität und UI wurden nicht geändert.
 
 * **Sprint 13 – Start- und Diagnoseprüfung:** Vor dem Aufbau der Anwendung werden Umgebung, registrierte Backends und Modelldefinitionen UI-unabhängig geprüft. Die Ergebnisse sind nach Kategorie und Schweregrad strukturiert protokolliert; Fehler einzelner Prüfungen bleiben isoliert und führen zu einem sicheren CPU-Fallback beziehungsweise einem Start ohne aktives Modell statt zu einem Absturz. 17 relevante Tests und 6 Subtests sind erfolgreich; die UI wurde nicht geändert.
