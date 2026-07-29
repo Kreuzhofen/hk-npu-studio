@@ -703,5 +703,6 @@
   "worker": "Proceso",
   "worker_busy": "Proceso ocupado",
   "queue_empty_short": "Cola vacía",
-  "batch_runtime_detail": "{queue} · Progreso: {current}/{total} ({percent}%) · {worker}"
+  "batch_runtime_detail": "{queue} · Progreso: {current}/{total} ({percent}%) · {worker}",
+  "generation_worker_failed": "No se pudo completar la generación. Los detalles se guardaron en el registro."
 }

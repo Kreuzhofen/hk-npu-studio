@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-29 (Generation Hotfix)
+
+### Behoben
+* Frühen `ModuleNotFoundError` beim direkten Start der isolierten QNN-Worker beseitigt; Projektpfad, Arbeitsverzeichnis und Worker-Umgebung werden vor Projektimporten korrekt gesetzt.
+* Fehlendes oder ungültiges Worker-JSON sowie scheinbare Erfolge ohne Bilddatei werden fail-closed behandelt.
+* stdout/stderr, Exit-Code, Befehl und technische Worker-Details werden protokolliert; die UI erhält einen lokalisierten Fehlertext ohne interne Details.
+
+### Prüfung
+* SD 1.5, SD 2.1 und ControlNet Canny erzeugten auf Qualcomm Hexagon HTP V73 jeweils gültiges JSON und ein 512×512-Bild, ohne CPU- oder Stub-Fallback.
+* 18 relevante Tests und 3 direkte Worker-Vertragsprüfungen bestanden; Produktcode und 705 identische Lokalisierungsschlüssel geprüft.
+* ARM64-dist und Installer erfolgreich neu gebaut und validiert; portable sowie isoliert installierte Diagnose beenden mit Exit-Code 0.
+
 ## [2.0 RC1] – 2026-07-29 (Localization Hotfix)
 
 ### Geändert

@@ -7,7 +7,6 @@ Utilizes a subprocess worker to isolate QAIRT 2.45.41 from QAIRT 2.47 system dri
 
 from __future__ import annotations
 
-from app.i18n import tr
 import html
 import json
 import logging
@@ -28,8 +27,9 @@ if global_site_packages not in sys.path:
 # Add project root to sys.path to resolve controllers and engine packages in subprocess
 project_root = str(Path(__file__).parent.parent.resolve())
 if project_root not in sys.path:
-    sys.path.append(project_root)
+    sys.path.insert(0, project_root)
 
+from app.i18n import tr
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
@@ -455,13 +455,20 @@ class ControlNetCannyQnnBackend(InferenceBackend):
         ]
 
         logger.info(f"Executing: {' '.join(cmd)}")
-        
+        worker_output: list[str] = []
+        worker_env = os.environ.copy()
+        worker_env["PYTHONPATH"] = os.pathsep.join(
+            part for part in (project_root, worker_env.get("PYTHONPATH", "")) if part
+        )
+
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1
+            bufsize=1,
+            cwd=project_root,
+            env=worker_env,
         )
         self._active_process = process
 
@@ -483,7 +490,8 @@ class ControlNetCannyQnnBackend(InferenceBackend):
                 break
             if line:
                 line_str = line.strip()
-                print(f"[QNN Worker] {line_str}")
+                worker_output.append(line_str)
+                logger.info("[QNN Worker] %s", line_str)
                 if not job.cancel_requested.is_set() and any(k in line_str for k in ["Preparing", "Loading", "Starting", "Tokenizing", "Running", "Decoding", "Saving", "Step", "Image", "Computing"]):
                     from engine.generation_progress import report_qnn_progress
                     report_qnn_progress(job, line_str)
@@ -503,17 +511,34 @@ class ControlNetCannyQnnBackend(InferenceBackend):
 
         # Check if output json exists
         if not output_json_path.exists():
-            err_msg = f"Subprocess exited with code {process.returncode} without writing output JSON."
-            logger.error(err_msg)
+            logger.error(
+                "QNN worker produced no output JSON | exit_code=%s | command=%s | cwd=%s | output=%s",
+                process.returncode,
+                cmd,
+                project_root,
+                "\n".join(worker_output) or "<empty>",
+            )
             return GenerationResponse(
                 success=False,
                 status="PipelineError",
-                message=err_msg,
+                message=tr(
+                    "generation_worker_failed",
+                    "Die Generierung konnte nicht abgeschlossen werden. Details wurden protokolliert.",
+                ),
                 model_name=params.model_name
             )
 
-        with open(output_json_path, "r", encoding="utf-8") as f:
-            result_data = json.load(f)
+        try:
+            with open(output_json_path, "r", encoding="utf-8") as f:
+                result_data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            logger.exception(
+                "QNN worker output JSON is unreadable | exit_code=%s | path=%s | output=%s",
+                process.returncode,
+                output_json_path,
+                "\n".join(worker_output) or "<empty>",
+            )
+            result_data = {"success": False}
 
         # Clean up temp files
         try:
@@ -522,23 +547,33 @@ class ControlNetCannyQnnBackend(InferenceBackend):
         except Exception:
             pass
 
-        if result_data.get("success"):
+        image_path = result_data.get("image_path")
+        if result_data.get("success") and image_path and Path(image_path).is_file():
             return GenerationResponse(
                 success=True,
                 status="FINISHED",
                 message=result_data.get("message", tr("generation_completed", "Generierung abgeschlossen.")),
-                image_path=result_data.get("image_path"),
-                thumbnail_path=result_data.get("image_path"),
+                image_path=image_path,
+                thumbnail_path=image_path,
                 generation_time=result_data.get("generation_time", 0.0),
                 backend_name="Qualcomm ControlNet Canny (HTP V73)",
                 model_name=params.model_name,
                 metadata=result_data.get("metadata", {})
             )
         else:
+            logger.error(
+                "QNN worker generation failed | exit_code=%s | detail=%s | image_path=%s",
+                process.returncode,
+                result_data.get("message", "<missing>"),
+                image_path,
+            )
             return GenerationResponse(
                 success=False,
                 status="PipelineError",
-                message=result_data.get("message", tr("pipeline_failed", "Pipeline fehlgeschlagen.")),
+                message=tr(
+                    "generation_worker_failed",
+                    "Die Generierung konnte nicht abgeschlossen werden. Details wurden protokolliert.",
+                ),
                 model_name=params.model_name
             )
 

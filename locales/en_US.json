@@ -704,5 +704,6 @@
   "worker": "Worker",
   "worker_busy": "Worker busy",
   "queue_empty_short": "Queue empty",
-  "batch_runtime_detail": "{queue} · Progress: {current}/{total} ({percent}%) · {worker}"
+  "batch_runtime_detail": "{queue} · Progress: {current}/{total} ({percent}%) · {worker}",
+  "generation_worker_failed": "The generation could not be completed. Details were written to the log."
 }

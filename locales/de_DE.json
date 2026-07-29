@@ -704,5 +704,6 @@
   "worker": "Worker",
   "worker_busy": "Worker beschäftigt",
   "queue_empty_short": "Warteschlange leer",
-  "batch_runtime_detail": "{queue} · Fortschritt: {current}/{total} ({percent}%) · {worker}"
+  "batch_runtime_detail": "{queue} · Fortschritt: {current}/{total} ({percent}%) · {worker}",
+  "generation_worker_failed": "Die Generierung konnte nicht abgeschlossen werden. Details wurden protokolliert."
 }
