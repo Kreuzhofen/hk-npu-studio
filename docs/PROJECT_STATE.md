@@ -1,12 +1,14 @@
 # Projektstatus – Snapdragon AI Studio
 
-**Stand:** 16.07.2026
+**Stand:** 29.07.2026
 **Zweig:** `feature/phoenix-rebuild`
 **Zielplattform:** Windows 11 ARM64 (Qualcomm Snapdragon X NPU via QNN)
 
 ---
 
 ## 1. Aktueller Status & Letzte Änderungen
+
+* **Sprint 1 – Projektbasis stabilisieren:** Der vollständige Python-Bestand lässt sich unter Python 3.11.9 fehlerfrei kompilieren. Die pytest-Sammlung ist über `pytest.ini` auf die reguläre Testsuite unter `tests/` begrenzt, sodass Laufzeit- und Diagnoseskripte in `temp/`, `scratch/` und `scripts/` nicht mehr versehentlich während der Testsammlung ausgeführt werden. Der vollständige Testlauf umfasst aktuell 125 Tests und ist ohne Fehler oder Warnungen erfolgreich. Es wurden keine Features und keine Architekturänderungen vorgenommen.
 
 * **Sprint CN-002 – ControlNet Reference Image UI:** Echte Referenzbild-Auswahl und Validierung für ControlNet Canny im AI Generate Workspace integriert. Die Drag & Drop Card und der Subtitle werden bei Modellen ohne ControlNet-Unterstützung (SD1.5, SD2.1) automatisch verborgen und bei Aktivierung eines ControlNet-Modells dynamisch eingeblendet und mit passendem Titel versehen. Die Eingabebilder werden vorab in `GenerationController.validate_session()` auf Existenz und Format geprüft.
 

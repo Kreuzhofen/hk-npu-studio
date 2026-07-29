@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 1 – Projektbasis stabilisieren)
+
+### Geändert
+* **Deterministische Testsammlung:** Eine zentrale `pytest.ini` begrenzt die automatische Sammlung auf `tests/`. Dadurch werden ausführbare Diagnose- und Laufzeitskripte außerhalb der regulären Testsuite nicht mehr als Tests importiert.
+* **Projektstatus:** `docs/PROJECT_STATE.md` wurde auf den geprüften Stand vom 29.07.2026 aktualisiert.
+
+### Prüfung
+* Vollständiger Python-Build mit `compileall`: erfolgreich.
+* Vollständige Testsuite: 125 Tests bestanden, keine Warnungen.
+* Keine Features und keine Architekturänderungen.
+
 ## [2.0 Preview] – 2026-07-27 (Sprint UX-001 – Phoenix UI Modernization)
 
 ### Hinzugefügt
