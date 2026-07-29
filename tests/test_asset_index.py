@@ -99,6 +99,24 @@ class AssetIndexTests(unittest.TestCase):
         self.assertEqual(1, result.inserted)
         self.assertEqual(image.name, self.repository.list_assets()[0].filename)
 
+    def test_nested_sidecar_uses_same_metadata_contract_as_gallery(self) -> None:
+        image = self.create_image("nested.png")
+        image.with_suffix(".json").write_text(
+            json.dumps(
+                {
+                    "controlnet_enabled": True,
+                    "metadata": {"prompt": "nested prompt", "model_id": "model-a"},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        self.scanner.scan(self.output)
+        record = self.repository.list_assets()[0]
+
+        self.assertEqual("nested prompt", record.prompt)
+        self.assertEqual("model-a", record.model_id)
+
 
 if __name__ == "__main__":
     unittest.main()

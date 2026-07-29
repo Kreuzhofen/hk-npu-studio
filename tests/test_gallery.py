@@ -91,6 +91,27 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
             controller.clear_selection()
             self.assertEqual(controller.get_selection_count(), 0)
 
+    def test_gallery_refresh_detects_sidecar_metadata_changes(self):
+        with patch("PIL.Image.open") as mock_open:
+            mock_img = MagicMock()
+            mock_img.size = (512, 512)
+            mock_open.return_value.__enter__.return_value = mock_img
+            controller = GalleryController()
+            controller.open_folder(self.temp_dir)
+            self.json1_path.write_text(
+                json.dumps({"prompt": "updated prompt", "seed": 99}),
+                encoding="utf-8",
+            )
+
+            changed = controller.refresh()
+            image = next(
+                item for item in controller.images if item.path == self.img1_path
+            )
+
+            self.assertTrue(changed)
+            self.assertEqual("updated prompt", image.prompt)
+            self.assertEqual(99, image.seed)
+
     def test_gallery_view_rendering_empty_state(self):
         empty_dir = Path(tempfile.mkdtemp())
         try:

@@ -1935,7 +1935,7 @@ class PhoenixPromptView(WorkspaceFrame):
         response = getattr(self.controller, "last_response", None)
         if response and response.image_path:
             from tkinter import filedialog
-            import shutil
+            from engine.asset_files import copy_asset_with_sidecar
             initial_name = Path(response.image_path).name
             dest = filedialog.asksaveasfilename(
                 defaultextension=".png",
@@ -1944,7 +1944,7 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             if dest:
                 try:
-                    shutil.copy(response.image_path, dest)
+                    copy_asset_with_sidecar(response.image_path, dest)
                 except Exception as e:
                     logger.error(f"Failed to save image copy: {e}")
 

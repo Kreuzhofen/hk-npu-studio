@@ -111,9 +111,9 @@ class ImageGenerationPipeline:
 
             if result.success and result.image_path:
                 try:
-                    import json
                     from pathlib import Path
                     from controllers.model_repository import ModelRepository
+                    from engine.asset_files import atomic_write_json
 
                     image_path = Path(result.image_path)
                     sidecar_path = image_path.with_suffix(".json")
@@ -140,6 +140,7 @@ class ImageGenerationPipeline:
                     data = {}
                     if sidecar_path.is_file():
                         with open(sidecar_path, "r", encoding="utf-8") as f:
+                            import json
                             data = json.load(f)
 
                     data["controlnet_enabled"] = controlnet_enabled
@@ -150,8 +151,7 @@ class ImageGenerationPipeline:
                     data["reference_image_path"] = reference_image_path
 
                     # Write back to sidecar
-                    with open(sidecar_path, "w", encoding="utf-8") as f:
-                        json.dump(data, f, indent=2, ensure_ascii=False)
+                    atomic_write_json(sidecar_path, data)
 
                     # Update result metadata dict
                     result.metadata.update({

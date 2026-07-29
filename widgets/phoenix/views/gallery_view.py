@@ -46,9 +46,9 @@ class PhoenixGalleryView(WorkspaceFrame):
 
     def _on_drop(self, event) -> None:
         try:
-            import shutil
             from pathlib import Path
             from config import OUTPUT_DIR
+            from engine.asset_files import copy_asset_with_sidecar
 
             app = self.winfo_toplevel()
             paths = app.tk.splitlist(event.data)
@@ -61,11 +61,7 @@ class PhoenixGalleryView(WorkspaceFrame):
                 p = Path(p_str)
                 if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"}:
                     dest_path = dest_dir / p.name
-                    shutil.copy2(p, dest_path)
-                    # If there's a sidecar JSON, copy it too!
-                    sidecar = p.with_suffix(".json")
-                    if sidecar.is_file():
-                        shutil.copy2(sidecar, dest_dir / sidecar.name)
+                    copy_asset_with_sidecar(p, dest_path)
                     imported_any = True
 
             if imported_any:

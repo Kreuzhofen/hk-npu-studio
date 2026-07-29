@@ -43,7 +43,10 @@ class ThumbnailProvider:
         self._response_queue: queue.Queue[tuple[ThumbnailRequest, Image.Image | None]] = queue.Queue()
         
         # Dictionary mapping (Path, size) to list of callbacks waiting for this thumbnail
-        self._pending_callbacks: dict[tuple[Path, int], list[Callable[[ImageTk.PhotoImage], None]]] = {}
+        self._pending_callbacks: dict[
+            tuple[Path, int, int, int | None],
+            list[Callable[[ImageTk.PhotoImage], None]],
+        ] = {}
 
         # Cache finished thumbnails by file signature so refreshes can reuse them without flicker.
         self._thumbnail_cache: dict[tuple[Path, int, int, int | None], ImageTk.PhotoImage] = {}
@@ -80,16 +83,20 @@ class ThumbnailProvider:
         if cached_thumbnail is not None:
             return cached_thumbnail
 
-        key = (image_path.resolve(), size)
-        
-        # 1. Future: check RAM cache
-        # 2. Future: check Disk cache
+        path_key = image_path.resolve()
+        stale_keys = [
+            key
+            for key in self._thumbnail_cache
+            if key[0] == path_key and key[1] == size and key != cache_key
+        ]
+        for key in stale_keys:
+            self._thumbnail_cache.pop(key, None)
         
         # If already pending, register callback; otherwise, queue request
-        if key in self._pending_callbacks:
-            self._pending_callbacks[key].append(callback)
+        if cache_key in self._pending_callbacks:
+            self._pending_callbacks[cache_key].append(callback)
         else:
-            self._pending_callbacks[key] = [callback]
+            self._pending_callbacks[cache_key] = [callback]
             self._request_queue.put(ThumbnailRequest(image_path, size, callback, cache_key))
             
         return None
@@ -114,10 +121,8 @@ class ThumbnailProvider:
         while not self._response_queue.empty():
             try:
                 request, resized_img = self._response_queue.get_nowait()
-                key = (request.image_path, request.size)
-                
                 # Fetch all registered callbacks for this key, falling back to the request's callback if none found
-                callbacks = self._pending_callbacks.pop(key, [])
+                callbacks = self._pending_callbacks.pop(request.cache_key, [])
                 if not callbacks:
                     callbacks = [request.callback]
                 

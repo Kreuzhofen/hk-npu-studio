@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 Preview] – 2026-07-29 (Sprint 19 – Galerie & Dateiverwaltung absichern)
+
+### Geändert
+* Gemeinsamer Metadatenvertrag für Gallery-Loader und Asset-Index.
+* Atomare Bildkopien und JSON-Sidecar-Aktualisierungen.
+* Galerie-Refresh berücksichtigt reine Metadatenänderungen.
+* Thumbnail-Cache und laufende Anfragen verwenden vollständige Dateisignaturen.
+* Keine UI-Neugestaltung.
+
+### Prüfung
+* 30 relevante Galerie-, Asset-, Thumbnail-, Speicher- und Pipeline-Tests sowie 9 Subtests bestanden.
+
 ## [2.0 Preview] – 2026-07-29 (Sprint 18 – UI-Workflow stabilisieren)
 
 ### Geändert

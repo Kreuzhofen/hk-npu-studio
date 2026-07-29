@@ -5,7 +5,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass, fields
 import datetime as dt
-import json
 import logging
 import os
 from pathlib import Path
@@ -16,6 +15,7 @@ from typing import Any, Iterable, Iterator
 from PIL import Image
 
 from config import ASSET_INDEX_DB, OUTPUT_DIR
+from engine.asset_files import read_asset_metadata
 
 
 LOGGER = logging.getLogger(__name__)
@@ -252,7 +252,12 @@ class AssetScanner:
                 ):
                     counts["unchanged"] += 1
                     continue
-                record, metadata_error = self._read_asset(path, stat, sidecar if sidecar.is_file() else None)
+                record, metadata_error = self._read_asset(
+                    path,
+                    stat,
+                    sidecar if sidecar.is_file() else None,
+                    sidecar_mtime,
+                )
                 inserted = self.repository.upsert(record)
                 counts["inserted" if inserted else "updated"] += 1
                 counts["errors"] += int(metadata_error)
@@ -281,7 +286,11 @@ class AssetScanner:
         )
 
     def _read_asset(
-        self, path: Path, stat: os.stat_result, sidecar: Path | None
+        self,
+        path: Path,
+        stat: os.stat_result,
+        sidecar: Path | None,
+        sidecar_mtime: int | None,
     ) -> tuple[AssetRecord, bool]:
         embedded: dict[str, Any] = {}
         width: int | None = None
@@ -297,15 +306,10 @@ class AssetScanner:
 
         sidecar_data: dict[str, Any] = {}
         if sidecar:
-            try:
-                raw = json.loads(sidecar.read_text(encoding="utf-8"))
-                if isinstance(raw, dict):
-                    sidecar_data = raw
-                else:
-                    raise ValueError("JSON root must be an object")
-            except (OSError, UnicodeError, json.JSONDecodeError, ValueError):
+            sidecar_data, sidecar_error = read_asset_metadata(sidecar)
+            if sidecar_error:
                 metadata_error = True
-                LOGGER.warning("Ungültiges Asset-Sidecar: %s", sidecar, exc_info=True)
+                LOGGER.warning("Ungültiges Asset-Sidecar: %s", sidecar)
 
         metadata = {**embedded, **sidecar_data}
         width = _as_int(metadata.get("width")) or width
@@ -324,7 +328,7 @@ class AssetScanner:
             width=width,
             height=height,
             sidecar_path=_canonical_path(sidecar) if sidecar else None,
-            sidecar_modified_at=sidecar.stat().st_mtime_ns if sidecar else None,
+            sidecar_modified_at=sidecar_mtime,
             prompt=_as_text(metadata.get("prompt")),
             negative_prompt=_as_text(metadata.get("negative_prompt")),
             model_id=_as_text(metadata.get("model_id") or metadata.get("model")),

@@ -60,12 +60,12 @@ class GalleryController:
 
         self.status = tr("loading_images", "Lade Bilder")
         try:
-            previous_paths = [image.path for image in self.model.images]
+            previous_images = list(self.model.images)
             loaded_images = self.image_loader.load_folder(self.current_folder)
             self.model.set_images(loaded_images)
 
             self.status = tr("ready", "Bereit")
-            return previous_paths != [image.path for image in loaded_images]
+            return previous_images != loaded_images
         except Exception:
             self.model.set_images([])
             self.model.clear_selection()

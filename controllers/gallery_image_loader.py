@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from PIL import Image, ImageOps
 
 from controllers.gallery_model import GalleryImage
+from engine.asset_files import read_asset_metadata
 
 
 class ImageLoader:
@@ -56,19 +58,11 @@ class ImageLoader:
 
         sidecar = path.with_suffix(".json")
         if sidecar.is_file():
-            try:
-                import json
-                with open(sidecar, "r", encoding="utf-8") as f:
-                    meta = json.load(f)
-                if "metadata" in meta and isinstance(meta["metadata"], dict):
-                    metadata = meta["metadata"]
-                else:
-                    metadata = meta
+            metadata, metadata_error = read_asset_metadata(sidecar)
+            if not metadata_error:
                 prompt = metadata.get("prompt")
                 model_id = metadata.get("model_id") or metadata.get("model")
                 seed = metadata.get("seed")
-            except Exception:
-                pass
 
         return GalleryImage(
             path=path,
