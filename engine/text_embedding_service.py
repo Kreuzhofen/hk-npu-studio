@@ -128,39 +128,33 @@ class TextEmbeddingService:
         metadata = OnnxComponentInspector.inspect(component_name, component_path)
         token_array = np.array([tokens], dtype=np.int64)
 
-        if self.package.is_fully_ready() and component_path and Path(component_path).exists():
-            session = None
-            try:
-                session = OnnxProviderService.create_session(component_path, component_name)
-                inputs = self._build_encoder_inputs(session, token_array)
-                output_names = [item.name for item in session.get_outputs()]
-                outputs = dict(zip(output_names, session.run(output_names, inputs)))
-                hidden = self._resolve_hidden_output(component_name, outputs, fallback_width)
-                pooled = self._resolve_pooled_output(component_name, outputs, hidden, fallback_width)
-                metadata["session_providers"] = OnnxProviderService.session_providers(session)
-                return {
-                    "embeddings": hidden,
-                    "pooled_embeddings": pooled,
-                    "is_mock": False,
-                    "metadata": metadata,
-                }
-            except Exception as exc:
-                logger.warning("[TextEmbeddingService] %s run failed/skipped: %s", component_name, exc)
-                print(f"[TextEmbeddingService] {component_name} run failed/skipped: {exc}")
-            finally:
-                OnnxProviderService.release_session(session)
-                session = None
+        if not self.package.is_fully_ready() or not component_path or not Path(component_path).is_file():
+            raise RuntimeError(
+                f"Realer Text-Encoder '{component_name}' ist nicht verfügbar: {component_path}"
+            )
 
-        rng_seed = abs(hash((component_name, tuple(tokens[:12])))) % (2**32)
-        rng = np.random.default_rng(rng_seed)
-        hidden = rng.standard_normal((1, self.SEQUENCE_LENGTH, fallback_width), dtype=np.float32)
-        pooled = hidden.mean(axis=1).astype(np.float32)
-        return {
-            "embeddings": hidden,
-            "pooled_embeddings": pooled,
-            "is_mock": True,
-            "metadata": metadata,
-        }
+        session = None
+        try:
+            session = OnnxProviderService.create_session(component_path, component_name)
+            inputs = self._build_encoder_inputs(session, token_array)
+            output_names = [item.name for item in session.get_outputs()]
+            outputs = dict(zip(output_names, session.run(output_names, inputs)))
+            hidden = self._resolve_hidden_output(component_name, outputs, fallback_width)
+            pooled = self._resolve_pooled_output(component_name, outputs, hidden, fallback_width)
+            metadata["session_providers"] = OnnxProviderService.session_providers(session)
+            return {
+                "embeddings": hidden,
+                "pooled_embeddings": pooled,
+                "is_mock": False,
+                "metadata": metadata,
+            }
+        except Exception as exc:
+            logger.exception("[TextEmbeddingService] %s execution failed", component_name)
+            raise RuntimeError(
+                f"Reale CPU-Ausführung von '{component_name}' fehlgeschlagen: {exc}"
+            ) from exc
+        finally:
+            OnnxProviderService.release_session(session)
 
     def _build_encoder_inputs(self, session: Any, token_array: np.ndarray) -> dict[str, np.ndarray]:
         inputs: dict[str, np.ndarray] = {}
@@ -193,7 +187,9 @@ class TextEmbeddingService:
                 hidden = self._as_hidden_states(value, fallback_width)
                 if hidden.shape[-1] == fallback_width:
                     return hidden
-        return np.zeros((1, self.SEQUENCE_LENGTH, fallback_width), dtype=np.float32)
+        raise RuntimeError(
+            f"Text-Encoder '{component_name}' lieferte keine kompatiblen Hidden States."
+        )
 
     def _resolve_pooled_output(self, component_name: str, outputs: dict[str, Any], hidden: np.ndarray, fallback_width: int) -> np.ndarray:
         preferred = ["text_embeds", "pooler_output"] if component_name == "text_encoder_2" else ["pooler_output", "text_embeds"]

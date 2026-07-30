@@ -4,6 +4,21 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-30 (CPU Generation Hotfix)
+
+### Behoben
+* Erfolgreiche Mock-/Alpha-Fallbacks aus Text Encoder, UNet, VAE und ONNX-Bildergebnis entfernt.
+* Unvollständige oder CPU-inkompatible Modellpakete werden vor der Inferenz abgewiesen und technisch protokolliert.
+* Komponenten- und Sessionfehler liefern keinen Platzhalter und kein Erfolgsresultat mehr.
+* Validiertes SDXL-ONNX-Paket für den Produktmodellwähler freigegeben und an `ONNX Runtime CPU` gebunden.
+* Veraltete dreisprachige Alpha-Fallback-Erfolgsmeldung entfernt.
+
+### Prüfung
+* Zwei reale SDXL-Generierungen mit identischem Seed und unterschiedlichen Prompts liefen ausschließlich über `CPUExecutionProvider`.
+* Text Encoder 1/2, UNet und VAE waren real; alle Mock-Flags waren `false`.
+* Beide 512×512-Bilder haben unterschiedliche SHA-256-Werte und 236.907 unterschiedliche Pixel.
+* 35 relevante Tests, Produktkompilierung und 704 identische Lokalisierungsschlüssel erfolgreich geprüft.
+
 ## [2.0 RC1] – 2026-07-30 (Execution Provider Hotfix)
 
 ### Behoben

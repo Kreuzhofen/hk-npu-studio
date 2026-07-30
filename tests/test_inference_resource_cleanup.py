@@ -103,18 +103,18 @@ class InferenceResourceCleanupTests(unittest.TestCase):
         session.run.side_effect = RuntimeError("run failed")
         service = UNetService(package)
 
-        with patch("pathlib.Path.exists", return_value=True), patch.object(
+        with patch("pathlib.Path.is_file", return_value=True), patch.object(
             OnnxProviderService, "create_session", return_value=session
         ), patch.object(
             OnnxProviderService, "release_session"
         ) as release:
-            result = service.predict_noise(
-                np.zeros((1, 4, 8, 8), dtype=np.float32),
-                1,
-                np.zeros((1, 77, 768), dtype=np.float32),
-            )
+            with self.assertRaisesRegex(RuntimeError, "Reale CPU-Ausführung"):
+                service.predict_noise(
+                    np.zeros((1, 4, 8, 8), dtype=np.float32),
+                    1,
+                    np.zeros((1, 77, 768), dtype=np.float32),
+                )
 
-        self.assertTrue(result["is_mock"])
         release.assert_called_once_with(session)
 
     def test_qnn_shutdown_terminates_worker_and_closes_pipe(self):

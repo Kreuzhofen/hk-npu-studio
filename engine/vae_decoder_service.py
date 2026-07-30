@@ -4,7 +4,7 @@ from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
 from engine.onnx_provider_service import OnnxProviderService
@@ -15,8 +15,7 @@ class VAEDecoderService:
     """
     Model-independent service that wraps the VAE Decoder component.
     Receives latent tensors from the UNet step, decodes them to RGB pixel arrays
-    via ONNX Runtime, and falls back to procedurally rendering a high-quality PIL Image
-    if the model is missing or invalid.
+    via ONNX Runtime. Missing or invalid production components fail closed.
     """
     def __init__(self, package: ModelRuntimePackage) -> None:
         self.package = package
@@ -33,10 +32,11 @@ class VAEDecoderService:
         img_h = latent_shape[2] * 8
         img_w = latent_shape[3] * 8
         
-        # Try to run VAE Decoder using ONNX Runtime if package is fully ready
-        if self.package.is_fully_ready() and vae_path and Path(vae_path).exists():
-            session = None
-            try:
+        if not self.package.is_fully_ready() or not vae_path or not Path(vae_path).is_file():
+            raise RuntimeError(f"Realer VAE-Decoder ist nicht verfügbar: {vae_path}")
+
+        session = None
+        try:
                 logger.info(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")
                 print(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")
                 
@@ -65,52 +65,8 @@ class VAEDecoderService:
                     "backend": OnnxProviderService.runtime_label([metadata.get("session_providers", [])]),
                     "metadata": metadata
                 }
-            except Exception as e:
-                logger.warning(f"[VAEDecoderService] VAE InferenceSession run failed/skipped: {e}")
-                print(f"[VAEDecoderService] VAE InferenceSession run failed/skipped: {e}")
-            finally:
-                OnnxProviderService.release_session(session)
-                session = None
-                
-        # Fallback Mock Decoding: Generate a stunning procedural diagnostic preview image
-        logger.info(f"[VAEDecoderService] Fallback to procedural mock decoder. Shape: (1, 3, {img_h}, {img_w})")
-        print(f"[VAEDecoderService] Fallback to procedural mock decoder. Shape: (1, 3, {img_h}, {img_w})")
-        
-        latent_mean = float(np.mean(latents))
-        latent_std = float(np.std(latents))
-        
-        pil_image = Image.new("RGB", (img_w, img_h), color="#171d23")
-        draw = ImageDraw.Draw(pil_image)
-        
-        # Draw nice concentric glowing rings or abstract curves to simulate latent decoding
-        center_x, center_y = img_w // 2, img_h // 2
-        max_r = min(img_w, img_h) // 2 - 20
-        
-        for r in range(max_r, 0, -8):
-            factor = r / max_r
-            r_val = int(23 + factor * 10 * abs(latent_mean))
-            g_val = int(29 + factor * 120 * latent_std)
-            b_val = int(35 + factor * 180)
-            
-            r_val = min(max(r_val, 0), 255)
-            g_val = min(max(g_val, 0), 255)
-            b_val = min(max(b_val, 0), 255)
-            
-            draw.ellipse(
-                [(center_x - r, center_y - r), (center_x + r, center_y + r)],
-                fill=f"#{r_val:02x}{g_val:02x}{b_val:02x}"
-            )
-            
-        core_r = 15
-        draw.ellipse(
-            [(center_x - core_r, center_y - core_r), (center_x + core_r, center_y + core_r)],
-            fill="#10b981"
-        )
-        
-        return {
-            "image": pil_image,
-            "image_shape": [1, 3, img_h, img_w],
-            "is_mock": True,
-            "backend": "Mock VAE Decoder",
-            "metadata": metadata
-        }
+        except Exception as exc:
+            logger.exception("[VAEDecoderService] Real VAE execution failed")
+            raise RuntimeError(f"Reale CPU-Ausführung des VAE-Decoders fehlgeschlagen: {exc}") from exc
+        finally:
+            OnnxProviderService.release_session(session)

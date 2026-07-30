@@ -694,7 +694,6 @@
   "model_path_empty": "The model path exists but contains no files.",
   "package_downloaded_to": "Package downloaded to {path}",
   "onnx_generation_completed": "Local ONNX image generation completed successfully.",
-  "onnx_alpha_fallback_completed": "ONNX alpha fallback image generated; no real model weights were used.",
   "queue_status_waiting": "Waiting",
   "queue_status_processing": "Processing",
   "queue_status_finished": "Finished",

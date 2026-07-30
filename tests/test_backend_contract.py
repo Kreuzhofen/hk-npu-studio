@@ -39,7 +39,7 @@ class BackendContractTests(unittest.TestCase):
     def test_stub_adapters_preserve_generation_result(self) -> None:
         expected = (
             (CPUBackendAdapter, "CPU (Stub)"),
-            (ONNXBackendAdapter, "ONNX Runtime (Stub)"),
+            (ONNXBackendAdapter, "ONNX Runtime CPU"),
             (QNNBackendAdapter, "Qualcomm QNN NPU (Stub)"),
         )
         for adapter_type, backend_name in expected:

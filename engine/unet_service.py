@@ -42,44 +42,34 @@ class UNetService:
         metadata = OnnxComponentInspector.inspect("unet", unet_path)
         logger.info(f"[UNetService] Resolving UNet component from: '{unet_path}'")
 
-        if self.package.is_fully_ready() and unet_path and Path(unet_path).exists():
-            session = None
-            try:
-                logger.info(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
-                print(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
-                session = OnnxProviderService.create_session(unet_path, "unet")
-                inputs = self._build_unet_inputs(session, latents, timestep, encoder_hidden_states, additional_inputs or {})
-                logger.info(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
-                print(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
-                outputs = session.run(None, inputs)
-                output_noise = self._normalize_noise_output(np.asarray(outputs[0]), latents)
-                logger.info(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
-                print(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
-                metadata["session_providers"] = OnnxProviderService.session_providers(session)
-                return {
-                    "noise_pred": output_noise,
-                    "latent_shape": list(latents.shape),
-                    "noise_shape": list(output_noise.shape),
-                    "is_mock": False,
-                    "metadata": metadata,
-                }
-            except Exception as exc:
-                logger.warning(f"[UNetService] UNet InferenceSession run failed/skipped: {exc}")
-                print(f"[UNetService] UNet InferenceSession run failed/skipped: {exc}")
-            finally:
-                OnnxProviderService.release_session(session)
-                session = None
+        if not self.package.is_fully_ready() or not unet_path or not Path(unet_path).is_file():
+            raise RuntimeError(f"Reales UNet-Modell ist nicht verfügbar: {unet_path}")
 
-        mock_noise = np.random.randn(*latents.shape).astype(np.float32)
-        logger.info(f"[UNetService] Generated mock UNet noise prediction with shape: {mock_noise.shape}")
-        print(f"[UNetService] Generated mock UNet noise prediction with shape: {mock_noise.shape}")
-        return {
-            "noise_pred": mock_noise,
-            "latent_shape": list(latents.shape),
-            "noise_shape": list(mock_noise.shape),
-            "is_mock": True,
-            "metadata": metadata,
-        }
+        session = None
+        try:
+            logger.info(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
+            print(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
+            session = OnnxProviderService.create_session(unet_path, "unet")
+            inputs = self._build_unet_inputs(session, latents, timestep, encoder_hidden_states, additional_inputs or {})
+            logger.info(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
+            print(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
+            outputs = session.run(None, inputs)
+            output_noise = self._normalize_noise_output(np.asarray(outputs[0]), latents)
+            logger.info(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
+            print(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
+            metadata["session_providers"] = OnnxProviderService.session_providers(session)
+            return {
+                "noise_pred": output_noise,
+                "latent_shape": list(latents.shape),
+                "noise_shape": list(output_noise.shape),
+                "is_mock": False,
+                "metadata": metadata,
+            }
+        except Exception as exc:
+            logger.exception("[UNetService] Real UNet execution failed")
+            raise RuntimeError(f"Reale CPU-Ausführung des UNet fehlgeschlagen: {exc}") from exc
+        finally:
+            OnnxProviderService.release_session(session)
 
     def run_denoising_loop(
         self,

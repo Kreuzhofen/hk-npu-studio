@@ -7,7 +7,7 @@ import logging
 import traceback
 from pathlib import Path
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from app.i18n import tr
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
@@ -316,17 +316,40 @@ class OnnxImageBackend(InferenceBackend):
             logger.info(msg)
             print(msg)
         else:
-            msg = "[OnnxImageBackend] Component validation failed (some components are MISSING/FOUND/INVALID). Activating Mock Pipeline fallback automatically."
-            logger.info(msg)
-            print(msg)
+            msg = "CPU-Modellpaket ist unvollständig oder nicht CPU-kompatibel."
+            logger.error(
+                "[OnnxImageBackend] %s | model=%s verification=%s",
+                msg,
+                model_name,
+                verification_status,
+            )
             for comp, status in verification_status.items():
                 if status != "READY":
                     comp_path = pkg.get_component_path(comp)
-                    logger.warning(f"  -> Component '{comp}' status is '{status}'. Expected path: '{comp_path}'")
-                    print(f"  -> Component '{comp}' status is '{status}'. Expected path: '{comp_path}'")
-            
-        embedder = TextEmbeddingService(pkg)
-        embed_res = embedder.embed_prompt_sdxl(params.prompt, params.negative_prompt)
+                    logger.error(
+                        "[OnnxImageBackend] CPU component unavailable | component=%s status=%s path=%s",
+                        comp,
+                        status,
+                        comp_path,
+                    )
+            return self._save_failure_response(
+                msg,
+                model_name,
+                backend_name,
+                save_diagnostic_log_path,
+            )
+
+        try:
+            embedder = TextEmbeddingService(pkg)
+            embed_res = embedder.embed_prompt_sdxl(params.prompt, params.negative_prompt)
+        except Exception as error:
+            logger.exception("[OnnxImageBackend] Real text encoder execution failed")
+            return self._save_failure_response(
+                f"Text-Encoder-Ausführung fehlgeschlagen: {error}",
+                model_name,
+                backend_name,
+                save_diagnostic_log_path,
+            )
 
         # 4.5. Integrate UNetService and scheduler foundation for latent denoising
         from engine.unet_service import UNetService
@@ -338,17 +361,26 @@ class OnnxImageBackend(InferenceBackend):
         time_ids = scheduler_service.build_time_ids(w, h)
         scheduler_metadata = scheduler_service.describe(params.steps, params.scheduler, w, h, params.cfg_scale)
         
-        init_latents = unet_service.generate_initial_latents(w, h, seed=params.seed)
-        unet_res = unet_service.run_denoising_loop(
-            init_latents,
-            timesteps=timesteps,
-            prompt_embeddings=embed_res["embeddings"],
-            pooled_prompt_embeddings=embed_res["pooled_embeddings"],
-            time_ids=time_ids,
-            negative_embeddings=embed_res["negative_embeddings"],
-            negative_pooled_embeddings=embed_res["negative_pooled_embeddings"],
-            guidance_scale=params.cfg_scale,
-        )
+        try:
+            init_latents = unet_service.generate_initial_latents(w, h, seed=params.seed)
+            unet_res = unet_service.run_denoising_loop(
+                init_latents,
+                timesteps=timesteps,
+                prompt_embeddings=embed_res["embeddings"],
+                pooled_prompt_embeddings=embed_res["pooled_embeddings"],
+                time_ids=time_ids,
+                negative_embeddings=embed_res["negative_embeddings"],
+                negative_pooled_embeddings=embed_res["negative_pooled_embeddings"],
+                guidance_scale=params.cfg_scale,
+            )
+        except Exception as error:
+            logger.exception("[OnnxImageBackend] Real UNet execution failed")
+            return self._save_failure_response(
+                f"UNet-Ausführung fehlgeschlagen: {error}",
+                model_name,
+                backend_name,
+                save_diagnostic_log_path,
+            )
 
         # 4.7. Integrate VAEDecoderService for VAE Latent Decoding
         from engine.vae_decoder_service import VAEDecoderService
@@ -378,7 +410,14 @@ class OnnxImageBackend(InferenceBackend):
         ]
         backend_name = OnnxProviderService.runtime_label(session_provider_lists)
         provider_diagnostics = OnnxProviderService.diagnostics()
-        alpha_fallback = bool(not package_ready or embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"])
+        if embed_res["is_mock"] or unet_res["is_mock"] or vae_res["is_mock"]:
+            logger.error("[OnnxImageBackend] Mock component result rejected")
+            return self._save_failure_response(
+                "Eine CPU-Komponente lieferte ein ungültiges Mock-Ergebnis.",
+                model_name,
+                backend_name,
+                save_diagnostic_log_path,
+            )
 
         # 5. Generate visual PNG and JSON output using the session and job parameters
         output_dir = Path(params.output_directory) if params.output_directory else Path("output")
@@ -394,24 +433,6 @@ class OnnxImageBackend(InferenceBackend):
             image_stats = self._validate_output_image(vae_res.get("image"))
             self._append_save_diagnostic(save_diagnostic_log_path, "after_image_validation", json.dumps(image_stats))
 
-            try:
-                font_title = ImageFont.truetype("segoeui.ttf", 24)
-                font_subtitle = ImageFont.truetype("segoeui.ttf", 18)
-                font_body = ImageFont.truetype("segoeui.ttf", 14)
-                font_prompt = ImageFont.truetype("segoeui.ttf", 12)
-            except Exception:
-                try:
-                    font_title = ImageFont.truetype("arial.ttf", 24)
-                    font_subtitle = ImageFont.truetype("arial.ttf", 18)
-                    font_body = ImageFont.truetype("arial.ttf", 14)
-                    font_prompt = ImageFont.truetype("arial.ttf", 12)
-                except Exception:
-                    font_title = ImageFont.load_default()
-                    font_subtitle = ImageFont.load_default()
-                    font_body = ImageFont.load_default()
-                    font_prompt = ImageFont.load_default()
-
-            # Copy VAE decoded image and draw overlay metadata on it
             img = vae_res["image"].copy()
             if img.mode not in ("RGB", "RGBA"):
                 img = img.convert("RGB")
@@ -420,41 +441,11 @@ class OnnxImageBackend(InferenceBackend):
                 "after_image_conversion",
                 f"mode={img.mode}, size={img.size}"
             )
-            if alpha_fallback:
-                self._append_save_diagnostic(save_diagnostic_log_path, "before_diagnostic_renderer")
-                draw = ImageDraw.Draw(img)
-                img_w, img_h = img.size
-                draw.rectangle([(2, 2), (img_w - 3, img_h - 3)], outline="#3e4b59", width=2)
-                draw.line([(40, 100), (img_w - 40, 100)], fill="#10b981", width=3)
-
-                draw.text((40, 50), "Snapdragon AI Studio", fill="#10b981", font=font_title)
-                draw.text((40, 115), "ONNX Alpha Fallback Generation", fill="#e8edf2", font=font_subtitle)
-
-                draw.text((40, 155), f"Model: {model_name}", fill="#9aa7b2", font=font_body)
-                draw.text((40, 175), f"Backend: {backend_name}", fill="#9aa7b2", font=font_body)
-                draw.text((40, 195), f"Seed: {params.seed} | Steps: {params.steps} | CFG: {params.cfg_scale}", fill="#9aa7b2", font=font_body)
-
-                tokens_str = str(embed_res["tokens"][:8]) + "..." if len(embed_res["tokens"]) > 8 else str(embed_res["tokens"])
-                draw.text((40, 215), f"Tokens: {tokens_str}", fill="#9aa7b2", font=font_body)
-                draw.text((40, 235), f"Embedding Shape: {embed_res['embedding_shape']}", fill="#9aa7b2", font=font_body)
-                draw.text((40, 255), f"Pooled Shape: {embed_res['pooled_embedding_shape']}", fill="#9aa7b2", font=font_body)
-                draw.text((40, 275), f"Latent Shape: {unet_res['latent_shape']}", fill="#9aa7b2", font=font_body)
-                draw.text((40, 295), f"Decoder: {vae_res['backend']}", fill="#9aa7b2", font=font_body)
-
-                prompt_str = params.prompt
-                truncated_prompt = prompt_str[:57] + "..." if len(prompt_str) > 60 else prompt_str
-                draw.text((40, 325), "Prompt Preview:", fill="#e8edf2", font=font_body)
-                draw.text((40, 350), f'"{truncated_prompt}"', fill="#10b981", font=font_prompt)
-
-                timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                draw.text((40, img_h - 50), f"Generated: {timestamp_str}", fill="#9aa7b2", font=font_body)
-                self._append_save_diagnostic(save_diagnostic_log_path, "after_diagnostic_renderer")
-            else:
-                self._append_save_diagnostic(
-                    save_diagnostic_log_path,
-                    "real_vae_output_selected",
-                    "Saving decoded VAE image without diagnostic overlay."
-                )
+            self._append_save_diagnostic(
+                save_diagnostic_log_path,
+                "real_vae_output_selected",
+                "Saving decoded VAE image without diagnostic overlay.",
+            )
             self._append_save_diagnostic(save_diagnostic_log_path, "before_png_save", str(dummy_image_path))
             img.save(dummy_image_path, format="PNG")
             if not dummy_image_path.exists() or dummy_image_path.stat().st_size <= 0:
@@ -516,8 +507,6 @@ class OnnxImageBackend(InferenceBackend):
             "is_mock_decoder": vae_res["is_mock"],
             "diagnostic_log_path": str(save_diagnostic_log_path),
             "image_stats": image_stats,
-            "alpha_fallback": alpha_fallback,
-            "alpha_fallback_reason": "Package contains placeholder or incomplete ONNX components." if not package_ready else "",
         }
 
         # Write sidecar JSON alongside the image
@@ -555,16 +544,9 @@ class OnnxImageBackend(InferenceBackend):
         return GenerationResponse(
             success=True,
             status="FINISHED",
-            message=(
-                tr(
-                    "onnx_generation_completed",
-                    "Lokale ONNX-Bildgenerierung erfolgreich abgeschlossen.",
-                )
-                if not response_metadata["alpha_fallback"]
-                else tr(
-                    "onnx_alpha_fallback_completed",
-                    "ONNX-Alpha-Fallbackbild erzeugt; es wurden keine echten Modellgewichte verwendet.",
-                )
+            message=tr(
+                "onnx_generation_completed",
+                "Lokale ONNX-Bildgenerierung erfolgreich abgeschlossen.",
             ),
             image_path=str(dummy_image_path),
             thumbnail_path=str(dummy_image_path),

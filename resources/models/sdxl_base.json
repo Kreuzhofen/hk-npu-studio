@@ -2,12 +2,12 @@
   "id": "sdxl_base",
   "display_name": "Stable Diffusion XL Base",
   "author": "Stability AI",
-  "version": "1.0.0-alpha",
+  "version": "1.0.0-onnx",
   "license": "CreativeML Open RAIL++-M",
   "description": "High-resolution local text-to-image generation model utilizing two text encoders.",
   "category": "Text-to-Image",
   "backend": "ONNX Runtime",
-  "recommended_backend": "ONNX Runtime (Stub)",
+  "recommended_backend": "ONNX Runtime CPU",
   "minimum_ram_gb": 12,
   "recommended_ram_gb": 16,
   "supports": [
@@ -17,11 +17,22 @@
   "installed": true,
   "downloaded": true,
   "path": "C:\\SnapdragonAI\\models\\sdxl_base",
-  "status": "Alpha Test Package",
-  "catalog_status": "NO QUALCOMM PACKAGE",
-  "product_available": false,
+  "status": "Ready for CPUExecutionProvider",
+  "catalog_status": "READY_CPU",
+  "product_available": true,
   "official_qualcomm_package": false,
-  "availability_message": "Official Qualcomm NPU package not available.",
+  "availability_message": "Local ONNX package ready for CPUExecutionProvider.",
+  "generation_parameters": {
+    "resolution_locked": true,
+    "width": {"default": 512, "values": [512], "editable": false},
+    "height": {"default": 512, "values": [512], "editable": false},
+    "steps": {"default": 20, "min": 1, "max": 100},
+    "cfg": {"default": 7.0, "min": 1.0, "max": 20.0, "resolution": 0.5},
+    "seed": {"default": -1},
+    "sampler": {"default": "Euler a", "values": ["Euler a"], "editable": false},
+    "scheduler": {"default": "Normal", "values": ["Normal"], "editable": false},
+    "prediction_type": "epsilon"
+  },
   "capabilities": {
     "txt2img": true,
     "img2img": true,
@@ -32,6 +43,6 @@
     "image_to_video": false,
     "batch_generation": true,
     "onnx_runtime": true,
-    "qnn_runtime": true
+    "qnn_runtime": false
   }
 }

@@ -694,7 +694,6 @@
   "model_path_empty": "Modellpfad existiert, enthält aber keine Dateien.",
   "package_downloaded_to": "Paket heruntergeladen nach {path}",
   "onnx_generation_completed": "Lokale ONNX-Bildgenerierung erfolgreich abgeschlossen.",
-  "onnx_alpha_fallback_completed": "ONNX-Alpha-Fallbackbild erzeugt; es wurden keine echten Modellgewichte verwendet.",
   "queue_status_waiting": "Wartet",
   "queue_status_processing": "Wird verarbeitet",
   "queue_status_finished": "Fertig",

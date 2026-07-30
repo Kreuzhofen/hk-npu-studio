@@ -693,7 +693,6 @@
   "model_path_empty": "La ruta del modelo existe, pero no contiene archivos.",
   "package_downloaded_to": "Paquete descargado en {path}",
   "onnx_generation_completed": "Generación local de imágenes ONNX completada correctamente.",
-  "onnx_alpha_fallback_completed": "Imagen alternativa alfa de ONNX generada; no se utilizaron pesos reales del modelo.",
   "queue_status_waiting": "En espera",
   "queue_status_processing": "Procesando",
   "queue_status_finished": "Finalizado",

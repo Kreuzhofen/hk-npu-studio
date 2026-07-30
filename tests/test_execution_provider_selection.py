@@ -46,7 +46,7 @@ class ExecutionProviderSelectionTests(unittest.TestCase):
             SettingsManager.get_execution_provider(),
         )
         self.assertEqual(
-            "ONNX Runtime (Stub)",
+            "ONNX Runtime CPU",
             BackendManager().get_best_backend().get_backend_name(),
         )
         self.assertEqual(
