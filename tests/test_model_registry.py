@@ -177,6 +177,57 @@ class ModelRegistryTests(unittest.TestCase):
             self.assertIs(repository.resolve_backend("demo", manager), expected)
             self.assertEqual(manager.model["id"], "demo")
 
+    def test_repository_resolves_stale_definition_from_configured_models_root(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            definitions = base / "definitions"
+            installations = base / "models"
+            definitions.mkdir()
+            installed_model = installations / "demo"
+            installed_model.mkdir(parents=True)
+            (installed_model / "package.json").write_text(
+                json.dumps({"model_id": "demo", "components": {}}),
+                encoding="utf-8",
+            )
+            (definitions / "demo.json").write_text(
+                json.dumps(valid_metadata(installed=False, path="")),
+                encoding="utf-8",
+            )
+
+            repository = ModelRepository(
+                str(definitions),
+                installation_roots=[installations],
+            )
+            model = repository.get_model("demo")
+
+            self.assertIsNotNone(model)
+            self.assertTrue(model["installed"])
+            self.assertEqual(Path(model["path"]), installed_model.resolve())
+
+    def test_repository_prefers_existing_declared_path(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            definitions = base / "definitions"
+            declared = base / "declared"
+            configured = base / "models"
+            definitions.mkdir()
+            declared.mkdir()
+            (configured / "demo").mkdir(parents=True)
+            (definitions / "demo.json").write_text(
+                json.dumps(valid_metadata(installed=True, path=str(declared))),
+                encoding="utf-8",
+            )
+
+            repository = ModelRepository(
+                str(definitions),
+                installation_roots=[configured],
+            )
+
+            self.assertEqual(
+                Path(repository.get_model("demo")["path"]),
+                declared.resolve(),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

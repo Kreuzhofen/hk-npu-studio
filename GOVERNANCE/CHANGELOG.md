@@ -4,6 +4,18 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-30 (Model Path Resolution Hotfix)
+
+### Behoben
+* Modelldefinitionsverzeichnis und Installationswurzel im `ModelRepository` getrennt.
+* Installationspfade werden aus Definition, konfigurierter `models_dir` und `config.MODELS_DIR` aufgelöst.
+* Vorhandene lokale Modelle werden auch bei veralteten dist-Metadaten korrekt als installiert erkannt.
+
+### Diagnose
+* Vollständige Pfadsuche einschließlich Definitionsverzeichnis, Preferences-Datei, Standardwurzel, aller Kandidaten und erstem Treffer unter `[MODEL PATH]` protokolliert.
+* Keine Änderungen an Inferenzlogik oder Execution Providern.
+* 34 relevante Tests, Produktkompilierung, isolierter ARM64-dist-Build und Release-Smoke-Test erfolgreich.
+
 ## [2.0 RC1] – 2026-07-30 (CPU-SDXL-Diagnoseinstrumentierung)
 
 ### Diagnose

@@ -6,7 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from config import PREFERENCES_PATH
+from config import MODELS_DIR, PREFERENCES_PATH
 from app.configuration_manager import ConfigurationManager
 from engine.logging_config import get_logger
 from engine.model_registry import ModelHealthStatus, ModelRegistry
@@ -88,7 +88,12 @@ class ModelRepository:
         ModelRepository._active_model_id = model_id
         self._save_active_model_preference(model_id)
 
-    def __init__(self, models_dir: str | None = None) -> None:
+    def __init__(
+        self,
+        models_dir: str | None = None,
+        installation_roots: list[str | Path] | None = None,
+    ) -> None:
+        default_definitions = models_dir is None
         if models_dir is None:
             # Default to resources/models relative to project root
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -96,6 +101,10 @@ class ModelRepository:
         else:
             self.models_dir = models_dir
 
+        self.installation_roots = self._build_installation_roots(
+            installation_roots,
+            include_configured_roots=default_definitions,
+        )
         self.registry = ModelRegistry()
         self._models: dict[str, dict[str, Any]] = {}
         self.load_repository()
@@ -113,6 +122,8 @@ class ModelRepository:
         self._models = {
             model["id"]: model for model in self.registry.get_all_models()
         }
+        for model in self._models.values():
+            self._resolve_installation_path(model)
 
         selectable_models = [
             model_id for model_id in self._models if self.is_selectable_model(model_id)
@@ -125,6 +136,80 @@ class ModelRepository:
                 active_model = selectable_models[0] if selectable_models else None
             ModelRepository._active_model_id = active_model
             self._save_active_model_preference(active_model)
+
+    @classmethod
+    def _build_installation_roots(
+        cls,
+        installation_roots: list[str | Path] | None,
+        *,
+        include_configured_roots: bool,
+    ) -> list[Path]:
+        roots: list[str | Path] = list(installation_roots or [])
+        if include_configured_roots and installation_roots is None:
+            preferences = ConfigurationManager(cls._preferences_path).load()
+            configured_root = str(preferences.get("models_dir") or "").strip()
+            if configured_root:
+                roots.append(configured_root)
+            roots.append(MODELS_DIR)
+
+        unique: list[Path] = []
+        seen: set[str] = set()
+        for root in roots:
+            candidate = Path(root).expanduser()
+            key = os.path.normcase(str(candidate.resolve(strict=False)))
+            if key not in seen:
+                seen.add(key)
+                unique.append(candidate)
+        return unique
+
+    def _resolve_installation_path(self, model: dict[str, Any]) -> Path | None:
+        """Resolve installed files from metadata and configured model roots."""
+        model_id = str(model.get("id") or "").strip()
+        declared_path = str(model.get("path") or "").strip()
+        candidates: list[tuple[str, Path]] = []
+        if declared_path:
+            candidates.append(("model definition", Path(declared_path)))
+        candidates.extend(
+            ("configured models root", root / model_id)
+            for root in self.installation_roots
+            if model_id
+        )
+
+        logger.info(
+            "[MODEL PATH] Search started | model=%s | definitions_dir=%s | "
+            "declared_path=%s | preferences_file=%s | config_default_models_dir=%s | "
+            "installation_roots=%s",
+            model_id,
+            Path(self.models_dir).resolve(strict=False),
+            declared_path or "<empty>",
+            self._preferences_path.resolve(strict=False),
+            Path(MODELS_DIR).resolve(strict=False),
+            [str(path.resolve(strict=False)) for path in self.installation_roots],
+        )
+        for index, (source, candidate) in enumerate(candidates, start=1):
+            resolved = candidate.resolve(strict=False)
+            exists = resolved.exists()
+            is_directory = resolved.is_dir() if exists else False
+            logger.info(
+                "[MODEL PATH] Candidate %s/%s | model=%s | source=%s | path=%s | "
+                "exists=%s | directory=%s",
+                index, len(candidates), model_id, source, resolved, exists, is_directory,
+            )
+            if exists and is_directory:
+                model["path"] = str(resolved)
+                model["installed"] = True
+                logger.info(
+                    "[MODEL PATH] First match | model=%s | source=%s | path=%s",
+                    model_id, source, resolved,
+                )
+                return resolved
+
+        logger.info(
+            "[MODEL PATH] No installation found | model=%s | checked_paths=%s",
+            model_id,
+            [str(path.resolve(strict=False)) for _, path in candidates],
+        )
+        return None
 
     def _validate_model_data(self, data: dict[str, Any]) -> bool:
         """
