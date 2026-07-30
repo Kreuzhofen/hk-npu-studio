@@ -49,6 +49,10 @@ class ExecutionProviderSelectionTests(unittest.TestCase):
             "ONNX Runtime CPU",
             BackendManager().get_best_backend().get_backend_name(),
         )
+        manager = BackendManager()
+        self.assertEqual("ONNX Runtime CPU", manager.get_active_backend().get_backend_name())
+        self.assertEqual("CPU EP", manager.get_active_execution_provider_label())
+        self.assertEqual("CPU EP", SettingsManager.get_execution_provider_label())
         self.assertEqual(
             SettingsManager.CPU_EXECUTION_PROVIDER,
             PhoenixHomeView._execution_provider_status(_QnnDiscovery()),

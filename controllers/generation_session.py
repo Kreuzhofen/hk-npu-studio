@@ -21,6 +21,7 @@ class PipelineParameters:
     output_directory: str
     output_prefix: str
     input_image_path: str | None
+    controlnet_enabled: bool
     canny_low_threshold: int
     canny_high_threshold: int
     controlnet_conditioning_scale: float
@@ -55,6 +56,7 @@ class GenerationSessionModel:
     output_directory: str = "output"
     output_prefix: str = "generate"
     input_image_path: str | None = None
+    controlnet_enabled: bool = False
     canny_low_threshold: int = 50
     canny_high_threshold: int = 150
     controlnet_conditioning_scale: float = 1.0
@@ -75,6 +77,7 @@ class GenerationSessionModel:
         self.output_directory = "output"
         self.output_prefix = "generate"
         self.input_image_path = None
+        self.controlnet_enabled = False
         self.canny_low_threshold = 50
         self.canny_high_threshold = 150
         self.controlnet_conditioning_scale = 1.0

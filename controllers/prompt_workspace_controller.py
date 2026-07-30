@@ -84,10 +84,16 @@ class PromptWorkspaceController:
         scheduler: str = "Normal",
         batch_size: int = 1,
         input_image_path: str | None = None,
+        controlnet_enabled: bool | None = None,
         canny_low_threshold: int = 50,
         canny_high_threshold: int = 150,
         controlnet_conditioning_scale: float = 1.0,
     ) -> None:
+        effective_controlnet_enabled = (
+            self.model.state.controlnet_enabled
+            if controlnet_enabled is None
+            else bool(controlnet_enabled)
+        )
         # Update local UI state model
         self.model.update_state(
             prompt=prompt,
@@ -102,6 +108,7 @@ class PromptWorkspaceController:
             scheduler=scheduler,
             batch_count=batch_size,
             input_image_path=input_image_path,
+            controlnet_enabled=effective_controlnet_enabled,
             canny_low_threshold=canny_low_threshold,
             canny_high_threshold=canny_high_threshold,
             controlnet_conditioning_scale=controlnet_conditioning_scale,
@@ -120,6 +127,7 @@ class PromptWorkspaceController:
             scheduler=scheduler,
             batch_size=batch_size,
             input_image_path=input_image_path,
+            controlnet_enabled=effective_controlnet_enabled,
             canny_low_threshold=canny_low_threshold,
             canny_high_threshold=canny_high_threshold,
             controlnet_conditioning_scale=controlnet_conditioning_scale,
@@ -209,15 +217,7 @@ class PromptWorkspaceController:
         from config import PROMPT_HISTORY_PATH
         history = self.load_prompt_history(return_dicts=True)
 
-        controlnet_enabled = False
-        try:
-            model_name = self.model.state.selected_model
-            model_meta = self.generation_controller.repository.get_model(model_name)
-            if model_meta:
-                capabilities = model_meta.get("capabilities", {})
-                controlnet_enabled = capabilities.get("controlnet", False)
-        except Exception:
-            pass
+        controlnet_enabled = bool(self.model.state.controlnet_enabled)
 
         entry = {
             "prompt": prompt,

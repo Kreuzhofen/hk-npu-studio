@@ -113,21 +113,13 @@ class ImageGenerationPipeline:
             if result.success and result.image_path:
                 try:
                     from pathlib import Path
-                    from controllers.model_repository import ModelRepository
                     from engine.asset_files import atomic_write_json
 
                     image_path = Path(result.image_path)
                     sidecar_path = image_path.with_suffix(".json")
 
-                    # Read repository to find if active model supports ControlNet
                     params = self.job.parameters
-                    model_name = params.model_name
-                    repo = ModelRepository()
-                    model_meta = repo.get_model(model_name)
-                    controlnet_enabled = False
-                    if model_meta:
-                        capabilities = model_meta.get("capabilities", {})
-                        controlnet_enabled = capabilities.get("controlnet", False)
+                    controlnet_enabled = bool(params.controlnet_enabled)
 
                     # Prepare ControlNet fields
                     controlnet_model = "canny" if controlnet_enabled else None

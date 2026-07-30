@@ -70,9 +70,11 @@ class GenerationController:
             return False, "Prompt darf nicht leer sein."
 
         model_meta = self.repository.get_model(self.session.model_name)
-        if model_meta:
+        if model_meta and self.session.controlnet_enabled:
             capabilities = model_meta.get("capabilities", {})
-            if capabilities.get("controlnet", False):
+            if not capabilities.get("controlnet", False):
+                return False, "Das ausgewählte Modell unterstützt ControlNet nicht."
+            else:
                 img_path = self.session.input_image_path
                 if not img_path:
                     return False, "Eingabebild für ControlNet Canny fehlt oder ist ungültig."

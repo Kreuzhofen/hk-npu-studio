@@ -1646,6 +1646,7 @@ class PhoenixPromptView(WorkspaceFrame):
             width=width, height=height, selected_model=selected_model,
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
             input_image_path=self.controller.model.state.input_image_path,
+            controlnet_enabled=bool(self.canny_supported and self.active_tab == "canny"),
             canny_low_threshold=canny_low,
             canny_high_threshold=canny_high,
             controlnet_conditioning_scale=cond_scale,
@@ -1985,9 +1986,9 @@ class PhoenixPromptView(WorkspaceFrame):
         gen_ctrl = getattr(self.controller, "generation_controller", None)
         if gen_ctrl is not None:
             queued_count = gen_ctrl.queue.get_queued_count()
-            active_backend = gen_ctrl.backend_manager.get_active_backend()
-            if active_backend is not None:
-                active_backend_name = active_backend.get_backend_name()
+            active_backend_name = (
+                gen_ctrl.backend_manager.get_active_execution_provider_label()
+            )
 
         active_model_id = self.controller.repository.get_active_model_id()
         if (
@@ -3094,6 +3095,11 @@ class PhoenixPromptView(WorkspaceFrame):
         if tab_name == "canny" and not self.canny_supported:
             return
         self.active_tab = tab_name
+        controlnet_enabled = bool(self.canny_supported and tab_name == "canny")
+        self.controller.model.update_state(controlnet_enabled=controlnet_enabled)
+        self.controller.generation_controller.update_session(
+            controlnet_enabled=controlnet_enabled
+        )
 
         self.tab_basic_content.grid_remove()
         self.tab_canny_content.grid_remove()
@@ -3588,12 +3594,7 @@ class PhoenixPromptView(WorkspaceFrame):
             return
 
         model_name = self.model_var.get()
-        repo = self.controller.repository
-        model_meta = repo.get_model(model_name)
-        controlnet_enabled = False
-        if model_meta:
-            capabilities = model_meta.get("capabilities", {})
-            controlnet_enabled = capabilities.get("controlnet", False)
+        controlnet_enabled = bool(self.canny_supported and self.active_tab == "canny")
 
         try:
             steps = int(self.steps_var.get())

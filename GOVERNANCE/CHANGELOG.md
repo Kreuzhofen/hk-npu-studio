@@ -4,6 +4,19 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-30 (Release Final Status/ControlNet Fix)
+
+### Behoben
+* Backendstatus der Generierungsseite aus der gespeicherten und aktiv gerouteten Provider-Auswahl abgeleitet; `CPU EP` ersetzt den irreführenden initialen Status `CPU (Stub)`.
+* Expliziten `controlnet_enabled`-Zustand vom UI-Reiter über ViewModel, Session und Request bis zu Validierung und Sidecar-Metadaten geführt.
+* Canny-Bildvalidierung wird ausschließlich bei tatsächlich aktiviertem ControlNet ausgeführt.
+
+### Prüfung
+* 25 gezielte Tests und 2 Subtests erfolgreich.
+* Gesamtsuite: 277 Tests und 25 Subtests erfolgreich; der einzige zustandsabhängige Tk-Bildaudit wurde isoliert erfolgreich bestätigt.
+* Produktkompilierung, isolierter ARM64-Build, Release-Smoke-Test und Controller-Smoke bis zum Pipeline-Eintritt erfolgreich.
+* Keine Änderungen an ONNX Runtime, SDXL, Text Encodern, UNet, VAE, Scheduler, Modellpfaden oder Inferenz.
+
 ## [2.0 RC1] – 2026-07-30 (Model Path Resolution Hotfix)
 
 ### Behoben

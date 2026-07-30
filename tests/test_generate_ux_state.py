@@ -134,7 +134,8 @@ class GenerateUxStateTests(unittest.TestCase):
         repository = ModelRepository(str(self.models_dir))
         session = GenerationSessionModel(
             prompt="Test prompt",
-            model_name="controlnet_canny_qnn"
+            model_name="controlnet_canny_qnn",
+            controlnet_enabled=True,
         )
         controller = GenerationController(session=session, repository=repository)
 
@@ -166,6 +167,21 @@ class GenerateUxStateTests(unittest.TestCase):
                 os.unlink(temp_img_path)
             except Exception:
                 pass
+
+    def test_controlnet_capability_does_not_activate_validation_in_basic_mode(self) -> None:
+        self._write_model("c_controlnet.json", "controlnet_canny_qnn")
+        repository = ModelRepository(str(self.models_dir))
+        session = GenerationSessionModel(
+            prompt="Test prompt",
+            model_name="controlnet_canny_qnn",
+            controlnet_enabled=False,
+            input_image_path=None,
+        )
+        controller = GenerationController(session=session, repository=repository)
+
+        is_valid, message = controller.validate_session()
+
+        self.assertTrue(is_valid, message)
 
 
 

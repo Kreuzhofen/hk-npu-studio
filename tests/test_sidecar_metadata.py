@@ -36,6 +36,7 @@ class SidecarMetadataTests(unittest.TestCase):
         session = GenerationSessionModel(
             model_name="controlnet_canny_qnn",
             input_image_path="C:\\SnapdragonAI\\input\\Typ.jpg",
+            controlnet_enabled=True,
             canny_low_threshold=60,
             canny_high_threshold=140,
             controlnet_conditioning_scale=1.5

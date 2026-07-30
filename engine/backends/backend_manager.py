@@ -35,8 +35,14 @@ class BackendManager:
         self.register_backend(StableDiffusion21QnnBackendAdapter())
         self.register_backend(ControlNetCannyQnnBackendAdapter())
 
-        # Set default active backend to CPU fallback stub
-        self.set_active_backend("CPU (Stub)")
+        # Initialize status from the persisted provider. Actual model routing still
+        # happens in get_best_backend() and is intentionally unchanged.
+        from app.settings_manager import SettingsManager
+
+        if SettingsManager.get_execution_provider() == SettingsManager.CPU_EXECUTION_PROVIDER:
+            self.set_active_backend(ONNXBackendAdapter.BACKEND_NAME)
+        else:
+            self.set_active_backend(QNNBackendAdapter.BACKEND_NAME)
 
     def register_backend(self, adapter: BackendAdapter) -> None:
         """Register an inference backend adapter."""
@@ -119,6 +125,25 @@ class BackendManager:
         qnn_status = "Gefunden" if res.qnn_sdk_found else "Nicht gefunden"
         onnx_status = f"Installiert ({res.onnx_version})" if res.onnx_available else "Nicht installiert"
         return f"QNN NPU: {qnn_status} | ONNX: {onnx_status}"
+
+    def get_active_execution_provider_label(self) -> str:
+        """Return the EP represented by the active routed adapter."""
+        from app.settings_manager import SettingsManager
+
+        active = self.get_active_backend()
+        if isinstance(active, (ONNXBackendAdapter, CPUBackendAdapter)):
+            return "CPU EP"
+        if isinstance(
+            active,
+            (
+                QNNBackendAdapter,
+                StableDiffusion15QnnBackendAdapter,
+                StableDiffusion21QnnBackendAdapter,
+                ControlNetCannyQnnBackendAdapter,
+            ),
+        ):
+            return "QNN EP"
+        return SettingsManager.get_execution_provider_label()
 
     def get_best_backend(self, model: dict[str, Any] | str | None = None) -> BackendAdapter | None:
         """

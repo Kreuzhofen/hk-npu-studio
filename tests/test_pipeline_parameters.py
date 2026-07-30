@@ -64,6 +64,7 @@ class PipelineParameterTests(unittest.TestCase):
                 "output_directory",
                 "output_prefix",
                 "input_image_path",
+                "controlnet_enabled",
                 "canny_low_threshold",
                 "canny_high_threshold",
                 "controlnet_conditioning_scale",

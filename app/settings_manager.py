@@ -43,6 +43,13 @@ class SettingsManager:
         return cls.QNN_EXECUTION_PROVIDER
 
     @classmethod
+    def get_execution_provider_label(cls) -> str:
+        """Return the persisted provider in the user-facing settings terminology."""
+        if cls.get_execution_provider() == cls.CPU_EXECUTION_PROVIDER:
+            return "CPU EP"
+        return "QNN EP"
+
+    @classmethod
     def get_hf_token(cls) -> str:
         # Check env first, then preferences
         token = os.environ.get("HF_TOKEN")

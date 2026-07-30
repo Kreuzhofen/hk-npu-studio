@@ -85,6 +85,7 @@ class ControlNetUITests(unittest.TestCase):
         # Load ControlNet model
         self.view.model_var.set("controlnet_canny_qnn")
         self.view._apply_generation_contract("controlnet_canny_qnn")
+        self.view._switch_tab("canny")
         self.view.prompt_text.insert("1.0", "A beautiful futuristic city")
         
         # Simulate generate click when input image is missing
@@ -99,6 +100,7 @@ class ControlNetUITests(unittest.TestCase):
         # Set ControlNet model and load an input image
         self.view.model_var.set("controlnet_canny_qnn")
         self.view._apply_generation_contract("controlnet_canny_qnn")
+        self.view._switch_tab("canny")
 
         # Manually write reference image path in model/view
         self.view._ref_image_path = "some_image.png"
@@ -126,6 +128,7 @@ class ControlNetUITests(unittest.TestCase):
 
         self.view.model_var.set("controlnet_canny_qnn")
         self.view._apply_generation_contract("controlnet_canny_qnn")
+        self.view._switch_tab("canny")
 
         # 1. Valid temporary PNG accepted
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
@@ -216,6 +219,8 @@ class ControlNetUITests(unittest.TestCase):
         # Start state: ControlNet Canny
         self.view.model_var.set("controlnet_canny_qnn")
         self.view.update()
+        self.view._apply_generation_contract("controlnet_canny_qnn")
+        self.view._switch_tab("canny")
 
         # Populate reference image state
         self.view._ref_image_path = "some_image.png"
@@ -313,6 +318,8 @@ class ControlNetUITests(unittest.TestCase):
         # 1. Standardwerte (defaults)
         self.view.model_var.set("controlnet_canny_qnn")
         self.view.update()
+        self.view._apply_generation_contract("controlnet_canny_qnn")
+        self.view._switch_tab("canny")
         state = self.controller.get_state()
         self.assertEqual(state.canny_low_threshold, 50)
         self.assertEqual(state.canny_high_threshold, 150)

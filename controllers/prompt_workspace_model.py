@@ -18,6 +18,7 @@ class PromptWorkspaceState:
     batch_count: int = 1
     status: str = "ready"
     input_image_path: str | None = None
+    controlnet_enabled: bool = False
     canny_low_threshold: int = 50
     canny_high_threshold: int = 150
     controlnet_conditioning_scale: float = 1.0
@@ -44,6 +45,7 @@ class PromptWorkspaceModel:
             "batch_count": kwargs.get("batch_count", self.state.batch_count),
             "status": kwargs.get("status", self.state.status),
             "input_image_path": kwargs.get("input_image_path", self.state.input_image_path),
+            "controlnet_enabled": kwargs.get("controlnet_enabled", self.state.controlnet_enabled),
             "canny_low_threshold": kwargs.get("canny_low_threshold", self.state.canny_low_threshold),
             "canny_high_threshold": kwargs.get("canny_high_threshold", self.state.canny_high_threshold),
             "controlnet_conditioning_scale": kwargs.get("controlnet_conditioning_scale", self.state.controlnet_conditioning_scale),
