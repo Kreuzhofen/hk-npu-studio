@@ -172,7 +172,19 @@ class OnnxProviderService:
         providers = cls.preferred_providers()
         logger.info("[OnnxProviderService] Loading %s with providers: %s", component_name, providers)
         print(f"[OnnxProviderService] Loading {component_name} with providers: {providers}")
-        session = ort.InferenceSession(str(model_path), providers=providers)
+        from engine.cpu_pipeline_diagnostics import current_diagnostics
+
+        diagnostics = current_diagnostics()
+        if diagnostics is not None:
+            with diagnostics.phase(
+                "[ONNX SESSION]",
+                f"{component_name} Session creation",
+                model_path=model_path,
+            ):
+                session = ort.InferenceSession(str(model_path), providers=providers)
+            diagnostics.log_session(session, component_name, model_path)
+        else:
+            session = ort.InferenceSession(str(model_path), providers=providers)
         logger.info("[OnnxProviderService] %s session providers: %s", component_name, session.get_providers())
         print(f"[OnnxProviderService] {component_name} session providers: {session.get_providers()}")
         return session

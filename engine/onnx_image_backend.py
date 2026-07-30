@@ -189,6 +189,10 @@ class OnnxImageBackend(InferenceBackend):
         self.runtime_model = None
 
     def generate(self, job: GenerationJob) -> GenerationResponse:
+        from contextlib import nullcontext
+        from engine.cpu_pipeline_diagnostics import current_diagnostics
+
+        diagnostics = current_diagnostics()
         params = job.parameters
         model_name = self.runtime_model.model_id if self.runtime_model else params.model_name
         backend_name = OnnxProviderService.runtime_label()
@@ -269,7 +273,11 @@ class OnnxImageBackend(InferenceBackend):
                 logger.info(f"[OnnxImageBackend] Root InferenceSession verified. Providers: {session_providers}, Inputs: {inputs}, Outputs: {outputs}")
                 print(f"[OnnxImageBackend] Root InferenceSession verified. Providers: {session_providers}, Inputs: {inputs}, Outputs: {outputs}")
             except Exception as e:
-                logger.warning(f"[OnnxImageBackend] Root model loadability check skipped/failed (will use components fallback): {e}")
+                logger.exception(
+                    "[ERROR] Root model loadability check skipped/failed | Type: %s | "
+                    "Message: %s | Phase: ONNX Session creation | Model path: %s",
+                    type(e).__name__, e, onnx_model_path,
+                )
                 print(f"[OnnxImageBackend] Root model loadability check skipped/failed (will use components fallback): {e}")
             finally:
                 OnnxProviderService.release_session(session)
@@ -302,6 +310,14 @@ class OnnxImageBackend(InferenceBackend):
             ("text_encoder", "text_encoder_2", "unet", "vae_decoder"),
         )
         OnnxComponentInspector.log_metadata(component_metadata)
+        if diagnostics is not None:
+            for component in ("text_encoder", "text_encoder_2", "unet", "vae_decoder", "scheduler"):
+                logger.info(
+                    "[MODEL] Component path resolved | Component: %s | Path: %s | "
+                    "Provider: %s | Thread: %s",
+                    component, pkg.get_component_path(component), diagnostics.provider,
+                    __import__("threading").get_ident(),
+                )
 
         # Verify package components and log status
         verification_status = pkg.verify_components()
@@ -340,10 +356,19 @@ class OnnxImageBackend(InferenceBackend):
             )
 
         try:
-            embedder = TextEmbeddingService(pkg)
-            embed_res = embedder.embed_prompt_sdxl(params.prompt, params.negative_prompt)
+            phase_context = (
+                diagnostics.phase("[EMBEDDINGS]", "Prompt-Embeddings erstellt")
+                if diagnostics else nullcontext()
+            )
+            with phase_context:
+                embedder = TextEmbeddingService(pkg)
+                embed_res = embedder.embed_prompt_sdxl(params.prompt, params.negative_prompt)
         except Exception as error:
-            logger.exception("[OnnxImageBackend] Real text encoder execution failed")
+            logger.exception(
+                "[ERROR] Real text encoder execution failed | Type: %s | Message: %s | "
+                "Phase: Prompt embeddings | Model path: %s",
+                type(error).__name__, error, diagnostics.model_path if diagnostics else model_dir,
+            )
             return self._save_failure_response(
                 f"Text-Encoder-Ausführung fehlgeschlagen: {error}",
                 model_name,
@@ -354,27 +379,56 @@ class OnnxImageBackend(InferenceBackend):
         # 4.5. Integrate UNetService and scheduler foundation for latent denoising
         from engine.unet_service import UNetService
         unet_service = UNetService(pkg)
-        scheduler_service = SDXLSchedulerService(pkg.get_component_path("scheduler"))
         w = params.width if params.width > 0 else 512
         h = params.height if params.height > 0 else 512
-        timesteps = scheduler_service.build_timesteps(params.steps, params.scheduler)
-        time_ids = scheduler_service.build_time_ids(w, h)
-        scheduler_metadata = scheduler_service.describe(params.steps, params.scheduler, w, h, params.cfg_scale)
+        scheduler_context = (
+            diagnostics.phase(
+                "[SCHEDULER]", "Scheduler initialisiert",
+                model_path=pkg.get_component_path("scheduler"),
+            )
+            if diagnostics else nullcontext()
+        )
+        with scheduler_context:
+            scheduler_service = SDXLSchedulerService(pkg.get_component_path("scheduler"))
+            timesteps = scheduler_service.build_timesteps(params.steps, params.scheduler)
+            time_ids = scheduler_service.build_time_ids(w, h)
+            scheduler_metadata = scheduler_service.describe(
+                params.steps, params.scheduler, w, h, params.cfg_scale
+            )
         
         try:
-            init_latents = unet_service.generate_initial_latents(w, h, seed=params.seed)
-            unet_res = unet_service.run_denoising_loop(
-                init_latents,
-                timesteps=timesteps,
-                prompt_embeddings=embed_res["embeddings"],
-                pooled_prompt_embeddings=embed_res["pooled_embeddings"],
-                time_ids=time_ids,
-                negative_embeddings=embed_res["negative_embeddings"],
-                negative_pooled_embeddings=embed_res["negative_pooled_embeddings"],
-                guidance_scale=params.cfg_scale,
+            latent_context = (
+                diagnostics.phase("[UNET]", "Latents initialisiert")
+                if diagnostics else nullcontext()
             )
+            with latent_context:
+                init_latents = unet_service.generate_initial_latents(w, h, seed=params.seed)
+            denoise_context = (
+                diagnostics.phase(
+                    "[UNET]", "UNet-Denoising",
+                    model_path=pkg.get_component_path("unet"),
+                )
+                if diagnostics else nullcontext()
+            )
+            with denoise_context:
+                unet_res = unet_service.run_denoising_loop(
+                    init_latents,
+                    timesteps=timesteps,
+                    prompt_embeddings=embed_res["embeddings"],
+                    pooled_prompt_embeddings=embed_res["pooled_embeddings"],
+                    time_ids=time_ids,
+                    negative_embeddings=embed_res["negative_embeddings"],
+                    negative_pooled_embeddings=embed_res["negative_pooled_embeddings"],
+                    guidance_scale=params.cfg_scale,
+                )
         except Exception as error:
-            logger.exception("[OnnxImageBackend] Real UNet execution failed")
+            logger.exception(
+                "[ERROR] Real UNet execution failed | Type: %s | Message: %s | "
+                "Phase: %s | Model path: %s",
+                type(error).__name__, error,
+                diagnostics.current_phase if diagnostics else "UNet",
+                pkg.get_component_path("unet"),
+            )
             return self._save_failure_response(
                 f"UNet-Ausführung fehlgeschlagen: {error}",
                 model_name,
@@ -387,7 +441,15 @@ class OnnxImageBackend(InferenceBackend):
         vae_service = VAEDecoderService(pkg)
         try:
             self._append_save_diagnostic(save_diagnostic_log_path, "before_vae_decode")
-            vae_res = vae_service.decode_latents(unet_res["latents"], prompt=params.prompt)
+            vae_context = (
+                diagnostics.phase(
+                    "[VAE]", "VAE-Decoding",
+                    model_path=pkg.get_component_path("vae_decoder"),
+                )
+                if diagnostics else nullcontext()
+            )
+            with vae_context:
+                vae_res = vae_service.decode_latents(unet_res["latents"], prompt=params.prompt)
             self._append_save_diagnostic(
                 save_diagnostic_log_path,
                 "after_vae_decode",
@@ -395,7 +457,11 @@ class OnnxImageBackend(InferenceBackend):
             )
         except Exception as error:
             self._append_save_diagnostic(save_diagnostic_log_path, "vae_decode_exception", traceback.format_exc())
-            logger.exception("[OnnxImageBackend] VAE decode failed")
+            logger.exception(
+                "[ERROR] VAE decode failed | Type: %s | Message: %s | "
+                "Phase: VAE Decoding | Model path: %s",
+                type(error).__name__, error, pkg.get_component_path("vae_decoder"),
+            )
             return self._save_failure_response(
                 f"VAE Decode fehlgeschlagen: {error}",
                 model_name,
@@ -429,13 +495,18 @@ class OnnxImageBackend(InferenceBackend):
         dummy_image_path = output_dir / filename
 
         try:
-            self._append_save_diagnostic(save_diagnostic_log_path, "before_image_conversion")
-            image_stats = self._validate_output_image(vae_res.get("image"))
-            self._append_save_diagnostic(save_diagnostic_log_path, "after_image_validation", json.dumps(image_stats))
+            image_context = (
+                diagnostics.phase("[IMAGE]", "Bildkonvertierung")
+                if diagnostics else nullcontext()
+            )
+            with image_context:
+                self._append_save_diagnostic(save_diagnostic_log_path, "before_image_conversion")
+                image_stats = self._validate_output_image(vae_res.get("image"))
+                self._append_save_diagnostic(save_diagnostic_log_path, "after_image_validation", json.dumps(image_stats))
 
-            img = vae_res["image"].copy()
-            if img.mode not in ("RGB", "RGBA"):
-                img = img.convert("RGB")
+                img = vae_res["image"].copy()
+                if img.mode not in ("RGB", "RGBA"):
+                    img = img.convert("RGB")
             self._append_save_diagnostic(
                 save_diagnostic_log_path,
                 "after_image_conversion",
@@ -446,10 +517,15 @@ class OnnxImageBackend(InferenceBackend):
                 "real_vae_output_selected",
                 "Saving decoded VAE image without diagnostic overlay.",
             )
-            self._append_save_diagnostic(save_diagnostic_log_path, "before_png_save", str(dummy_image_path))
-            img.save(dummy_image_path, format="PNG")
-            if not dummy_image_path.exists() or dummy_image_path.stat().st_size <= 0:
-                raise IOError(f"PNG save completed but output file is missing or empty: {dummy_image_path}")
+            save_context = (
+                diagnostics.phase("[IMAGE]", "Bild gespeichert", model_path=dummy_image_path)
+                if diagnostics else nullcontext()
+            )
+            with save_context:
+                self._append_save_diagnostic(save_diagnostic_log_path, "before_png_save", str(dummy_image_path))
+                img.save(dummy_image_path, format="PNG")
+                if not dummy_image_path.exists() or dummy_image_path.stat().st_size <= 0:
+                    raise IOError(f"PNG save completed but output file is missing or empty: {dummy_image_path}")
             self._append_save_diagnostic(
                 save_diagnostic_log_path,
                 "after_png_save",
@@ -457,7 +533,11 @@ class OnnxImageBackend(InferenceBackend):
             )
         except Exception as e:
             self._append_save_diagnostic(save_diagnostic_log_path, "png_save_exception", traceback.format_exc())
-            logger.exception("[OnnxImageBackend] Failed to create output image")
+            logger.exception(
+                "[ERROR] Failed to create output image | Type: %s | Message: %s | "
+                "Phase: Image conversion/save | Model path: %s",
+                type(e).__name__, e, dummy_image_path,
+            )
             return self._save_failure_response(
                 f"PNG konnte nicht gespeichert werden: {e}",
                 model_name,
@@ -538,6 +618,14 @@ class OnnxImageBackend(InferenceBackend):
         time.sleep(0.05)
 
         logger.info(f"[OnnxImageBackend] Generation completed successfully. Image saved to: {dummy_image_path}")
+        if diagnostics is not None:
+            logger.info(
+                "[CPU PIPELINE] Generierung erfolgreich abgeschlossen | End: %s | "
+                "Thread: %s | Provider: %s | Model path: %s | Image: %s",
+                datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                __import__("threading").get_ident(), diagnostics.provider,
+                diagnostics.model_path, dummy_image_path,
+            )
         print(f"[OnnxImageBackend] Generation completed successfully. Image saved to: {dummy_image_path}")
 
         self._append_save_diagnostic(save_diagnostic_log_path, "before_finish_response")

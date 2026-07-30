@@ -8,6 +8,7 @@ from PIL import Image
 from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
 from engine.onnx_provider_service import OnnxProviderService
+from engine.cpu_pipeline_diagnostics import diagnostic_session_run
 
 logger = get_logger("VAEDecoderService")
 
@@ -45,7 +46,10 @@ class VAEDecoderService:
                 print(f"[VAEDecoderService] VAE mapped input: {input_name}")
                 
                 # Run VAE decoding
-                outputs = session.run(None, {input_name: latents})
+                outputs = diagnostic_session_run(
+                    session, None, {input_name: latents}, phase="VAE Decoding",
+                    component_name="vae_decoder", model_path=vae_path,
+                )
                 vae_output = outputs[0]
                 
                 logger.info(f"[VAEDecoderService] VAE ONNX run successful. Output shape: {vae_output.shape}")

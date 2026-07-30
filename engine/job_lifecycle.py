@@ -82,6 +82,11 @@ def set_job_progress(
 ) -> float:
     """Aktualisiert Fortschritt und meldet kompatible Prozentwerte an Callbacks."""
     normalized = clamp_progress(progress)
+    old_progress = (
+        float(job.get("progress", 0.0) or 0.0)
+        if isinstance(job, dict)
+        else float(getattr(job, "progress", 0.0) or 0.0)
+    )
     if isinstance(job, dict):
         job["progress"] = normalized
         job["progress_message"] = message
@@ -96,6 +101,36 @@ def set_job_progress(
             callback(round(normalized * 100.0, 10), message)
         except Exception:
             pass
+    try:
+        from engine.cpu_pipeline_diagnostics import current_diagnostics
+
+        diagnostics = current_diagnostics()
+        if diagnostics is not None:
+            diagnostics.record_progress(old_progress, normalized, message)
+        else:
+            session = job.get("session") if isinstance(job, dict) else getattr(job, "session", None)
+            model_name = (
+                session.get("model_name", "") if isinstance(session, dict)
+                else getattr(session, "model_name", "")
+            )
+            if model_name == "sdxl_base":
+                from app.settings_manager import SettingsManager
+
+                if SettingsManager.get_execution_provider() == "CPUExecutionProvider":
+                    import datetime
+                    import threading
+                    from engine.logging_config import get_logger
+
+                    get_logger("CpuPipelineDiagnostics").info(
+                        "[PROGRESS] %.1f%% -> %.1f%% | Phase: %s | Time: %s | Thread: %s",
+                        old_progress * 100.0,
+                        normalized * 100.0,
+                        message or "UI progress update",
+                        datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                        threading.get_ident(),
+                    )
+    except Exception:
+        pass
     if get_job_status(job) is JobStatus.RUNNING:
         _observe_resources(job)
     return normalized

@@ -4,6 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-30 (CPU-SDXL-Diagnoseinstrumentierung)
+
+### Diagnose
+* SDXL-CPU-Pipelinephasen, Session-Erstellung, Text Encoder 1/2, Embeddings, Scheduler, Latents, einzelne Denoising-Schritte, VAE, Bildkonvertierung und Speichern mit Start, Ende, Dauer, Thread, Provider und Modellpfad instrumentiert.
+* ONNX-Session- und `Session.Run`-Diagnose um Provider sowie deklarierte und tatsächliche Tensorformen ergänzt.
+* Passiver 30-Sekunden-Watchdog für lang laufende `Session.Run`-Aufrufe und vollständige phasenbezogene Exception-Diagnose ergänzt.
+* UI-Fortschrittsänderungen werden mit altem/neuem Wert und Pipelinephase protokolliert; die Fortschrittssteuerung selbst bleibt unverändert.
+
+### Umfang
+* Keine Änderung an Inferenzlogik, Modellen, Modellpfaden, Execution Providern, Fallbacks oder Generierungsergebnissen.
+
 ## [2.0 RC1] – 2026-07-30 (CPU Generation Hotfix)
 
 ### Behoben

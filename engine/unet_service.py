@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+import datetime
+import threading
+import time
 from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any
@@ -11,6 +14,7 @@ from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
 from engine.onnx_provider_service import OnnxProviderService
 from engine.sdxl_scheduler_service import SDXLSchedulerService
+from engine.cpu_pipeline_diagnostics import current_diagnostics, diagnostic_session_run
 
 logger = get_logger("UNetService")
 
@@ -37,6 +41,7 @@ class UNetService:
         timestep: int | float,
         encoder_hidden_states: np.ndarray,
         additional_inputs: dict[str, Any] | None = None,
+        diagnostic_phase: str = "UNet",
     ) -> dict[str, Any]:
         unet_path = self.package.get_component_path("unet")
         metadata = OnnxComponentInspector.inspect("unet", unet_path)
@@ -53,7 +58,10 @@ class UNetService:
             inputs = self._build_unet_inputs(session, latents, timestep, encoder_hidden_states, additional_inputs or {})
             logger.info(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
             print(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
-            outputs = session.run(None, inputs)
+            outputs = diagnostic_session_run(
+                session, None, inputs, phase=diagnostic_phase,
+                component_name="unet", model_path=unet_path,
+            )
             output_noise = self._normalize_noise_output(np.asarray(outputs[0]), latents)
             logger.info(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
             print(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
@@ -89,13 +97,28 @@ class UNetService:
         guidance_enabled = bool(negative_embeddings is not None and guidance_scale != 1.0)
 
         for index, timestep in enumerate(timesteps):
+            diagnostics = current_diagnostics()
+            step_name = f"Step {index + 1}/{len(timesteps)}"
+            step_started = time.perf_counter()
+            if diagnostics is not None:
+                diagnostics.current_phase = f"Denoise {step_name}"
+                logger.info(
+                    "[DENOISE] %s started | Start: %s | Thread: %s | Provider: %s | "
+                    "Model path: %s | Progress: %.1f%%",
+                    step_name, datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                    threading.get_ident(), diagnostics.provider,
+                    self.package.get_component_path("unet"), diagnostics.progress_percent(),
+                )
             next_timestep = timesteps[index + 1] if index + 1 < len(timesteps) else None
             positive_inputs = {
                 "text_embeds": pooled_prompt_embeddings,
                 "time_ids": time_ids,
                 "pooled_prompt_embeds": pooled_prompt_embeddings,
             }
-            positive_result = self.predict_noise(current, timestep, prompt_embeddings, positive_inputs)
+            positive_result = self.predict_noise(
+                current, timestep, prompt_embeddings, positive_inputs,
+                diagnostic_phase=f"Denoise {step_name} positive",
+            )
             positive_noise = positive_result["noise_pred"]
             negative_noise = None
             negative_result: dict[str, Any] | None = None
@@ -106,7 +129,10 @@ class UNetService:
                     "time_ids": time_ids,
                     "pooled_prompt_embeds": negative_pooled_embeddings,
                 }
-                negative_result = self.predict_noise(current, timestep, negative_embeddings, negative_inputs)
+                negative_result = self.predict_noise(
+                    current, timestep, negative_embeddings, negative_inputs,
+                    diagnostic_phase=f"Denoise {step_name} negative",
+                )
                 negative_noise = negative_result["noise_pred"]
 
             guided_noise = self.scheduler.combine_classifier_free_guidance(
@@ -128,6 +154,15 @@ class UNetService:
                 "guidance_applied": bool(guidance_enabled and negative_noise is not None),
                 "mock_step": bool(positive_result.get("is_mock")) or bool(negative_result and negative_result.get("is_mock")),
             })
+            if diagnostics is not None:
+                logger.info(
+                    "[DENOISE] %s completed | End: %s | Duration: %.3fs | Thread: %s | "
+                    "Provider: %s | Model path: %s | Progress: %.1f%%",
+                    step_name, datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                    time.perf_counter() - step_started, threading.get_ident(),
+                    diagnostics.provider, self.package.get_component_path("unet"),
+                    diagnostics.progress_percent(),
+                )
 
         return {
             "latents": current.astype(np.float32),

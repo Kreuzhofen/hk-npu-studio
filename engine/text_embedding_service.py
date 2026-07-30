@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import nullcontext
 from engine.logging_config import get_logger
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,7 @@ import numpy as np
 from engine.model_runtime_package import ModelRuntimePackage
 from engine.onnx_component_inspector import OnnxComponentInspector
 from engine.onnx_provider_service import OnnxProviderService
+from engine.cpu_pipeline_diagnostics import current_diagnostics, diagnostic_session_run
 
 logger = get_logger("TextEmbeddingService")
 
@@ -134,13 +136,22 @@ class TextEmbeddingService:
             )
 
         session = None
+        diagnostics = current_diagnostics()
+        prefix = "[TEXT ENCODER 1]" if component_name == "text_encoder" else "[TEXT ENCODER 2]"
+        phase_name = "Text Encoder 1" if component_name == "text_encoder" else "Text Encoder 2"
         try:
-            session = OnnxProviderService.create_session(component_path, component_name)
-            inputs = self._build_encoder_inputs(session, token_array)
-            output_names = [item.name for item in session.get_outputs()]
-            outputs = dict(zip(output_names, session.run(output_names, inputs)))
-            hidden = self._resolve_hidden_output(component_name, outputs, fallback_width)
-            pooled = self._resolve_pooled_output(component_name, outputs, hidden, fallback_width)
+            phase_context = diagnostics.phase(prefix, phase_name, model_path=component_path) if diagnostics else nullcontext()
+            with phase_context:
+                session = OnnxProviderService.create_session(component_path, component_name)
+                inputs = self._build_encoder_inputs(session, token_array)
+                output_names = [item.name for item in session.get_outputs()]
+                values = diagnostic_session_run(
+                    session, output_names, inputs, phase=phase_name,
+                    component_name=component_name, model_path=component_path,
+                )
+                outputs = dict(zip(output_names, values))
+                hidden = self._resolve_hidden_output(component_name, outputs, fallback_width)
+                pooled = self._resolve_pooled_output(component_name, outputs, hidden, fallback_width)
             metadata["session_providers"] = OnnxProviderService.session_providers(session)
             return {
                 "embeddings": hidden,
@@ -155,7 +166,6 @@ class TextEmbeddingService:
             ) from exc
         finally:
             OnnxProviderService.release_session(session)
-
     def _build_encoder_inputs(self, session: Any, token_array: np.ndarray) -> dict[str, np.ndarray]:
         inputs: dict[str, np.ndarray] = {}
         for item in session.get_inputs():
