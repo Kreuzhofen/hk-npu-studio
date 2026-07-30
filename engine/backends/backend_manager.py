@@ -129,6 +129,20 @@ class BackendManager:
         3. ONNX Runtime if available.
         4. CPU (Stub) as fallback.
         """
+        from app.settings_manager import SettingsManager
+
+        configured_provider = SettingsManager.get_execution_provider()
+        if configured_provider == SettingsManager.CPU_EXECUTION_PROVIDER:
+            for adapter in self._backends.values():
+                if isinstance(adapter, ONNXBackendAdapter) and adapter.is_available():
+                    self._active_backend_name = adapter.get_backend_name()
+                    logger.info(
+                        "Gespeicherte Provider-Auswahl angewendet | provider=%s backend=%s",
+                        configured_provider,
+                        adapter.get_backend_name(),
+                    )
+                    return adapter
+
         target_backend_name = None
         preferred = None
         
@@ -184,6 +198,13 @@ class BackendManager:
         for name in order:
             adapter = self.get_backend(name)
             if adapter and adapter.is_available():
+                self._active_backend_name = name
                 return adapter
 
         return None
+
+    @staticmethod
+    def get_configured_provider_name() -> str:
+        from app.settings_manager import SettingsManager
+
+        return SettingsManager.get_execution_provider()

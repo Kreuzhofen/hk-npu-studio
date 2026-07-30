@@ -71,6 +71,8 @@ class BatchController:
 
     def get_dashboard_snapshot(self):
         """Return a read-only snapshot for the Phoenix dashboard."""
+        from app.settings_manager import SettingsManager
+
         status = self.runtime.get_engine_status()
         progress = status.get("progress", {})
         scheduler = status.get("scheduler", {})
@@ -149,7 +151,7 @@ class BatchController:
             "current_job": current_job,
             "last_output": output_label,
             "plugin": self._plugin_name(),
-            "backend": self._backend_name(),
+            "backend": SettingsManager.get_execution_provider(),
             "activity": list(self.activity_log),
         }
 

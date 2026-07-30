@@ -1,12 +1,14 @@
 # Projektstatus – Snapdragon AI Studio
 
-**Stand:** 29.07.2026
+**Stand:** 30.07.2026
 **Zweig:** `feature/phoenix-rebuild`
 **Zielplattform:** Windows 11 ARM64 (Qualcomm Snapdragon X NPU via QNN)
 
 ---
 
 ## 1. Aktueller Status & Letzte Änderungen
+
+* **Execution Provider Hotfix:** Die gespeicherte Auswahl `CPU EP` oder `QNN EP` wird beim Start kanonisch als `CPUExecutionProvider` beziehungsweise `QNNExecutionProvider` geladen und steuert nun Backend-Routing, jede zentrale ONNX-`InferenceSession`, Startdiagnose, Home-Status und Dashboard. CPU-Auswahl unterbindet die zuvor erzwungene QNN-Priorisierung; QNN-Auswahl behält den produktiven Hexagon-HTP-Pfad. Beide Neustartfälle wurden real geprüft: SDXL erzeugte vollständig über vier CPU-Sessiongruppen ein 512×512-Bild ohne Mock-/Alpha-Fallback, SD 1.5 erzeugte über QNN/HTP ein Bild mit verifiziertem NPU-Lauf und ohne CPU-Fallback. 24 gezielte Provider-, Settings-, Konfigurations-, Startup-, Backend- und Ressourcen-Tests sind erfolgreich.
 
 * **Generation Hotfix:** Der direkte QNN-Workerstart importiert den Projektstamm nun vor allen Projektmodulen und erhält Arbeitsverzeichnis sowie `PYTHONPATH` explizit. Dadurch schreiben SD 1.5, SD 2.1 und ControlNet auch bei frühen Fehlern wieder gültiges Ergebnis-JSON. Worker-Ausgabe und technische Fehlerdetails werden vollständig protokolliert; die UI zeigt ausschließlich einen lokalisierten Hinweis. Ein Erfolg wird nur noch mit lesbarem JSON und tatsächlich vorhandenem Bild akzeptiert. Alle drei vollständig installierten QNN-Modelle erzeugten auf Hexagon HTP V73 ohne CPU-/Stub-Fallback ein 512×512-Bild. 18 relevante Tests, 3 Worker-Vertragsläufe, Produktkompilierung und Lokalisierungs-Audit mit 705 identischen Schlüsseln sind erfolgreich. ARM64-dist und Installer wurden neu gebaut und validiert; portable und isoliert installierte Diagnose starten mit Exit-Code 0.
 

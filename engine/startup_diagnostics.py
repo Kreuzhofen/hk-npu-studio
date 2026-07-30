@@ -88,7 +88,14 @@ class StartupDiagnostics:
                     "Kein ausführbares Backend erkannt; sicherer CPU-Fallback bleibt aktiv.",
                 )
             else:
-                report.selected_backend = best_backend.get_backend_name()
+                configured_provider = getattr(
+                    manager, "get_configured_provider_name", None
+                )
+                report.selected_backend = (
+                    configured_provider()
+                    if callable(configured_provider)
+                    else best_backend.get_backend_name()
+                )
                 report.add(
                     "backend",
                     StartupCheckStatus.OK,

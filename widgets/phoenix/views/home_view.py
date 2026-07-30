@@ -18,6 +18,7 @@ from controllers.model_manager_controller import ModelManagerController
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
+from app.settings_manager import SettingsManager
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,18 @@ class PhoenixHomeView(tk.Frame):
     """Real-data control center for the Phoenix workspace."""
 
     REFRESH_INTERVAL_SECONDS = 5.0
+
+    @staticmethod
+    def _execution_provider_status(discovery: object) -> str:
+        configured_provider = SettingsManager.get_execution_provider()
+        if configured_provider == SettingsManager.CPU_EXECUTION_PROVIDER:
+            return SettingsManager.CPU_EXECUTION_PROVIDER
+        if (
+            getattr(discovery, "qnn_sdk_found", False)
+            and getattr(discovery, "qnn_tools_found", False)
+        ):
+            return SettingsManager.QNN_EXECUTION_PROVIDER
+        return tr("home_qnn_not_registered", "QNN nicht registriert")
 
     def __init__(
         self,
@@ -362,11 +375,7 @@ class PhoenixHomeView(tk.Frame):
 
         try:
             discovery = self._model_controller.get_discovery_result()
-            npu_status = (
-                tr("home_npu_active", "Hexagon NPU Aktiv")
-                if discovery.qnn_sdk_found and discovery.qnn_tools_found
-                else tr("home_qnn_not_registered", "QNN nicht registriert")
-            )
+            npu_status = self._execution_provider_status(discovery)
             qnn_runtime = tr("home_found", "Gefunden") if discovery.qnn_sdk_found else tr("home_not_found", "Nicht gefunden")
             onnx_runtime = (
                 f"{tr('home_installed_label', 'Installiert')} ({discovery.onnx_version})"

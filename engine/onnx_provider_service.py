@@ -143,6 +143,13 @@ class OnnxProviderService:
     @classmethod
     def preferred_providers(cls) -> list[Any]:
         cls.initialize()
+        from app.settings_manager import SettingsManager
+
+        configured_provider = SettingsManager.get_execution_provider()
+        if configured_provider == cls.CPU_PROVIDER:
+            logger.info("[OnnxProviderService] Configured provider: %s", cls.CPU_PROVIDER)
+            return [cls.CPU_PROVIDER]
+
         providers: list[Any] = []
         if cls.QNN_PROVIDER in cls._providers_after:
             options = cls.provider_options()
@@ -150,6 +157,12 @@ class OnnxProviderService:
         if cls.CPU_PROVIDER in cls._providers_after:
             providers.append(cls.CPU_PROVIDER)
         return providers or [cls.CPU_PROVIDER]
+
+    @classmethod
+    def configured_provider(cls) -> str:
+        from app.settings_manager import SettingsManager
+
+        return SettingsManager.get_execution_provider()
 
     @classmethod
     def create_session(cls, model_path: str | Path, component_name: str = "onnx"):
@@ -334,8 +347,12 @@ class OnnxProviderService:
         cls.initialize()
         provider_lists = session_provider_lists or []
         flat = [provider for providers in provider_lists for provider in providers]
+        if cls.CPU_PROVIDER in flat and cls.QNN_PROVIDER not in flat:
+            return cls.CPU_PROVIDER
         if cls.QNN_PROVIDER in flat:
-            return "ONNX Runtime QNN Provider"
+            return cls.QNN_PROVIDER
+        if cls.configured_provider() == cls.CPU_PROVIDER:
+            return cls.CPU_PROVIDER
         if cls.QNN_PROVIDER in cls._providers_after:
             return "QNN available / CPU fallback"
         return "ONNX Runtime CPU"

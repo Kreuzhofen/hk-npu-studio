@@ -9,6 +9,9 @@ from app.configuration_manager import ConfigurationManager
 class SettingsManager:
     """Manages persistent application settings/preferences stored in preferences.json."""
 
+    CPU_EXECUTION_PROVIDER = "CPUExecutionProvider"
+    QNN_EXECUTION_PROVIDER = "QNNExecutionProvider"
+
     @staticmethod
     def get_preferences_path() -> Path:
         return config.PREFERENCES_PATH
@@ -28,6 +31,16 @@ class SettingsManager:
             else:
                 os.environ.pop("HF_TOKEN", None)
         return saved
+
+    @classmethod
+    def get_execution_provider(cls) -> str:
+        """Return the canonical ONNX Runtime provider selected by the user."""
+        preferences = cls.load_settings()
+        provider = str(preferences.get("execution_provider", "QNN EP")).strip()
+        hardware_accel = str(preferences.get("hardware_accel", "True")).casefold() == "true"
+        if provider in {"CPU EP", "CPU"} or not hardware_accel:
+            return cls.CPU_EXECUTION_PROVIDER
+        return cls.QNN_EXECUTION_PROVIDER
 
     @classmethod
     def get_hf_token(cls) -> str:

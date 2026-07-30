@@ -4,6 +4,19 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-07-30 (Execution Provider Hotfix)
+
+### Behoben
+* Gespeicherte CPU-/QNN-Auswahl an Backend-Routing und zentrale ONNX-Session-Erzeugung angebunden.
+* Bedingungslose QNN-Priorisierung bei gewähltem `CPUExecutionProvider` entfernt.
+* Startdiagnose, Startseite und Dashboard zeigen den tatsächlich konfigurierten Provider statt eines statischen NPU-Status.
+* Runtime-Bezeichnung wird aus den tatsächlich verwendeten Session-Providern abgeleitet.
+
+### Prüfung
+* CPU-Neustart meldet `CPUExecutionProvider`; reale SDXL-Generierung verwendete ausschließlich CPU-Sessions und erzeugte ohne Mock-/Alpha-Fallback ein Bild.
+* QNN-Neustart meldet `QNNExecutionProvider`; reale SD-1.5-Generierung lief verifiziert auf Hexagon HTP ohne CPU-Fallback.
+* 24 gezielte Tests sowie Produktkompilierung erfolgreich.
+
 ## [2.0 RC1] – 2026-07-29 (Generation Hotfix)
 
 ### Behoben
