@@ -1,3 +1,4 @@
+# engine/onnx_image_backend.py
 from __future__ import annotations
 
 import time
@@ -203,6 +204,9 @@ class OnnxImageBackend(InferenceBackend):
             f"job_id={job.job_id}, model={model_name}, size={params.width}x{params.height}, steps={params.steps}"
         )
 
+        # 03% - ONNX-Modell wird vorbereitet
+        job.report_progress(0.03, "ONNX-Modell wird vorbereitet")
+
         # 1. Check ONNX Runtime availability
         available, check_msg = self.check_availability()
         if not available:
@@ -217,6 +221,9 @@ class OnnxImageBackend(InferenceBackend):
 
         logger.info(f"[OnnxImageBackend] {check_msg}")
         print(f"[OnnxImageBackend] {check_msg}")
+
+        # 05% - ONNX Runtime wird geprüft
+        job.report_progress(0.05, "ONNX Runtime wird geprüft")
 
         # 1.5. Discover ONNX models project-wide and log their details
         discovered_models = self.discover_onnx_models()
@@ -355,6 +362,9 @@ class OnnxImageBackend(InferenceBackend):
                 save_diagnostic_log_path,
             )
 
+        # 08% - Prompt wird kodiert
+        job.report_progress(0.08, "Prompt wird kodiert")
+
         try:
             phase_context = (
                 diagnostics.phase("[EMBEDDINGS]", "Prompt-Embeddings erstellt")
@@ -375,6 +385,9 @@ class OnnxImageBackend(InferenceBackend):
                 backend_name,
                 save_diagnostic_log_path,
             )
+
+        # 12% - Scheduler wird vorbereitet
+        job.report_progress(0.12, "Scheduler wird vorbereitet")
 
         # 4.5. Integrate UNetService and scheduler foundation for latent denoising
         from engine.unet_service import UNetService
@@ -420,6 +433,10 @@ class OnnxImageBackend(InferenceBackend):
                     negative_embeddings=embed_res["negative_embeddings"],
                     negative_pooled_embeddings=embed_res["negative_pooled_embeddings"],
                     guidance_scale=params.cfg_scale,
+                    progress_callback=lambda current, total: job.report_progress(
+                        0.15 + 0.75 * current / max(total, 1),
+                        f"CPU-Denoising – Schritt {current} von {total}",
+                    ),
                 )
         except Exception as error:
             logger.exception(
@@ -435,6 +452,9 @@ class OnnxImageBackend(InferenceBackend):
                 backend_name,
                 save_diagnostic_log_path,
             )
+
+        # 92% - VAE-Decoding
+        job.report_progress(0.92, "VAE-Decoding")
 
         # 4.7. Integrate VAEDecoderService for VAE Latent Decoding
         from engine.vae_decoder_service import VAEDecoderService
@@ -517,6 +537,10 @@ class OnnxImageBackend(InferenceBackend):
                 "real_vae_output_selected",
                 "Saving decoded VAE image without diagnostic overlay.",
             )
+            
+            # 98% - Bild wird gespeichert
+            job.report_progress(0.98, "Bild wird gespeichert")
+
             save_context = (
                 diagnostics.phase("[IMAGE]", "Bild gespeichert", model_path=dummy_image_path)
                 if diagnostics else nullcontext()
@@ -629,6 +653,10 @@ class OnnxImageBackend(InferenceBackend):
         print(f"[OnnxImageBackend] Generation completed successfully. Image saved to: {dummy_image_path}")
 
         self._append_save_diagnostic(save_diagnostic_log_path, "before_finish_response")
+        
+        # 100% - Generierung abgeschlossen
+        job.report_progress(1.0, "Generierung abgeschlossen")
+
         return GenerationResponse(
             success=True,
             status="FINISHED",

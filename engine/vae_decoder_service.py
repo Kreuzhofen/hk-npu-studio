@@ -21,6 +21,48 @@ class VAEDecoderService:
     def __init__(self, package: ModelRuntimePackage) -> None:
         self.package = package
 
+    def _resolve_scaling_factor(self, vae_path: str | Path) -> float:
+        """Read the VAE scaling factor from config.json, with SDXL fallback."""
+        import json
+
+        path = Path(vae_path)
+        candidates = [
+            path.parent / "config.json",
+            path.parent.parent / "config.json",
+            path.parent.parent / "vae_decoder" / "config.json",
+            path.parent.parent / "vae" / "config.json",
+        ]
+
+        for config_path in candidates:
+            if not config_path.is_file():
+                continue
+            try:
+                with open(config_path, "r", encoding="utf-8") as handle:
+                    config = json.load(handle)
+                value = config.get("scaling_factor")
+                if value is not None:
+                    factor = float(value)
+                    if factor > 0:
+                        logger.info(
+                            "[VAEDecoderService] Loaded VAE scaling_factor=%s from %s",
+                            factor,
+                            config_path,
+                        )
+                        return factor
+            except Exception as exc:
+                logger.warning(
+                    "[VAEDecoderService] Could not read VAE config %s: %s",
+                    config_path,
+                    exc,
+                )
+
+        fallback = 0.13025
+        logger.warning(
+            "[VAEDecoderService] VAE scaling_factor not found; using SDXL fallback %s",
+            fallback,
+        )
+        return fallback
+
     def decode_latents(self, latents: np.ndarray, prompt: str = "") -> dict[str, Any]:
         """
         Decode a latent tensor of shape (1, 4, latent_h, latent_w) to an RGB image.
@@ -45,9 +87,25 @@ class VAEDecoderService:
                 input_name = session.get_inputs()[0].name
                 print(f"[VAEDecoderService] VAE mapped input: {input_name}")
                 
-                # Run VAE decoding
+                # SDXL latents must be divided by the VAE scaling factor
+                # before decoding.
+                scaling_factor = self._resolve_scaling_factor(vae_path)
+                vae_latents = (
+                    latents.astype(np.float32) / np.float32(scaling_factor)
+                ).astype(np.float32)
+                logger.info(
+                    "[VAEDecoderService] Unscaled latents before VAE decode | "
+                    "factor=%.8f | input_min=%.8f | input_max=%.8f | "
+                    "vae_min=%.8f | vae_max=%.8f",
+                    scaling_factor,
+                    float(np.min(latents)),
+                    float(np.max(latents)),
+                    float(np.min(vae_latents)),
+                    float(np.max(vae_latents)),
+                )
+
                 outputs = diagnostic_session_run(
-                    session, None, {input_name: latents}, phase="VAE Decoding",
+                    session, None, {input_name: vae_latents}, phase="VAE Decoding",
                     component_name="vae_decoder", model_path=vae_path,
                 )
                 vae_output = outputs[0]

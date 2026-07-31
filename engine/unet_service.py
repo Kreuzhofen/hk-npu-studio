@@ -1,3 +1,4 @@
+# engine/unet_service.py
 from __future__ import annotations
 
 import logging
@@ -6,7 +7,7 @@ import threading
 import time
 from engine.logging_config import get_logger
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -24,7 +25,7 @@ class UNetService:
 
     def __init__(self, package: ModelRuntimePackage) -> None:
         self.package = package
-        self.scheduler = SDXLSchedulerService()
+        self.scheduler = SDXLSchedulerService(package.get_component_path("scheduler"))
 
     def generate_initial_latents(self, width: int, height: int, seed: int = -1) -> np.ndarray:
         latent_h = max(1, (height if height > 0 else 512) // 8)
@@ -42,6 +43,7 @@ class UNetService:
         encoder_hidden_states: np.ndarray,
         additional_inputs: dict[str, Any] | None = None,
         diagnostic_phase: str = "UNet",
+        session: Any | None = None,
     ) -> dict[str, Any]:
         unet_path = self.package.get_component_path("unet")
         metadata = OnnxComponentInspector.inspect("unet", unet_path)
@@ -50,11 +52,14 @@ class UNetService:
         if not self.package.is_fully_ready() or not unet_path or not Path(unet_path).is_file():
             raise RuntimeError(f"Reales UNet-Modell ist nicht verfügbar: {unet_path}")
 
-        session = None
+        owns_session = session is None
         try:
-            logger.info(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
-            print(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
-            session = OnnxProviderService.create_session(unet_path, "unet")
+            if owns_session:
+                logger.info(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
+                print(f"[UNetService] Loading UNet InferenceSession for: '{unet_path}'")
+                session = OnnxProviderService.create_session(unet_path, "unet")
+            if session is None:
+                raise RuntimeError("UNet InferenceSession konnte nicht erstellt werden.")
             inputs = self._build_unet_inputs(session, latents, timestep, encoder_hidden_states, additional_inputs or {})
             logger.info(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
             print(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
@@ -77,7 +82,8 @@ class UNetService:
             logger.exception("[UNetService] Real UNet execution failed")
             raise RuntimeError(f"Reale CPU-Ausführung des UNet fehlgeschlagen: {exc}") from exc
         finally:
-            OnnxProviderService.release_session(session)
+            if owns_session:
+                OnnxProviderService.release_session(session)
 
     def run_denoising_loop(
         self,
@@ -89,80 +95,107 @@ class UNetService:
         negative_embeddings: np.ndarray | None = None,
         negative_pooled_embeddings: np.ndarray | None = None,
         guidance_scale: float = 7.0,
+        progress_callback: Callable[[int, int], None] | None = None,
     ) -> dict[str, Any]:
-        current = latents.astype(np.float32)
+        self.scheduler.prepare_timesteps(timesteps)
+        current = self.scheduler.scale_initial_noise(latents.astype(np.float32))
+        logger.info(
+            "[UNetService] Initial latents scaled for Euler scheduler | "
+            "sigma=%.8f | min=%.8f | max=%.8f | mean=%.8f | std=%.8f",
+            self.scheduler.init_noise_sigma,
+            float(np.min(current)),
+            float(np.max(current)),
+            float(np.mean(current)),
+            float(np.std(current)),
+        )
         any_mock = False
         last_result: dict[str, Any] | None = None
         step_records: list[dict[str, Any]] = []
         guidance_enabled = bool(negative_embeddings is not None and guidance_scale != 1.0)
 
-        for index, timestep in enumerate(timesteps):
-            diagnostics = current_diagnostics()
-            step_name = f"Step {index + 1}/{len(timesteps)}"
-            step_started = time.perf_counter()
-            if diagnostics is not None:
-                diagnostics.current_phase = f"Denoise {step_name}"
-                logger.info(
-                    "[DENOISE] %s started | Start: %s | Thread: %s | Provider: %s | "
-                    "Model path: %s | Progress: %.1f%%",
-                    step_name, datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
-                    threading.get_ident(), diagnostics.provider,
-                    self.package.get_component_path("unet"), diagnostics.progress_percent(),
-                )
-            next_timestep = timesteps[index + 1] if index + 1 < len(timesteps) else None
-            positive_inputs = {
-                "text_embeds": pooled_prompt_embeddings,
-                "time_ids": time_ids,
-                "pooled_prompt_embeds": pooled_prompt_embeddings,
-            }
-            positive_result = self.predict_noise(
-                current, timestep, prompt_embeddings, positive_inputs,
-                diagnostic_phase=f"Denoise {step_name} positive",
-            )
-            positive_noise = positive_result["noise_pred"]
-            negative_noise = None
-            negative_result: dict[str, Any] | None = None
+        unet_path = self.package.get_component_path("unet")
+        if not self.package.is_fully_ready() or not unet_path or not Path(unet_path).is_file():
+            raise RuntimeError(f"Reales UNet-Modell ist nicht verfügbar: {unet_path}")
 
-            if guidance_enabled:
-                negative_inputs = {
-                    "text_embeds": negative_pooled_embeddings,
+        logger.info(f"[UNetService] Loading shared UNet InferenceSession for denoising loop: '{unet_path}'")
+        print(f"[UNetService] Loading shared UNet InferenceSession for denoising loop: '{unet_path}'")
+        shared_session = OnnxProviderService.create_session(unet_path, "unet")
+        try:
+            total_steps = len(timesteps)
+            for index, timestep in enumerate(timesteps):
+                diagnostics = current_diagnostics()
+                step_name = f"Step {index + 1}/{total_steps}"
+                step_started = time.perf_counter()
+                if diagnostics is not None:
+                    diagnostics.current_phase = f"Denoise {step_name}"
+                    logger.info(
+                        "[DENOISE] %s started | Start: %s | Thread: %s | Provider: %s | "
+                        "Model path: %s | Progress: %.1f%%",
+                        step_name, datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                        threading.get_ident(), diagnostics.provider,
+                        self.package.get_component_path("unet"), diagnostics.progress_percent(),
+                    )
+                next_timestep = timesteps[index + 1] if index + 1 < total_steps else None
+                positive_inputs = {
+                    "text_embeds": pooled_prompt_embeddings,
                     "time_ids": time_ids,
-                    "pooled_prompt_embeds": negative_pooled_embeddings,
+                    "pooled_prompt_embeds": pooled_prompt_embeddings,
                 }
-                negative_result = self.predict_noise(
-                    current, timestep, negative_embeddings, negative_inputs,
-                    diagnostic_phase=f"Denoise {step_name} negative",
+                latent_model_input = self.scheduler.scale_model_input(current, timestep)
+                positive_result = self.predict_noise(
+                    latent_model_input, timestep, prompt_embeddings, positive_inputs,
+                    diagnostic_phase=f"Denoise {step_name} positive",
+                    session=shared_session,
                 )
-                negative_noise = negative_result["noise_pred"]
+                positive_noise = positive_result["noise_pred"]
+                negative_noise = None
+                negative_result: dict[str, Any] | None = None
 
-            guided_noise = self.scheduler.combine_classifier_free_guidance(
-                positive_noise,
-                negative_noise,
-                guidance_scale,
-            )
-            current = self.scheduler.step(current, guided_noise, timestep, next_timestep)
-            any_mock = any_mock or bool(positive_result.get("is_mock")) or bool(negative_result and negative_result.get("is_mock"))
-            last_result = positive_result
-            step_records.append({
-                "index": index,
-                "timestep": timestep,
-                "next_timestep": next_timestep,
-                "positive_noise_shape": list(positive_noise.shape),
-                "negative_noise_shape": list(negative_noise.shape) if negative_noise is not None else None,
-                "guided_noise_shape": list(guided_noise.shape),
-                "latent_shape": list(current.shape),
-                "guidance_applied": bool(guidance_enabled and negative_noise is not None),
-                "mock_step": bool(positive_result.get("is_mock")) or bool(negative_result and negative_result.get("is_mock")),
-            })
-            if diagnostics is not None:
-                logger.info(
-                    "[DENOISE] %s completed | End: %s | Duration: %.3fs | Thread: %s | "
-                    "Provider: %s | Model path: %s | Progress: %.1f%%",
-                    step_name, datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
-                    time.perf_counter() - step_started, threading.get_ident(),
-                    diagnostics.provider, self.package.get_component_path("unet"),
-                    diagnostics.progress_percent(),
+                if guidance_enabled:
+                    negative_inputs = {
+                        "text_embeds": negative_pooled_embeddings,
+                        "time_ids": time_ids,
+                        "pooled_prompt_embeds": negative_pooled_embeddings,
+                    }
+                    negative_result = self.predict_noise(
+                        latent_model_input, timestep, negative_embeddings, negative_inputs,
+                        diagnostic_phase=f"Denoise {step_name} negative",
+                        session=shared_session,
+                    )
+                    negative_noise = negative_result["noise_pred"]
+
+                guided_noise = self.scheduler.combine_classifier_free_guidance(
+                    positive_noise,
+                    negative_noise,
+                    guidance_scale,
                 )
+                current = self.scheduler.step(current, guided_noise, timestep, next_timestep)
+                any_mock = any_mock or bool(positive_result.get("is_mock")) or bool(negative_result and negative_result.get("is_mock"))
+                last_result = positive_result
+                step_records.append({
+                    "index": index,
+                    "timestep": timestep,
+                    "next_timestep": next_timestep,
+                    "positive_noise_shape": list(positive_noise.shape),
+                    "negative_noise_shape": list(negative_noise.shape) if negative_noise is not None else None,
+                    "guided_noise_shape": list(guided_noise.shape),
+                    "latent_shape": list(current.shape),
+                    "guidance_applied": bool(guidance_enabled and negative_noise is not None),
+                    "mock_step": bool(positive_result.get("is_mock")) or bool(negative_result and negative_result.get("is_mock")),
+                })
+                if progress_callback:
+                    progress_callback(index + 1, total_steps)
+                if diagnostics is not None:
+                    logger.info(
+                        "[DENOISE] %s completed | End: %s | Duration: %.3fs | Thread: %s | "
+                        "Provider: %s | Model path: %s | Progress: %.1f%%",
+                        step_name, datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                        time.perf_counter() - step_started, threading.get_ident(),
+                        diagnostics.provider, self.package.get_component_path("unet"),
+                        diagnostics.progress_percent(),
+                    )
+        finally:
+            OnnxProviderService.release_session(shared_session)
 
         return {
             "latents": current.astype(np.float32),
