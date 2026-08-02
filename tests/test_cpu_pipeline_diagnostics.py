@@ -13,6 +13,7 @@ class _TensorInfo:
     def __init__(self, name: str, shape: list[int]) -> None:
         self.name = name
         self.shape = shape
+        self.type = "tensor(float)"
 
 
 class _Session:

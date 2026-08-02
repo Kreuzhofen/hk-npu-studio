@@ -1,0 +1,17 @@
+{
+  "prompt": "A sleek, modern red sports car driving dynamically along a winding mountain road during golden hour. Cinematic lighting, dramatic shadows, glowing taillights, photorealistic, 8k resolution, highly detailed texture, shot on 35mm lens, professional automotive photography.",
+  "negative_prompt": "blurry, low quality, deformed, distorted, ugly, bad anatomy, poorly drawn, extra limbs, watermark, text, signature.",
+  "model_name": "stable_diffusion_v2_1_qnn",
+  "width": 512,
+  "height": 512,
+  "steps": 25,
+  "cfg_scale": 8.0,
+  "sampler": "Euler",
+  "scheduler": "Euler",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "name": "modern red sports car"
+}

@@ -27,6 +27,22 @@ class UNetService:
         self.package = package
         self.scheduler = SDXLSchedulerService(package.get_component_path("scheduler"))
 
+    def _onnx_type_to_numpy(self, item_type: str) -> np.dtype:
+        if not item_type or not isinstance(item_type, str):
+            return np.float32
+        lowered = item_type.lower()
+        if "float" in lowered:
+            return np.float32
+        if "int64" in lowered:
+            return np.int64
+        if "int32" in lowered:
+            return np.int32
+        if "double" in lowered:
+            return np.float64
+        if "bool" in lowered:
+            return np.bool_
+        return np.float32
+
     def generate_initial_latents(self, width: int, height: int, seed: int = -1) -> np.ndarray:
         latent_h = max(1, (height if height > 0 else 512) // 8)
         latent_w = max(1, (width if width > 0 else 512) // 8)
@@ -61,15 +77,13 @@ class UNetService:
             if session is None:
                 raise RuntimeError("UNet InferenceSession konnte nicht erstellt werden.")
             inputs = self._build_unet_inputs(session, latents, timestep, encoder_hidden_states, additional_inputs or {})
-            logger.info(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
-            print(f"[UNetService] UNet mapped inputs: {list(inputs.keys())}")
+            logger.debug("[UNetService] UNet mapped inputs: %s", list(inputs.keys()))
             outputs = diagnostic_session_run(
                 session, None, inputs, phase=diagnostic_phase,
                 component_name="unet", model_path=unet_path,
             )
             output_noise = self._normalize_noise_output(np.asarray(outputs[0]), latents)
-            logger.info(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
-            print(f"[UNetService] UNet ONNX run successful. Output shape: {output_noise.shape}")
+            logger.debug("[UNetService] UNet ONNX run successful. Output shape: %s", output_noise.shape)
             metadata["session_providers"] = OnnxProviderService.session_providers(session)
             return {
                 "noise_pred": output_noise,
@@ -136,33 +150,46 @@ class UNetService:
                         self.package.get_component_path("unet"), diagnostics.progress_percent(),
                     )
                 next_timestep = timesteps[index + 1] if index + 1 < total_steps else None
-                positive_inputs = {
-                    "text_embeds": pooled_prompt_embeddings,
-                    "time_ids": time_ids,
-                    "pooled_prompt_embeds": pooled_prompt_embeddings,
-                }
                 latent_model_input = self.scheduler.scale_model_input(current, timestep)
-                positive_result = self.predict_noise(
-                    latent_model_input, timestep, prompt_embeddings, positive_inputs,
-                    diagnostic_phase=f"Denoise {step_name} positive",
-                    session=shared_session,
-                )
-                positive_noise = positive_result["noise_pred"]
                 negative_noise = None
                 negative_result: dict[str, Any] | None = None
 
                 if guidance_enabled:
-                    negative_inputs = {
-                        "text_embeds": negative_pooled_embeddings,
-                        "time_ids": time_ids,
-                        "pooled_prompt_embeds": negative_pooled_embeddings,
+                    cfg_latents = np.concatenate(
+                        [latent_model_input, latent_model_input], axis=0
+                    )
+                    cfg_embeddings = np.concatenate(
+                        [negative_embeddings, prompt_embeddings], axis=0
+                    )
+                    cfg_pooled = np.concatenate(
+                        [negative_pooled_embeddings, pooled_prompt_embeddings], axis=0
+                    )
+                    cfg_time_ids = np.concatenate([time_ids, time_ids], axis=0)
+                    cfg_inputs = {
+                        "text_embeds": cfg_pooled,
+                        "time_ids": cfg_time_ids,
+                        "pooled_prompt_embeds": cfg_pooled,
                     }
-                    negative_result = self.predict_noise(
-                        latent_model_input, timestep, negative_embeddings, negative_inputs,
-                        diagnostic_phase=f"Denoise {step_name} negative",
+                    positive_result = self.predict_noise(
+                        cfg_latents, timestep, cfg_embeddings, cfg_inputs,
+                        diagnostic_phase=f"Denoise {step_name} CFG",
                         session=shared_session,
                     )
-                    negative_noise = negative_result["noise_pred"]
+                    negative_noise, positive_noise = np.split(
+                        positive_result["noise_pred"], 2, axis=0
+                    )
+                else:
+                    positive_inputs = {
+                        "text_embeds": pooled_prompt_embeddings,
+                        "time_ids": time_ids,
+                        "pooled_prompt_embeds": pooled_prompt_embeddings,
+                    }
+                    positive_result = self.predict_noise(
+                        latent_model_input, timestep, prompt_embeddings, positive_inputs,
+                        diagnostic_phase=f"Denoise {step_name} positive",
+                        session=shared_session,
+                    )
+                    positive_noise = positive_result["noise_pred"]
 
                 guided_noise = self.scheduler.combine_classifier_free_guidance(
                     positive_noise,
@@ -222,27 +249,31 @@ class UNetService:
         for item in session.get_inputs():
             name = item.name
             lowered = name.lower()
+            
+            item_type = getattr(item, "type", None) or "tensor(float)"
+            dtype = self._onnx_type_to_numpy(item_type)
+            
             if lowered in additional_inputs and additional_inputs[lowered] is not None:
-                inputs[name] = np.asarray(additional_inputs[lowered]).astype(np.float32)
+                inputs[name] = np.asarray(additional_inputs[lowered]).astype(dtype)
             elif "sample" in lowered or "latent" in lowered:
-                inputs[name] = latents.astype(np.float32)
+                inputs[name] = latents.astype(dtype)
             elif "timestep" in lowered or lowered in {"t", "time"}:
                 if item.shape == []:
-                    inputs[name] = np.array(float(timestep), dtype=np.float32)
+                    inputs[name] = np.array(float(timestep), dtype=dtype)
                 else:
-                    inputs[name] = np.array([timestep], dtype=np.float32)
+                    inputs[name] = np.array([timestep], dtype=dtype)
             elif "encoder_hidden" in lowered or "hidden_states" in lowered or "encoder" in lowered:
-                inputs[name] = encoder_hidden_states.astype(np.float32)
+                inputs[name] = encoder_hidden_states.astype(dtype)
             elif "text_embeds" in lowered or "pooled" in lowered:
                 value = additional_inputs.get("text_embeds")
                 if value is None:
                     value = additional_inputs.get("pooled_prompt_embeds")
-                inputs[name] = np.asarray(value).astype(np.float32) if value is not None else self._zeros_for_shape(item.shape, np.float32)
+                inputs[name] = np.asarray(value).astype(dtype) if value is not None else self._zeros_for_shape(item.shape, dtype)
             elif "time_ids" in lowered or "add_time" in lowered:
                 value = additional_inputs.get("time_ids")
-                inputs[name] = np.asarray(value).astype(np.float32) if value is not None else self._zeros_for_shape(item.shape, np.float32)
+                inputs[name] = np.asarray(value).astype(dtype) if value is not None else self._zeros_for_shape(item.shape, dtype)
             else:
-                inputs[name] = self._zeros_for_shape(item.shape, np.float32)
+                inputs[name] = self._zeros_for_shape(item.shape, dtype)
         return inputs
 
     def _normalize_noise_output(self, output: np.ndarray, latents: np.ndarray) -> np.ndarray:

@@ -1,0 +1,17 @@
+{
+  "prompt": "A modern Japanese house on a cliff overlooking the ocean at sunset, floor-to-ceiling glass walls, wooden architecture, realistic reflections, cinematic lighting, ultra detailed, photorealistic, 8k.",
+  "negative_prompt": "distorted geometry, crooked walls, blurry, duplicate objects, low quality",
+  "model_name": "sdxl_base",
+  "width": 512,
+  "height": 512,
+  "steps": 30,
+  "cfg_scale": 7.5,
+  "sampler": "Euler a",
+  "scheduler": "Normal",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "name": "Architektur"
+}

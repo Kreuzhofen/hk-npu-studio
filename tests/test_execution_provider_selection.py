@@ -114,9 +114,12 @@ class ExecutionProviderSelectionTests(unittest.TestCase):
             created = OnnxProviderService.create_session("model.onnx", "test")
 
         self.assertIs(session, created)
-        fake_ort.InferenceSession.assert_called_once_with(
-            "model.onnx", providers=["CPUExecutionProvider"]
-        )
+        fake_ort.InferenceSession.assert_called_once()
+        call_args, call_kwargs = fake_ort.InferenceSession.call_args
+        self.assertEqual(len(call_args), 1)
+        self.assertTrue(call_args[0].endswith("model.onnx"))
+        self.assertEqual(call_kwargs.get("providers"), ["CPUExecutionProvider"])
+        self.assertIsNotNone(call_kwargs.get("sess_options"))
 
     def test_dashboard_reports_the_configured_provider(self) -> None:
         runtime = MagicMock()

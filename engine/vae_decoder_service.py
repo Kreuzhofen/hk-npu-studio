@@ -21,6 +21,22 @@ class VAEDecoderService:
     def __init__(self, package: ModelRuntimePackage) -> None:
         self.package = package
 
+    def _onnx_type_to_numpy(self, item_type: str) -> np.dtype:
+        if not item_type or not isinstance(item_type, str):
+            return np.float32
+        lowered = item_type.lower()
+        if "float" in lowered:
+            return np.float32
+        if "int64" in lowered:
+            return np.int64
+        if "int32" in lowered:
+            return np.int32
+        if "double" in lowered:
+            return np.float64
+        if "bool" in lowered:
+            return np.bool_
+        return np.float32
+
     def _resolve_scaling_factor(self, vae_path: str | Path) -> float:
         """Read the VAE scaling factor from config.json, with SDXL fallback."""
         import json
@@ -84,15 +100,19 @@ class VAEDecoderService:
                 print(f"[VAEDecoderService] Loading VAE Decoder InferenceSession for: '{vae_path}'")
                 
                 session = OnnxProviderService.create_session(vae_path, "vae_decoder")
-                input_name = session.get_inputs()[0].name
+                input_item = session.get_inputs()[0]
+                input_name = input_item.name
                 print(f"[VAEDecoderService] VAE mapped input: {input_name}")
+                
+                item_type = getattr(input_item, "type", None) or "tensor(float)"
+                dtype = self._onnx_type_to_numpy(item_type)
                 
                 # SDXL latents must be divided by the VAE scaling factor
                 # before decoding.
                 scaling_factor = self._resolve_scaling_factor(vae_path)
                 vae_latents = (
-                    latents.astype(np.float32) / np.float32(scaling_factor)
-                ).astype(np.float32)
+                    latents.astype(dtype) / np.array(scaling_factor, dtype=dtype)
+                ).astype(dtype)
                 logger.info(
                     "[VAEDecoderService] Unscaled latents before VAE decode | "
                     "factor=%.8f | input_min=%.8f | input_max=%.8f | "

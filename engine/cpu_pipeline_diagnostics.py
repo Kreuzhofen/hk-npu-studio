@@ -146,6 +146,17 @@ class CpuPipelineDiagnostics:
             _timestamp(), threading.get_ident(),
         )
 
+        print(f"\n===== ONNX SESSION: {component_name} =====")
+        print(f"Model: {model_path}")
+        print(f"Providers: {actual}")
+        print("Inputs:")
+        for item in session.get_inputs():
+            print(f"  - {item.name} | shape={item.shape} | type={getattr(item, 'type', 'N/A')}")
+        print("Outputs:")
+        for item in session.get_outputs():
+            print(f"  - {item.name} | shape={item.shape} | type={getattr(item, 'type', 'N/A')}")
+        print("=====================================\n")
+
     def run_session(
         self,
         session: Any,

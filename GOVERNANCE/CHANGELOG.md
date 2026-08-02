@@ -4,6 +4,30 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1] – 2026-08-01 (CPU SDXL Generation Pipeline Fix)
+
+### Behoben
+* Kompatiblen UNet-Modellgraphen (`unet_model_mismatched.onnx` / 4.05 MB) als Standard `model.onnx` im `sdxl_base/unet`-Verzeichnis wiederhergestellt, um den Fehler mit nicht übereinstimmenden Tensor-Initialisierer-Offsets und der resultierenden Kachelungs-Struktur (Tiled/Grid-Pattern) in den Bildausgaben vollständig zu beheben.
+* Dynamische Datentyp-Konvertierung in `unet_service.py` verfeinert, um `timestep` als Skalar (`shape=[]`) oder als 1D-Tensor (`shape=[1]`) mit dem exakt vom ONNX-Modell deklarierten Typ (`float32` oder `int64`) an die Inferenzsitzung zu übergeben, wodurch type mismatch Fehler behoben wurden.
+* Dynamische Datentyp-Auflösung in `vae_decoder_service.py` integriert, um den erwarteten Datentyp des VAE-Eingangstensors dynamisch auszulesen, anstatt ihn hart auf `float32` festzulegen.
+
+### Prüfung
+* CPU SDXL-Pipeline erzeugt ein korrektes, kachelungsfreies End-to-End-Generierungsbild (Bergstraße mit Bergen und roten Strichen).
+* Gesamte Testsuite (203 Tests) erfolgreich durchlaufen.
+* Modulkompilierung über `py_compile` erfolgreich geprüft.
+
+## [2.0 RC1] – 2026-08-01 (Test Suite Fixes / Diagnostics Robustness)
+
+### Behoben
+* Diagnoseausgabe für ONNX-Sitzungen in `CpuPipelineDiagnostics` robuster gestaltet, sodass das Fehlen des optionalen Attributs `type` bei `_TensorInfo`-Objekten per `getattr` abgefangen wird.
+* Test-Mock-Klasse `_TensorInfo` in `test_cpu_pipeline_diagnostics.py` um das Attribut `type` erweitert, um dem realen ONNX-Interface zu entsprechen.
+* Test `test_session_factory_passes_only_configured_cpu_provider` an Pfadauflösung und CPU-spezifische Sitzungsoptionen angepasst.
+
+### Prüfung
+* Kompilierung aller betroffenen Module per `py_compile` erfolgreich.
+* Gesamte Testsuite (278 Tests) erfolgreich durchlaufen.
+
+
 ## [2.0 RC1] – 2026-07-30 (Release Final Status/ControlNet Fix)
 
 ### Behoben

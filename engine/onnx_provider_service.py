@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,8 @@ class OnnxProviderService:
     _qnn_provider_options: dict[str, Any] = {}
     _dll_directories: list[Any] = []
     _diagnostic_log_dir = Path(r"C:\SnapdragonAI\diagnostics\logs")
+    _session_cache: dict[tuple[str, str], Any] = {}
+    _session_cache_lock = threading.RLock()
 
     @classmethod
     def initialize(cls) -> None:
@@ -165,28 +168,114 @@ class OnnxProviderService:
         return SettingsManager.get_execution_provider()
 
     @classmethod
+    def _provider_cache_key(cls, providers: list[Any]) -> str:
+        return repr(providers)
+
+    @classmethod
+    def _build_cpu_session_options(cls):
+        import onnxruntime as ort
+
+        options = ort.SessionOptions()
+        options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        options.enable_mem_pattern = True
+        options.enable_cpu_mem_arena = True
+
+        cpu_count = max(1, os.cpu_count() or 1)
+        default_intra_threads = max(1, cpu_count - 1)
+        try:
+            options.intra_op_num_threads = max(
+                1,
+                int(os.environ.get("SNAPDRAGONAI_ORT_INTRA_THREADS", default_intra_threads)),
+            )
+        except (TypeError, ValueError):
+            options.intra_op_num_threads = default_intra_threads
+
+        try:
+            options.inter_op_num_threads = max(
+                1,
+                int(os.environ.get("SNAPDRAGONAI_ORT_INTER_THREADS", "1")),
+            )
+        except (TypeError, ValueError):
+            options.inter_op_num_threads = 1
+
+        logger.info(
+            "[OnnxProviderService] CPU SessionOptions: graph=ALL, mode=SEQUENTIAL, "
+            "intra_threads=%s, inter_threads=%s, mem_pattern=%s, cpu_arena=%s",
+            options.intra_op_num_threads,
+            options.inter_op_num_threads,
+            options.enable_mem_pattern,
+            options.enable_cpu_mem_arena,
+        )
+        return options
+
+    @classmethod
     def create_session(cls, model_path: str | Path, component_name: str = "onnx"):
         cls.initialize()
         import onnxruntime as ort
 
         providers = cls.preferred_providers()
-        logger.info("[OnnxProviderService] Loading %s with providers: %s", component_name, providers)
-        print(f"[OnnxProviderService] Loading {component_name} with providers: {providers}")
-        from engine.cpu_pipeline_diagnostics import current_diagnostics
+        resolved_path = str(Path(model_path).resolve())
+        cache_key = (resolved_path, cls._provider_cache_key(providers))
 
-        diagnostics = current_diagnostics()
-        if diagnostics is not None:
-            with diagnostics.phase(
-                "[ONNX SESSION]",
-                f"{component_name} Session creation",
-                model_path=model_path,
-            ):
-                session = ort.InferenceSession(str(model_path), providers=providers)
-            diagnostics.log_session(session, component_name, model_path)
-        else:
-            session = ort.InferenceSession(str(model_path), providers=providers)
+        with cls._session_cache_lock:
+            cached = cls._session_cache.get(cache_key)
+            if cached is not None:
+                logger.debug(
+                    "[OnnxProviderService] Reusing cached %s session: %s",
+                    component_name,
+                    resolved_path,
+                )
+                return cached
+
+            logger.info("[OnnxProviderService] Loading %s with providers: %s", component_name, providers)
+            print(f"[OnnxProviderService] Loading {component_name} with providers: {providers}")
+            from engine.cpu_pipeline_diagnostics import current_diagnostics
+
+            session_options = None
+            if providers == [cls.CPU_PROVIDER]:
+                session_options = cls._build_cpu_session_options()
+
+            diagnostics = current_diagnostics()
+            if diagnostics is not None:
+                with diagnostics.phase(
+                    "[ONNX SESSION]",
+                    f"{component_name} Session creation",
+                    model_path=model_path,
+                ):
+                    session = ort.InferenceSession(
+                        resolved_path,
+                        sess_options=session_options,
+                        providers=providers,
+                    )
+                diagnostics.log_session(session, component_name, model_path)
+            else:
+                session = ort.InferenceSession(
+                    resolved_path,
+                    sess_options=session_options,
+                    providers=providers,
+                )
+
+            cls._session_cache[cache_key] = session
+
         logger.info("[OnnxProviderService] %s session providers: %s", component_name, session.get_providers())
         print(f"[OnnxProviderService] {component_name} session providers: {session.get_providers()}")
+
+        logger.info("[OnnxProviderService] %s model path: %s", component_name, resolved_path)
+        print(f"[OnnxProviderService] {component_name} model path: {resolved_path}")
+
+        logger.info("[OnnxProviderService] %s inputs:", component_name)
+        print(f"[OnnxProviderService] {component_name} inputs:")
+        for item in session.get_inputs():
+            logger.info("  - name=%s | shape=%s | type=%s", item.name, item.shape, item.type)
+            print(f"  - name={item.name} | shape={item.shape} | type={item.type}")
+
+        logger.info("[OnnxProviderService] %s outputs:", component_name)
+        print(f"[OnnxProviderService] {component_name} outputs:")
+        for item in session.get_outputs():
+            logger.info("  - name=%s | shape=%s | type=%s", item.name, item.shape, item.type)
+            print(f"  - name={item.name} | shape={item.shape} | type={item.type}")
+
         return session
 
     @classmethod
@@ -344,15 +433,34 @@ class OnnxProviderService:
 
     @classmethod
     def release_session(cls, session: Any) -> None:
-        """Release optional session-owned resources without masking inference errors."""
-        if session is None:
-            return
-        close = getattr(session, "close", None)
-        if callable(close):
-            try:
-                close()
-            except Exception as exc:
-                logger.warning("ONNX-Session konnte nicht sauber geschlossen werden: %s", exc)
+        """
+        Keep cached sessions alive for reuse.
+
+        ONNX Runtime sessions are expensive to create. Cached sessions are released
+        explicitly through close_all_sessions(), normally only during application exit
+        or after changing the execution provider.
+        """
+        return
+
+    @classmethod
+    def close_all_sessions(cls) -> None:
+        """Close and remove all cached ONNX Runtime sessions."""
+        with cls._session_cache_lock:
+            sessions = list(cls._session_cache.values())
+            cls._session_cache.clear()
+
+        for session in sessions:
+            close = getattr(session, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception as exc:
+                    logger.warning("ONNX-Session konnte nicht sauber geschlossen werden: %s", exc)
+
+    @classmethod
+    def cached_session_count(cls) -> int:
+        with cls._session_cache_lock:
+            return len(cls._session_cache)
 
     @classmethod
     def runtime_label(cls, session_provider_lists: list[list[str]] | None = None) -> str:

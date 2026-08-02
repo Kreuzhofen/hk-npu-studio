@@ -45,15 +45,17 @@ class SDXLSchedulerService:
             )
 
         self.betas = self._build_betas()
-        self.alphas = 1.0 - self.betas
-        self.alphas_cumprod = np.cumprod(self.alphas, axis=0).astype(np.float64)
+        self.alphas = np.float32(1.0) - self.betas
+        self.alphas_cumprod = np.cumprod(
+            self.alphas, axis=0, dtype=np.float32
+        )
         self.training_sigmas = np.sqrt(
-            (1.0 - self.alphas_cumprod) / self.alphas_cumprod
-        ).astype(np.float64)
+            (np.float32(1.0) - self.alphas_cumprod) / self.alphas_cumprod
+        ).astype(np.float32)
 
         self.timesteps = np.array([], dtype=np.float32)
         self.sigmas = np.array([], dtype=np.float32)
-        self._step_index = 0
+        self._step_index: int | None = None
 
     def _load_config(self, scheduler_path: str | Path | None) -> dict[str, Any]:
         if not scheduler_path:
@@ -88,16 +90,16 @@ class SDXLSchedulerService:
                 self.beta_start,
                 self.beta_end,
                 self.train_timesteps,
-                dtype=np.float64,
+                dtype=np.float32,
             )
 
         if self.beta_schedule == "scaled_linear":
             return np.linspace(
-                np.sqrt(self.beta_start),
-                np.sqrt(self.beta_end),
+                np.float32(np.sqrt(self.beta_start)),
+                np.float32(np.sqrt(self.beta_end)),
                 self.train_timesteps,
-                dtype=np.float64,
-            ) ** 2
+                dtype=np.float32,
+            ) ** np.float32(2.0)
 
         raise NotImplementedError(
             f"Unsupported beta_schedule: {self.beta_schedule}"
@@ -193,19 +195,31 @@ class SDXLSchedulerService:
         self.sigmas = np.concatenate(
             [inference_sigmas, np.array([final_sigma], dtype=np.float64)]
         ).astype(np.float32)
-        self._step_index = 0
+        self._step_index = None
+
+    def _index_for_timestep(self, timestep: int | float) -> int:
+        indices = np.nonzero(self.timesteps == np.float32(timestep))[0]
+        if indices.size == 0:
+            raise ValueError(f"Timestep {timestep} is not in the scheduler schedule.")
+        return int(indices[1] if indices.size > 1 else indices[0])
+
+    def _init_step_index(self, timestep: int | float) -> None:
+        if self._step_index is None:
+            self._step_index = self._index_for_timestep(timestep)
 
     @property
     def init_noise_sigma(self) -> float:
         if self.sigmas.size:
-            max_sigma = float(np.max(self.sigmas))
+            max_sigma = np.max(self.sigmas)
         else:
-            max_sigma = float(np.max(self.training_sigmas))
+            max_sigma = np.max(self.training_sigmas)
 
         if self.timestep_spacing in {"linspace", "trailing"}:
-            return max_sigma
+            return float(max_sigma)
 
-        return float(np.sqrt(max_sigma**2 + 1.0))
+        return float(
+            np.sqrt(max_sigma * max_sigma + np.float32(1.0))
+        )
 
     def scale_initial_noise(self, latents: np.ndarray) -> np.ndarray:
         return (
@@ -222,11 +236,13 @@ class SDXLSchedulerService:
             raise RuntimeError(
                 "Scheduler timesteps were not prepared before scale_model_input()."
             )
+        self._init_step_index(timestep)
+        assert self._step_index is not None
         if self._step_index >= len(self.sigmas) - 1:
             raise IndexError("Scheduler step index is outside the sigma schedule.")
 
-        sigma = float(self.sigmas[self._step_index])
-        scale = np.sqrt(sigma * sigma + 1.0)
+        sigma = np.float32(self.sigmas[self._step_index])
+        scale = np.sqrt(sigma * sigma + np.float32(1.0))
         return (
             np.asarray(sample, dtype=np.float32) / np.float32(scale)
         ).astype(np.float32)
@@ -245,6 +261,8 @@ class SDXLSchedulerService:
             )
         if self.sigmas.size == 0:
             raise RuntimeError("Scheduler timesteps were not prepared before step().")
+        self._init_step_index(timestep)
+        assert self._step_index is not None
         if self._step_index >= len(self.sigmas) - 1:
             raise IndexError("Scheduler step index is outside the sigma schedule.")
 
