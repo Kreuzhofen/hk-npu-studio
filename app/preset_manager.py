@@ -95,13 +95,26 @@ class PresetManager:
                 pass
         return None
 
+    @staticmethod
+    def preset_key(name: str) -> str:
+        """Return the normalized file key used for a preset display name."""
+        safe_name = "".join(
+            c for c in name if c.isalnum() or c in (" ", "_", "-")
+        ).strip()
+        return safe_name.lower().replace(" ", "_")
+
+    def preset_exists(self, name: str) -> bool:
+        """Return whether a preset with this normalized display name exists."""
+        key = self.preset_key(name)
+        return bool(key and (self.preset_dir / f"{key}.json").is_file())
+
     def save_preset(self, name: str, data: dict[str, Any]) -> bool:
         """Saves a preset under a given display name."""
         safe_name = "".join([c for c in name if c.isalnum() or c in (" ", "_", "-")]).strip()
         if not safe_name:
             return False
 
-        filename = safe_name.lower().replace(" ", "_")
+        filename = self.preset_key(safe_name)
         file_path = self.preset_dir / f"{filename}.json"
 
         preset_data = dict(data)

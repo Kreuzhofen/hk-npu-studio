@@ -53,6 +53,36 @@ class PresetManagerTests(unittest.TestCase):
         self.assertEqual(loaded["cfg_scale"], 12.0)
         self.assertEqual(loaded["steps"], 50)
 
+    def test_complete_generation_preset_round_trip(self) -> None:
+        preset_data = {
+            "prompt": "Mountain road",
+            "negative_prompt": "blurry",
+            "model_name": "sdxl_base",
+            "backend": "CPUExecutionProvider",
+            "seed": 12345,
+            "width": 512,
+            "height": 512,
+            "steps": 30,
+            "cfg_scale": 7.0,
+            "sampler": "Euler a",
+            "scheduler": "Normal",
+            "batch": 4,
+            "controlnet_enabled": True,
+            "canny_low_threshold": 40,
+            "canny_high_threshold": 140,
+            "controlnet_conditioning_scale": 0.75,
+            "reference_image_path": "C:/images/reference.png",
+        }
+
+        self.assertTrue(self.manager.save_preset("Complete", preset_data))
+        self.assertEqual(self.manager.get_preset("complete"), {"name": "Complete", **preset_data})
+
+    def test_preset_exists_uses_normalized_name(self) -> None:
+        self.assertTrue(self.manager.save_preset("My Preset", {"prompt": "first"}))
+        self.assertTrue(self.manager.preset_exists("My Preset"))
+        self.assertTrue(self.manager.preset_exists("my_preset"))
+        self.assertFalse(self.manager.preset_exists("Missing"))
+
     def test_delete_preset_removes_from_disk(self) -> None:
         """4. delete_preset löscht das Preset-File vom Dateisystem."""
         presets_before = self.manager.list_presets()

@@ -907,7 +907,8 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self._add_button_hover(self.adv_settings_btn)
 
-        tk.Label(self.sampling_frame, text=tr("steps_label_colon", "Steps:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=1, sticky="w", pady=(0, 1))
+        self.steps_label = tk.Label(self.sampling_frame, text=tr("steps_label_colon", "Steps:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        self.steps_label.grid(row=0, column=1, sticky="w", pady=(0, 1))
         self.steps_scale = tk.Scale(
             self.sampling_frame, from_=1, to=100, orient="horizontal",
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
@@ -978,7 +979,8 @@ class PhoenixPromptView(WorkspaceFrame):
         self.output_frame.grid_columnconfigure(2, weight=0)
         self.output_frame.grid_columnconfigure(3, weight=1)
 
-        tk.Label(self.output_frame, text=tr("seed_label_colon", "Seed:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+        self.seed_label = tk.Label(self.output_frame, text=tr("seed_label_colon", "Seed:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        self.seed_label.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
         self.seed_entry = tk.Entry(
             self.output_frame, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
             insertbackground=PHOENIX_THEME.text_primary,
@@ -988,11 +990,19 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.seed_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
  
-        tk.Label(self.output_frame, text=tr("batch_label_colon", "Batch:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-        batch_menu = tk.OptionMenu(self.output_frame, self.batch_var, "1", "2", "4", "8")
-        batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, disabledforeground=PHOENIX_THEME.text_disabled, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
-        batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
-        batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
+        self.batch_label = tk.Label(self.output_frame, text=tr("batch_label_colon", "Batch:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        self.batch_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+        self.batch_menu = tk.OptionMenu(self.output_frame, self.batch_var, "1", "2", "4", "8")
+        self.batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, disabledforeground=PHOENIX_THEME.text_disabled, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
+        self.batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
+        self.batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
+
+        self._attach_parameter_help((self.seed_label, self.seed_entry), "seed_help", "Reproduzierbarer Startwert; -1 bedeutet zufälliger Seed.")
+        self._attach_parameter_help((self.batch_label, self.batch_menu), "batch_help", "Anzahl der zu erzeugenden Bilder; erhöht Zeit- und Speicherbedarf.")
+        self._attach_parameter_help((self.steps_label, self.steps_scale), "steps_help", "Mehr Entrauschungsschritte können Details verbessern, benötigen aber mehr Zeit.")
+        self._attach_parameter_help((self.cfg_label, self.cfg_scale), "cfg_scale_help", "Stärke der Prompt-Befolgung; typische Empfehlung 6–8.")
+        self._attach_parameter_help((self.sampler_lbl, self.sampler_menu), "sampler_help", "Verwendetes Berechnungsverfahren für die Bildentstehung.", self.sampler_menu)
+        self._attach_parameter_help((self.scheduler_lbl, self.scheduler_menu), "scheduler_help", "Zeitliche Verteilung der Entrauschungsschritte.", self.scheduler_menu)
 
         self._update_tab_bar_visuals()
         self._apply_generation_contract(self.model_var.get())
@@ -1016,6 +1026,26 @@ class PhoenixPromptView(WorkspaceFrame):
             else:
                 label_widget.configure(text=label_base_text)
 
+    @staticmethod
+    def _attach_parameter_help(
+        widgets: tuple[tk.Widget, ...],
+        translation_key: str,
+        fallback: str,
+        constrained_widget: tk.Widget | None = None,
+    ) -> None:
+        def help_text() -> str:
+            text = tr(translation_key, fallback)
+            if constrained_widget is not None and str(constrained_widget.cget("state")) == "disabled":
+                fixed_hint = tr(
+                    "parameter_fixed_by_model_backend",
+                    "Für dieses Modell/Backend fest vorgegeben.",
+                )
+                return f"{text}\n{fixed_hint}"
+            return text
+
+        for widget in widgets:
+            _Tooltip(widget, help_text)
+
     def _apply_generation_contract(self, model_id: str) -> None:
         contract = self.controller.select_model(model_id)
         if not contract:
@@ -1028,9 +1058,15 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._configure_option_contract(widget, variable, spec)
 
         if isinstance(contract.get("sampler"), dict):
-            self._configure_option_contract(self.sampler_menu, self.sampler_var, contract["sampler"], self.sampler_lbl, "Sampler:")
+            self._configure_option_contract(
+                self.sampler_menu, self.sampler_var, contract["sampler"],
+                self.sampler_lbl, tr("sampler_label_colon", "Sampler:"),
+            )
         if isinstance(contract.get("scheduler"), dict):
-            self._configure_option_contract(self.scheduler_menu, self.scheduler_var, contract["scheduler"], self.scheduler_lbl, "Sched.:")
+            self._configure_option_contract(
+                self.scheduler_menu, self.scheduler_var, contract["scheduler"],
+                self.scheduler_lbl, tr("scheduler_label_colon", "Sched.:"),
+            )
 
         self.sampling_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
 
@@ -2989,6 +3025,8 @@ class PhoenixPromptView(WorkspaceFrame):
             height = entry.get("height")
             steps = entry.get("steps")
             cfg = entry.get("cfg_scale") or entry.get("cfg")
+            seed = entry.get("seed")
+            batch = entry.get("batch", entry.get("batch_size"))
             sampler = entry.get("sampler")
             scheduler = entry.get("scheduler")
 
@@ -3001,6 +3039,12 @@ class PhoenixPromptView(WorkspaceFrame):
             if neg_prompt is not None:
                 self.neg_prompt_text.delete("1.0", "end")
                 self.neg_prompt_text.insert("1.0", neg_prompt)
+                if (
+                    hasattr(self, "_negative_prompt_popup_text")
+                    and self._negative_prompt_popup_text.winfo_exists()
+                ):
+                    self._negative_prompt_popup_text.delete("1.0", "end")
+                    self._negative_prompt_popup_text.insert("1.0", neg_prompt)
 
             if model_name:
                 self.model_var.set(model_name)
@@ -3016,8 +3060,12 @@ class PhoenixPromptView(WorkspaceFrame):
                     self._load_reference_image(ref_path)
                 else:
                     self._clear_reference_image_state()
+                if self.canny_supported:
+                    self._switch_tab("canny")
             else:
                 self._clear_reference_image_state()
+                if self.active_tab == "canny":
+                    self._switch_tab("basic")
 
             if width is not None:
                 self.width_var.set(str(width))
@@ -3027,6 +3075,10 @@ class PhoenixPromptView(WorkspaceFrame):
                 self.steps_var.set(int(steps))
             if cfg is not None:
                 self.cfg_var.set(float(cfg))
+            if seed is not None:
+                self.seed_var.set(str(seed))
+            if batch is not None:
+                self.batch_var.set(str(batch))
             if sampler is not None:
                 self.sampler_var.set(sampler)
             if scheduler is not None:
@@ -3039,7 +3091,42 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._prompt_popup_text.insert("1.0", entry)
 
     def apply_generation_settings(self, settings: dict) -> None:
-        self._load_prompt_from_history(settings)
+        self._load_prompt_from_history(self._normalize_preset_settings(settings))
+
+    def _normalize_preset_settings(self, settings: dict) -> dict:
+        """Fill fields omitted by older presets with the existing model defaults."""
+        model_name = settings.get("model_name") or settings.get("model") or self.model_var.get()
+        contract = self.controller.get_generation_parameters(model_name) or {}
+
+        def contract_default(name: str, fallback):
+            spec = contract.get(name)
+            return spec.get("default", fallback) if isinstance(spec, dict) else fallback
+
+        model_metadata = self.controller.repository.get_model(model_name) or {}
+        defaults = {
+            "prompt": "",
+            "negative_prompt": "",
+            "model_name": model_name,
+            "backend": model_metadata.get("backend", ""),
+            "seed": contract_default("seed", -1),
+            "width": contract_default("width", 512),
+            "height": contract_default("height", 512),
+            "steps": contract_default("steps", 20),
+            "cfg_scale": contract_default("cfg", 7.5),
+            "sampler": contract_default("sampler", "Euler"),
+            "scheduler": contract_default("scheduler", "Normal"),
+            "batch": 1,
+            "controlnet_enabled": False,
+            "canny_low_threshold": 50,
+            "canny_high_threshold": 150,
+            "controlnet_conditioning_scale": 1.0,
+            "reference_image_path": "",
+        }
+        normalized = dict(defaults)
+        normalized.update(settings)
+        if "batch" not in settings and "batch_size" in settings:
+            normalized["batch"] = settings["batch_size"]
+        return normalized
 
     def _ensure_progress_style(self) -> None:
         style = ttk.Style(self)
@@ -3474,9 +3561,14 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_caption, anchor="e"
         ).pack(side="right")
 
+        tk.Label(
+            container, text=tr("large_prompt_editor_prompt_label", "Prompt"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).pack(fill="x", pady=(0, 4))
+
         text_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         text_frame.pack(fill="both", expand=True)
-
         from tkinter import ttk
         scrollbar = ttk.Scrollbar(text_frame, orient="vertical", style="Phoenix.Vertical.TScrollbar")
         scrollbar.pack(side="right", fill="y")
@@ -3486,7 +3578,7 @@ class PhoenixPromptView(WorkspaceFrame):
             insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border, highlightcolor=PHOENIX_THEME.accent,
             highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body, wrap="word",
-            padx=16, pady=16, yscrollcommand=scrollbar.set
+            padx=16, pady=16, height=8, yscrollcommand=scrollbar.set
         )
         popup_text.pack(side="left", fill="both", expand=True)
         scrollbar.configure(command=popup_text.yview)
@@ -3506,7 +3598,48 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.popup_counter_lbl.pack(fill="x", pady=(4, 0))
 
+        tk.Label(
+            container,
+            text=tr("large_prompt_editor_negative_label", "Negative Prompt"),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+        ).pack(fill="x", pady=(12, 4))
+
+        negative_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        negative_frame.pack(fill="both", expand=True)
+        negative_scrollbar = ttk.Scrollbar(
+            negative_frame, orient="vertical", style="Phoenix.Vertical.TScrollbar"
+        )
+        negative_scrollbar.pack(side="right", fill="y")
+        negative_popup_text = tk.Text(
+            negative_frame,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightcolor=PHOENIX_THEME.accent,
+            highlightthickness=1,
+            relief="flat",
+            font=PHOENIX_THEME.font_body,
+            wrap="word",
+            padx=16,
+            pady=16,
+            height=8,
+            yscrollcommand=negative_scrollbar.set,
+        )
+        negative_popup_text.pack(side="left", fill="both", expand=True)
+        negative_scrollbar.configure(command=negative_popup_text.yview)
+        self._negative_prompt_popup_text = negative_popup_text
+        negative_popup_text.insert(
+            "1.0", self.neg_prompt_text.get("1.0", "end-1c")
+        )
+
         popup_text.bind("<KeyRelease>", lambda e: self._sync_popup_prompt_to_main())
+        negative_popup_text.bind(
+            "<KeyRelease>", lambda e: self._sync_popup_prompt_to_main()
+        )
         self._update_prompt_counters()
 
         btn_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
@@ -3516,25 +3649,44 @@ class PhoenixPromptView(WorkspaceFrame):
             btn_frame, text=tr("btn_close_apply", "Schließen & Übernehmen"), bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
             activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=20, pady=10,
-            command=popup.destroy
+            command=self._apply_expandable_prompt
         )
         close_btn.pack(anchor="center")
 
-        popup.bind("<Escape>", lambda e: popup.destroy())
+        popup.bind("<Escape>", lambda e: self._apply_expandable_prompt())
+
+    def _apply_expandable_prompt(self) -> None:
+        self._sync_popup_prompt_to_main()
+        if hasattr(self, "_prompt_popup") and self._prompt_popup.winfo_exists():
+            self._prompt_popup.destroy()
 
     def _sync_popup_prompt_to_main(self) -> None:
         if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
             content = self._prompt_popup_text.get("1.0", "end-1c")
             self.prompt_text.delete("1.0", "end")
             self.prompt_text.insert("1.0", content)
-            self._update_prompt_counters()
+        if (
+            hasattr(self, "_negative_prompt_popup_text")
+            and self._negative_prompt_popup_text.winfo_exists()
+        ):
+            negative_content = self._negative_prompt_popup_text.get("1.0", "end-1c")
+            self.neg_prompt_text.delete("1.0", "end")
+            self.neg_prompt_text.insert("1.0", negative_content)
+        self._update_prompt_counters()
 
     def _sync_main_prompt_to_popup(self) -> None:
         if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
             content = self.prompt_text.get("1.0", "end-1c")
             self._prompt_popup_text.delete("1.0", "end")
             self._prompt_popup_text.insert("1.0", content)
-            self._update_prompt_counters()
+        if (
+            hasattr(self, "_negative_prompt_popup_text")
+            and self._negative_prompt_popup_text.winfo_exists()
+        ):
+            negative_content = self.neg_prompt_text.get("1.0", "end-1c")
+            self._negative_prompt_popup_text.delete("1.0", "end")
+            self._negative_prompt_popup_text.insert("1.0", negative_content)
+        self._update_prompt_counters()
 
     def _on_main_prompt_key(self) -> None:
         self._sync_main_prompt_to_popup()
@@ -3593,8 +3745,27 @@ class PhoenixPromptView(WorkspaceFrame):
         if not name:
             return
 
+        if self.preset_manager.preset_exists(name):
+            overwrite = messagebox.askyesno(
+                tr("preset_overwrite_title", "Preset überschreiben"),
+                tr(
+                    "preset_overwrite_confirm",
+                    "Das Preset '{name}' existiert bereits. Möchten Sie es überschreiben?",
+                    name=name,
+                ),
+            )
+            if not overwrite:
+                return
+
         model_name = self.model_var.get()
         controlnet_enabled = bool(self.canny_supported and self.active_tab == "canny")
+        generation_controller = getattr(self.controller, "generation_controller", None)
+        backend_manager = getattr(generation_controller, "backend_manager", None)
+        backend = (
+            backend_manager.get_active_execution_provider_label()
+            if backend_manager is not None
+            else ""
+        )
 
         try:
             steps = int(self.steps_var.get())
@@ -3606,16 +3777,29 @@ class PhoenixPromptView(WorkspaceFrame):
         except Exception:
             cfg = 7.5
 
+        try:
+            seed = int(self.seed_var.get())
+        except Exception:
+            seed = -1
+
+        try:
+            batch = int(self.batch_var.get())
+        except Exception:
+            batch = 1
+
         data = {
             "prompt": self.prompt_text.get("1.0", "end-1c").strip(),
             "negative_prompt": self.neg_prompt_text.get("1.0", "end-1c").strip(),
             "model_name": model_name,
+            "backend": backend,
+            "seed": seed,
             "width": int(self.width_var.get()) if self.width_var.get().isdigit() else 512,
             "height": int(self.height_var.get()) if self.height_var.get().isdigit() else 512,
             "steps": steps,
             "cfg_scale": cfg,
             "sampler": self.sampler_var.get(),
             "scheduler": self.scheduler_var.get(),
+            "batch": batch,
             "controlnet_enabled": controlnet_enabled,
             "canny_low_threshold": int(self.canny_low_var.get()) if isinstance(self.canny_low_var.get(), int) else 50,
             "canny_high_threshold": int(self.canny_high_var.get()) if isinstance(self.canny_high_var.get(), int) else 150,
@@ -3625,12 +3809,16 @@ class PhoenixPromptView(WorkspaceFrame):
 
         success = self.preset_manager.save_preset(name, data)
         if success:
-            messagebox.showinfo(
-                tr("preset_save_dialog_title", "Preset speichern"),
-                tr("preset_save_success", "Preset '{name}' erfolgreich gespeichert.", name=name)
+            success_message = tr(
+                "preset_save_success", "Preset '{name}' erfolgreich gespeichert.", name=name
+            )
+            self.controller.model.update_state(status=success_message)
+            self._configure_if_alive(
+                self.status_label,
+                text=tr("status_prefix", "Status: {status}", status=success_message),
             )
             self._refresh_presets_dropdown()
-            self.selected_preset_var.set(name.lower().replace(" ", "_"))
+            self.selected_preset_var.set(self.preset_manager.preset_key(name))
         else:
             messagebox.showerror(
                 tr("preset_save_dialog_title", "Preset speichern"),
