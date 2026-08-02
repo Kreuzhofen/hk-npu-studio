@@ -189,7 +189,7 @@ class PhoenixHomeView(tk.Frame):
             pady=(0, PHOENIX_THEME.space_md),
         )
         self._last_card.grid_columnconfigure(0, weight=1)
-        tk.Button(
+        self._delete_all_btn = tk.Button(
             self._last_card,
             text=tr("home_delete_all", "Alle löschen"),
             command=self._delete_all_generations,
@@ -203,7 +203,8 @@ class PhoenixHomeView(tk.Frame):
             pady=PHOENIX_THEME.space_xs,
             font=PHOENIX_THEME.font_button,
             cursor="hand2",
-        ).grid(
+        )
+        self._delete_all_btn.grid(
             row=0,
             column=1,
             sticky="e",
@@ -503,6 +504,7 @@ class PhoenixHomeView(tk.Frame):
 
         latest = snapshot.latest_generations
         if not latest:
+            self._delete_all_btn.configure(state="disabled", fg=PHOENIX_THEME.text_disabled, cursor="arrow")
             no_gen_lbl = tk.Label(
                 self._previews_inner_frame,
                 text=tr("home_no_images_generated", "Es wurden noch keine Bilder generiert."),
@@ -514,6 +516,7 @@ class PhoenixHomeView(tk.Frame):
             self._cached_photos.clear()
             return
 
+        self._delete_all_btn.configure(state="normal", fg=PHOENIX_THEME.danger, cursor="hand2")
         self._cached_photos.clear()
 
         # Configure columns inside previews frame for horizontal distribution
@@ -575,12 +578,13 @@ class PhoenixHomeView(tk.Frame):
             delete_btn.place(relx=1.0, x=-4, y=4, anchor="ne")
 
             # Hover function closure
-            def make_hover_func(f=tile_frame, il=img_lbl, nl=name_lbl):
+            def make_hover_func(f=tile_frame, il=img_lbl, nl=name_lbl, db=delete_btn):
                 return lambda active: (
                     f.configure(highlightbackground=PHOENIX_THEME.accent if active else PHOENIX_THEME.border),
                     f.configure(bg=PHOENIX_THEME.card_bg if active else PHOENIX_THEME.elevated_bg),
                     il.configure(bg=PHOENIX_THEME.card_bg if active else PHOENIX_THEME.elevated_bg),
                     nl.configure(bg=PHOENIX_THEME.card_bg if active else PHOENIX_THEME.elevated_bg),
+                    db.configure(bg=PHOENIX_THEME.card_bg if active else PHOENIX_THEME.elevated_bg),
                 )
 
             hover_func = make_hover_func()
@@ -596,6 +600,27 @@ class PhoenixHomeView(tk.Frame):
                     add="+",
                 )
 
+            # Handler creators to avoid loop-closure issues in Python
+            def make_btn_handlers(f=tile_frame, il=img_lbl, nl=name_lbl, db=delete_btn, h=hover_func):
+                def on_enter(e):
+                    h(True)
+                    db.configure(bg=PHOENIX_THEME.danger, fg=PHOENIX_THEME.text_on_accent)
+                def on_leave(e):
+                    x = f.winfo_pointerx()
+                    y = f.winfo_pointery()
+                    widget = f.winfo_containing(x, y)
+                    if widget in (f, il, nl):
+                        h(True)
+                        db.configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.danger)
+                    else:
+                        h(False)
+                        db.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.danger)
+                return on_enter, on_leave
+
+            btn_enter, btn_leave = make_btn_handlers()
+            delete_btn.bind("<Enter>", btn_enter, add="+")
+            delete_btn.bind("<Leave>", btn_leave, add="+")
+
     def _show_generation_menu(self, event: tk.Event, path: Path) -> None:
         menu = tk.Menu(
             self,
@@ -609,10 +634,32 @@ class PhoenixHomeView(tk.Frame):
             font=PHOENIX_THEME.font_body,
         )
         menu.add_command(
+            label=tr("home_open_in_explorer", "Im Explorer öffnen"),
+            command=lambda: self._open_in_explorer(path),
+        )
+        menu.add_command(
             label=tr("home_delete_generation", "Generierung löschen"),
             command=lambda: self._delete_generation(path),
         )
         menu.tk_popup(event.x_root, event.y_root)
+
+    def _open_in_explorer(self, path: Path) -> None:
+        path = path.resolve()
+        if not path.exists():
+            messagebox.showerror(
+                tr("home_error_title", "Fehler"),
+                tr("home_file_not_found", "Die Bilddatei konnte nicht gefunden werden: {path}").format(path=path),
+                parent=self
+            )
+            return
+        try:
+            subprocess.run(["explorer", "/select,", str(path)])
+        except Exception as e:
+            messagebox.showerror(
+                tr("home_error_title", "Fehler"),
+                tr("home_explorer_error", "Fehler beim Öffnen des Explorers: {error}").format(error=str(e)),
+                parent=self
+            )
 
     @staticmethod
     def _generation_files(path: Path) -> tuple[Path, ...]:
@@ -633,19 +680,20 @@ class PhoenixHomeView(tk.Frame):
         self.refresh(force=True)
 
     def _delete_all_generations(self) -> None:
-        candidates = [path for path in OUTPUT_DIR.glob("*.png") if path.is_file()]
-        if not candidates:
+        latest = self._read_latest_generations()
+        if not latest:
             return
+        count = len(latest)
         if not messagebox.askyesno(
             tr("home_delete_all_title", "Alle Generierungen löschen"),
             tr(
-                "home_delete_all_confirm",
-                "Sollen wirklich alle Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
-            ),
+                "home_delete_all_confirm_with_count",
+                "Sollen wirklich alle {count} angezeigten Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
+            ).format(count=count),
             parent=self,
         ):
             return
-        for path in candidates:
-            for candidate in self._generation_files(path):
+        for gen in latest:
+            for candidate in self._generation_files(gen.path):
                 candidate.unlink(missing_ok=True)
         self.refresh(force=True)

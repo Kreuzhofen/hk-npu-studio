@@ -447,6 +447,11 @@
   "home_delete_generation_confirm": "Soll die ausgewählte Generierung einschließlich Metadaten dauerhaft gelöscht werden?",
   "home_delete_all_title": "Alle Generierungen löschen",
   "home_delete_all_confirm": "Sollen wirklich alle Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
+  "home_error_title": "Fehler",
+  "home_file_not_found": "Die Bilddatei konnte nicht gefunden werden: {path}",
+  "home_explorer_error": "Fehler beim Öffnen des Explorers: {error}",
+  "home_open_in_explorer": "Im Explorer öffnen",
+  "home_delete_all_confirm_with_count": "Sollen wirklich alle {count} angezeigten Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
   "settings_restart_title": "Neustart erforderlich",
   "settings_restart_msg": "Die Einstellungen wurden gespeichert. Snapdragon AI Studio wird jetzt neu gestartet, um die Änderungen anzuwenden."
   ,"loading_images": "Lade Bilder",

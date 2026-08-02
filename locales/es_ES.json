@@ -446,6 +446,11 @@
   "home_delete_generation_confirm": "¿Eliminar permanentemente la generación seleccionada y sus metadatos?",
   "home_delete_all_title": "Eliminar todas las generaciones",
   "home_delete_all_confirm": "¿Eliminar permanentemente todas las generaciones y sus metadatos? Esta acción no se puede deshacer.",
+  "home_error_title": "Error",
+  "home_file_not_found": "No se pudo encontrar el archivo de imagen: {path}",
+  "home_explorer_error": "Error al abrir el explorador: {error}",
+  "home_open_in_explorer": "Abrir en el Explorador",
+  "home_delete_all_confirm_with_count": "¿Sigue queriendo eliminar permanentemente las {count} generaciones mostradas y sus metadatos? Esta acción no se puede deshacer.",
   "settings_restart_title": "Se requiere reinicio",
   "settings_restart_msg": "Se guardaron los ajustes. Snapdragon AI Studio se reiniciará ahora para aplicar los cambios."
   ,"loading_images": "Cargando imágenes",

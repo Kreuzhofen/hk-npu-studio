@@ -447,6 +447,11 @@
   "home_delete_generation_confirm": "Permanently delete the selected generation and its metadata?",
   "home_delete_all_title": "Delete All Generations",
   "home_delete_all_confirm": "Permanently delete all generations and their metadata? This action cannot be undone.",
+  "home_error_title": "Error",
+  "home_file_not_found": "The image file could not be found: {path}",
+  "home_explorer_error": "Error opening explorer: {error}",
+  "home_open_in_explorer": "Open in Explorer",
+  "home_delete_all_confirm_with_count": "Are you sure you want to permanently delete all {count} displayed generations and their metadata? This action cannot be undone.",
   "settings_restart_title": "Restart Required",
   "settings_restart_msg": "Settings were saved. Snapdragon AI Studio will restart now to apply the changes."
   ,"loading_images": "Loading images",
