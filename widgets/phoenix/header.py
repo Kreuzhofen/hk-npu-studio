@@ -26,7 +26,7 @@ class PhoenixHeader(tk.Frame):
         left.pack(side="left", fill="y", padx=PHOENIX_THEME.space_lg)
 
         logo = self.brand.logo_image(48)
-        logo = logo.resize((77, 77), Image.Resampling.LANCZOS)
+        logo = logo.resize((73, 73), Image.Resampling.LANCZOS)
         self.logo_image = ImageTk.PhotoImage(logo, master=self)
         tk.Label(
             left,
