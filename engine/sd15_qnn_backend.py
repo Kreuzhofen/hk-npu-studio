@@ -67,17 +67,47 @@ def _tensor_summary(name: str, value: np.ndarray) -> dict[str, Any]:
         "standard_deviation": float(array.std()),
     }
 
-# Setup process environment for QNN runtime
+# Setup process environment for QNN runtime.
+# Production models live under models/. Temporary virtual environments are optional.
 ROOT = Path(r"C:\SnapdragonAI\temp\sd15_first_npu_image")
-MODEL_DIR = Path(r"C:\SnapdragonAI\temp\stable_diffusion_v1_5_qnn_inspection\stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite")
-qnn_dir = Path(r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Lib\site-packages\onnxruntime_qnn")
-os.environ["PATH"] = str(qnn_dir) + os.pathsep + os.environ.get("PATH", "")
-os.environ["ADSP_LIBRARY_PATH"] = str(qnn_dir)
-if hasattr(os, "add_dll_directory"):
+MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v1_5_qnn")
+
+
+def _resolve_worker_python() -> str:
+    """Prefer the legacy isolated QNN environment when present, otherwise use this interpreter."""
+    configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
+    candidates = [
+        Path(configured) if configured else None,
+        Path(r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Scripts\python.exe"),
+        Path(sys.executable),
+    ]
+    for candidate in candidates:
+        if candidate is not None and candidate.is_file():
+            return str(candidate)
+    raise FileNotFoundError("Kein verwendbarer Python-Interpreter für den QNN-Worker gefunden.")
+
+
+def _configure_qnn_runtime_path() -> None:
+    """Expose the onnxruntime_qnn package directory belonging to the active interpreter."""
     try:
-        os.add_dll_directory(str(qnn_dir))
+        import importlib.util
+
+        spec = importlib.util.find_spec("onnxruntime_qnn")
+        if spec is None or spec.origin is None:
+            return
+        qnn_dir = Path(spec.origin).resolve().parent
+        os.environ["PATH"] = str(qnn_dir) + os.pathsep + os.environ.get("PATH", "")
+        os.environ["ADSP_LIBRARY_PATH"] = str(qnn_dir)
+        if hasattr(os, "add_dll_directory"):
+            try:
+                os.add_dll_directory(str(qnn_dir))
+            except OSError:
+                pass
     except Exception:
-        pass
+        logger.exception("QNN-Laufzeitpfad konnte nicht vorbereitet werden.")
+
+
+_configure_qnn_runtime_path()
 
 
 def bytes_to_unicode() -> dict[int, str]:
@@ -326,7 +356,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
             json.dump(job_data, f, indent=2)
 
         # Run subprocess using the venv python executable
-        venv_python = r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Scripts\python.exe"
+        venv_python = _resolve_worker_python()
         script_path = Path(__file__).resolve()
 
         import subprocess

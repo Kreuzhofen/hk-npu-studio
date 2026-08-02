@@ -39,6 +39,20 @@ logger = get_logger("ControlNetCannyQnnBackend")
 DEFAULT_NEGATIVE_PROMPT = "blurry, low quality, distorted"
 
 
+def _resolve_worker_python() -> str:
+    """Resolve a usable Python interpreter for the isolated QNN worker."""
+    configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
+    candidates = [
+        Path(configured) if configured else None,
+        Path(r"C:\SnapdragonAI\temp\controlnet_canny_gate\venv\Scripts\python.exe"),
+        Path(sys.executable),
+    ]
+    for candidate in candidates:
+        if candidate is not None and candidate.is_file():
+            return str(candidate)
+    raise FileNotFoundError("Kein verwendbarer Python-Interpreter für den QNN-Worker gefunden.")
+
+
 def _resolve_negative_prompt(job_data: dict[str, Any]) -> str:
     """Use the fallback only when the field is absent; preserve an explicit empty value."""
     return str(job_data["negative_prompt"]) if "negative_prompt" in job_data else DEFAULT_NEGATIVE_PROMPT
@@ -443,7 +457,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             json.dump(job_data, f, indent=2)
 
         # Run subprocess using the venv python executable
-        venv_python = r"C:\SnapdragonAI\temp\controlnet_canny_gate\venv\Scripts\python.exe"
+        venv_python = _resolve_worker_python()
         script_path = Path(__file__).resolve()
 
         import subprocess
