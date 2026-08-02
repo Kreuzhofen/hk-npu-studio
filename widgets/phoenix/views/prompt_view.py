@@ -120,6 +120,8 @@ from tkinter import messagebox, ttk
 from pathlib import Path
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
+from engine.boost_engine import BoostSuggestion, PhoenixBoostEngine
+from engine.ollama_status import OllamaStatusService
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
@@ -529,6 +531,21 @@ class PhoenixPromptView(WorkspaceFrame):
         self.history_btn.grid(row=0, column=1, sticky="nsew", padx=(0, 1))
         self._add_button_hover(self.history_btn)
 
+        self.boost_btn = PhoenixButton(
+            self.prompt_toolbar,
+            text=tr("boost_button", "Phoenix Boost"),
+            button_type="neutral",
+            bg=PHOENIX_THEME.success,
+            fg=PHOENIX_THEME.text_on_accent,
+            font=PHOENIX_THEME.font_small,
+            command=self._open_boost_preview,
+        )
+        self.boost_btn.grid(row=0, column=2, sticky="nsew", padx=(0, 1))
+        _Tooltip(
+            self.boost_btn,
+            lambda: tr("boost_tooltip", "Prompt lokal optimieren und Einstellungen empfehlen."),
+        )
+
         self.maximize_btn = tk.Button(
             self.prompt_toolbar,
             text=tr("maximize_btn", "⛶ Maximieren"),
@@ -544,7 +561,7 @@ class PhoenixPromptView(WorkspaceFrame):
             pady=4,
             command=self._open_expandable_prompt_popup,
         )
-        self.maximize_btn.grid(row=0, column=2, sticky="nsew")
+        self.maximize_btn.grid(row=0, column=3, sticky="nsew")
         self._add_button_hover(self.maximize_btn)
 
         tk.Label(
@@ -3521,6 +3538,234 @@ class PhoenixPromptView(WorkspaceFrame):
             command=popup.destroy
         )
         close_btn.pack(pady=(16, 0))
+
+    def _open_boost_preview(self) -> None:
+        prompt = self.prompt_text.get("1.0", "end-1c").strip()
+        if not prompt:
+            messagebox.showinfo(
+                tr("boost_title", "Phoenix Boost"),
+                tr("boost_empty_prompt", "Bitte zuerst einen Prompt eingeben."),
+            )
+            return
+
+        try:
+            suggestion = PhoenixBoostEngine.suggest(
+                prompt=prompt,
+                negative_prompt=self.neg_prompt_text.get("1.0", "end-1c"),
+                model_id=self.model_var.get(),
+                steps=int(self.steps_var.get()),
+                cfg=float(self.cfg_var.get()),
+                width=int(self.width_var.get()),
+                height=int(self.height_var.get()),
+            )
+        except (TypeError, ValueError):
+            messagebox.showinfo(
+                tr("boost_title", "Phoenix Boost"),
+                tr("boost_empty_prompt", "Bitte zuerst einen Prompt eingeben."),
+            )
+            return
+
+        popup = tk.Toplevel(self)
+        popup.title(tr("boost_preview_title", "Phoenix Boost – Vorschau"))
+        popup.configure(bg=PHOENIX_THEME.background)
+        popup.geometry("760x760")
+        popup.minsize(680, 620)
+        popup.transient(self.winfo_toplevel())
+        popup.grab_set()
+        self._boost_popup = popup
+        self._boost_suggestion = suggestion
+        self._ollama_status = OllamaStatusService.detect()
+
+        container = tk.Frame(popup, bg=PHOENIX_THEME.background)
+        container.pack(fill="both", expand=True, padx=24, pady=20)
+        tk.Label(
+            container, text=tr("boost_preview_title", "Phoenix Boost – Vorschau"),
+            bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        ).pack(fill="x", pady=(0, 12))
+
+        if self._ollama_status.available:
+            tk.Label(
+                container, text=tr("boost_ai_available", "Phoenix Boost AI verfügbar"),
+                bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.success,
+                font=PHOENIX_THEME.font_small, anchor="w",
+            ).pack(fill="x", pady=(0, 8))
+        else:
+            ai_info = tk.Frame(container, bg=PHOENIX_THEME.surface)
+            ai_info.pack(fill="x", pady=(0, 10))
+            ai_copy = tk.Frame(ai_info, bg=PHOENIX_THEME.surface)
+            ai_copy.pack(side="left", fill="x", expand=True, padx=10, pady=7)
+            tk.Label(
+                ai_copy, text=tr("boost_ai_title", "Phoenix Boost AI"),
+                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
+                font=PHOENIX_THEME.font_card_title, anchor="w",
+            ).pack(fill="x")
+            status_key = "boost_ollama_not_installed" if not self._ollama_status.installed else "boost_ollama_not_available"
+            status_fallback = "Ollama nicht installiert" if not self._ollama_status.installed else "Ollama nicht erreichbar"
+            tk.Label(
+                ai_copy, text=tr(status_key, status_fallback),
+                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_small, anchor="w",
+            ).pack(fill="x", pady=(2, 0))
+            tk.Label(
+                ai_copy,
+                text=tr("boost_ai_info", "Erweitert die Prompt-Optimierung optional mit lokaler KI."),
+                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_muted,
+                font=PHOENIX_THEME.font_caption, anchor="w",
+            ).pack(fill="x", pady=(2, 0))
+            install_btn = tk.Button(
+                ai_info, text=tr("boost_install_ollama", "Ollama installieren"),
+                command=self._open_ollama_download,
+                bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+                activebackground=PHOENIX_THEME.button_hover,
+                activeforeground=PHOENIX_THEME.text_primary,
+                relief="flat", bd=0, font=PHOENIX_THEME.font_small,
+                cursor="hand2", padx=10, pady=5,
+            )
+            install_btn.pack(side="right", padx=8, pady=5)
+            self._add_button_hover(install_btn, PHOENIX_THEME.button_hover, PHOENIX_THEME.text_primary)
+
+        self._boost_preview_field(container, tr("boost_original_prompt", "Originalprompt"), suggestion.original_prompt)
+        self._boost_preview_field(container, tr("boost_optimized_prompt", "Optimierter Prompt"), suggestion.optimized_prompt)
+        self._boost_preview_field(
+            container,
+            tr("boost_existing_negative", "Vorhandener Negative Prompt"),
+            suggestion.existing_negative_prompt or tr("boost_none", "Nicht vorhanden"),
+        )
+        self._boost_preview_field(
+            container, tr("boost_negative_addition", "Empfohlene Ergänzung"), suggestion.negative_addition,
+        )
+
+        values = tk.Frame(container, bg=PHOENIX_THEME.surface)
+        values.pack(fill="x", pady=(4, 10))
+        rows = (
+            (tr("boost_steps", "Schritte"), str(suggestion.current_steps), str(suggestion.recommended_steps)),
+            (tr("boost_cfg", "CFG Scale"), f"{suggestion.current_cfg:g}", f"{suggestion.recommended_cfg:g}"),
+            (tr("boost_resolution", "Auflösung"), f"{suggestion.current_resolution[0]} × {suggestion.current_resolution[1]}", f"{suggestion.recommended_resolution[0]} × {suggestion.recommended_resolution[1]}"),
+        )
+        for column, text_value in enumerate(("", tr("boost_current", "Aktuell"), tr("boost_recommended", "Empfohlen"))):
+            tk.Label(values, text=text_value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+                     font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=column, sticky="ew", padx=10, pady=(8, 4))
+        for row, (label, current, recommended) in enumerate(rows, start=1):
+            for column, text_value in enumerate((label, current, recommended)):
+                tk.Label(values, text=text_value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
+                         font=PHOENIX_THEME.font_small, anchor="w").grid(row=row, column=column, sticky="ew", padx=10, pady=3)
+        for column in range(3):
+            values.grid_columnconfigure(column, weight=1)
+
+        if suggestion.model_hint:
+            tk.Label(
+                container,
+                text=tr("boost_model_hint", "Modellhinweis: Für dieses Motiv kann SDXL bessere Details liefern."),
+                bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_small, anchor="w", justify="left",
+            ).pack(fill="x", pady=(0, 8))
+
+        self._boost_apply_negative_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            container, variable=self._boost_apply_negative_var,
+            text=tr("boost_apply_negative", "Empfohlene Ergänzung zum Negative Prompt übernehmen"),
+            bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.background, activeforeground=PHOENIX_THEME.text_primary,
+            selectcolor=PHOENIX_THEME.elevated_bg, font=PHOENIX_THEME.font_small, anchor="w",
+        ).pack(fill="x", pady=2)
+
+        resolution_allowed = self._boost_resolution_allowed(suggestion)
+        self._boost_apply_resolution_var = tk.BooleanVar(value=False)
+        resolution_check = tk.Checkbutton(
+            container, variable=self._boost_apply_resolution_var,
+            text=tr("boost_apply_resolution", "Empfohlene Auflösung ausdrücklich übernehmen"),
+            bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.background, activeforeground=PHOENIX_THEME.text_primary,
+            disabledforeground=PHOENIX_THEME.text_muted, selectcolor=PHOENIX_THEME.elevated_bg,
+            font=PHOENIX_THEME.font_small, anchor="w",
+            state="normal" if resolution_allowed else "disabled",
+        )
+        resolution_check.pack(fill="x", pady=2)
+        if not resolution_allowed:
+            reason_key = "boost_resolution_controlnet_locked" if self._controlnet_active() else "boost_resolution_model_locked"
+            fallback = "Bei aktivem ControlNet bleibt die Auflösung unverändert." if self._controlnet_active() else "Die Auflösung ist für dieses Modell/Backend fest vorgegeben."
+            tk.Label(container, text=tr(reason_key, fallback), bg=PHOENIX_THEME.background,
+                     fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x", padx=(22, 0))
+
+        actions = tk.Frame(container, bg=PHOENIX_THEME.background)
+        actions.pack(side="bottom", fill="x", pady=(14, 0))
+        cancel_btn = tk.Button(
+            actions, text=tr("cancel", "Abbrechen"), command=popup.destroy,
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.border, activeforeground=PHOENIX_THEME.text_primary,
+            relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=18, pady=8,
+        )
+        cancel_btn.pack(side="right", padx=(8, 0))
+        self._add_button_hover(cancel_btn, PHOENIX_THEME.border, PHOENIX_THEME.text_primary)
+        apply_btn = tk.Button(
+            actions, text=tr("apply", "Übernehmen"), command=self._apply_boost_suggestion,
+            bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.button_hover, activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=18, pady=8,
+        )
+        apply_btn.pack(side="right")
+        self._add_button_hover(apply_btn, PHOENIX_THEME.button_hover, PHOENIX_THEME.text_on_accent)
+        popup.bind("<Escape>", lambda _event: popup.destroy())
+
+    @staticmethod
+    def _boost_preview_field(parent: tk.Widget, label: str, value: str) -> None:
+        tk.Label(parent, text=label, bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_secondary,
+                 font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x")
+        tk.Label(parent, text=value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
+                 font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=690,
+                 padx=10, pady=7).pack(fill="x", pady=(2, 8))
+
+    @staticmethod
+    def _open_ollama_download() -> None:
+        import webbrowser
+
+        webbrowser.open(OllamaStatusService.DOWNLOAD_URL)
+
+    def _controlnet_active(self) -> bool:
+        return bool(self.canny_supported and self.active_tab == "canny")
+
+    def _boost_resolution_allowed(self, suggestion: BoostSuggestion) -> bool:
+        if self._controlnet_active():
+            return False
+        contract = self.controller.get_generation_parameters(self.model_var.get()) or {}
+        for name, recommended in zip(("width", "height"), suggestion.recommended_resolution):
+            spec = contract.get(name, {})
+            values = spec.get("values", []) if isinstance(spec, dict) else []
+            if not spec.get("editable", True) or (values and recommended not in values):
+                return False
+        return True
+
+    def _apply_boost_suggestion(self) -> None:
+        suggestion = self._boost_suggestion
+        self.prompt_text.delete("1.0", "end")
+        self.prompt_text.insert("1.0", suggestion.optimized_prompt)
+        if self._boost_apply_negative_var.get():
+            self.neg_prompt_text.delete("1.0", "end")
+            self.neg_prompt_text.insert("1.0", suggestion.recommended_negative_prompt)
+        self.steps_var.set(suggestion.recommended_steps)
+        self.cfg_var.set(suggestion.recommended_cfg)
+        if self._boost_apply_resolution_var.get() and self._boost_resolution_allowed(suggestion):
+            self.width_var.set(str(suggestion.recommended_resolution[0]))
+            self.height_var.set(str(suggestion.recommended_resolution[1]))
+        self._update_prompt_counters()
+        canny_low, canny_high, conditioning = self._get_controlnet_params()
+        try:
+            seed = int(self.seed_var.get())
+        except ValueError:
+            seed = -1
+        self.controller.update_parameters(
+            prompt=self.prompt_text.get("1.0", "end-1c").strip(),
+            negative_prompt=self.neg_prompt_text.get("1.0", "end-1c").strip(),
+            seed=seed, steps=int(self.steps_var.get()), cfg=float(self.cfg_var.get()),
+            width=int(self.width_var.get()), height=int(self.height_var.get()),
+            selected_model=self.model_var.get(), sampler=self.sampler_var.get(),
+            scheduler=self.scheduler_var.get(), batch_size=int(self.batch_var.get()),
+            input_image_path=self.controller.model.state.input_image_path,
+            controlnet_enabled=self._controlnet_active(), canny_low_threshold=canny_low,
+            canny_high_threshold=canny_high, controlnet_conditioning_scale=conditioning,
+        )
+        self._boost_popup.destroy()
 
     def _open_expandable_prompt_popup(self) -> None:
         if hasattr(self, "_prompt_popup") and self._prompt_popup.winfo_exists():
