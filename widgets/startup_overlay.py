@@ -24,6 +24,7 @@ class StartupOverlay(tk.Toplevel):
 
         self.overrideredirect(True)
         self.brand = brand
+        BrandManager.apply_window_icon(self)
         self._progress = 0
         self._fade_step = 0
         self._progress_job: Optional[str] = None

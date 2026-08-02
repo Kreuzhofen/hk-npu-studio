@@ -759,5 +759,14 @@
   "boost_ai_ready_button": "Phoenix Boost AI bereit ✓",
   "boost_install_qwen_title": "Qwen2.5 3B installieren",
   "boost_install_qwen_storage_hint": "Das lokale Modell benötigt zusätzlichen Speicherplatz. Download jetzt starten?",
-  "boost_qwen_install_started": "Download gestartet …"
+  "boost_qwen_install_started": "Download gestartet …",
+  "generator_settings_toolbar": "Generierungsparameter",
+  "model_parameter_help": "Das Modell bestimmt Stil, Fähigkeiten und unterstützte Einstellungen.",
+  "boost_save_template": "Als Vorlage speichern",
+  "template_save_title": "Als Vorlage speichern",
+  "template_save_prompt": "Name der Vorlage:",
+  "rename_preset_btn": "Umbenennen",
+  "rename_preset_title": "Vorlage umbenennen",
+  "rename_preset_prompt": "Neuer Name für die Vorlage:",
+  "rename_preset_exists": "Eine Vorlage mit diesem Namen existiert bereits."
 }

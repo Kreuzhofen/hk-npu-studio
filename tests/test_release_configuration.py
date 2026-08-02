@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import version
 from engine.brand_manager import BrandManager
@@ -16,6 +17,13 @@ def test_release_configuration_is_the_shared_version_source():
     assert version.BUILD == RELEASE.build
     assert version.CODENAME == RELEASE.codename
     assert version.ARCHITECTURE == "arm64"
+
+
+def test_window_icon_uses_the_canonical_main_window_resource():
+    window = MagicMock()
+
+    assert BrandManager.apply_window_icon(window) is True
+    window.iconbitmap.assert_called_once_with(str(BrandManager.APP_ICON))
 
 
 def test_release_configuration_rejects_missing_or_non_arm64_values(tmp_path):

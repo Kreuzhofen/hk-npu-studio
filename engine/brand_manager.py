@@ -56,6 +56,17 @@ class BrandManager:
     SPLASH = BRAND_ROOT / "splash" / "phoenix_splash.png"
     ABOUT_IMAGE = BRAND_ROOT / "about" / "phoenix_about.png"
 
+    @classmethod
+    def apply_window_icon(cls, window) -> bool:
+        """Apply the canonical Snapdragon AI Studio title-bar icon."""
+        if not cls.APP_ICON.is_file():
+            return False
+        try:
+            window.iconbitmap(str(cls.APP_ICON))
+        except Exception:
+            return False
+        return True
+
     COLORS = {
         "COLOR_BACKGROUND": "#111315",
         "COLOR_SURFACE": "#181B1F",

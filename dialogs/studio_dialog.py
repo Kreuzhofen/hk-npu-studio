@@ -41,6 +41,7 @@ class StudioDialog(tk.Toplevel):
         self._dialog_images: list[ImageTk.PhotoImage] = []
 
         self.title(title)
+        BrandManager.apply_window_icon(self)
         self.configure(bg=PHOENIX_THEME.app_bg)
         self.minsize(*self.dialog_min_size)
         self.resizable(resizable, resizable)

@@ -122,6 +122,7 @@ from tkinter import messagebox, ttk
 from pathlib import Path
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
+from engine.brand_manager import BrandManager
 from engine.boost_ai_service import BoostAIService
 from engine.boost_engine import BoostSuggestion, PhoenixBoostEngine, PromptAnalysis
 from engine.ollama_status import OllamaStatus, OllamaStatusService
@@ -160,6 +161,7 @@ class _Tooltip:
         x = self.widget.winfo_rootx() + 12
         y = self.widget.winfo_rooty() + self.widget.winfo_height() + 6
         self.window = tk.Toplevel(self.widget)
+        BrandManager.apply_window_icon(self.window)
         self.window.wm_overrideredirect(True)
         self.window.wm_geometry(f"+{x}+{y}")
         tk.Label(
@@ -301,9 +303,12 @@ class PhoenixPromptView(WorkspaceFrame):
         r = 0
 
         # ── Group: Presets ─────────────────────────────
-        r = self._section_header(p, tr("presets_section_header", "Presets & Vorlagen"), r)
+        preset_section_title = tr("presets_section_header", "Presets & Vorlagen")
+        r = self._section_header(p, preset_section_title, r)
+        self.preset_section_label = self._section_labels[preset_section_title]
 
         preset_frame = tk.Frame(p, bg=PHOENIX_THEME.card_bg)
+        self.preset_frame = preset_frame
         preset_frame.grid(row=r, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
         preset_frame.grid_columnconfigure(0, weight=0)
         preset_frame.grid_columnconfigure(1, weight=1)
@@ -448,11 +453,28 @@ class PhoenixPromptView(WorkspaceFrame):
             ),
         )
         self._update_model_description(default_model)
+
+        self.parameter_description_var = tk.StringVar()
+        self.parameter_description_label = tk.Label(
+            model_frame,
+            textvariable=self.parameter_description_var,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+        )
+        self.parameter_description_label.grid(
+            row=2, column=0, columnspan=2, sticky="ew", pady=(5, 0)
+        )
+        for variable in (
+            self.width_var, self.height_var, self.steps_var, self.cfg_var,
+            self.seed_var, self.sampler_var, self.scheduler_var,
+        ):
+            variable.trace_add("write", self._update_parameter_description)
+        self._update_parameter_description()
         r += 1
 
         # ── Group: Prompt ─────────────────────────────
-        r = self._section_header(p, "Prompt", r)
-
         prompt_card = tk.Frame(
             p,
             bg=PHOENIX_THEME.surface,
@@ -481,91 +503,58 @@ class PhoenixPromptView(WorkspaceFrame):
         prompt_header_frame.grid_columnconfigure(0, weight=1)
         prompt_header_frame.grid_columnconfigure(1, weight=0)
 
-        tk.Label(
+        self.prompt_title_label = tk.Label(
             prompt_header_frame,
             text=tr("your_prompt_title", "DEIN PROMPT"),
             bg=PHOENIX_THEME.surface,
             fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        )
+        self.prompt_title_label.grid(row=0, column=0, sticky="ew")
 
         self.prompt_toolbar = tk.Frame(
-            prompt_header_frame,
+            prompt_card,
             bg=PHOENIX_THEME.border,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
-        self.prompt_toolbar.grid(row=0, column=1, sticky="e")
-
-        self.templates_btn = tk.Button(
-            self.prompt_toolbar,
-            text=tr("templates_tab", "📋 Vorlagen"),
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_small,
-            cursor="hand2",
-            padx=10,
-            pady=4,
-            command=self._show_templates_popup,
+        self.prompt_toolbar.grid(
+            row=1, column=0, sticky="ew",
+            padx=PHOENIX_THEME.space_md, pady=(6, 6),
         )
-        self.templates_btn.grid(row=0, column=0, sticky="nsew", padx=(0, 1))
-        self._add_button_hover(self.templates_btn)
+        for column in range(5):
+            self.prompt_toolbar.grid_columnconfigure(column, weight=1)
 
-        self.history_btn = tk.Button(
-            self.prompt_toolbar,
-            text=tr("history_tab", "🕘 Verlauf"),
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_small,
-            cursor="hand2",
-            padx=10,
-            pady=4,
-            command=self._show_prompt_history_popup,
+        toolbar_specs = (
+            ("boost_btn", tr("boost_button", "Phoenix Boost"), "sparkles", PHOENIX_THEME.success, self._open_boost_preview),
+            ("presets_popup_btn", tr("presets_section_header", "Presets & Vorlagen"), "folder", PHOENIX_THEME.warning, self._open_presets_popup),
+            ("parameters_popup_btn", tr("generator_settings_toolbar", "Generierungsparameter"), "settings", PHOENIX_THEME.danger, self._open_advanced_settings_popup),
+            ("history_btn", tr("history_tab", "Verlauf"), "back", PHOENIX_THEME.accent, self._show_prompt_history_popup),
         )
-        self.history_btn.grid(row=0, column=1, sticky="nsew", padx=(0, 1))
-        self._add_button_hover(self.history_btn)
-
-        self.boost_btn = PhoenixButton(
-            self.prompt_toolbar,
-            text=tr("boost_button", "Phoenix Boost"),
-            button_type="neutral",
-            bg=PHOENIX_THEME.success,
-            fg=PHOENIX_THEME.text_on_accent,
-            font=PHOENIX_THEME.font_small,
-            command=self._open_boost_preview,
-        )
-        self.boost_btn.grid(row=0, column=2, sticky="nsew", padx=(0, 1))
+        for column, (attribute, text, icon, color, command) in enumerate(toolbar_specs):
+            button = PhoenixButton(
+                self.prompt_toolbar, text=text, icon_name=icon, icon_color=color,
+                command=command, button_type="neutral",
+                bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+                font=PHOENIX_THEME.font_small, height=32, radius=6,
+            )
+            button.grid(row=0, column=column, sticky="nsew", padx=(0, 4))
+            setattr(self, attribute, button)
         _Tooltip(
             self.boost_btn,
             lambda: tr("boost_tooltip", "Prompt lokal optimieren und Einstellungen empfehlen."),
         )
 
-        self.maximize_btn = tk.Button(
+        self.maximize_btn = PhoenixButton(
             self.prompt_toolbar,
-            text=tr("maximize_btn", "⛶ Maximieren"),
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.accent,
-            activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat",
-            bd=0,
-            font=PHOENIX_THEME.font_small,
-            cursor="hand2",
-            padx=10,
-            pady=4,
+            text=f"⛶ {tr('maximize_btn', 'Maximieren')}",
+            button_type="neutral", bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_small,
+            height=32, radius=6,
             command=self._open_expandable_prompt_popup,
         )
-        self.maximize_btn.grid(row=0, column=3, sticky="nsew")
-        self._add_button_hover(self.maximize_btn)
+        self.maximize_btn.grid(row=0, column=4, sticky="nsew")
 
         tk.Label(
             prompt_card,
@@ -575,11 +564,11 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_small,
             anchor="w",
         ).grid(
-            row=1,
+            row=2,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
-            pady=(0, 2),
+            pady=(0, 3),
         )
 
         self.prompt_text = tk.Text(
@@ -590,7 +579,7 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=6, pady=4,
         )
         self.prompt_text.grid(
-            row=2,
+            row=3,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
@@ -608,22 +597,23 @@ class PhoenixPromptView(WorkspaceFrame):
             anchor="e"
         )
         self.prompt_counter_lbl.grid(
-            row=3,
+            row=4,
             column=0,
             sticky="e",
             padx=PHOENIX_THEME.space_md,
             pady=(0, 2)
         )
 
-        tk.Label(
+        self.negative_prompt_title_label = tk.Label(
             prompt_card,
             text=tr("exclude_negative_prompt_title", "AUSSCHLIESSEN"),
             bg=PHOENIX_THEME.surface,
-            fg=PHOENIX_THEME.text_muted,
+            fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
-        ).grid(
-            row=4,
+        )
+        self.negative_prompt_title_label.grid(
+            row=5,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
@@ -638,7 +628,7 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=6, pady=4,
         )
         self.neg_prompt_text.grid(
-            row=5,
+            row=6,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_md,
@@ -649,7 +639,9 @@ class PhoenixPromptView(WorkspaceFrame):
         r += 1
 
         # ── Group: Generation Parameters ──────────────
-        r = self._section_header(p, tr("section_generation_parameters", "Generation Parameters"), r)
+        generation_section_title = tr("section_generation_parameters", "Generation Parameters")
+        r = self._section_header(p, generation_section_title, r)
+        self.generation_section_label = self._section_labels[generation_section_title]
 
         self.active_tab = "basic"
         self.canny_supported = False
@@ -1026,6 +1018,11 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self._update_tab_bar_visuals()
         self._apply_generation_contract(self.model_var.get())
+        self.preset_section_label.grid_remove()
+        self.preset_frame.grid_remove()
+        self.generation_section_label.grid_remove()
+        self.tab_bar.grid_remove()
+        self.tab_container.grid_remove()
 
     @staticmethod
     def _configure_option_contract(widget: tk.OptionMenu, variable: tk.StringVar, spec: dict, label_widget: tk.Label | None = None, label_base_text: str = "") -> None:
@@ -2158,6 +2155,7 @@ class PhoenixPromptView(WorkspaceFrame):
             return
 
         popup = tk.Toplevel(self)
+        BrandManager.apply_window_icon(popup)
         popup.title("Vorschau – " + img_path.name)
         popup.configure(bg=PHOENIX_THEME.card_bg)
 
@@ -2320,6 +2318,16 @@ class PhoenixPromptView(WorkspaceFrame):
         description = model.get("description", "") if model else ""
         description_key = f"model_description_{model_id.replace('-', '_')}"
         self.model_description_var.set(tr(description_key, str(description)))
+
+    def _update_parameter_description(self, *_args) -> None:
+        """Keep the compact generation-parameter description in sync."""
+        self.parameter_description_var.set(
+            f"{self.width_var.get()} × {self.height_var.get()}  •  "
+            f"{tr('steps_label_colon', 'Schritte:').rstrip(':')} {self.steps_var.get()}  •  "
+            f"CFG {self.cfg_var.get():g}  •  "
+            f"{tr('seed_label_colon', 'Seed:').rstrip(':')} {self.seed_var.get()}  •  "
+            f"{self.sampler_var.get()} / {self.scheduler_var.get()}"
+        )
 
     def _on_image_drop(self, event) -> None:
         if not event.data:
@@ -3369,27 +3377,184 @@ class PhoenixPromptView(WorkspaceFrame):
                     activeforeground=PHOENIX_THEME.text_primary,
                 )
 
+    def _build_standard_dialog_header(
+        self, popup: tk.Toplevel, parent: tk.Misc, title: str
+    ) -> tk.Frame:
+        """Create the shared title area used by standard work dialogs."""
+        header = tk.Frame(parent, bg=PHOENIX_THEME.card_bg)
+        header.pack(fill="x", pady=(0, 16))
+        popup._standard_dialog_title = tk.Label(
+            header, text=title, bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        )
+        popup._standard_dialog_title.pack(fill="x")
+        return header
+
+    def _open_presets_popup(self) -> None:
+        if hasattr(self, "_presets_popup") and self._presets_popup.winfo_exists():
+            self._presets_popup.focus()
+            return
+
+        popup = tk.Toplevel(self)
+        BrandManager.apply_window_icon(popup)
+        popup.title(tr("presets_section_header", "Presets & Vorlagen"))
+        popup.geometry("620x310")
+        popup.minsize(540, 280)
+        popup.configure(bg=PHOENIX_THEME.card_bg)
+        popup.transient(self.winfo_toplevel())
+        popup.grab_set()
+        self._presets_popup = popup
+
+        container = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
+        container.pack(fill="both", expand=True, padx=24, pady=20)
+        self._build_standard_dialog_header(
+            popup, container, tr("presets_section_header", "Presets & Vorlagen"),
+        )
+
+        preset_row = tk.Frame(container, bg=PHOENIX_THEME.surface)
+        preset_row.pack(fill="x", pady=(0, 14), ipady=4)
+        preset_row.grid_columnconfigure(0, weight=1)
+        tk.Label(
+            preset_row, text=tr("preset_load_label", "Preset wählen:"),
+            bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=14, pady=(10, 4))
+        self._preset_popup_dropdown = tk.OptionMenu(
+            preset_row, self.selected_preset_var, *self.available_presets
+        )
+        self._preset_popup_dropdown.configure(
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, highlightthickness=0,
+            font=PHOENIX_THEME.font_button,
+        )
+        self._preset_popup_dropdown.grid(
+            row=1, column=0, sticky="ew", padx=14, pady=(0, 10)
+        )
+
+        preset_actions = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        preset_actions.pack(fill="x")
+        preset_actions.grid_columnconfigure(0, weight=1)
+        preset_actions.grid_columnconfigure(1, weight=1)
+        preset_actions.grid_columnconfigure(2, weight=1)
+
+        apply_btn = PhoenixButton(
+            preset_actions, text=tr("apply_preset_btn", "Anwenden"),
+            command=self._on_apply_preset, button_type="primary",
+        )
+        self._preset_apply_btn = apply_btn
+        apply_btn.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+        rename_btn = PhoenixButton(
+            preset_actions, text=tr("rename_preset_btn", "Umbenennen"),
+            command=self._on_rename_preset, button_type="neutral",
+        )
+        self._preset_rename_btn = rename_btn
+        rename_btn.grid(row=0, column=1, sticky="ew", padx=5)
+        delete_btn = PhoenixButton(
+            preset_actions, text=tr("delete_preset_btn", "Löschen"),
+            command=self._on_delete_preset, button_type="danger",
+        )
+        self._preset_delete_btn = delete_btn
+        delete_btn.grid(row=0, column=2, sticky="ew", padx=(5, 0))
+
+        close_btn = PhoenixButton(
+            container, text=tr("btn_close", "Schließen"), command=popup.destroy,
+            button_type="neutral", width=110,
+        )
+        close_btn.pack(side="right", pady=(14, 0))
+        self._refresh_presets_dropdown()
+        popup.bind("<Escape>", lambda _event: popup.destroy())
+
     def _open_advanced_settings_popup(self) -> None:
         if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
             self._advanced_popup.focus()
             return
 
         popup = tk.Toplevel(self)
-        popup.title("Erweiterte Einstellungen")
-        popup.geometry("380x520")
+        BrandManager.apply_window_icon(popup)
+        popup.title(tr("section_generation_parameters", "Generierungsparameter"))
+        popup.geometry("560x760")
         popup.configure(bg=PHOENIX_THEME.card_bg)
-        popup.resizable(False, False)
+        popup.minsize(460, 580)
+        popup.transient(self.winfo_toplevel())
+        popup.grab_set()
         self._advanced_popup = popup
 
         try:
-            x = self.winfo_rootx() + (self.winfo_width() - 380) // 2
-            y = self.winfo_rooty() + (self.winfo_height() - 520) // 2
+            x = self.winfo_rootx() + (self.winfo_width() - 560) // 2
+            y = self.winfo_rooty() + (self.winfo_height() - 760) // 2
             popup.geometry(f"+{x}+{y}")
         except Exception:
             pass
 
-        container = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
-        container.pack(fill="both", expand=True, padx=16, pady=16)
+        popup_shell = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
+        popup_shell.pack(fill="both", expand=True)
+        popup_actions = tk.Frame(popup_shell, bg=PHOENIX_THEME.card_bg)
+        popup_actions.pack(side="bottom", fill="x", padx=24, pady=(8, 16))
+        popup_scroll = tk.Canvas(
+            popup_shell, bg=PHOENIX_THEME.card_bg, highlightthickness=0, bd=0
+        )
+        popup_scrollbar = ttk.Scrollbar(
+            popup_shell, orient="vertical", command=popup_scroll.yview,
+            style="Phoenix.Vertical.TScrollbar",
+        )
+        popup_scroll.configure(yscrollcommand=popup_scrollbar.set)
+        popup_scrollbar.pack(side="right", fill="y")
+        popup_scroll.pack(side="left", fill="both", expand=True)
+        container = tk.Frame(popup_scroll, bg=PHOENIX_THEME.card_bg)
+        popup_content_window = popup_scroll.create_window(
+            (24, 20), window=container, anchor="nw"
+        )
+        container.bind(
+            "<Configure>",
+            lambda _event: popup_scroll.configure(scrollregion=popup_scroll.bbox("all")),
+        )
+        popup_scroll.bind(
+            "<Configure>",
+            lambda event: popup_scroll.itemconfigure(
+                popup_content_window, width=max(1, event.width - 48)
+            ),
+        )
+        popup.bind(
+            "<MouseWheel>",
+            lambda event: popup_scroll.yview_scroll(int(-event.delta / 120), "units"),
+        )
+
+        self._build_standard_dialog_header(
+            popup, container,
+            tr("section_generation_parameters", "Generierungsparameter"),
+        )
+
+        tk.Label(
+            container, text=tr("section_model", "Modell"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        ).pack(fill="x", pady=(0, 4))
+        popup_model_menu = tk.OptionMenu(
+            container, self.model_var, *self.controller.AVAILABLE_MODELS
+        )
+        popup_model_menu.configure(
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, highlightthickness=0,
+            font=PHOENIX_THEME.font_button,
+        )
+        popup_model_menu["menu"].configure(
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            font=PHOENIX_THEME.font_body, relief="flat", bd=0,
+        )
+        popup_model_menu.pack(fill="x", pady=(0, 3))
+        tk.Label(
+            container, text=tr("model_parameter_help", "Das Modell bestimmt Stil, Fähigkeiten und unterstützte Einstellungen."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+            wraplength=460,
+        ).pack(fill="x", pady=(0, 12))
 
         contract = self.controller.select_model(self.model_var.get())
         if not contract:
@@ -3460,6 +3625,17 @@ class PhoenixPromptView(WorkspaceFrame):
             self._configure_option_contract(popup_width_menu, self.width_var, contract.get("width", {}))
             self._configure_option_contract(popup_height_menu, self.height_var, contract.get("height", {}))
 
+        tk.Label(
+            container,
+            text=tr(
+                "resolution_lock_tooltip",
+                "Die Auflösung bestimmt Bildbreite und Bildhöhe; höhere Werte benötigen mehr Speicher.",
+            ),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+            wraplength=460,
+        ).pack(fill="x", pady=(0, 8))
+
         tk.Label(container, text=tr("sampling_title", "Sampling"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(10, 4))
 
         sampling_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
@@ -3487,8 +3663,38 @@ class PhoenixPromptView(WorkspaceFrame):
         if cfg_options:
             popup_cfg_scale.configure(**cfg_options)
 
+        tk.Label(
+            sampling_frame, text=tr("cfg_scale_help", "Stärke der Prompt-Befolgung; typische Empfehlung 6–8."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+        ).grid(row=2, column=0, sticky="ew", pady=(0, 6))
+
+        tk.Label(
+            sampling_frame, text=tr("steps_label_colon", "Schritte:"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).grid(row=3, column=0, sticky="w", pady=(2, 1))
+        popup_steps_scale = tk.Scale(
+            sampling_frame, from_=1, to=100, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent,
+            troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.steps_var,
+        )
+        popup_steps_scale.grid(row=4, column=0, sticky="ew", pady=(0, 2))
+        steps_spec = contract.get("steps", {})
+        popup_steps_scale.configure(
+            from_=steps_spec.get("min", 1), to=steps_spec.get("max", 100)
+        )
+        tk.Label(
+            sampling_frame, text=tr("steps_help", "Mehr Entrauschungsschritte können Details verbessern, benötigen aber mehr Zeit."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+        ).grid(row=5, column=0, sticky="ew", pady=(0, 6))
+
         dropdown_frame = tk.Frame(sampling_frame, bg=PHOENIX_THEME.card_bg)
-        dropdown_frame.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+        dropdown_frame.grid(row=6, column=0, sticky="ew", pady=(4, 0))
         dropdown_frame.grid_columnconfigure(0, weight=0)
         dropdown_frame.grid_columnconfigure(1, weight=1)
         dropdown_frame.grid_columnconfigure(2, weight=0)
@@ -3505,6 +3711,19 @@ class PhoenixPromptView(WorkspaceFrame):
         popup_scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         popup_scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         popup_scheduler_menu.grid(row=0, column=3, sticky="ew", pady=2)
+
+        tk.Label(
+            dropdown_frame, text=tr("sampler_help", "Verwendetes Berechnungsverfahren für die Bildentstehung."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+            wraplength=205,
+        ).grid(row=1, column=0, columnspan=2, sticky="ew", padx=(0, 8), pady=(2, 0))
+        tk.Label(
+            dropdown_frame, text=tr("scheduler_help", "Zeitliche Verteilung der Entrauschungsschritte."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+            wraplength=205,
+        ).grid(row=1, column=2, columnspan=2, sticky="ew", padx=(8, 0), pady=(2, 0))
 
         self._configure_option_contract(popup_sampler_menu, self.sampler_var, contract.get("sampler", {}))
         self._configure_option_contract(popup_scheduler_menu, self.scheduler_var, contract.get("scheduler", {}))
@@ -3533,14 +3752,113 @@ class PhoenixPromptView(WorkspaceFrame):
         popup_batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         popup_batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         popup_batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
+        tk.Label(
+            output_frame, text=tr("seed_help", "Reproduzierbarer Startwert; -1 bedeutet zufälliger Seed."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+        ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(3, 0))
+
+        tk.Label(
+            container, text=tr("tab_controlnet", "ControlNet/Canny"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        ).pack(fill="x", pady=(10, 4))
+        tk.Label(
+            container,
+            text=tr("ref_image_canny_hint", "ControlNet nutzt ein Referenzbild, um Kanten und Bildaufbau zu steuern."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
+            wraplength=460,
+        ).pack(fill="x", pady=(0, 6))
+        controlnet_popup = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        controlnet_popup.pack(fill="x", pady=(0, 8))
+        controlnet_popup.grid_columnconfigure(0, weight=1)
+        self._popup_controlnet_var = tk.BooleanVar(value=self._controlnet_active())
+        controlnet_toggle = tk.Checkbutton(
+            controlnet_popup,
+            text=tr("tab_controlnet", "ControlNet/Canny"),
+            variable=self._popup_controlnet_var,
+            command=lambda: self._switch_tab(
+                "canny" if self._popup_controlnet_var.get() else "basic"
+            ),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.card_bg,
+            activeforeground=PHOENIX_THEME.text_primary,
+            selectcolor=PHOENIX_THEME.elevated_bg,
+            font=PHOENIX_THEME.font_small,
+            state="normal" if self.canny_supported else "disabled",
+        )
+        controlnet_toggle.grid(row=0, column=0, sticky="w", pady=(0, 4))
+        reference_row = tk.Frame(controlnet_popup, bg=PHOENIX_THEME.card_bg)
+        reference_row.grid(row=1, column=0, sticky="ew", pady=(0, 6))
+        reference_row.grid_columnconfigure(0, weight=1)
+        current_reference = getattr(self, "_ref_image_path", None)
+        reference_name = Path(current_reference).name if current_reference else tr(
+            "no_reference_image", "Kein Referenzbild ausgewählt"
+        )
+        popup_reference_label = tk.Label(
+            reference_row, text=reference_name, bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small,
+            anchor="w", padx=8, pady=6,
+        )
+        popup_reference_label.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+
+        def choose_reference_image() -> None:
+            self._on_dnd_click()
+            popup_reference_label.configure(
+                text=Path(getattr(self, "_ref_image_path", "")).name if getattr(self, "_ref_image_path", None) else tr(
+                    "no_reference_image", "Kein Referenzbild ausgewählt"
+                )
+            )
+
+        reference_button = tk.Button(
+            reference_row, text=tr("reference_image", "Referenzbild"),
+            command=choose_reference_image, bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_small,
+            state="normal" if self.canny_supported else "disabled",
+        )
+        reference_button.grid(row=0, column=1)
+        tk.Label(
+            controlnet_popup, text=tr("canny_low_threshold_label", "Canny Low Threshold:"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).grid(row=2, column=0, sticky="w")
+        tk.Scale(
+            controlnet_popup, from_=0, to=255, orient="horizontal",
+            variable=self.canny_low_var, bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary, highlightthickness=0,
+            troughcolor=PHOENIX_THEME.elevated_bg,
+        ).grid(row=3, column=0, sticky="ew")
+        tk.Label(
+            controlnet_popup, text=tr("canny_high_threshold_label", "Canny High Threshold:"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).grid(row=4, column=0, sticky="w")
+        tk.Scale(
+            controlnet_popup, from_=0, to=255, orient="horizontal",
+            variable=self.canny_high_var, bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary, highlightthickness=0,
+            troughcolor=PHOENIX_THEME.elevated_bg,
+        ).grid(row=5, column=0, sticky="ew")
+        tk.Label(
+            controlnet_popup, text=tr("conditioning_strength_label", "Conditioning Strength:"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).grid(row=6, column=0, sticky="w")
+        tk.Scale(
+            controlnet_popup, from_=0.0, to=2.0, resolution=0.05,
+            orient="horizontal", variable=self.conditioning_strength_var,
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, troughcolor=PHOENIX_THEME.elevated_bg,
+        ).grid(row=7, column=0, sticky="ew")
 
         close_btn = tk.Button(
-            container, text=tr("btn_close", "Schließen"), bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
+            popup_actions, text=tr("apply", "Übernehmen"), bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
             activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=16, pady=8,
             command=popup.destroy
         )
-        close_btn.pack(pady=(16, 0))
+        close_btn.pack(side="right")
 
     def _open_boost_preview(self) -> None:
         prompt = self.prompt_text.get("1.0", "end-1c").strip()
@@ -3569,8 +3887,9 @@ class PhoenixPromptView(WorkspaceFrame):
             return
 
         popup = tk.Toplevel(self)
+        BrandManager.apply_window_icon(popup)
         popup.title(tr("boost_preview_title", "Phoenix Boost – Vorschau"))
-        popup.configure(bg=PHOENIX_THEME.background)
+        popup.configure(bg=PHOENIX_THEME.card_bg)
         popup.geometry("760x760")
         popup.minsize(680, 620)
         popup.transient(self.winfo_toplevel())
@@ -3580,17 +3899,17 @@ class PhoenixPromptView(WorkspaceFrame):
         self._boost_mode = "Boost"
         self._ollama_status = OllamaStatus(False, False)
 
-        dialog_shell = tk.Frame(popup, bg=PHOENIX_THEME.background)
+        dialog_shell = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
         dialog_shell.pack(fill="both", expand=True)
 
-        actions = tk.Frame(dialog_shell, bg=PHOENIX_THEME.background)
+        actions = tk.Frame(dialog_shell, bg=PHOENIX_THEME.card_bg)
         actions.pack(side="bottom", fill="x", padx=24, pady=(8, 16))
         self._boost_actions = actions
 
-        scroll_area = tk.Frame(dialog_shell, bg=PHOENIX_THEME.background)
+        scroll_area = tk.Frame(dialog_shell, bg=PHOENIX_THEME.card_bg)
         scroll_area.pack(side="top", fill="both", expand=True)
         scroll_canvas = tk.Canvas(
-            scroll_area, bg=PHOENIX_THEME.background,
+            scroll_area, bg=PHOENIX_THEME.card_bg,
             highlightthickness=0, bd=0,
         )
         scrollbar = ttk.Scrollbar(
@@ -3602,7 +3921,7 @@ class PhoenixPromptView(WorkspaceFrame):
         scroll_canvas.pack(side="left", fill="both", expand=True)
         self._boost_scroll_canvas = scroll_canvas
 
-        container = tk.Frame(scroll_canvas, bg=PHOENIX_THEME.background)
+        container = tk.Frame(scroll_canvas, bg=PHOENIX_THEME.card_bg)
         content_window = scroll_canvas.create_window((24, 20), window=container, anchor="nw")
         container.bind(
             "<Configure>",
@@ -3618,16 +3937,14 @@ class PhoenixPromptView(WorkspaceFrame):
             "<MouseWheel>",
             lambda event: scroll_canvas.yview_scroll(int(-event.delta / 120), "units"),
         )
-        tk.Label(
-            container, text=tr("boost_preview_title", "Phoenix Boost – Vorschau"),
-            bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.accent,
-            font=PHOENIX_THEME.font_card_title, anchor="w",
-        ).pack(fill="x", pady=(0, 12))
+        self._build_standard_dialog_header(
+            popup, container, tr("boost_preview_title", "Phoenix Boost – Vorschau"),
+        )
 
         if self._ollama_status.available:
             tk.Label(
                 container, text=tr("boost_ai_available", "Phoenix Boost AI verfügbar"),
-                bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.success,
+                bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.success,
                 font=PHOENIX_THEME.font_small, anchor="w",
             ).pack(fill="x", pady=(0, 8))
         else:
@@ -3707,7 +4024,7 @@ class PhoenixPromptView(WorkspaceFrame):
             tk.Label(
                 container,
                 text=tr("boost_model_hint", "Modellhinweis: Für dieses Motiv kann SDXL bessere Details liefern."),
-                bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_secondary,
+                bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_small, anchor="w", justify="left",
             ).pack(fill="x", pady=(0, 8))
 
@@ -3715,8 +4032,8 @@ class PhoenixPromptView(WorkspaceFrame):
         tk.Checkbutton(
             container, variable=self._boost_apply_negative_var,
             text=tr("boost_apply_negative", "Empfohlene Ergänzung zum Negative Prompt übernehmen"),
-            bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.background, activeforeground=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.card_bg, activeforeground=PHOENIX_THEME.text_primary,
             selectcolor=PHOENIX_THEME.elevated_bg, font=PHOENIX_THEME.font_small, anchor="w",
         ).pack(fill="x", pady=2)
 
@@ -3725,8 +4042,8 @@ class PhoenixPromptView(WorkspaceFrame):
         resolution_check = tk.Checkbutton(
             container, variable=self._boost_apply_resolution_var,
             text=tr("boost_apply_resolution", "Empfohlene Auflösung ausdrücklich übernehmen"),
-            bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.background, activeforeground=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.card_bg, activeforeground=PHOENIX_THEME.text_primary,
             disabledforeground=PHOENIX_THEME.text_muted, selectcolor=PHOENIX_THEME.elevated_bg,
             font=PHOENIX_THEME.font_small, anchor="w",
             state="normal" if resolution_allowed else "disabled",
@@ -3735,8 +4052,16 @@ class PhoenixPromptView(WorkspaceFrame):
         if not resolution_allowed:
             reason_key = "boost_resolution_controlnet_locked" if self._controlnet_active() else "boost_resolution_model_locked"
             fallback = "Bei aktivem ControlNet bleibt die Auflösung unverändert." if self._controlnet_active() else "Die Auflösung ist für dieses Modell/Backend fest vorgegeben."
-            tk.Label(container, text=tr(reason_key, fallback), bg=PHOENIX_THEME.background,
+            tk.Label(container, text=tr(reason_key, fallback), bg=PHOENIX_THEME.card_bg,
                      fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x", padx=(22, 0))
+
+        self._boost_save_template_btn = PhoenixButton(
+            actions, text=tr("boost_save_template", "Als Vorlage speichern"),
+            icon_name="preset", icon_color=PHOENIX_THEME.warning,
+            command=self._save_boost_as_template, button_type="neutral",
+            font=PHOENIX_THEME.font_small,
+        )
+        self._boost_save_template_btn.pack(side="left")
 
         cancel_btn = tk.Button(
             actions, text=tr("cancel", "Abbrechen"), command=popup.destroy,
@@ -3763,9 +4088,17 @@ class PhoenixPromptView(WorkspaceFrame):
         ).start()
         popup.after(100, self._poll_boost_ai_suggestion)
 
+    def _save_boost_as_template(self) -> None:
+        suggestion = self._boost_suggestion
+        data = self._collect_preset_data(
+            prompt=suggestion.optimized_prompt,
+            negative_prompt=suggestion.recommended_negative_prompt,
+        )
+        self._prompt_and_save_preset(data)
+
     @staticmethod
     def _boost_preview_field(parent: tk.Widget, label: str, value: str) -> tk.Label:
-        tk.Label(parent, text=label, bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_secondary,
+        tk.Label(parent, text=label, bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
                  font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x")
         value_label = tk.Label(
             parent, text=value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
@@ -3938,6 +4271,7 @@ class PhoenixPromptView(WorkspaceFrame):
             return
 
         popup = tk.Toplevel(self)
+        BrandManager.apply_window_icon(popup)
         popup.title(tr("large_prompt_editor_title", "Großer Prompt-Editor"))
         popup.configure(bg=PHOENIX_THEME.card_bg)
         self._prompt_popup = popup
@@ -4147,13 +4481,58 @@ class PhoenixPromptView(WorkspaceFrame):
             self.apply_generation_settings(preset)
 
     def _on_save_preset(self) -> None:
-        from tkinter import simpledialog, messagebox
+        self._prompt_and_save_preset(self._collect_preset_data())
+
+    def _collect_preset_data(
+        self, *, prompt: str | None = None, negative_prompt: str | None = None
+    ) -> dict:
+        generation_controller = getattr(self.controller, "generation_controller", None)
+        backend_manager = getattr(generation_controller, "backend_manager", None)
+        backend = (
+            backend_manager.get_active_execution_provider_label()
+            if backend_manager is not None else ""
+        )
+
+        def numeric(variable, converter, fallback):
+            try:
+                return converter(variable.get())
+            except (TypeError, ValueError, tk.TclError):
+                return fallback
+
+        controlnet_enabled = bool(self.canny_supported and self.active_tab == "canny")
+        return {
+            "prompt": prompt if prompt is not None else self.prompt_text.get("1.0", "end-1c").strip(),
+            "negative_prompt": negative_prompt if negative_prompt is not None else self.neg_prompt_text.get("1.0", "end-1c").strip(),
+            "model_name": self.model_var.get(),
+            "backend": backend,
+            "seed": numeric(self.seed_var, int, -1),
+            "width": numeric(self.width_var, int, 512),
+            "height": numeric(self.height_var, int, 512),
+            "steps": numeric(self.steps_var, int, 20),
+            "cfg_scale": numeric(self.cfg_var, float, 7.5),
+            "sampler": self.sampler_var.get(),
+            "scheduler": self.scheduler_var.get(),
+            "batch": numeric(self.batch_var, int, 1),
+            "controlnet_enabled": controlnet_enabled,
+            "canny_low_threshold": numeric(self.canny_low_var, int, 50),
+            "canny_high_threshold": numeric(self.canny_high_var, int, 150),
+            "controlnet_conditioning_scale": numeric(self.conditioning_strength_var, float, 1.0),
+            "reference_image_path": getattr(self, "_ref_image_path", None) or "",
+        }
+
+    def _prompt_and_save_preset(self, data: dict) -> bool:
+        from tkinter import messagebox, simpledialog
+
+        parent = self
+        if hasattr(self, "_boost_popup") and self._boost_popup.winfo_exists():
+            parent = self._boost_popup
         name = simpledialog.askstring(
-            tr("preset_save_dialog_title", "Preset speichern"),
-            tr("preset_save_dialog_prompt", "Gib einen Namen für das Preset ein:")
+            tr("template_save_title", "Als Vorlage speichern"),
+            tr("template_save_prompt", "Name der Vorlage:"),
+            parent=parent,
         )
         if not name:
-            return
+            return False
 
         if self.preset_manager.preset_exists(name):
             overwrite = messagebox.askyesno(
@@ -4165,57 +4544,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 ),
             )
             if not overwrite:
-                return
-
-        model_name = self.model_var.get()
-        controlnet_enabled = bool(self.canny_supported and self.active_tab == "canny")
-        generation_controller = getattr(self.controller, "generation_controller", None)
-        backend_manager = getattr(generation_controller, "backend_manager", None)
-        backend = (
-            backend_manager.get_active_execution_provider_label()
-            if backend_manager is not None
-            else ""
-        )
-
-        try:
-            steps = int(self.steps_var.get())
-        except Exception:
-            steps = 20
-
-        try:
-            cfg = float(self.cfg_var.get())
-        except Exception:
-            cfg = 7.5
-
-        try:
-            seed = int(self.seed_var.get())
-        except Exception:
-            seed = -1
-
-        try:
-            batch = int(self.batch_var.get())
-        except Exception:
-            batch = 1
-
-        data = {
-            "prompt": self.prompt_text.get("1.0", "end-1c").strip(),
-            "negative_prompt": self.neg_prompt_text.get("1.0", "end-1c").strip(),
-            "model_name": model_name,
-            "backend": backend,
-            "seed": seed,
-            "width": int(self.width_var.get()) if self.width_var.get().isdigit() else 512,
-            "height": int(self.height_var.get()) if self.height_var.get().isdigit() else 512,
-            "steps": steps,
-            "cfg_scale": cfg,
-            "sampler": self.sampler_var.get(),
-            "scheduler": self.scheduler_var.get(),
-            "batch": batch,
-            "controlnet_enabled": controlnet_enabled,
-            "canny_low_threshold": int(self.canny_low_var.get()) if isinstance(self.canny_low_var.get(), int) else 50,
-            "canny_high_threshold": int(self.canny_high_var.get()) if isinstance(self.canny_high_var.get(), int) else 150,
-            "controlnet_conditioning_scale": float(self.conditioning_strength_var.get()) if isinstance(self.conditioning_strength_var.get(), (int, float)) else 1.0,
-            "reference_image_path": self._ref_image_path or ""
-        }
+                return False
 
         success = self.preset_manager.save_preset(name, data)
         if success:
@@ -4229,11 +4558,13 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._refresh_presets_dropdown()
             self.selected_preset_var.set(self.preset_manager.preset_key(name))
+            return True
         else:
             messagebox.showerror(
-                tr("preset_save_dialog_title", "Preset speichern"),
+                tr("template_save_title", "Als Vorlage speichern"),
                 tr("preset_save_error", "Fehler beim Speichern des Presets.")
             )
+        return False
 
     def _on_delete_preset(self) -> None:
         from tkinter import messagebox
@@ -4256,19 +4587,54 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._refresh_presets_dropdown()
 
+    def _on_rename_preset(self) -> None:
+        from tkinter import messagebox, simpledialog
+
+        current_name = self.selected_preset_var.get()
+        if not current_name or current_name == "-":
+            return
+        data = self.preset_manager.get_preset(current_name)
+        if not data:
+            return
+        new_name = simpledialog.askstring(
+            tr("rename_preset_title", "Vorlage umbenennen"),
+            tr("rename_preset_prompt", "Neuer Name für die Vorlage:"),
+            initialvalue=data.get("name", current_name),
+            parent=getattr(self, "_presets_popup", self),
+        )
+        if not new_name or self.preset_manager.preset_key(new_name) == current_name:
+            return
+        if self.preset_manager.preset_exists(new_name):
+            messagebox.showerror(
+                tr("rename_preset_title", "Vorlage umbenennen"),
+                tr("rename_preset_exists", "Eine Vorlage mit diesem Namen existiert bereits."),
+                parent=getattr(self, "_presets_popup", self),
+            )
+            return
+        if not self.preset_manager.save_preset(new_name, data):
+            return
+        if not self.preset_manager.delete_preset(current_name):
+            self.preset_manager.delete_preset(self.preset_manager.preset_key(new_name))
+            return
+        self._refresh_presets_dropdown()
+        self.selected_preset_var.set(self.preset_manager.preset_key(new_name))
+
     def _refresh_presets_dropdown(self) -> None:
         self.available_presets = self.preset_manager.list_presets()
         if not self.available_presets:
             self.available_presets = ["-"]
 
-        menu = self.preset_dropdown["menu"]
-        menu.delete(0, "end")
-
-        for p in self.available_presets:
-            menu.add_command(
-                label=p,
-                command=lambda value=p: self.selected_preset_var.set(value)
-            )
+        dropdowns = [self.preset_dropdown]
+        if hasattr(self, "_preset_popup_dropdown") and self._preset_popup_dropdown.winfo_exists():
+            dropdowns.append(self._preset_popup_dropdown)
+        for dropdown in dropdowns:
+            menu = dropdown["menu"]
+            menu.delete(0, "end")
+            for p in self.available_presets:
+                menu.add_command(
+                    label=p,
+                    command=lambda value=p: self.selected_preset_var.set(value)
+                )
 
         curr = self.selected_preset_var.get()
         if curr not in self.available_presets:

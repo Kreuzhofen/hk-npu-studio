@@ -5,6 +5,7 @@ from collections.abc import Callable
 
 from controllers.gallery_model import GalleryImage
 from resources.icons import IconManager
+from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
@@ -190,6 +191,7 @@ class ThumbnailWidget(tk.Frame):
 
         try:
             preview_win = tk.Toplevel(self)
+            BrandManager.apply_window_icon(preview_win)
             preview_win.withdraw()
             preview_win.overrideredirect(True)
             preview_win.configure(bg=PHOENIX_THEME.border, padx=1, pady=1)

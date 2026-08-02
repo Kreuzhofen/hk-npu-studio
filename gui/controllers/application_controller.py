@@ -46,11 +46,7 @@ class ApplicationController:
 
     def _configure_main_window(self):
         self.app.title(self.app.brand.window_title())
-        if BrandManager.APP_ICON.exists():
-            try:
-                self.app.iconbitmap(str(BrandManager.APP_ICON))
-            except Exception:
-                pass
+        BrandManager.apply_window_icon(self.app)
         
         # Load theme & language from preferences and initialize PHOENIX_THEME and locales
         from app.settings_manager import SettingsManager

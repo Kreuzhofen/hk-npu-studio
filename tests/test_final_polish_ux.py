@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import tkinter as tk
 from pathlib import Path
+from unittest.mock import patch
 
 import widgets.phoenix.views.home_view as home_module
 from app.i18n import set_language, tr
+from dialogs.about_dialog import AboutDialog
 from engine.brand_manager import BrandManager
 from engine.theme_manager import ThemeManager
 from widgets.phoenix.header import PhoenixHeader
@@ -12,6 +14,25 @@ from widgets.phoenix.controls.vector_icons import draw_vector_icon
 from widgets.phoenix.theme import PHOENIX_THEME, update_phoenix_theme
 from widgets.phoenix.views.home_view import PhoenixHomeView
 from widgets.text_context_menu import install_text_context_menu
+
+
+def test_about_dialog_uses_the_canonical_window_icon():
+    root = tk.Tk()
+    root.withdraw()
+    brand = BrandManager()
+    root.brand = brand
+    try:
+        with patch.object(
+            BrandManager, "apply_window_icon", wraps=BrandManager.apply_window_icon
+        ) as apply_icon:
+            dialog = AboutDialog(root, brand)
+        apply_icon.assert_called_once_with(dialog)
+        assert dialog._dialog_images
+        assert dialog._dialog_images[0].width() == 128
+        assert dialog._dialog_images[0].height() == 128
+        dialog.destroy()
+    finally:
+        root.destroy()
 
 
 def test_spanish_language_is_complete_and_selectable():

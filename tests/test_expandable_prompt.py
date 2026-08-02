@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 import tkinter as tk
 
+from app.i18n import tr
 from engine.theme_manager import ThemeManager, ThemePalette
 
 # Setup a mock palette for widgets/phoenix/theme initialization
@@ -34,6 +35,7 @@ dummy_palette = ThemePalette(
 ThemeManager.palette = MagicMock(return_value=dummy_palette)
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
+from engine.brand_manager import BrandManager
 from engine.boost_ai_service import BoostAIService
 from engine.boost_engine import PhoenixBoostEngine
 from engine.ollama_status import OllamaStatus, OllamaStatusService
@@ -69,9 +71,113 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertTrue(hasattr(self.view, "maximize_btn"))
         self.assertTrue(self.view.maximize_btn.winfo_manager() != "")
 
-    def test_boost_button_uses_snapdragon_green(self) -> None:
-        self.assertEqual(self.view.boost_btn.cget("bg"), PHOENIX_THEME.success)
-        self.assertEqual(self.view.boost_btn.cget("fg"), PHOENIX_THEME.text_on_accent)
+    def test_generator_main_view_keeps_core_controls_and_hides_detail_sections(self) -> None:
+        self.assertTrue(self.view.prompt_text.winfo_manager())
+        self.assertTrue(self.view.neg_prompt_text.winfo_manager())
+        self.assertTrue(self.view.boost_btn.winfo_manager())
+        self.assertTrue(self.view.gen_btn.winfo_manager())
+        self.assertEqual(self.view.preset_frame.winfo_manager(), "")
+        self.assertEqual(self.view.tab_container.winfo_manager(), "")
+
+    def test_presets_popup_opens_with_existing_actions(self) -> None:
+        with patch.object(BrandManager, "apply_window_icon", wraps=BrandManager.apply_window_icon) as apply_icon:
+            self.view._open_presets_popup()
+        self.assertTrue(self.view._presets_popup.winfo_exists())
+        apply_icon.assert_called_once_with(self.view._presets_popup)
+        self.assertTrue(self.view._preset_popup_dropdown.winfo_manager())
+        self.assertFalse(hasattr(self.view._presets_popup, "_phoenix_logo_label"))
+        self.assertEqual(self.view._presets_popup.cget("bg"), PHOENIX_THEME.card_bg)
+        self.assertTrue(
+            self.view._presets_popup._standard_dialog_title.winfo_manager()
+        )
+        self.assertEqual(
+            self.view._presets_popup._standard_dialog_title.cget("anchor"), "w"
+        )
+        self.assertEqual(self.view._preset_apply_btn.text, tr("apply_preset_btn", "Anwenden"))
+        self.assertEqual(self.view._preset_rename_btn.text, tr("rename_preset_btn", "Umbenennen"))
+        self.assertEqual(self.view._preset_delete_btn.text, tr("delete_preset_btn", "Löschen"))
+        self.view._presets_popup.destroy()
+
+    def test_generation_settings_popup_opens_and_keeps_values(self) -> None:
+        with patch.object(BrandManager, "apply_window_icon", wraps=BrandManager.apply_window_icon) as apply_icon:
+            self.view._open_advanced_settings_popup()
+        self.assertTrue(self.view._advanced_popup.winfo_exists())
+        apply_icon.assert_called_once_with(self.view._advanced_popup)
+        self.assertFalse(hasattr(self.view._advanced_popup, "_phoenix_logo_label"))
+        self.assertEqual(self.view._advanced_popup.cget("bg"), PHOENIX_THEME.card_bg)
+
+        def widget_texts(widget):
+            values = []
+            try:
+                values.append(str(widget.cget("text")))
+            except tk.TclError:
+                pass
+            for child in widget.winfo_children():
+                values.extend(widget_texts(child))
+            return values
+
+        texts = widget_texts(self.view._advanced_popup)
+        for key, fallback in (
+            ("model_parameter_help", "Das Modell bestimmt Stil, Fähigkeiten und unterstützte Einstellungen."),
+            ("resolution_lock_tooltip", "Die Auflösung bestimmt Bildbreite und Bildhöhe; höhere Werte benötigen mehr Speicher."),
+            ("steps_help", "Mehr Entrauschungsschritte können Details verbessern, benötigen aber mehr Zeit."),
+            ("cfg_scale_help", "Stärke der Prompt-Befolgung; typische Empfehlung 6–8."),
+            ("seed_help", "Reproduzierbarer Startwert; -1 bedeutet zufälliger Seed."),
+            ("sampler_help", "Verwendetes Berechnungsverfahren für die Bildentstehung."),
+            ("scheduler_help", "Zeitliche Verteilung der Entrauschungsschritte."),
+            ("ref_image_canny_hint", "ControlNet nutzt ein Referenzbild, um Kanten und Bildaufbau zu steuern."),
+        ):
+            self.assertIn(tr(key, fallback), texts)
+        self.view.steps_var.set(31)
+        self.view.cfg_var.set(6.5)
+        self.view.seed_var.set("123")
+        self.view._advanced_popup.destroy()
+        self.assertEqual(self.view.steps_var.get(), 31)
+        self.assertEqual(self.view.cfg_var.get(), 6.5)
+        self.assertEqual(self.view.seed_var.get(), "123")
+
+    def test_generation_still_starts_from_cleaned_main_view(self) -> None:
+        self.controller.generation_controller.validate_session = MagicMock(
+            return_value=(True, "")
+        )
+        with patch("widgets.phoenix.views.prompt_view.threading.Thread") as thread:
+            worker = MagicMock()
+            thread.return_value = worker
+            self.view._on_generate()
+        worker.start.assert_called_once()
+        self.view._generation_running = False
+
+    def test_generator_toolbar_uses_neutral_buttons_with_colored_icons(self) -> None:
+        buttons = (
+            (self.view.boost_btn, 0, "sparkles", PHOENIX_THEME.success),
+            (self.view.presets_popup_btn, 1, "folder", PHOENIX_THEME.warning),
+            (self.view.parameters_popup_btn, 2, "settings", PHOENIX_THEME.danger),
+            (self.view.history_btn, 3, "back", PHOENIX_THEME.accent),
+        )
+        for button, column, icon_name, icon_color in buttons:
+            self.assertTrue(button.winfo_manager())
+            self.assertEqual(int(button.grid_info()["column"]), column)
+            self.assertEqual(button.normal_bg, PHOENIX_THEME.elevated_bg)
+            self.assertEqual(button.icon_name, icon_name)
+            self.assertEqual(button.icon_color, icon_color)
+        self.assertEqual(
+            self.view.parameters_popup_btn.text,
+            tr("generator_settings_toolbar", "Generierungsparameter"),
+        )
+        self.assertTrue(self.view.maximize_btn.text.startswith("⛶ "))
+        self.assertEqual(self.view.maximize_btn.normal_bg, PHOENIX_THEME.elevated_bg)
+
+    def test_prompt_titles_and_toolbar_have_separate_layout_rows(self) -> None:
+        self.root.update_idletasks()
+        self.assertEqual(self.view.prompt_title_label.cget("text"), tr("your_prompt_title", "DEIN PROMPT"))
+        self.assertEqual(self.view.prompt_title_label.cget("fg"), PHOENIX_THEME.accent)
+        self.assertEqual(self.view.negative_prompt_title_label.cget("fg"), PHOENIX_THEME.accent)
+        self.assertEqual(int(self.view.prompt_toolbar.grid_info()["row"]), 1)
+        self.assertEqual(int(self.view.prompt_text.grid_info()["row"]), 3)
+        self.assertEqual(int(self.view.neg_prompt_text.grid_info()["row"]), 6)
+        self.assertIsNot(self.view.boost_btn.master, self.view.prompt_title_label.master)
+        self.assertGreater(self.view.prompt_title_label.winfo_width(), 0)
+        self.assertTrue(self.view.neg_prompt_text.winfo_manager())
 
     def test_open_expandable_prompt_popup(self) -> None:
         # Initial text in main prompt
@@ -226,6 +332,53 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(self.view.seed_var.get(), "12345")
         self.assertEqual(self.view.batch_var.get(), "4")
 
+    def test_boost_optimized_prompt_can_be_saved_as_template(self) -> None:
+        manager = MagicMock()
+        manager.preset_exists.return_value = False
+        manager.save_preset.return_value = True
+        manager.list_presets.return_value = ["boost_template"]
+        manager.preset_key.return_value = "boost_template"
+        self.view.preset_manager = manager
+        self.view.prompt_text.delete("1.0", "end")
+        self.view.prompt_text.insert("1.0", "A portrait photograph")
+        self.view.neg_prompt_text.delete("1.0", "end")
+        self.view.neg_prompt_text.insert("1.0", "existing negative")
+        self.view._open_boost_preview()
+
+        with patch("tkinter.simpledialog.askstring", return_value="Boost Template"):
+            self.view._save_boost_as_template()
+
+        saved = manager.save_preset.call_args.args[1]
+        self.assertEqual(saved["prompt"], self.view._boost_suggestion.optimized_prompt)
+        self.assertEqual(
+            saved["negative_prompt"],
+            self.view._boost_suggestion.recommended_negative_prompt,
+        )
+        self.assertEqual(saved["model_name"], self.view.model_var.get())
+        self.assertIn("controlnet_enabled", saved)
+        self.assertEqual(self.view.selected_preset_var.get(), "boost_template")
+        self.view._boost_popup.destroy()
+
+    def test_preset_can_be_renamed_without_losing_data(self) -> None:
+        manager = MagicMock()
+        manager.get_preset.return_value = {"name": "Old Name", "prompt": "kept"}
+        manager.preset_key.side_effect = lambda name: str(name).lower().replace(" ", "_")
+        manager.preset_exists.return_value = False
+        manager.save_preset.return_value = True
+        manager.delete_preset.return_value = True
+        manager.list_presets.return_value = ["new_name"]
+        self.view.preset_manager = manager
+        self.view.selected_preset_var.set("old_name")
+
+        with patch("tkinter.simpledialog.askstring", return_value="New Name"):
+            self.view._on_rename_preset()
+
+        manager.save_preset.assert_called_once_with(
+            "New Name", {"name": "Old Name", "prompt": "kept"}
+        )
+        manager.delete_preset.assert_called_once_with("old_name")
+        self.assertEqual(self.view.selected_preset_var.get(), "new_name")
+
     def test_boost_languages_and_model_profiles(self) -> None:
         cases = (
             ("Ein Porträt einer Frau mit natürlichem Licht", "sd15", "de", "portrait"),
@@ -275,8 +428,11 @@ class ExpandablePromptTests(unittest.TestCase):
         self.view.prompt_text.insert("1.0", "one red car")
         with patch.object(
             OllamaStatusService, "detect", return_value=OllamaStatus(False, False)
-        ):
+        ), patch.object(
+            BrandManager, "apply_window_icon", wraps=BrandManager.apply_window_icon
+        ) as apply_icon:
             self.view._open_boost_preview()
+        apply_icon.assert_called_once_with(self.view._boost_popup)
 
         def widget_texts(widget):
             values = []
@@ -289,6 +445,9 @@ class ExpandablePromptTests(unittest.TestCase):
             return values
 
         texts = widget_texts(self.view._boost_popup)
+        self.assertFalse(hasattr(self.view._boost_popup, "_phoenix_logo_label"))
+        self.assertEqual(self.view._boost_popup.cget("bg"), PHOENIX_THEME.card_bg)
+        self.assertTrue(self.view._boost_popup._standard_dialog_title.winfo_manager())
         self.assertIn("Phoenix Boost AI", texts)
         self.assertIn("Ollama: nicht installiert", texts)
         self.assertIn("Ollama installieren", texts)
@@ -457,7 +616,11 @@ class ExpandablePromptTests(unittest.TestCase):
             "boost_model_status_ready", "boost_ai_status_not_ready",
             "boost_ai_status_ready", "boost_install_qwen", "boost_ai_ready_button",
             "boost_install_qwen_title", "boost_install_qwen_storage_hint",
-            "boost_qwen_install_started",
+            "boost_qwen_install_started", "generator_settings_toolbar",
+            "model_parameter_help", "boost_save_template",
+            "template_save_title", "template_save_prompt",
+            "rename_preset_btn", "rename_preset_title",
+            "rename_preset_prompt", "rename_preset_exists",
         }
         for locale in ("de_DE.json", "en_US.json", "es_ES.json"):
             data = json.loads((root / "locales" / locale).read_text(encoding="utf-8"))
