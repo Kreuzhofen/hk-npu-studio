@@ -746,5 +746,18 @@
   "boost_ollama_not_installed": "Ollama nicht installiert",
   "boost_ollama_not_available": "Ollama nicht erreichbar",
   "boost_ai_info": "Erweitert die Prompt-Optimierung optional mit lokaler KI.",
-  "boost_install_ollama": "Ollama installieren"
+  "boost_install_ollama": "Ollama installieren",
+  "boost_ollama_installed": "Ollama installiert ✓",
+  "boost_ollama_status_missing": "Ollama: nicht installiert",
+  "boost_ollama_status_ready": "Ollama: bereit",
+  "boost_model_status_unavailable": "Qwen2.5 3B: nicht verfügbar",
+  "boost_model_status_missing": "Qwen2.5 3B: nicht installiert",
+  "boost_model_status_ready": "Qwen2.5 3B: installiert",
+  "boost_ai_status_not_ready": "Phoenix Boost AI: nicht bereit",
+  "boost_ai_status_ready": "Phoenix Boost AI: bereit",
+  "boost_install_qwen": "Qwen2.5 3B installieren",
+  "boost_ai_ready_button": "Phoenix Boost AI bereit ✓",
+  "boost_install_qwen_title": "Qwen2.5 3B installieren",
+  "boost_install_qwen_storage_hint": "Das lokale Modell benötigt zusätzlichen Speicherplatz. Download jetzt starten?",
+  "boost_qwen_install_started": "Download gestartet …"
 }

@@ -34,6 +34,7 @@ dummy_palette = ThemePalette(
 ThemeManager.palette = MagicMock(return_value=dummy_palette)
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
+from engine.boost_ai_service import BoostAIService
 from engine.boost_engine import PhoenixBoostEngine
 from engine.ollama_status import OllamaStatus, OllamaStatusService
 from widgets.phoenix.views.prompt_view import PhoenixPromptView
@@ -53,6 +54,7 @@ class ExpandablePromptTests(unittest.TestCase):
         cls.root.destroy()
 
     def setUp(self) -> None:
+        OllamaStatusService.invalidate_cache()
         self.controller = PromptWorkspaceController()
         self.view = PhoenixPromptView(self.root, controller=self.controller)
 
@@ -250,10 +252,13 @@ class ExpandablePromptTests(unittest.TestCase):
     @patch("engine.ollama_status.shutil.which", return_value="C:/Ollama/ollama.exe")
     def test_ollama_available(self, _which, open_url) -> None:
         response = MagicMock(status=200)
+        response.read.return_value = json.dumps({"models": [{"name": "qwen2.5:3b"}]}).encode("utf-8")
         open_url.return_value.__enter__.return_value = response
         status = OllamaStatusService.detect()
         self.assertTrue(status.installed)
         self.assertTrue(status.available)
+        self.assertTrue(status.model_available)
+        self.assertTrue(status.ai_ready)
 
     @patch("engine.ollama_status.urlopen")
     @patch("engine.ollama_status.shutil.which", return_value=None)
@@ -285,9 +290,99 @@ class ExpandablePromptTests(unittest.TestCase):
 
         texts = widget_texts(self.view._boost_popup)
         self.assertIn("Phoenix Boost AI", texts)
-        self.assertIn("Ollama nicht installiert", texts)
+        self.assertIn("Ollama: nicht installiert", texts)
         self.assertIn("Ollama installieren", texts)
         self.assertTrue(self.view._boost_suggestion.optimized_prompt)
+        self.assertEqual(self.view._boost_install_btn.cget("state"), "normal")
+        self.assertEqual(self.view._boost_install_btn.cget("bg"), PHOENIX_THEME.accent)
+
+    def test_installed_ollama_disables_install_button(self) -> None:
+        self.view.prompt_text.delete("1.0", "end")
+        self.view.prompt_text.insert("1.0", "one red car")
+        with patch.object(
+            OllamaStatusService, "detect", return_value=OllamaStatus(False, False)
+        ):
+            self.view._open_boost_preview()
+        self.view._update_ollama_install_button(OllamaStatus(True, True, True))
+        self.assertEqual(self.view._boost_install_btn.cget("state"), "disabled")
+        self.assertEqual(self.view._boost_install_btn.cget("text"), "Phoenix Boost AI bereit ✓")
+        self.assertEqual(self.view._boost_install_btn.cget("bg"), PHOENIX_THEME.elevated_bg)
+
+    def test_missing_model_offers_qwen_install(self) -> None:
+        self.view.prompt_text.delete("1.0", "end")
+        self.view.prompt_text.insert("1.0", "one red car")
+        with patch.object(
+            OllamaStatusService, "detect", return_value=OllamaStatus(False, False)
+        ):
+            self.view._open_boost_preview()
+        self.view._update_ollama_install_button(OllamaStatus(True, True, False))
+        self.assertEqual(self.view._boost_install_btn.cget("state"), "normal")
+        self.assertEqual(self.view._boost_install_btn.cget("text"), "Qwen2.5 3B installieren")
+        self.assertEqual(self.view._boost_model_status_lbl.cget("text"), "Qwen2.5 3B: nicht installiert")
+
+    @patch("engine.ollama_status.urlopen")
+    @patch("engine.ollama_status.shutil.which", return_value="C:/Ollama/ollama.exe")
+    def test_ollama_status_cache_avoids_repeated_probe(self, _which, open_url) -> None:
+        open_url.return_value = self._url_response({"models": [{"name": "qwen2.5:3b"}]})
+        first = OllamaStatusService.detect()
+        second = OllamaStatusService.detect()
+        self.assertIs(first, second)
+        open_url.assert_called_once()
+
+    @patch("engine.ollama_status.urlopen", side_effect=OSError("service failed"))
+    @patch("engine.ollama_status.shutil.which", return_value="C:/Ollama/ollama.exe")
+    def test_ollama_status_error_invalidates_cache(self, _which, open_url) -> None:
+        OllamaStatusService.detect()
+        OllamaStatusService.detect()
+        self.assertEqual(open_url.call_count, 2)
+
+    @staticmethod
+    def _url_response(payload: dict) -> MagicMock:
+        response = MagicMock()
+        response.status = 200
+        response.read.return_value = json.dumps(payload).encode("utf-8")
+        context = MagicMock()
+        context.__enter__.return_value = response
+        return context
+
+    @patch("engine.boost_ai_service.urlopen", side_effect=OSError("offline"))
+    def test_boost_ai_missing_ollama_falls_back(self, _open_url) -> None:
+        self.assertIsNone(BoostAIService.optimize("one giraffe"))
+        self.assertTrue(PhoenixBoostEngine.suggest("one giraffe", "", "sdxl", 20, 7, 512, 512).optimized_prompt)
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_missing_model_falls_back(self, open_url) -> None:
+        open_url.return_value = self._url_response({"models": [{"name": "other:latest"}]})
+        self.assertIsNone(BoostAIService.optimize("one giraffe"))
+        open_url.assert_called_once()
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_successful_structured_response(self, open_url) -> None:
+        structured = {
+            "main_object": "giraffe", "count": 1, "action": "holding",
+            "relationships": ["holding a balloon string in its mouth"],
+            "environment": "savanna", "style": "realistic photography",
+            "optimized_prompt": "one giraffe holding a red balloon string in its mouth",
+            "negative_prompt": "extra animals, distorted anatomy",
+        }
+        open_url.side_effect = [
+            self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
+            self._url_response({"response": json.dumps(structured)}),
+        ]
+        result = BoostAIService.optimize("Eine Giraffe hält einen Ballon.")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.main_object, "giraffe")
+        self.assertEqual(result.count, 1)
+        self.assertIn("balloon string", result.relationships[0])
+        self.assertEqual(result.negative_prompt, "extra animals, distorted anatomy")
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_invalid_response_does_not_raise(self, open_url) -> None:
+        open_url.side_effect = [
+            self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
+            self._url_response({"response": "not-json"}),
+        ]
+        self.assertIsNone(BoostAIService.optimize("one giraffe"))
 
     def test_boost_cancel_changes_nothing(self) -> None:
         self.view.prompt_text.insert("1.0", "A mountain landscape")
@@ -356,6 +451,13 @@ class ExpandablePromptTests(unittest.TestCase):
             "boost_resolution_controlnet_locked", "boost_resolution_model_locked",
             "boost_ai_available", "boost_ai_info", "boost_install_ollama",
             "boost_ai_title", "boost_ollama_not_installed", "boost_ollama_not_available",
+            "boost_ollama_installed",
+            "boost_ollama_status_missing", "boost_ollama_status_ready",
+            "boost_model_status_unavailable", "boost_model_status_missing",
+            "boost_model_status_ready", "boost_ai_status_not_ready",
+            "boost_ai_status_ready", "boost_install_qwen", "boost_ai_ready_button",
+            "boost_install_qwen_title", "boost_install_qwen_storage_hint",
+            "boost_qwen_install_started",
         }
         for locale in ("de_DE.json", "en_US.json", "es_ES.json"):
             data = json.loads((root / "locales" / locale).read_text(encoding="utf-8"))

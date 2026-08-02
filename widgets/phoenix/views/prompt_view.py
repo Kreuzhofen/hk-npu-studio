@@ -115,13 +115,16 @@ tk = _TkProxy()
 import datetime
 import time
 import os
+import shutil
 import subprocess
+from dataclasses import replace
 from tkinter import messagebox, ttk
 from pathlib import Path
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
-from engine.boost_engine import BoostSuggestion, PhoenixBoostEngine
-from engine.ollama_status import OllamaStatusService
+from engine.boost_ai_service import BoostAIService
+from engine.boost_engine import BoostSuggestion, PhoenixBoostEngine, PromptAnalysis
+from engine.ollama_status import OllamaStatus, OllamaStatusService
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
@@ -3574,7 +3577,8 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.grab_set()
         self._boost_popup = popup
         self._boost_suggestion = suggestion
-        self._ollama_status = OllamaStatusService.detect()
+        self._boost_mode = "Boost"
+        self._ollama_status = OllamaStatus(False, False)
 
         container = tk.Frame(popup, bg=PHOENIX_THEME.background)
         container.pack(fill="both", expand=True, padx=24, pady=20)
@@ -3595,44 +3599,54 @@ class PhoenixPromptView(WorkspaceFrame):
             ai_info.pack(fill="x", pady=(0, 10))
             ai_copy = tk.Frame(ai_info, bg=PHOENIX_THEME.surface)
             ai_copy.pack(side="left", fill="x", expand=True, padx=10, pady=7)
-            tk.Label(
+            self._boost_ai_title_lbl = tk.Label(
                 ai_copy, text=tr("boost_ai_title", "Phoenix Boost AI"),
                 bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
                 font=PHOENIX_THEME.font_card_title, anchor="w",
-            ).pack(fill="x")
-            status_key = "boost_ollama_not_installed" if not self._ollama_status.installed else "boost_ollama_not_available"
-            status_fallback = "Ollama nicht installiert" if not self._ollama_status.installed else "Ollama nicht erreichbar"
-            tk.Label(
-                ai_copy, text=tr(status_key, status_fallback),
+            )
+            self._boost_ai_title_lbl.pack(fill="x")
+            self._boost_ollama_status_lbl = tk.Label(
+                ai_copy, text=tr("boost_ollama_status_missing", "Ollama: nicht installiert"),
                 bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_small, anchor="w",
-            ).pack(fill="x", pady=(2, 0))
-            tk.Label(
+            )
+            self._boost_ollama_status_lbl.pack(fill="x", pady=(2, 0))
+            self._boost_model_status_lbl = tk.Label(
+                ai_copy, text=tr("boost_model_status_unavailable", "Qwen2.5 3B: nicht verfügbar"),
+                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_small, anchor="w",
+            )
+            self._boost_model_status_lbl.pack(fill="x", pady=(2, 0))
+            self._boost_ai_status_lbl = tk.Label(
+                ai_copy, text=tr("boost_ai_status_not_ready", "Phoenix Boost AI: nicht bereit"),
+                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+                font=PHOENIX_THEME.font_small, anchor="w",
+            )
+            self._boost_ai_status_lbl.pack(fill="x", pady=(2, 0))
+            self._boost_ai_info_lbl = tk.Label(
                 ai_copy,
                 text=tr("boost_ai_info", "Erweitert die Prompt-Optimierung optional mit lokaler KI."),
                 bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_muted,
                 font=PHOENIX_THEME.font_caption, anchor="w",
-            ).pack(fill="x", pady=(2, 0))
-            install_btn = tk.Button(
+            )
+            self._boost_ai_info_lbl.pack(fill="x", pady=(2, 0))
+            self._boost_install_btn = PhoenixButton(
                 ai_info, text=tr("boost_install_ollama", "Ollama installieren"),
                 command=self._open_ollama_download,
-                bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
-                activebackground=PHOENIX_THEME.button_hover,
-                activeforeground=PHOENIX_THEME.text_primary,
-                relief="flat", bd=0, font=PHOENIX_THEME.font_small,
-                cursor="hand2", padx=10, pady=5,
+                button_type="primary", font=PHOENIX_THEME.font_small,
             )
-            install_btn.pack(side="right", padx=8, pady=5)
-            self._add_button_hover(install_btn, PHOENIX_THEME.button_hover, PHOENIX_THEME.text_primary)
+            self._boost_install_btn.pack(side="right", padx=8, pady=5)
 
         self._boost_preview_field(container, tr("boost_original_prompt", "Originalprompt"), suggestion.original_prompt)
-        self._boost_preview_field(container, tr("boost_optimized_prompt", "Optimierter Prompt"), suggestion.optimized_prompt)
+        self._boost_optimized_value = self._boost_preview_field(
+            container, tr("boost_optimized_prompt", "Optimierter Prompt"), suggestion.optimized_prompt
+        )
         self._boost_preview_field(
             container,
             tr("boost_existing_negative", "Vorhandener Negative Prompt"),
             suggestion.existing_negative_prompt or tr("boost_none", "Nicht vorhanden"),
         )
-        self._boost_preview_field(
+        self._boost_negative_value = self._boost_preview_field(
             container, tr("boost_negative_addition", "Empfohlene Ergänzung"), suggestion.negative_addition,
         )
 
@@ -3707,14 +3721,129 @@ class PhoenixPromptView(WorkspaceFrame):
         apply_btn.pack(side="right")
         self._add_button_hover(apply_btn, PHOENIX_THEME.button_hover, PHOENIX_THEME.text_on_accent)
         popup.bind("<Escape>", lambda _event: popup.destroy())
+        self._boost_ai_queue = queue.Queue(maxsize=1)
+        threading.Thread(
+            target=self._load_boost_ai_suggestion, args=(suggestion,), daemon=True,
+        ).start()
+        popup.after(100, self._poll_boost_ai_suggestion)
 
     @staticmethod
-    def _boost_preview_field(parent: tk.Widget, label: str, value: str) -> None:
+    def _boost_preview_field(parent: tk.Widget, label: str, value: str) -> tk.Label:
         tk.Label(parent, text=label, bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.text_secondary,
                  font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x")
-        tk.Label(parent, text=value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
-                 font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=690,
-                 padx=10, pady=7).pack(fill="x", pady=(2, 8))
+        value_label = tk.Label(
+            parent, text=value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=690,
+            padx=10, pady=7,
+        )
+        value_label.pack(fill="x", pady=(2, 8))
+        return value_label
+
+    def _load_boost_ai_suggestion(self, local_suggestion: BoostSuggestion) -> None:
+        status = OllamaStatusService.detect()
+        result = BoostAIService.optimize(local_suggestion.original_prompt) if status.available else None
+        if result is None:
+            self._boost_ai_queue.put((status, None))
+            return
+        existing = local_suggestion.existing_negative_prompt
+        combined = f"{existing}, {result.negative_prompt}" if existing else result.negative_prompt
+        analysis = PromptAnalysis(
+            result.main_object, result.count,
+            (result.action,) if result.action else (), result.relationships,
+            result.environment or None, local_suggestion.analysis.colors,
+            result.style or local_suggestion.analysis.style,
+        )
+        ai_suggestion = replace(
+            local_suggestion, optimized_prompt=result.optimized_prompt,
+            negative_addition=result.negative_prompt,
+            recommended_negative_prompt=combined, analysis=analysis,
+        )
+        self._boost_ai_queue.put((status, ai_suggestion))
+
+    def _poll_boost_ai_suggestion(self) -> None:
+        if not hasattr(self, "_boost_popup") or not self._boost_popup.winfo_exists():
+            return
+        try:
+            status, suggestion = self._boost_ai_queue.get_nowait()
+        except queue.Empty:
+            self._boost_popup.after(100, self._poll_boost_ai_suggestion)
+            return
+        self._update_ollama_install_button(status)
+        if suggestion is not None:
+            self._apply_boost_ai_preview(suggestion)
+
+    def _update_ollama_install_button(self, status: OllamaStatus) -> None:
+        self._ollama_status = status
+        if not hasattr(self, "_boost_install_btn"):
+            return
+        self._boost_ollama_status_lbl.configure(text=tr(
+            "boost_ollama_status_ready" if status.available else "boost_ollama_status_missing",
+            "Ollama: bereit" if status.available else "Ollama: nicht installiert",
+        ))
+        self._boost_model_status_lbl.configure(text=tr(
+            "boost_model_status_ready" if status.model_available else "boost_model_status_missing",
+            "Qwen2.5 3B: installiert" if status.model_available else "Qwen2.5 3B: nicht installiert",
+        ) if status.available else tr("boost_model_status_unavailable", "Qwen2.5 3B: nicht verfügbar"))
+        self._boost_ai_status_lbl.configure(text=tr(
+            "boost_ai_status_ready" if status.ai_ready else "boost_ai_status_not_ready",
+            "Phoenix Boost AI: bereit" if status.ai_ready else "Phoenix Boost AI: nicht bereit",
+        ))
+        if status.ai_ready:
+            self._boost_install_btn.configure(
+                text=tr("boost_ai_ready_button", "Phoenix Boost AI bereit ✓"),
+                state="disabled",
+            )
+        elif status.available:
+            self._boost_install_btn.configure(
+                text=tr("boost_install_qwen", "Qwen2.5 3B installieren"),
+                command=self._confirm_qwen_install,
+                button_type="primary", state="normal",
+            )
+        else:
+            self._boost_install_btn.configure(
+                text=tr("boost_install_ollama", "Ollama installieren"),
+                command=self._open_ollama_download,
+                button_type="primary", state="normal",
+            )
+
+    def _confirm_qwen_install(self) -> None:
+        confirmed = messagebox.askokcancel(
+            tr("boost_install_qwen_title", "Qwen2.5 3B installieren"),
+            tr(
+                "boost_install_qwen_storage_hint",
+                "Das lokale Modell benötigt zusätzlichen Speicherplatz. Download jetzt starten?",
+            ),
+            parent=self._boost_popup,
+        )
+        if not confirmed:
+            return
+        executable = shutil.which("ollama")
+        if not executable:
+            OllamaStatusService.invalidate_cache()
+            return
+        try:
+            subprocess.Popen(
+                [executable, "pull", OllamaStatusService.MODEL],
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            OllamaStatusService.invalidate_cache()
+            self._boost_install_btn.configure(
+                text=tr("boost_qwen_install_started", "Download gestartet …"),
+                state="disabled",
+            )
+        except OSError:
+            OllamaStatusService.invalidate_cache()
+
+    def _apply_boost_ai_preview(self, suggestion: BoostSuggestion) -> None:
+        if not hasattr(self, "_boost_popup") or not self._boost_popup.winfo_exists():
+            return
+        self._boost_suggestion = suggestion
+        self._boost_mode = "Boost AI"
+        self._boost_optimized_value.configure(text=suggestion.optimized_prompt)
+        self._boost_negative_value.configure(text=suggestion.negative_addition)
+        if hasattr(self, "_boost_ai_title_lbl"):
+            self._boost_ai_title_lbl.configure(text=tr("boost_ai_available", "Phoenix Boost AI verfügbar"), fg=PHOENIX_THEME.success)
+            self._boost_ai_info_lbl.pack_forget()
 
     @staticmethod
     def _open_ollama_download() -> None:
