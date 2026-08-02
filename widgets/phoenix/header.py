@@ -26,14 +26,14 @@ class PhoenixHeader(tk.Frame):
         left.pack(side="left", fill="y", padx=PHOENIX_THEME.space_lg)
 
         logo = self.brand.logo_image(48)
-        logo = logo.resize((35, 35), Image.Resampling.LANCZOS)
+        logo = logo.resize((42, 42), Image.Resampling.LANCZOS)
         self.logo_image = ImageTk.PhotoImage(logo, master=self)
         tk.Label(
             left,
             image=self.logo_image,
             bg=PHOENIX_THEME.header_bg,
             bd=0,
-        ).pack(side="left", padx=(0, PHOENIX_THEME.space_md), pady=(12, 13))
+        ).pack(side="left", padx=(0, PHOENIX_THEME.space_md), pady=(6, 7))
 
         title_group = tk.Frame(left, bg=PHOENIX_THEME.header_bg)
         title_group.pack(side="left", fill="y")
@@ -58,16 +58,26 @@ class PhoenixHeader(tk.Frame):
         )
         self.view_label.pack(side="top", anchor="w", pady=(0, 7))
 
-        badge = tk.Label(
-            self,
-            text=self.brand.slogan(),
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_muted,
+        release_group = tk.Frame(self, bg=PHOENIX_THEME.header_bg)
+        release_group.pack(side="right", fill="y", padx=PHOENIX_THEME.space_lg)
+
+        tk.Label(
+            release_group,
+            text="Version 2.0.0 RC1",
+            bg=PHOENIX_THEME.header_bg,
+            fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_caption,
-            padx=PHOENIX_THEME.space_md,
-            pady=PHOENIX_THEME.space_xs,
-        )
-        badge.pack(side="right", padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_xs))
+            anchor="e",
+        ).pack(side="top", anchor="e", pady=(6, 0))
+
+        tk.Label(
+            release_group,
+            text="© 2026 Holger Kreuzhofen",
+            bg=PHOENIX_THEME.header_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_small,
+            anchor="e",
+        ).pack(side="top", anchor="e", pady=(0, 7))
 
     def set_view(self, title: str) -> None:
         self.view_label.configure(text=f"{self.brand.app_name()} · {title}")
