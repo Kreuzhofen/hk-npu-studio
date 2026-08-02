@@ -3580,8 +3580,44 @@ class PhoenixPromptView(WorkspaceFrame):
         self._boost_mode = "Boost"
         self._ollama_status = OllamaStatus(False, False)
 
-        container = tk.Frame(popup, bg=PHOENIX_THEME.background)
-        container.pack(fill="both", expand=True, padx=24, pady=20)
+        dialog_shell = tk.Frame(popup, bg=PHOENIX_THEME.background)
+        dialog_shell.pack(fill="both", expand=True)
+
+        actions = tk.Frame(dialog_shell, bg=PHOENIX_THEME.background)
+        actions.pack(side="bottom", fill="x", padx=24, pady=(8, 16))
+        self._boost_actions = actions
+
+        scroll_area = tk.Frame(dialog_shell, bg=PHOENIX_THEME.background)
+        scroll_area.pack(side="top", fill="both", expand=True)
+        scroll_canvas = tk.Canvas(
+            scroll_area, bg=PHOENIX_THEME.background,
+            highlightthickness=0, bd=0,
+        )
+        scrollbar = ttk.Scrollbar(
+            scroll_area, orient="vertical", command=scroll_canvas.yview,
+            style="Phoenix.Vertical.TScrollbar",
+        )
+        scroll_canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        scroll_canvas.pack(side="left", fill="both", expand=True)
+        self._boost_scroll_canvas = scroll_canvas
+
+        container = tk.Frame(scroll_canvas, bg=PHOENIX_THEME.background)
+        content_window = scroll_canvas.create_window((24, 20), window=container, anchor="nw")
+        container.bind(
+            "<Configure>",
+            lambda _event: scroll_canvas.configure(scrollregion=scroll_canvas.bbox("all")),
+        )
+        scroll_canvas.bind(
+            "<Configure>",
+            lambda event: scroll_canvas.itemconfigure(
+                content_window, width=max(1, event.width - 48)
+            ),
+        )
+        popup.bind(
+            "<MouseWheel>",
+            lambda event: scroll_canvas.yview_scroll(int(-event.delta / 120), "units"),
+        )
         tk.Label(
             container, text=tr("boost_preview_title", "Phoenix Boost – Vorschau"),
             bg=PHOENIX_THEME.background, fg=PHOENIX_THEME.accent,
@@ -3702,14 +3738,13 @@ class PhoenixPromptView(WorkspaceFrame):
             tk.Label(container, text=tr(reason_key, fallback), bg=PHOENIX_THEME.background,
                      fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x", padx=(22, 0))
 
-        actions = tk.Frame(container, bg=PHOENIX_THEME.background)
-        actions.pack(side="bottom", fill="x", pady=(14, 0))
         cancel_btn = tk.Button(
             actions, text=tr("cancel", "Abbrechen"), command=popup.destroy,
             bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.border, activeforeground=PHOENIX_THEME.text_primary,
             relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=18, pady=8,
         )
+        self._boost_cancel_btn = cancel_btn
         cancel_btn.pack(side="right", padx=(8, 0))
         self._add_button_hover(cancel_btn, PHOENIX_THEME.border, PHOENIX_THEME.text_primary)
         apply_btn = tk.Button(
@@ -3718,6 +3753,7 @@ class PhoenixPromptView(WorkspaceFrame):
             activebackground=PHOENIX_THEME.button_hover, activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=18, pady=8,
         )
+        self._boost_apply_btn = apply_btn
         apply_btn.pack(side="right")
         self._add_button_hover(apply_btn, PHOENIX_THEME.button_hover, PHOENIX_THEME.text_on_accent)
         popup.bind("<Escape>", lambda _event: popup.destroy())
