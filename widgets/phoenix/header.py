@@ -26,7 +26,7 @@ class PhoenixHeader(tk.Frame):
         left.pack(side="left", fill="y", padx=PHOENIX_THEME.space_lg)
 
         logo = self.brand.logo_image(48)
-        logo = logo.resize((42, 42), Image.Resampling.LANCZOS)
+        logo = logo.resize((50, 50), Image.Resampling.LANCZOS)
         self.logo_image = ImageTk.PhotoImage(logo, master=self)
         tk.Label(
             left,
@@ -66,9 +66,9 @@ class PhoenixHeader(tk.Frame):
             text="Version 2.0.0 RC1",
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.accent,
-            font=PHOENIX_THEME.font_caption,
+            font=PHOENIX_THEME.font_title,
             anchor="e",
-        ).pack(side="top", anchor="e", pady=(6, 0))
+        ).pack(side="top", fill="x", anchor="e", pady=(6, 0))
 
         tk.Label(
             release_group,
@@ -77,7 +77,7 @@ class PhoenixHeader(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="e",
-        ).pack(side="top", anchor="e", pady=(0, 7))
+        ).pack(side="top", fill="x", anchor="e", pady=(0, 7))
 
     def set_view(self, title: str) -> None:
         self.view_label.configure(text=f"{self.brand.app_name()} · {title}")
