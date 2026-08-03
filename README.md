@@ -1,28 +1,26 @@
 <a id="top"></a>
 
+<h1 align="center">
+  <img src="docs/images/logo.png" width="48" height="48" valign="middle" alt="Phoenix Logo"> Snapdragon AI Studio
+</h1>
+
 <p align="center">
-  <img src="docs/images/logo.png"
-       width="260"
-       alt="Snapdragon AI Studio Phoenix Engine Logo">
+  Next-generation local generative AI desktop studio engineered for Windows 11 ARM64 and Qualcomm Snapdragon X series processors. Powered by the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.
 </p>
-
-# 🚀 Snapdragon AI Studio
-
-Next-generation local generative AI desktop studio engineered for Windows 11 ARM64 and Qualcomm Snapdragon X series processors. Powered by the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.
 
 ---
 
 ## 🛡️ Badges
 
-[![License: MIT](https://img.shields.io/github/license/Kreuzhofen/snapdragon-ai-studio)](https://opensource.org/licenses/MIT)
-[![Release](https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square&label=Release&color=F59E0B)](https://github.com/Kreuzhofen/snapdragon-ai-studio/releases)
-[![Platform](https://img.shields.io/badge/Windows_11-ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white)](#system-requirements)
-[![Hardware](https://img.shields.io/badge/Snapdragon-X_Elite-D00000?style=flat-square)](#system-requirements)
-[![Qualcomm QNN](https://img.shields.io/badge/Qualcomm_QNN-Integrated-EA272A?style=flat-square)](#supported-ai-backends)
-[![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-v1.19+-005CED?style=flat-square&logo=onnx&logoColor=white)](#supported-ai-backends)
-[![Python](https://img.shields.io/badge/Python-3.11_ARM64-3776AB?style=flat-square&logo=python&logoColor=white)](#development)
-[![Status](https://img.shields.io/badge/Status-2.0_RC1-success?style=flat-square)](#rc1-status)
-[![Open Source](https://img.shields.io/badge/Open_Source-True-blue?style=flat-square)](#about-the-project)
+[![License: MIT](https://img.shields.io/github/license/Kreuzhofen/snapdragon-ai-studio?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/releases)
+[![Platform](https://img.shields.io/badge/Platform-Windows_11--ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white)](https://github.com/Kreuzhofen/snapdragon-ai-studio#system-requirements)
+[![Hardware](https://img.shields.io/badge/Snapdragon-X_Elite-D00000?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio#system-requirements)
+[![Qualcomm QNN](https://img.shields.io/badge/Qualcomm_QNN-Integrated-EA272A?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio#supported-ai-backends)
+[![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-v1.19+-005CED?style=flat-square&logo=onnx&logoColor=white)](https://github.com/Kreuzhofen/snapdragon-ai-studio#supported-ai-backends)
+[![Python](https://img.shields.io/badge/Python-3.11_ARM64-3776AB?style=flat-square&logo=python&logoColor=white)](https://github.com/Kreuzhofen/snapdragon-ai-studio#development)
+[![Status](https://img.shields.io/badge/Status-2.0_RC1-success?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio#rc1-status)
+[![Open Source](https://img.shields.io/badge/Open_Source-True-blue?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio)
 [![GitHub stars](https://img.shields.io/github/stars/Kreuzhofen/snapdragon-ai-studio?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/Kreuzhofen/snapdragon-ai-studio?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/pulls)
@@ -357,7 +355,7 @@ A core strength of Snapdragon AI Studio is its diagnostic pipeline. Instead of f
 | **QNN Quantization** | FP16/INT8 Compilation | Provide tools to compile and quantize models directly on device. | 🔄 In Progress |
 | **DirectML Integration**| Adreno GPU Support | Add DirectML backend as an alternative local acceleration path. | ⏳ Planned |
 | **Custom Schedulers** | Pipeline Extension | Integrate UniPC and LCM schedulers. | ⏳ Planned |
-| **Benchmark Tool** | NPU performance tests | Add native benchmarking utility to measure steps per second. | 🔄 In Progress |
+| **Benchmark Tool** | NPU performance tests | Add NPU benchmark utility to measure steps per second. | 🔄 In Progress |
 
 ---
 
