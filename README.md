@@ -1,3 +1,11 @@
+<a id="top"></a>
+
+<p align="center">
+  <img src="docs/images/logo.png"
+       width="260"
+       alt="Snapdragon AI Studio Phoenix Engine Logo">
+</p>
+
 # 🚀 Snapdragon AI Studio
 
 Next-generation local generative AI desktop studio engineered for Windows 11 ARM64 and Qualcomm Snapdragon X series processors. Powered by the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.
@@ -6,7 +14,7 @@ Next-generation local generative AI desktop studio engineered for Windows 11 ARM
 
 ## 🛡️ Badges
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/github/license/Kreuzhofen/snapdragon-ai-studio)](https://opensource.org/licenses/MIT)
 [![Release](https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square&label=Release&color=F59E0B)](https://github.com/Kreuzhofen/snapdragon-ai-studio/releases)
 [![Platform](https://img.shields.io/badge/Windows_11-ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white)](#system-requirements)
 [![Hardware](https://img.shields.io/badge/Snapdragon-X_Elite-D00000?style=flat-square)](#system-requirements)
@@ -114,19 +122,53 @@ The **Phoenix Engine** is the orchestration layer driving Snapdragon AI Studio. 
 
 ## 📸 Screenshots
 
-The RC1 repository is preconfigured for visual assets. Screenshots can be captured and placed in the designated locations:
+### Main Workspace
 
-```text
-docs/images/workspace_preview.png -> Primary generation workspace
-docs/images/diagnostics_dashboard.png -> NPU telemetry and system checks
-```
-
-```html
 <p align="center">
-  <img src="docs/images/workspace_preview.png" width="49%" alt="Workspace View">
-  <img src="docs/images/diagnostics_dashboard.png" width="49%" alt="Diagnostics View">
+  <img src="docs/images/workspace_preview.png"
+       width="95%"
+       alt="Snapdragon AI Studio main workspace">
 </p>
-```
+
+### AI Image Generation
+
+<p align="center">
+  <img src="docs/images/generation.png"
+       width="95%"
+       alt="Local AI image generation workspace">
+</p>
+
+### Model Management
+
+<p align="center">
+  <img src="docs/images/models.png"
+       width="95%"
+       alt="AI model management">
+</p>
+
+### Image Comparison
+
+<p align="center">
+  <img src="docs/images/compare.png"
+       width="95%"
+       alt="Generated image comparison">
+</p>
+
+### Gallery
+
+<p align="center">
+  <img src="docs/images/gallery.png"
+       width="95%"
+       alt="Generated image gallery">
+</p>
+
+### Settings
+
+<p align="center">
+  <img src="docs/images/settings.png"
+       width="95%"
+       alt="Snapdragon AI Studio settings">
+</p>
 
 ---
 
@@ -287,7 +329,7 @@ Before submitting modifications, check:
 
 ## 🔍 Diagnostics
 
- A core strength of Snapdragon AI Studio is its diagnostic pipeline. Instead of failing silently, the studio reports NPU environment state:
+A core strength of Snapdragon AI Studio is its diagnostic pipeline. Instead of failing silently, the studio reports NPU environment state:
 - **Provider Detection**: Scans and logs all execution providers registered with ONNX Runtime.
 - **Session Verification**: Reports tensor sizes and mismatched inputs during runtime compilation.
 - **Performance Logs**: Profiles execution times for text encoding, UNet loops, and VAE decoding.
@@ -346,7 +388,7 @@ SDXL support is currently experimental. Additional Qualcomm QNN optimizations ar
 The Phoenix Engine manages the core execution steps: parsing prompts, latent denoising, scheduler computations, and model execution via ONNX Runtime providers.
 
 ### 9. How do I switch between NPU and CPU execution?
-Use the dropdown list under "Execution Provider" in the main workspace view to switch. The backend will re-initialize on your next generation.
+Use the dropdown list under "Execution Provider" in the main workspace view to switch. The backend will reinitialize on your next generation.
 
 ### 10. Does the application support custom seeds?
 Yes. You can input specific seeds for deterministic outputs or leave the seed field at `-1` to generate random images.
@@ -387,16 +429,16 @@ Legally, copyright ownership of generated images depends on local jurisdictions 
 
 We welcome contributions to Snapdragon AI Studio. To ensure high standards, please follow our collaborative workflow:
 
-1. **Fork the Repository**: Create a personal copy of the project repository on GitHub.
-2. **Feature Branch**: Create a branch dedicated to your changes (`git checkout -b feature/AmazingFeature`).
-3. **Coding Style**: Conform strictly to the PEP 8 guidelines for Python code.
-4. **Update Tests**: If adding functionality or fixing bugs, add corresponding unit tests under `tests/` and verify they pass using `pytest`.
-5. **Update Documentation**: Modify configuration files, readmes, or code comments where appropriate to keep documentation in sync.
-6. **Pull Request**: Open a pull request targeting the active development branch, providing a clear explanation of modifications and diagnostics results.
-7. **Code Review**: Participate in the review process and incorporate suggested improvements before final merge.
-8. **Code of Conduct**: Respect and adhere to the guidelines outlined in our [Code of Conduct](CODE_OF_CONDUCT.md).
+1. **Fork the repository.**
+2. **Create a feature branch:** `git checkout -b feature/descriptive-name`
+3. **Follow the coding standards.**
+4. **Add or update tests where appropriate.**
+5. **Update the documentation when behavior changes.**
+6. **Open a pull request** with a clear description and relevant diagnostics.
+7. **Participate in code review.**
+8. **Follow the [Code of Conduct](CODE_OF_CONDUCT.md).**
 
-For more details, review [CONTRIBUTING.md](CONTRIBUTING.md) and our open issue templates.
+Please read our [CONTRIBUTING.md](CONTRIBUTING.md) and adhere to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ---
 
@@ -409,9 +451,9 @@ We take security seriously. If you discover a vulnerability, please do not discl
 ## 💬 Support
 
 If you run into issues:
-- 🐛 **Bug Reports**: Open a GitHub Issue using the provided issue templates.
-- 💡 **Feature Requests**: Open a Feature Request or start a discussion.
-- 🗣️ **Discussions**: Use GitHub Discussions for questions and community support.
+- **Bug Reports** — Open a [GitHub Issue](../../issues) using the provided issue template.
+- **Feature Requests** — Open a feature request or start a [GitHub Discussion](../../discussions).
+- **Community Support** — Use [GitHub Discussions](../../discussions) for questions, setup help, and shared solutions.
 
 ---
 
@@ -438,12 +480,11 @@ Qualcomm, Snapdragon, and Hexagon are trademarks or registered trademarks of Qua
 
 ---
 
-<div align="center">
+<p align="center">
+  <strong>Snapdragon AI Studio</strong><br>
+  <em>Native AI Image Generation for Windows 11 ARM64 powered by Qualcomm Snapdragon, ONNX Runtime and the Phoenix Engine.</em>
+</p>
 
-**Snapdragon AI Studio**
-
-*Native AI Image Generation for Windows 11 ARM64 powered by Qualcomm Snapdragon, ONNX Runtime and the Phoenix Engine.*
-
-[Back to top](#-snapdragon-ai-studio)
-
-</div>
+<p align="right">
+  <a href="#top">Back to top</a>
+</p>
