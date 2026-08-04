@@ -767,5 +767,7 @@
   "rename_preset_btn": "Renombrar",
   "rename_preset_title": "Renombrar plantilla",
   "rename_preset_prompt": "Nuevo nombre de la plantilla:",
-  "rename_preset_exists": "Ya existe una plantilla con este nombre."
+  "rename_preset_exists": "Ya existe una plantilla con este nombre.",
+  "apply": "Aplicar",
+  "no_reference_image": "Ninguna imagen de referencia seleccionada"
 }

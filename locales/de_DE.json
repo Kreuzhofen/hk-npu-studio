@@ -768,5 +768,7 @@
   "rename_preset_btn": "Umbenennen",
   "rename_preset_title": "Vorlage umbenennen",
   "rename_preset_prompt": "Neuer Name für die Vorlage:",
-  "rename_preset_exists": "Eine Vorlage mit diesem Namen existiert bereits."
+  "rename_preset_exists": "Eine Vorlage mit diesem Namen existiert bereits.",
+  "apply": "Übernehmen",
+  "no_reference_image": "Kein Referenzbild ausgewählt"
 }

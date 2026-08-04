@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import tkinter as tk
 
 from engine.theme_manager import ThemeManager
 
@@ -98,6 +99,22 @@ PHOENIX_THEME = _create_phoenix_theme()
 
 
 def configure_phoenix_styles(root_or_widget: tk.Misc | None = None) -> None:
+    if root_or_widget is None:
+        default_root = getattr(tk, "_default_root", None)
+        if default_root is None:
+            return
+        try:
+            if not default_root.winfo_exists():
+                return
+        except Exception:
+            return
+    else:
+        try:
+            if not root_or_widget.winfo_exists():
+                return
+        except Exception:
+            return
+
     from tkinter import ttk
     style = ttk.Style(root_or_widget)
     try:

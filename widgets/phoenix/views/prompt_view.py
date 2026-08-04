@@ -3805,11 +3805,11 @@ class PhoenixPromptView(WorkspaceFrame):
 
         def choose_reference_image() -> None:
             self._on_dnd_click()
-            popup_reference_label.configure(
-                text=Path(getattr(self, "_ref_image_path", "")).name if getattr(self, "_ref_image_path", None) else tr(
-                    "no_reference_image", "Kein Referenzbild ausgewählt"
-                )
+            ref_path = getattr(self, "_ref_image_path", None)
+            display_text = Path(ref_path).name if ref_path else tr(
+                "no_reference_image", "Kein Referenzbild ausgewählt"
             )
+            popup_reference_label.configure(text=display_text)
 
         reference_button = tk.Button(
             reference_row, text=tr("reference_image", "Referenzbild"),

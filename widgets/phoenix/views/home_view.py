@@ -536,7 +536,7 @@ class PhoenixHomeView(tk.Frame):
             try:
                 with Image.open(gen.path) as img:
                     img.thumbnail((120, 80))
-                    photo = ImageTk.PhotoImage(img.copy())
+                    photo = ImageTk.PhotoImage(img.copy(), master=self)
                     self._cached_photos.append(photo)
             except Exception:
                 photo = None

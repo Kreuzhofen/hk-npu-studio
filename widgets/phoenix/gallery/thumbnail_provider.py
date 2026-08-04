@@ -31,10 +31,8 @@ class ThumbnailProvider:
     def __init__(self, master: tk.Misc, service: ThumbnailService | None = None) -> None:
         self.master = master
         self.service = service or ThumbnailService()
-        
-        # Prepared for future RAM and Disk cache implementations:
-        # self._ram_cache = ...
-        # self._disk_cache = ...
+        self._poll_handle: str | None = None
+        self._is_cleaned_up: bool = False
         
         # Queue for incoming requests
         self._request_queue: queue.Queue[ThumbnailRequest] = queue.Queue()
@@ -51,6 +49,9 @@ class ThumbnailProvider:
         # Cache finished thumbnails by file signature so refreshes can reuse them without flicker.
         self._thumbnail_cache: dict[tuple[Path, int, int, int | None], ImageTk.PhotoImage] = {}
         
+        # Bind destroy event to cleanup resources
+        self.master.bind("<Destroy>", lambda e: self.cleanup(), add="+")
+
         # Start background worker thread
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
         self._worker_thread.start()
@@ -103,8 +104,11 @@ class ThumbnailProvider:
 
     def _worker_loop(self) -> None:
         """Loop running in background thread to load and resize images."""
-        while True:
-            request = self._request_queue.get()
+        while not getattr(self, "_is_cleaned_up", False):
+            try:
+                request = self._request_queue.get(timeout=0.5)
+            except queue.Empty:
+                continue
             try:
                 with Image.open(request.image_path) as img:
                     # CPU-intensive resize and orientation handling
@@ -117,6 +121,8 @@ class ThumbnailProvider:
 
     def _poll_responses(self) -> None:
         """Periodic check in UI thread for finished thumbnails."""
+        if getattr(self, "_is_cleaned_up", False):
+            return
         # Process all available responses in this tick
         while not self._response_queue.empty():
             try:
@@ -128,7 +134,7 @@ class ThumbnailProvider:
                 
                 if resized_img is not None:
                     # Convert to PhotoImage in UI thread
-                    photo_image = ImageTk.PhotoImage(resized_img)
+                    photo_image = ImageTk.PhotoImage(resized_img, master=self.master)
                     self._thumbnail_cache[request.cache_key] = photo_image
                     
                     # Invoke all callbacks
@@ -143,8 +149,25 @@ class ThumbnailProvider:
                 pass
                 
         # Schedule next check if UI exists
-        if self.master.winfo_exists():
-            self.master.after(30, self._poll_responses)
+        if self.master.winfo_exists() and not getattr(self, "_is_cleaned_up", False):
+            self._poll_handle = self.master.after(30, self._poll_responses)
+
+    def cleanup(self) -> None:
+        """Stops the polling loop, clears caches, and exits worker thread."""
+        self._is_cleaned_up = True
+        if hasattr(self, "_poll_handle") and self._poll_handle is not None:
+            try:
+                self.master.after_cancel(self._poll_handle)
+            except Exception:
+                pass
+            self._poll_handle = None
+        self.clear_cache()
+        while not self._request_queue.empty():
+            try:
+                self._request_queue.get_nowait()
+                self._request_queue.task_done()
+            except Exception:
+                pass
 
     def clear_cache(self) -> None:
         """Drops all cached thumbnails."""

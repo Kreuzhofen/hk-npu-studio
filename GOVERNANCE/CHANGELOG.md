@@ -4,6 +4,35 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+
+## [2.0 RC1.1] – 2026-08-04 (RC1.1 Installer & Acceptance Test Suite Pass)
+
+### Hinzugefügt
+* Dediziertes, automatisiertes Akzeptanztest-Skript unter `tools/rc1_acceptance_test.py` implementiert, um den gesamten Build- und Installationsprozess zu validieren.
+
+### Prüfung
+* **Automatisierter Release-Smoke-Test erfolgreich abgeschlossen (PASS):**
+  * PyInstaller-Build (`build_app.py`) und Inno Setup-Installer-Build (`build_installer.py`) kompiliert.
+  * Silent-Installation (`/VERYSILENT`) durchgeführt.
+  * Start der installierten Desktop-Anwendung verifiziert und Log-Erstellung validiert.
+  * `QNNExecutionProvider` in ONNX Runtime erfolgreich registriert (kein Fehler 126).
+  * SMP-Modellkatalog erkennt Modelle (SD1.5, SD2.1 und SDXL) ordnungsgemäß.
+  * ControlNet Drag & Drop sowie Canny UI-Steuerelemente im Phoenix-Design verifiziert.
+  * Vollständige Inferenz-Generierung (SD1.5 mit Euler und SD2.1 mit DDIM) lokal durchgeführt.
+  * Bildgalerie zeigt die neu generierten Bilddateien korrekt an.
+  * Silent-Deinstallation und erneute Silent-Installation mit anschließender Generierungs-Verifizierung erfolgreich bestanden.
+
+## [2.0 RC1] – 2026-08-04 (RC1 Auto Repair & Test Suite Stabilization)
+
+### Behoben
+* Tcl/Tk cross-interpreter pollution in `test_all_phoenix_pages_are_language_pure_at_runtime` behoben. `ThumbnailProvider` mit einer `<Destroy>`-Event-Bindung und einer `cleanup()`-Methode ausgestattet, um Threading-Ressourcen, `after`-Handles und `PhotoImage`-Caches beim Zerstören von Widgets zuverlässig freizugeben.
+* Import-basierte Test-Pollution in `test_gallery.py` behoben. `PhoenixGalleryView` wird nun auf Modulebene statt innerhalb der Testmethode importiert, und der `ThumbnailProvider`-Patch wurde auf das lokale Modul `widgets.phoenix.gallery.thumbnail_area` eingegrenzt, wodurch das dauerhafte Einnisten von Mock-Objekten in `sys.modules` verhindert wird.
+* Fehlerbehandlung in `configure_phoenix_styles` (`widgets/phoenix/theme.py`) durch explizite Prüfungen auf das Vorhandensein und die Gültigkeit des Standard- bzw. übergebenen Tk-Hauptfensters (Root) abgesichert, um `TclError`s beim Beenden von Tests oder Zerstören von GUI-Instanzen zu verhindern.
+
+### Prüfung
+* Gesamte Testsuite (318 Tests) erfolgreich durchlaufen.
+* Modulkompilierung aller betroffenen Dateien über `py_compile` erfolgreich verifiziert.
+
 ## [2.0 RC1] – 2026-08-01 (CPU SDXL Generation Pipeline Fix)
 
 ### Behoben

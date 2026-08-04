@@ -36,6 +36,8 @@ ALLOWED_PRODUCT_NAMES = {
     "backend Qualcomm QNN HTP",
     "architecture ARM64 / Hexagon NPU",
     "format Snapdragon Model Package",
+    "Version 2.0.0 RC1",
+    "© 2026 Holger Kreuzhofen",
 }
 GERMAN_WORDS = re.compile(
     r"\b(?:Abbrechen|Aktivieren|Alle|Ausgabe|Auswählen|Bearbeitet|Bereit|"

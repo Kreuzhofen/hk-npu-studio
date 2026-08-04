@@ -121,6 +121,14 @@ class IconManager:
 
     _image_cache: dict[tuple[str, str, int], tk.PhotoImage] = {}
     _placeholder_cache: dict[int, tk.PhotoImage] = {}
+    _last_root: tk.Tk | None = None
+
+    @classmethod
+    def _check_root(cls) -> None:
+        current_root = getattr(tk, "_default_root", None)
+        if current_root is not cls._last_root:
+            cls.clear_cache()
+            cls._last_root = current_root
 
     @classmethod
     def ensure_resource_structure(cls) -> None:
@@ -130,6 +138,7 @@ class IconManager:
 
     @classmethod
     def get_icon(cls, name: str, size: str = "medium") -> IconAsset:
+        cls._check_root()
         cls.ensure_resource_structure()
         logical_name = cls._normalize_name(name)
         size_px = cls.size_px(size)
@@ -221,6 +230,7 @@ class IconManager:
 
     @classmethod
     def _placeholder(cls, size_px: int) -> tk.PhotoImage:
+        cls._check_root()
         if size_px not in cls._placeholder_cache:
             cls._placeholder_cache[size_px] = tk.PhotoImage(width=size_px, height=size_px)
         return cls._placeholder_cache[size_px]

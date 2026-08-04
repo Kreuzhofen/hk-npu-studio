@@ -9,6 +9,7 @@ import tkinter as tk
 from controllers.gallery_model import GalleryImage, GalleryModel
 from controllers.gallery_controller import GalleryController
 from controllers.gallery_image_loader import ImageLoader
+from widgets.phoenix.views.gallery_view import PhoenixGalleryView
 
 
 class TestGalleryAndAssetLibrary(unittest.TestCase):
@@ -121,12 +122,11 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
         finally:
             shutil.rmtree(empty_dir)
 
-    @patch("widgets.phoenix.gallery.thumbnail_provider.ThumbnailProvider")
+    @patch("widgets.phoenix.gallery.thumbnail_area.ThumbnailProvider")
     def test_ui_view_initialization(self, mock_provider):
         root = tk.Tk()
         root.withdraw()
         try:
-            from widgets.phoenix.views.gallery_view import PhoenixGalleryView
             mock_controller = MagicMock()
             mock_controller.visible_images = []
             mock_controller.selected_images = []

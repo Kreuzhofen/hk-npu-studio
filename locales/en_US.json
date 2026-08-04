@@ -768,5 +768,7 @@
   "rename_preset_btn": "Rename",
   "rename_preset_title": "Rename template",
   "rename_preset_prompt": "New template name:",
-  "rename_preset_exists": "A template with this name already exists."
+  "rename_preset_exists": "A template with this name already exists.",
+  "apply": "Apply",
+  "no_reference_image": "No reference image selected"
 }

@@ -229,6 +229,42 @@ class ThumbnailWidget(tk.Frame):
                 y = 10
 
             preview_win.geometry(f"{win_w}x{win_h}+{x}+{y}")
+            preview_win.overrideredirect(True)
+            preview_win.configure(bg=PHOENIX_THEME.border, padx=1, pady=1)
+
+            from PIL import Image, ImageTk
+            with Image.open(self.image.path) as img:
+                img.thumbnail((480, 480))
+                thumb_w, thumb_h = img.size
+                zoom_photo = ImageTk.PhotoImage(img.copy())
+
+            preview_win.zoom_photo = zoom_photo
+            lbl = tk.Label(preview_win, image=zoom_photo, bg=PHOENIX_THEME.card_bg, bd=0)
+            lbl.pack()
+
+            # Calculate safe placement within screen boundaries
+            screen_w = self.winfo_screenwidth()
+            screen_h = self.winfo_screenheight()
+            win_w = thumb_w + 2
+            win_h = thumb_h + 2
+
+            # Offset position relative to cursor
+            x = event.x_root + 20
+            y = event.y_root + 20
+
+            # Wrap horizontally
+            if x + win_w > screen_w:
+                x = event.x_root - win_w - 20
+            if x < 0:
+                x = 10
+
+            # Wrap vertically
+            if y + win_h > screen_h:
+                y = event.y_root - win_h - 20
+            if y < 0:
+                y = 10
+
+            preview_win.geometry(f"{win_w}x{win_h}+{x}+{y}")
             preview_win.deiconify()
             self._hover_preview = preview_win
         except Exception:
