@@ -4,8 +4,28 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC1.2] – 2026-08-05
+
+### Added
+
+- Official corporate logo assets finalized.
+- Added automatic GitHub Light/Dark theme logo switching.
+- Updated README branding with responsive <picture> support.
+- Improved GitHub, Desktop and Mobile logo compatibility.
+
+
+
+
+
+
+
+
+
+
+
 
 ## [2.0 RC1.1] – 2026-08-04 (RC1.1 Installer & Acceptance Test Suite Pass)
+
 
 ### Hinzugefügt
 * Dediziertes, automatisiertes Akzeptanztest-Skript unter `tools/rc1_acceptance_test.py` implementiert, um den gesamten Build- und Installationsprozess zu validieren.

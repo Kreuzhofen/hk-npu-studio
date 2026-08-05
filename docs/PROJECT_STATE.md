@@ -8,7 +8,21 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
-* **CPU SDXL Generation Pipeline Fix:** Behebung des Tiling-Effekts (Gittermuster) in den Bildausgaben durch Wiederherstellung der konsistenten und kompatiblen UNet-Modellgrafik (`model.onnx` mit 4.05 MB) im SDXL-Modellpaket, da die neuere 7.29 MB Graphdatei unpassende Offset-Verweise auf die 10 GB große Gewichtsdatei (`model.onnx_data`) aufwies. Die dynamic type casting Logik wurde in `unet_service.py` und `vae_decoder_service.py` verfeinert, um `timestep` und VAE-Eingangstyp-Anforderungen dynamisch zur Laufzeit vom geladenen Modell abzufragen, statt auf fehleranfällige Standardannahmen zurückzugreifen. Die CPU-Inferenz-Pipeline läuft nun vollständig fehlerfrei und erzeugt semantisch korrekte SDXL-Ausgabebilder einer Bergstraße. Alle 203 Unit- und Integrationstests sowie Modulkompilierungen (`py_compile`) verlaufen erfolgreich.
+* **Branding Update:** The official Snapdragon AI Studio corporate logo assets have been finalized. GitHub now automatically switches between light and dark logo variants using the HTML <picture> element, providing optimal visibility on GitHub Desktop and Mobile while preserving a consistent corporate identity.
+
+
+
+
+
+
+
+
+
+
+
+
+* **CPU SDXL Generation Pipeline Fix:** Behebung des Tiling-Effekts
+ (Gittermuster) in den Bildausgaben durch Wiederherstellung der konsistenten und kompatiblen UNet-Modellgrafik (`model.onnx` mit 4.05 MB) im SDXL-Modellpaket, da die neuere 7.29 MB Graphdatei unpassende Offset-Verweise auf die 10 GB große Gewichtsdatei (`model.onnx_data`) aufwies. Die dynamic type casting Logik wurde in `unet_service.py` und `vae_decoder_service.py` verfeinert, um `timestep` und VAE-Eingangstyp-Anforderungen dynamisch zur Laufzeit vom geladenen Modell abzufragen, statt auf fehleranfällige Standardannahmen zurückzugreifen. Die CPU-Inferenz-Pipeline läuft nun vollständig fehlerfrei und erzeugt semantisch korrekte SDXL-Ausgabebilder einer Bergstraße. Alle 203 Unit- und Integrationstests sowie Modulkompilierungen (`py_compile`) verlaufen erfolgreich.
 
 * **Release Final Status/ControlNet Fix:** Die Generierungsseite leitet ihre Backendanzeige nun aus dem aktiven Execution Provider ab; bei gespeicherter CPU-Auswahl wird `CPU EP` statt des zuvor hart initialisierten `CPU (Stub)` angezeigt. ControlNet besitzt einen expliziten Aktivierungszustand vom UI-Reiter über ViewModel, Session und Request bis zur Validierung und Metadatenerzeugung. Der Basis-Reiter löst deshalb keine Canny-Bildvalidierung mehr aus. 277 Tests und 25 Subtests sowie der isoliert wiederholte Tk-Laufzeitaudit sind erfolgreich; Produktkompilierung, ARM64-Build, Release-Smoke-Test und ein Controller-Smoke bis zum tatsächlichen Pipeline-Eintritt sind ebenfalls erfolgreich. Inferenzkomponenten und Provider-Routing wurden nicht geändert.
 
