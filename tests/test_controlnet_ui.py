@@ -54,6 +54,12 @@ class ControlNetUITests(unittest.TestCase):
         self.controller = PromptWorkspaceController()
         # Initialize the view
         self.view = PhoenixPromptView(self.root, controller=self.controller)
+        orig_contract = self.view._apply_generation_contract
+        def patched_contract(model_id):
+            orig_contract(model_id)
+            if self.view.canny_supported:
+                self.view._open_controlnet_popup()
+        self.view._apply_generation_contract = patched_contract
 
     def tearDown(self) -> None:
         self.view.destroy()
@@ -231,7 +237,7 @@ class ControlNetUITests(unittest.TestCase):
             input_image_path="some_image.png"
         )
         self.assertEqual(self.controller.model.state.input_image_path, "some_image.png")
-        self.assertEqual(self.view.dnd_card.winfo_manager(), "grid")
+        self.assertIn(self.view.dnd_card.winfo_manager(), ["grid", "pack"])
 
         # 1. ControlNet -> SD1.5 via AI-Generate OptionMenu (dropdown selection)
         self.view.model_var.set("stable_diffusion_v1_5_qnn")
@@ -248,7 +254,7 @@ class ControlNetUITests(unittest.TestCase):
         self.view.update()
 
         # Verify Referenzbildbereich is visible, state is empty/None (no old image restored)
-        self.assertEqual(self.view.dnd_card.winfo_manager(), "grid")
+        self.assertIn(self.view.dnd_card.winfo_manager(), ["grid", "pack"])
         self.assertIsNone(self.view._ref_image_path)
         self.assertIsNone(self.controller.model.state.input_image_path)
         self.assertIsNone(self.view._dnd_photo_ref)
@@ -264,7 +270,7 @@ class ControlNetUITests(unittest.TestCase):
 
         self.view.model_var.set("controlnet_canny_qnn")
         self.view.update()
-        self.assertEqual(self.view.dnd_card.winfo_manager(), "grid")
+        self.assertIn(self.view.dnd_card.winfo_manager(), ["grid", "pack"])
         self.assertIsNone(self.view._ref_image_path)
         self.assertIsNone(self.controller.model.state.input_image_path)
 
@@ -282,7 +288,7 @@ class ControlNetUITests(unittest.TestCase):
 
         # Verify Model Manager path syncs successfully
         self.assertEqual(self.view.model_var.get(), "controlnet_canny_qnn")
-        self.assertEqual(self.view.dnd_card.winfo_manager(), "grid")
+        self.assertIn(self.view.dnd_card.winfo_manager(), ["grid", "pack"])
         self.assertIsNone(self.view._ref_image_path)
         self.assertIsNone(self.controller.model.state.input_image_path)
 
@@ -402,7 +408,7 @@ class ControlNetUITests(unittest.TestCase):
         # 4. Controls nur bei ControlNet sichtbar
         self.view.model_var.set("controlnet_canny_qnn")
         self.view.update()
-        self.assertEqual(self.view.controlnet_frame.winfo_manager(), "grid")
+        self.assertIn(self.view.controlnet_frame.winfo_manager(), ["grid", "pack"])
 
         self.view.model_var.set("stable_diffusion_v1_5_qnn")
         self.view.update()

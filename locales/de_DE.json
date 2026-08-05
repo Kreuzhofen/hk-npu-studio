@@ -422,7 +422,6 @@
   "missing": "Fehlt",
   "model_activate_incomplete_msg": "Modell kann nicht aktiviert werden, da es unvollständig ist oder Dateien fehlen.",
   "model_activate_success_msg": "Modell '{model_id}' wurde erfolgreich aktiviert.",
-  "no_model_selected": "Kein Modell ausgewählt.",
   "path_validation_title": "Pfad-Validierung",
   "validation_success_prefix": "Erfolgreich: Modell-Pfade und Manifest sind intakt.",
   "validation_error_prefix": "Fehler bei der Validierung:",
@@ -453,8 +452,8 @@
   "home_open_in_explorer": "Im Explorer öffnen",
   "home_delete_all_confirm_with_count": "Sollen wirklich alle {count} angezeigten Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
   "settings_restart_title": "Neustart erforderlich",
-  "settings_restart_msg": "Die Einstellungen wurden gespeichert. Snapdragon AI Studio wird jetzt neu gestartet, um die Änderungen anzuwenden."
-  ,"loading_images": "Lade Bilder",
+  "settings_restart_msg": "Die Einstellungen wurden gespeichert. Snapdragon AI Studio wird jetzt neu gestartet, um die Änderungen anzuwenden.",
+  "loading_images": "Lade Bilder",
   "size_huge": "Sehr groß",
   "delete": "Löschen",
   "sort_by": "Sortieren",
@@ -546,7 +545,7 @@
   "type": "Typ",
   "image_upscale": "Bildskalierung",
   "more_plugins_later": "Weitere Plugins folgen in späteren Versionen.",
-  "no_output_selected": "Keine Ausgabe ausgewählt",
+  "no_output_selected": "Kein Output ausgewählt",
   "dashboard_ready": "Phoenix-Dashboard ist bereit.",
   "dashboard": "Dashboard",
   "dashboard_subtitle": "Phoenix-Statuszentrale für Batch-Lifecycle, Engine, Warteschlange und Ausgabe.",
@@ -665,7 +664,6 @@
   "worker_running": "Worker aktiv",
   "worker_done": "Worker fertig",
   "worker_error": "Worker-Fehler",
-  "no_output_selected": "Kein Output ausgewählt",
   "no_active_job": "Kein aktiver Job",
   "queue_waiting": "Warteschlange: {count} wartend",
   "batch_cancelled": "Batch abgebrochen",
@@ -770,5 +768,10 @@
   "rename_preset_prompt": "Neuer Name für die Vorlage:",
   "rename_preset_exists": "Eine Vorlage mit diesem Namen existiert bereits.",
   "apply": "Übernehmen",
-  "no_reference_image": "Kein Referenzbild ausgewählt"
+  "no_reference_image": "Kein Referenzbild ausgewählt",
+  "canny_preview_label": "Canny-Vorschau",
+  "enable_controlnet_canny": "ControlNet Canny",
+  "original_image_label": "Originalbild",
+  "select_image": "Bild auswählen",
+  "no_image_selected": "Kein Bild ausgewählt"
 }

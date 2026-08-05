@@ -71,23 +71,28 @@ class PhoenixCard(tk.Canvas):
         if w < 2 or h < 2:
             return
 
-        r = self.radius
-        r = min(r, w // 2, h // 2)
+        x_min = 1
+        x_max = w - 1
+        y_min = 1
+        y_max = h - 1
 
-        # Draw rounded rectangle polygon
+        r = self.radius
+        r = min(r, (x_max - x_min) // 2, (y_max - y_min) // 2)
+
+        # Draw rounded rectangle polygon within the visible canvas boundaries (0 to w-1, 0 to h-1)
         points = [
-            r, 0, r, 0,
-            w - r, 0, w - r, 0,
-            w, 0,
-            w, r, w, r,
-            w, h - r, w, h - r,
-            w, h,
-            w - r, h, w - r, h,
-            r, h, r, h,
-            0, h,
-            0, h - r, 0, h - r,
-            0, r, 0, r,
-            0, 0
+            x_min + r, y_min, x_min + r, y_min,
+            x_max - r, y_min, x_max - r, y_min,
+            x_max, y_min,
+            x_max, y_min + r, x_max, y_min + r,
+            x_max, y_max - r, x_max, y_max - r,
+            x_max, y_max,
+            x_max - r, y_max, x_max - r, y_max,
+            x_min + r, y_max, x_min + r, y_max,
+            x_min, y_max,
+            x_min, y_max - r, x_min, y_max - r,
+            x_min, y_min + r, x_min, y_min + r,
+            x_min, y_min
         ]
 
         self.create_polygon(

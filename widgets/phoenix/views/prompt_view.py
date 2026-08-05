@@ -259,15 +259,24 @@ class PhoenixPromptView(WorkspaceFrame):
         self.param_canvas.grid(row=0, column=0, sticky="nsew")
 
         self.param_content = tk.Frame(self.param_canvas, bg=PHOENIX_THEME.card_bg)
+        self.param_content.grid_propagate(True)
         self.param_canvas_wid = self.param_canvas.create_window(
             (0, 0), window=self.param_content, anchor="nw"
         )
         self.param_content.columnconfigure(0, weight=1)
         self.param_content.columnconfigure(1, weight=1)
 
+        def _update_scroll(event=None):
+            if self.param_canvas.winfo_exists() and self.param_content.winfo_exists():
+                try:
+                    self.param_content.update_idletasks()
+                    self.param_canvas.configure(scrollregion=self.param_canvas.bbox("all"))
+                except Exception:
+                    pass
+
         self.param_content.bind(
             "<Configure>",
-            lambda e: self.param_canvas.configure(scrollregion=self.param_canvas.bbox("all"))
+            lambda e: self.param_canvas.after(10, _update_scroll)
         )
         self.param_canvas.bind(
             "<Configure>",
@@ -295,9 +304,11 @@ class PhoenixPromptView(WorkspaceFrame):
         self.canny_low_var = tk.IntVar(value=50)
         self.canny_high_var = tk.IntVar(value=150)
         self.conditioning_strength_var = tk.DoubleVar(value=1.0)
+        self.controlnet_canny_var = tk.BooleanVar(value=False)
 
         self.canny_low_var.trace_add("write", self._on_canny_param_changed)
         self.canny_high_var.trace_add("write", self._on_canny_param_changed)
+        self.controlnet_canny_var.trace_add("write", self._on_controlnet_enable_changed)
 
         p = self.param_content
         r = 0
@@ -480,7 +491,10 @@ class PhoenixPromptView(WorkspaceFrame):
             bg=PHOENIX_THEME.surface,
             highlightbackground=PHOENIX_THEME.accent,
             highlightthickness=1,
+            padx=2,
+            pady=2,
         )
+        prompt_card.grid_propagate(True)
         prompt_card.grid(
             row=r,
             column=0,
@@ -519,32 +533,69 @@ class PhoenixPromptView(WorkspaceFrame):
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
+        self.prompt_toolbar.grid_propagate(True)
         self.prompt_toolbar.grid(
             row=1, column=0, sticky="ew",
             padx=PHOENIX_THEME.space_md, pady=(6, 6),
         )
-        for column in range(5):
+        for column in range(4):
             self.prompt_toolbar.grid_columnconfigure(column, weight=1)
 
-        toolbar_specs = (
-            ("boost_btn", tr("boost_button", "Phoenix Boost"), "sparkles", PHOENIX_THEME.success, self._open_boost_preview),
-            ("presets_popup_btn", tr("presets_section_header", "Presets & Vorlagen"), "folder", PHOENIX_THEME.warning, self._open_presets_popup),
-            ("parameters_popup_btn", tr("generator_settings_toolbar", "Generierungsparameter"), "settings", PHOENIX_THEME.danger, self._open_advanced_settings_popup),
-            ("history_btn", tr("history_tab", "Verlauf"), "back", PHOENIX_THEME.accent, self._show_prompt_history_popup),
+        # Zeile 1 Buttons
+        self.presets_popup_btn = PhoenixButton(
+            self.prompt_toolbar, text=tr("presets_section_header", "Presets & Vorlagen"),
+            icon_name="folder", icon_color=PHOENIX_THEME.warning,
+            command=self._open_presets_popup, button_type="neutral",
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_small, height=32, radius=6,
+            width=10,
         )
-        for column, (attribute, text, icon, color, command) in enumerate(toolbar_specs):
-            button = PhoenixButton(
-                self.prompt_toolbar, text=text, icon_name=icon, icon_color=color,
-                command=command, button_type="neutral",
-                bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
-                font=PHOENIX_THEME.font_small, height=32, radius=6,
-            )
-            button.grid(row=0, column=column, sticky="nsew", padx=(0, 4))
-            setattr(self, attribute, button)
+        self.presets_popup_btn.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+
+        self.boost_btn = PhoenixButton(
+            self.prompt_toolbar, text=tr("boost_button", "Phoenix Boost"),
+            icon_name="sparkles", icon_color=PHOENIX_THEME.success,
+            command=self._open_boost_preview, button_type="neutral",
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_small, height=32, radius=6,
+            width=10,
+        )
+        self.boost_btn.grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
         _Tooltip(
             self.boost_btn,
             lambda: tr("boost_tooltip", "Prompt lokal optimieren und Einstellungen empfehlen."),
         )
+
+        self.parameters_popup_btn = PhoenixButton(
+            self.prompt_toolbar, text=tr("generator_settings_toolbar", "Generierungsparameter"),
+            icon_name="settings", icon_color=PHOENIX_THEME.danger,
+            command=self._open_advanced_settings_popup, button_type="neutral",
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_small, height=32, radius=6,
+            width=10,
+        )
+        self.parameters_popup_btn.grid(row=0, column=2, sticky="nsew", padx=2, pady=2)
+
+        self.controlnet_popup_btn = PhoenixButton(
+            self.prompt_toolbar, text=tr("tab_controlnet", "ControlNet"),
+            icon_name="image", icon_color=PHOENIX_THEME.accent,
+            command=self._open_controlnet_popup, button_type="neutral",
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_small, height=32, radius=6,
+            width=10,
+        )
+        self.controlnet_popup_btn.grid(row=0, column=3, sticky="nsew", padx=2, pady=2)
+
+        # Zeile 2 Buttons
+        self.history_btn = PhoenixButton(
+            self.prompt_toolbar, text=tr("history_tab", "Verlauf"),
+            icon_name="back", icon_color=PHOENIX_THEME.accent,
+            command=self._show_prompt_history_popup, button_type="neutral",
+            bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_small, height=32, radius=6,
+            width=10,
+        )
+        self.history_btn.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=2, pady=2)
 
         self.maximize_btn = PhoenixButton(
             self.prompt_toolbar,
@@ -553,8 +604,9 @@ class PhoenixPromptView(WorkspaceFrame):
             fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_small,
             height=32, radius=6,
             command=self._open_expandable_prompt_popup,
+            width=10,
         )
-        self.maximize_btn.grid(row=0, column=4, sticky="nsew")
+        self.maximize_btn.grid(row=1, column=2, columnspan=2, sticky="nsew", padx=2, pady=2)
 
         tk.Label(
             prompt_card,
@@ -721,94 +773,10 @@ class PhoenixPromptView(WorkspaceFrame):
 
         self.tab_basic_content.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=8)
 
-        # ── Group: ControlNet/Canny (inside tab_canny_content) ──
-        self.dnd_subtitle = tk.Label(
-            self.tab_canny_content,
-            text=tr("img_img_not_supported_hint", "Vorbereitung für Image→Image und Image→Video."),
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_caption,
-            anchor="w",
-        )
-        self.dnd_subtitle.grid(
-            row=0,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=16,
-            pady=(0, 2),
-        )
-        self.dnd_subtitle.row_idx = 0
-
-        self.dnd_card = tk.Frame(
-            self.tab_canny_content,
-            bg=PHOENIX_THEME.surface,
-            highlightbackground=PHOENIX_THEME.border,
-            highlightthickness=1,
-        )
-        self.dnd_card.grid(
-            row=1,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=16,
-            pady=(0, 4),
-        )
-        self.dnd_card.row_idx = 1
-
-        self.controlnet_frame = tk.Frame(self.tab_canny_content, bg=PHOENIX_THEME.card_bg)
-        self.controlnet_frame.grid(
-            row=2,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=16,
-            pady=(0, 4),
-        )
-        self.controlnet_frame.row_idx = 2
-
-        self.controlnet_frame.grid_columnconfigure(0, weight=1)
-        self.controlnet_frame.grid_columnconfigure(1, weight=1)
-
-        low_label = tk.Label(self.controlnet_frame, text=tr("canny_low_threshold_label", "Canny Low Threshold:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
-        low_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
-        self.low_scale = tk.Scale(
-            self.controlnet_frame, from_=0, to=255, orient="horizontal",
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
-            highlightthickness=0, font=PHOENIX_THEME.font_caption,
-            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
-            width=12, variable=self.canny_low_var
-        )
-        self.low_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
-        self.low_scale.bind("<ButtonRelease-1>", lambda e: self._trigger_canny_preview_update())
-
-        high_label = tk.Label(self.controlnet_frame, text=tr("canny_high_threshold_label", "Canny High Threshold:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
-        high_label.grid(row=0, column=1, sticky="w", pady=(0, 1))
-        self.high_scale = tk.Scale(
-            self.controlnet_frame, from_=0, to=255, orient="horizontal",
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
-            highlightthickness=0, font=PHOENIX_THEME.font_caption,
-            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
-            width=12, variable=self.canny_high_var
-        )
-        self.high_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
-        self.high_scale.bind("<ButtonRelease-1>", lambda e: self._trigger_canny_preview_update())
-
-        strength_label = tk.Label(self.controlnet_frame, text=tr("conditioning_strength_label", "Conditioning Strength:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
-        strength_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(2, 1))
-        self.strength_scale = tk.Scale(
-            self.controlnet_frame, from_=0.0, to=2.0, resolution=0.05, orient="horizontal",
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
-            highlightthickness=0, font=PHOENIX_THEME.font_caption,
-            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
-            width=12, variable=self.conditioning_strength_var
-        )
-        self.strength_scale.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 4))
-
-        _Tooltip(low_label, lambda: tr("tooltip_canny_low", "Unterer Canny-Schwellenwert für die Kantenerkennung (0 - 255)."))
-        _Tooltip(high_label, lambda: tr("tooltip_canny_high", "Oberer Canny-Schwellenwert für die Kantenerkennung (0 - 255)."))
-        _Tooltip(strength_label, lambda: tr("tooltip_canny_strength", "Einflussstärke von ControlNet auf das generierte Bild (0.0 - 2.0)."))
-
+        # ── Group: ControlNet Canny popup widgets container ──
+        self._dummy_hidden_frame = tk.Frame(self)
+        self._ensure_controlnet_widgets(self._dummy_hidden_frame)
+        
         # ── Group: Image Size (inside tab_basic_content) ──
         self.size_frame = tk.Frame(self.tab_basic_content, bg=PHOENIX_THEME.card_bg)
         self.size_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
@@ -1168,44 +1136,17 @@ class PhoenixPromptView(WorkspaceFrame):
         self.canny_supported = supports_controlnet
 
         if supports_controlnet:
-            self.dnd_subtitle.configure(text=tr("ref_image_canny_hint", "Referenzbild für ControlNet Canny:"))
-            self.dnd_subtitle.grid(
-                row=self.dnd_subtitle.row_idx,
-                column=0,
-                columnspan=2,
-                sticky="ew",
-                padx=16,
-                pady=(0, 2),
-            )
-            self.dnd_card.grid(
-                row=self.dnd_card.row_idx,
-                column=0,
-                columnspan=2,
-                sticky="ew",
-                padx=16,
-                pady=(0, 4),
-            )
-            self.controlnet_frame.grid(
-                row=self.controlnet_frame.row_idx,
-                column=0,
-                columnspan=2,
-                sticky="ew",
-                padx=16,
-                pady=(0, 4),
-            )
+            if hasattr(self, "controlnet_popup_btn") and self.controlnet_popup_btn:
+                self.controlnet_popup_btn.configure(state="normal", bg=PHOENIX_THEME.elevated_bg)
+            self.controlnet_canny_var.set(True)
         else:
-            self.dnd_subtitle.configure(text=tr("img_img_not_supported_hint", "Vorbereitung für Image→Image und Image→Video."))
-            self.dnd_subtitle.grid_remove()
-            self.dnd_card.grid_remove()
-            self.controlnet_frame.grid_remove()
-            if self.active_tab == "canny":
-                self._switch_tab("basic")
-
-        self._update_tab_bar_visuals()
-
-        if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
-            self._advanced_popup.destroy()
-            self._open_advanced_settings_popup()
+            if hasattr(self, "controlnet_popup_btn") and self.controlnet_popup_btn:
+                self.controlnet_popup_btn.configure(state="disabled", bg=PHOENIX_THEME.elevated_bg)
+            if hasattr(self, "_controlnet_popup") and self._controlnet_popup and self._controlnet_popup.winfo_exists():
+                self._controlnet_popup.destroy()
+            self._controlnet_popup = None
+            self._ensure_controlnet_widgets(self._dummy_hidden_frame)
+            self.controlnet_canny_var.set(False)
 
     def _section_header(self, parent: tk.Frame, title: str, row: int) -> int:
         lbl = tk.Label(
@@ -2531,7 +2472,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self.refresh()
 
     def _update_dnd_preview(self) -> None:
-        if not hasattr(self, "dnd_card") or not self.dnd_card.winfo_exists():
+        if not hasattr(self, "_dnd_preview_label") or not self._dnd_preview_label or not self._dnd_preview_label.winfo_exists():
             return
 
         input_path = self.controller.model.state.input_image_path
@@ -2544,255 +2485,40 @@ class PhoenixPromptView(WorkspaceFrame):
         else:
             new_state = "empty"
 
-        from engine.theme_manager import ThemeManager
-
         supports_controlnet = False
         model_id = self.model_var.get()
         model_meta = self.controller.repository.get_model(model_id)
         if model_meta:
             supports_controlnet = model_meta.get("capabilities", {}).get("controlnet", False)
 
-        if (
-            getattr(self, "_dnd_preview_widgets_ready", False)
-            and self._dnd_rendered_input_path == input_path
-            and getattr(self, "_dnd_visible_state", None) == new_state
-            and getattr(self, "_dnd_rendered_supports_controlnet", None) == supports_controlnet
-        ):
-            if new_state == "loaded" and supports_controlnet:
-                self._trigger_canny_preview_update()
-            return
-
-        if not getattr(self, "_dnd_preview_widgets_ready", False):
-            def on_dnd_enter(event):
-                if getattr(self, "_dnd_visible_state", None) == "error":
-                    self.dnd_card.configure(highlightbackground=ThemeManager.palette().error)
-                else:
-                    self.dnd_card.configure(highlightbackground=PHOENIX_THEME.accent)
-
-            def on_dnd_leave(event):
-                if getattr(self, "_dnd_visible_state", None) == "error":
-                    self.dnd_card.configure(highlightbackground=ThemeManager.palette().error)
-                else:
-                    self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
-
-            def on_dnd_click(event):
-                if self._dnd_visible_state == "empty":
-                    self._on_dnd_click(event)
-
-            self.dnd_card.grid_columnconfigure(0, weight=1)
-
-            self._dnd_empty_frame = tk.Frame(
-                self.dnd_card,
-                bg=PHOENIX_THEME.surface,
-                cursor="hand2",
-            )
-            self._dnd_empty_frame.columnconfigure(0, weight=1)
-            self._dnd_empty_icon = tk.Label(
-                self._dnd_empty_frame,
-                text="📥",
-                font=("Segoe UI", 20),
-                bg=PHOENIX_THEME.surface,
-                fg=PHOENIX_THEME.accent,
-                cursor="hand2",
-            )
-            self._dnd_empty_icon.grid(row=0, column=0, pady=(0, 4))
-            self._dnd_empty_text = tk.Label(
-                self._dnd_empty_frame,
-                text=tr("drag_and_drop_text", "Bild hierher ziehen oder klicken"),
-                font=PHOENIX_THEME.font_caption,
-                fg=PHOENIX_THEME.text_muted,
-                bg=PHOENIX_THEME.surface,
-                cursor="hand2",
-            )
-            self._dnd_empty_text.grid(row=1, column=0)
-
-            self._dnd_loaded_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.surface)
-            self._dnd_loaded_frame.grid_columnconfigure(1, weight=1)
-
-            self._dnd_previews_container = tk.Frame(self._dnd_loaded_frame, bg=PHOENIX_THEME.surface)
-            self._dnd_previews_container.grid(row=0, column=0, padx=12, pady=8, sticky="w")
-
-            self._dnd_ref_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
-            self._dnd_ref_title = tk.Label(
-                self._dnd_ref_container,
-                text=tr("reference_image", "Referenzbild"),
-                font=PHOENIX_THEME.font_caption,
-                bg=PHOENIX_THEME.surface,
-                fg=PHOENIX_THEME.text_muted,
-            )
-            self._dnd_ref_title.pack(anchor="w")
-
-            self._dnd_preview_label = tk.Label(
-                self._dnd_ref_container,
-                text="❌",
-                font=("Segoe UI", 16),
-                bg=PHOENIX_THEME.surface,
-                fg=PHOENIX_THEME.accent,
-            )
-            self._dnd_preview_label.pack(anchor="w", pady=(2, 0))
-
-            self._dnd_canny_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.surface)
-            self._dnd_canny_title = tk.Label(
-                self._dnd_canny_container,
-                text=tr("canny_edges", "Canny-Kanten"),
-                font=PHOENIX_THEME.font_caption,
-                bg=PHOENIX_THEME.surface,
-                fg=PHOENIX_THEME.text_muted,
-            )
-            self._dnd_canny_title.pack(anchor="w")
-
-            self._dnd_canny_preview_label = tk.Label(
-                self._dnd_canny_container,
-                text="-",
-                font=("Segoe UI", 16),
-                bg=PHOENIX_THEME.surface,
-                fg=PHOENIX_THEME.text_muted,
-            )
-            self._dnd_canny_preview_label.pack(anchor="w", pady=(2, 0))
-
-            self._dnd_meta_frame = tk.Frame(self._dnd_loaded_frame, bg=PHOENIX_THEME.surface)
-            self._dnd_meta_frame.grid(row=0, column=1, padx=(0, 12), pady=8, sticky="nsew")
-            self._dnd_meta_frame.columnconfigure(0, weight=1)
-            self._dnd_name_label = tk.Label(
-                self._dnd_meta_frame,
-                text="",
-                font=PHOENIX_THEME.font_body,
-                fg=PHOENIX_THEME.text_primary,
-                bg=PHOENIX_THEME.surface,
-                anchor="w",
-            )
-            self._dnd_name_label.grid(row=0, column=0, sticky="w", pady=(0, 2))
-
-            _Tooltip(self._dnd_name_label, lambda: self.controller.model.state.input_image_path or getattr(self, "_dnd_error_message", None))
-
-            self._dnd_resolution_label = tk.Label(
-                self._dnd_meta_frame,
-                text="-",
-                font=PHOENIX_THEME.font_caption,
-                fg=PHOENIX_THEME.text_muted,
-                bg=PHOENIX_THEME.surface,
-                anchor="w",
-            )
-            self._dnd_resolution_label.grid(row=1, column=0, sticky="w", pady=(0, 6))
-            self._dnd_remove_button = tk.Button(
-                self._dnd_meta_frame,
-                text=tr("remove_image", "✕ Bild entfernen"),
-                command=self._remove_reference_image,
-                bg=PHOENIX_THEME.elevated_bg,
-                fg=PHOENIX_THEME.text_secondary,
-                activebackground=PHOENIX_THEME.accent,
-                activeforeground=PHOENIX_THEME.text_on_accent,
-                relief="flat",
-                bd=0,
-                font=PHOENIX_THEME.font_caption,
-                cursor="hand2",
-                padx=8,
-                pady=4,
-            )
-            self._dnd_remove_button.grid(row=2, column=0, sticky="w")
-            self._add_button_hover(self._dnd_remove_button)
-
-            self._dnd_canny_status_label = tk.Label(
-                self._dnd_meta_frame,
-                text="",
-                font=PHOENIX_THEME.font_caption,
-                fg=PHOENIX_THEME.text_muted,
-                bg=PHOENIX_THEME.surface,
-                anchor="w",
-                justify="left",
-            )
-            self._dnd_canny_status_label.grid(row=3, column=0, sticky="w", pady=(4, 0))
-
-            empty_widgets = (
-                self.dnd_card,
-                self._dnd_empty_frame,
-                self._dnd_empty_icon,
-                self._dnd_empty_text,
-            )
-            dnd_target_widgets = (
-                self.dnd_card,
-                self._dnd_empty_frame,
-                self._dnd_empty_icon,
-                self._dnd_empty_text,
-                self._dnd_loaded_frame,
-                self._dnd_previews_container,
-                self._dnd_ref_container,
-                self._dnd_preview_label,
-                self._dnd_canny_container,
-                self._dnd_canny_preview_label,
-                self._dnd_meta_frame,
-                self._dnd_name_label,
-                self._dnd_resolution_label,
-            )
-            all_widgets = empty_widgets + (
-                self._dnd_loaded_frame,
-                self._dnd_previews_container,
-                self._dnd_ref_container,
-                self._dnd_preview_label,
-                self._dnd_canny_container,
-                self._dnd_canny_preview_label,
-                self._dnd_meta_frame,
-                self._dnd_name_label,
-                self._dnd_resolution_label,
-                self._dnd_remove_button,
-            )
-            for widget in empty_widgets:
-                widget.bind("<Button-1>", on_dnd_click)
-            for widget in all_widgets:
-                widget.bind("<Enter>", on_dnd_enter, add="+")
-                widget.bind("<Leave>", on_dnd_leave, add="+")
-
-            if DND_AVAILABLE:
-                for widget in dnd_target_widgets:
-                    try:
-                        widget.drop_target_register(DND_FILES)
-                        widget.dnd_bind("<<Drop>>", self._on_image_drop)
-                    except tk.TclError as e:
-                        logger.warning("TkDND not available in Tcl interpreter (likely in test environment): %s", e)
-
-            self._dnd_visible_state = None
-            self._dnd_rendered_input_path = object()
-            self._dnd_preview_widgets_ready = True
-
-        if supports_controlnet:
-            self._dnd_ref_title.pack(anchor="w")
-            self._dnd_ref_container.grid(row=0, column=0, padx=(0, 10), sticky="w")
-            self._dnd_canny_container.grid(row=0, column=1, padx=(10, 0), sticky="w")
-        else:
-            self._dnd_ref_title.pack_forget()
-            self._dnd_ref_container.grid(row=0, column=0, padx=0, sticky="w")
-            self._dnd_canny_container.grid_forget()
-            self._clear_canny_preview()
-
+        # Update labels name and resolution
         if new_state == "error":
+            from engine.theme_manager import ThemeManager
             error_color = ThemeManager.palette().error
-            self.dnd_card.configure(highlightbackground=error_color)
-            self._dnd_preview_label.configure(image="", text="⚠️", fg=error_color)
+            self._dnd_preview_label.configure(image="", text=tr("error_loading_dnd", "Fehler beim Laden"), fg=error_color)
             self._dnd_name_label.configure(text=tr("error_loading_dnd", "Fehler beim Laden"), fg=error_color)
-
-            display_err = error_msg
+            
+            display_err = error_msg or ""
             if len(display_err) > 35:
                 display_err = display_err[:32] + "..."
             self._dnd_resolution_label.configure(text=display_err, fg=PHOENIX_THEME.text_muted)
-
-            self._dnd_empty_frame.grid_remove()
-            self._dnd_loaded_frame.grid(row=0, column=0, sticky="nsew")
-
+            self.btn_remove_image.configure(state="disabled")
+            self._clear_canny_preview()
+            
         elif new_state == "loaded":
-            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
-
             filename = tr("unknown", "Unbekannt")
             resolution = "-"
             photo_image = None
             try:
                 from PIL import Image, ImageTk
+                from pathlib import Path
                 path = Path(input_path)
                 if path.exists() and path.is_file():
                     filename = path.name
                     with Image.open(path) as img:
                         width, height = img.size
                         resolution = f"{width} × {height}"
-                        img.thumbnail((70, 70))
+                        img.thumbnail((140, 140))
                         photo_image = ImageTk.PhotoImage(img)
                 else:
                     filename = "Datei nicht gefunden"
@@ -2804,11 +2530,13 @@ class PhoenixPromptView(WorkspaceFrame):
             if photo_image is not None:
                 self._dnd_preview_label.configure(image=photo_image, text="")
             else:
-                self._dnd_preview_label.configure(image="", text="❌", fg=ThemeManager.palette().error)
+                from engine.theme_manager import ThemeManager
+                self._dnd_preview_label.configure(image="", text=tr("error", "Fehler"), fg=ThemeManager.palette().error)
 
             def shorten_filename(name: str, max_len: int = 24) -> str:
                 if len(name) <= max_len:
                     return name
+                from pathlib import Path
                 p = Path(name)
                 stem = p.stem
                 suffix = p.suffix
@@ -2820,22 +2548,43 @@ class PhoenixPromptView(WorkspaceFrame):
             display_filename = shorten_filename(filename)
             self._dnd_name_label.configure(text=display_filename, fg=PHOENIX_THEME.text_primary)
             self._dnd_resolution_label.configure(text=resolution, fg=PHOENIX_THEME.text_muted)
-
-            self._dnd_empty_frame.grid_remove()
-            self._dnd_loaded_frame.grid(row=0, column=0, sticky="nsew")
+            self.btn_remove_image.configure(state="normal")
 
             if supports_controlnet:
                 self._trigger_canny_preview_update()
-
         else:
-            self.dnd_card.configure(highlightbackground=PHOENIX_THEME.border)
-            self._dnd_loaded_frame.grid_remove()
-            self._dnd_empty_frame.grid(row=0, column=0, padx=12, pady=8, sticky="nsew")
+            # empty
+            self._dnd_photo_ref = None
+            self._dnd_preview_label.configure(image="", text=tr("no_image_selected", "Kein Bild ausgewählt"))
+            self._dnd_name_label.configure(text="")
+            self._dnd_resolution_label.configure(text="")
+            self.btn_remove_image.configure(state="disabled")
             self._clear_canny_preview()
 
         self._dnd_visible_state = new_state
         self._dnd_rendered_input_path = input_path
         self._dnd_rendered_supports_controlnet = supports_controlnet
+
+    def _on_controlnet_enable_changed(self, *args) -> None:
+        enabled = bool(self.canny_supported and self.controlnet_canny_var.get())
+        self.controller.model.update_state(controlnet_enabled=enabled)
+        self.controller.generation_controller.update_session(
+            controlnet_enabled=enabled
+        )
+        if enabled:
+            if hasattr(self, "controlnet_layout_frame") and self.controlnet_layout_frame and self.controlnet_layout_frame.winfo_exists():
+                self.controlnet_layout_frame.pack(fill="both", expand=True, padx=20, pady=5)
+                self.dnd_subtitle.pack(fill="x", pady=(0, 5))
+                self.dnd_card.pack(fill="x", pady=(0, 10))
+                self.controlnet_frame.pack(fill="x", pady=5)
+                self._update_dnd_preview()
+        else:
+            if hasattr(self, "controlnet_layout_frame") and self.controlnet_layout_frame and self.controlnet_layout_frame.winfo_exists():
+                self.controlnet_layout_frame.pack_forget()
+                self.dnd_subtitle.pack_forget()
+                self.dnd_card.pack_forget()
+                self.controlnet_frame.pack_forget()
+
 
     def _on_canny_param_changed(self, *args) -> None:
         if getattr(self, "_in_model_change", False):
@@ -2951,7 +2700,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         try:
             from PIL import ImageTk
-            edges_img.thumbnail((70, 70))
+            edges_img.thumbnail((140, 140))
             photo = ImageTk.PhotoImage(edges_img)
 
             self._dnd_canny_photo_ref = photo
@@ -2983,7 +2732,7 @@ class PhoenixPromptView(WorkspaceFrame):
         error_color = ThemeManager.palette().error
 
         if hasattr(self, "_dnd_canny_preview_label") and self._dnd_canny_preview_label.winfo_exists():
-            self._dnd_canny_preview_label.configure(image="", text="⚠️", fg=error_color)
+            self._dnd_canny_preview_label.configure(image="", text=tr("error", "Fehler"), fg=error_color)
 
         if hasattr(self, "_dnd_canny_status_label") and self._dnd_canny_status_label.winfo_exists():
             display_err = error_msg
@@ -3460,7 +3209,7 @@ class PhoenixPromptView(WorkspaceFrame):
         delete_btn.grid(row=0, column=2, sticky="ew", padx=(5, 0))
 
         close_btn = PhoenixButton(
-            container, text=tr("btn_close", "Schließen"), command=popup.destroy,
+            container, text=tr("cancel", "Abbrechen"), command=popup.destroy,
             button_type="neutral", width=110,
         )
         close_btn.pack(side="right", pady=(14, 0))
@@ -3758,99 +3507,7 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
         ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(3, 0))
 
-        tk.Label(
-            container, text=tr("tab_controlnet", "ControlNet/Canny"),
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_card_title, anchor="w",
-        ).pack(fill="x", pady=(10, 4))
-        tk.Label(
-            container,
-            text=tr("ref_image_canny_hint", "ControlNet nutzt ein Referenzbild, um Kanten und Bildaufbau zu steuern."),
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
-            wraplength=460,
-        ).pack(fill="x", pady=(0, 6))
-        controlnet_popup = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
-        controlnet_popup.pack(fill="x", pady=(0, 8))
-        controlnet_popup.grid_columnconfigure(0, weight=1)
-        self._popup_controlnet_var = tk.BooleanVar(value=self._controlnet_active())
-        controlnet_toggle = tk.Checkbutton(
-            controlnet_popup,
-            text=tr("tab_controlnet", "ControlNet/Canny"),
-            variable=self._popup_controlnet_var,
-            command=lambda: self._switch_tab(
-                "canny" if self._popup_controlnet_var.get() else "basic"
-            ),
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.card_bg,
-            activeforeground=PHOENIX_THEME.text_primary,
-            selectcolor=PHOENIX_THEME.elevated_bg,
-            font=PHOENIX_THEME.font_small,
-            state="normal" if self.canny_supported else "disabled",
-        )
-        controlnet_toggle.grid(row=0, column=0, sticky="w", pady=(0, 4))
-        reference_row = tk.Frame(controlnet_popup, bg=PHOENIX_THEME.card_bg)
-        reference_row.grid(row=1, column=0, sticky="ew", pady=(0, 6))
-        reference_row.grid_columnconfigure(0, weight=1)
-        current_reference = getattr(self, "_ref_image_path", None)
-        reference_name = Path(current_reference).name if current_reference else tr(
-            "no_reference_image", "Kein Referenzbild ausgewählt"
-        )
-        popup_reference_label = tk.Label(
-            reference_row, text=reference_name, bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small,
-            anchor="w", padx=8, pady=6,
-        )
-        popup_reference_label.grid(row=0, column=0, sticky="ew", padx=(0, 6))
 
-        def choose_reference_image() -> None:
-            self._on_dnd_click()
-            ref_path = getattr(self, "_ref_image_path", None)
-            display_text = Path(ref_path).name if ref_path else tr(
-                "no_reference_image", "Kein Referenzbild ausgewählt"
-            )
-            popup_reference_label.configure(text=display_text)
-
-        reference_button = tk.Button(
-            reference_row, text=tr("reference_image", "Referenzbild"),
-            command=choose_reference_image, bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_small,
-            state="normal" if self.canny_supported else "disabled",
-        )
-        reference_button.grid(row=0, column=1)
-        tk.Label(
-            controlnet_popup, text=tr("canny_low_threshold_label", "Canny Low Threshold:"),
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
-            font=PHOENIX_THEME.font_small, anchor="w",
-        ).grid(row=2, column=0, sticky="w")
-        tk.Scale(
-            controlnet_popup, from_=0, to=255, orient="horizontal",
-            variable=self.canny_low_var, bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary, highlightthickness=0,
-            troughcolor=PHOENIX_THEME.elevated_bg,
-        ).grid(row=3, column=0, sticky="ew")
-        tk.Label(
-            controlnet_popup, text=tr("canny_high_threshold_label", "Canny High Threshold:"),
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
-            font=PHOENIX_THEME.font_small, anchor="w",
-        ).grid(row=4, column=0, sticky="w")
-        tk.Scale(
-            controlnet_popup, from_=0, to=255, orient="horizontal",
-            variable=self.canny_high_var, bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary, highlightthickness=0,
-            troughcolor=PHOENIX_THEME.elevated_bg,
-        ).grid(row=5, column=0, sticky="ew")
-        tk.Label(
-            controlnet_popup, text=tr("conditioning_strength_label", "Conditioning Strength:"),
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
-            font=PHOENIX_THEME.font_small, anchor="w",
-        ).grid(row=6, column=0, sticky="w")
-        tk.Scale(
-            controlnet_popup, from_=0.0, to=2.0, resolution=0.05,
-            orient="horizontal", variable=self.conditioning_strength_var,
-            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
-            highlightthickness=0, troughcolor=PHOENIX_THEME.elevated_bg,
-        ).grid(row=7, column=0, sticky="ew")
 
         close_btn = tk.Button(
             popup_actions, text=tr("apply", "Übernehmen"), bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
@@ -4479,6 +4136,17 @@ class PhoenixPromptView(WorkspaceFrame):
         preset = self.preset_manager.get_preset(name)
         if preset:
             self.apply_generation_settings(preset)
+            if hasattr(self, "_presets_popup") and self._presets_popup and self._presets_popup.winfo_exists():
+                try:
+                    self._presets_popup.destroy()
+                except Exception:
+                    pass
+                self._presets_popup = None
+            if hasattr(self, "prompt_text") and self.prompt_text and self.prompt_text.winfo_exists():
+                try:
+                    self.prompt_text.focus_set()
+                except Exception:
+                    pass
 
     def _on_save_preset(self) -> None:
         self._prompt_and_save_preset(self._collect_preset_data())
@@ -4639,3 +4307,320 @@ class PhoenixPromptView(WorkspaceFrame):
         curr = self.selected_preset_var.get()
         if curr not in self.available_presets:
             self.selected_preset_var.set(self.available_presets[0])
+
+
+    def _open_controlnet_popup(self) -> None:
+        if hasattr(self, "_controlnet_popup") and self._controlnet_popup and self._controlnet_popup.winfo_exists():
+            self._controlnet_popup.focus()
+            return
+
+        popup = tk.Toplevel(self)
+        from engine.brand_manager import BrandManager
+        BrandManager.apply_window_icon(popup)
+        popup.title(tr("tab_controlnet", "ControlNet Canny"))
+        popup.geometry("380x540")
+        popup.configure(bg=PHOENIX_THEME.card_bg)
+        popup.resizable(False, False)
+        popup.transient(self.winfo_toplevel())
+        popup.protocol("WM_DELETE_WINDOW", self._close_controlnet_popup)
+        
+        try:
+            main_w = self.winfo_toplevel().winfo_width()
+            main_h = self.winfo_toplevel().winfo_height()
+            x = self.winfo_toplevel().winfo_rootx() + (main_w - 380) // 2
+            y = self.winfo_toplevel().winfo_rooty() + (main_h - 540) // 2
+            popup.geometry(f"+{x}+{y}")
+        except Exception:
+            pass
+
+        self._controlnet_popup = popup
+        self._ensure_controlnet_widgets(popup)
+
+    def _close_controlnet_popup(self) -> None:
+        if hasattr(self, "_controlnet_popup") and self._controlnet_popup:
+            try:
+                self._controlnet_popup.destroy()
+            except Exception:
+                pass
+        self._controlnet_popup = None
+        self._ensure_controlnet_widgets(self._dummy_hidden_frame)
+
+    def _ensure_controlnet_widgets(self, master: tk.Misc) -> None:
+        if hasattr(self, "dnd_card") and self.dnd_card and self.dnd_card.winfo_exists():
+            if self.dnd_card.master is master:
+                return
+            self._destroy_controlnet_widgets()
+        self._build_controlnet_widgets(master)
+
+    def _destroy_controlnet_widgets(self) -> None:
+        widgets = [
+            "controlnet_enable_checkbox",
+            "controlnet_layout_frame",
+            "dnd_subtitle",
+            "dnd_card",
+            "_dnd_previews_container",
+            "_dnd_ref_container",
+            "_dnd_ref_title",
+            "_ref_box",
+            "_dnd_preview_label",
+            "_arrow_label",
+            "_dnd_canny_container",
+            "_dnd_canny_title",
+            "_canny_box",
+            "_dnd_canny_preview_label",
+            "_dnd_meta_frame",
+            "_dnd_name_label",
+            "_dnd_resolution_label",
+            "_dnd_canny_status_label",
+            "buttons_frame",
+            "btn_select_image",
+            "btn_remove_image",
+            "controlnet_frame",
+            "low_scale",
+            "high_scale",
+            "strength_scale"
+        ]
+        for w_name in widgets:
+            if hasattr(self, w_name):
+                w = getattr(self, w_name)
+                if w and hasattr(w, "winfo_exists") and w.winfo_exists():
+                    try:
+                        w.destroy()
+                    except Exception:
+                        pass
+                setattr(self, w_name, None)
+
+    def _build_controlnet_widgets(self, master: tk.Misc) -> None:
+        self.controlnet_enable_checkbox = tk.Checkbutton(
+            master,
+            text=tr("enable_controlnet_canny", "ControlNet Canny"),
+            variable=self.controlnet_canny_var,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.card_bg,
+            activeforeground=PHOENIX_THEME.text_primary,
+            selectcolor=PHOENIX_THEME.card_bg,
+            font=PHOENIX_THEME.font_body,
+            bd=0,
+            highlightthickness=0,
+        )
+        self.controlnet_enable_checkbox.pack(anchor="w", padx=20, pady=(15, 10))
+
+        self.controlnet_layout_frame = tk.Frame(master, bg=PHOENIX_THEME.card_bg)
+        self.controlnet_layout_frame.pack(fill="both", expand=True, padx=20, pady=5)
+
+        self.dnd_subtitle = tk.Label(
+            self.controlnet_layout_frame,
+            text=tr("ref_image_canny_hint", "Referenzbild für ControlNet Canny:"),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+        )
+        self.dnd_subtitle.pack(fill="x", pady=(0, 5))
+
+        self.dnd_card = tk.Frame(
+            self.controlnet_layout_frame,
+            bg=PHOENIX_THEME.card_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+        )
+        self.dnd_card.pack(fill="x", pady=(0, 10))
+        self.dnd_card.columnconfigure(0, weight=1)
+
+        self._dnd_previews_container = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.card_bg)
+        self._dnd_previews_container.grid(row=0, column=0, padx=12, pady=(12, 8), sticky="n")
+
+        self._dnd_ref_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.card_bg)
+        self._dnd_ref_container.grid(row=0, column=0, padx=(0, 12), sticky="nw")
+        
+        self._dnd_ref_title = tk.Label(
+            self._dnd_ref_container,
+            text=tr("original_image_label", "Originalbild"),
+            font=PHOENIX_THEME.font_caption,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+        )
+        self._dnd_ref_title.pack(anchor="w")
+        
+        self._ref_box = tk.Frame(self._dnd_ref_container, width=140, height=140, bg=PHOENIX_THEME.elevated_bg, highlightbackground=PHOENIX_THEME.border, highlightthickness=1)
+        self._ref_box.pack_propagate(False)
+        self._ref_box.pack(anchor="w", pady=(4, 0))
+
+        self._dnd_preview_label = tk.Label(
+            self._ref_box,
+            text=tr("no_image_selected", "Kein Bild ausgewählt"),
+            font=PHOENIX_THEME.font_caption,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            wraplength=120,
+            justify="center",
+            cursor="hand2"
+        )
+        self._dnd_preview_label.pack(fill="both", expand=True)
+        self._dnd_preview_label.bind("<Button-1>", lambda e: self._on_dnd_click())
+
+        self._arrow_label = tk.Label(
+            self._dnd_previews_container,
+            text="→",
+            font=("Segoe UI", 16),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+        )
+        self._arrow_label.grid(row=0, column=1, padx=4, )
+
+        self._dnd_canny_container = tk.Frame(self._dnd_previews_container, bg=PHOENIX_THEME.card_bg)
+        self._dnd_canny_container.grid(row=0, column=2, padx=(12, 0), sticky="nw")
+        
+        self._dnd_canny_title = tk.Label(
+            self._dnd_canny_container,
+            text=tr("canny_preview_label", "Canny-Vorschau"),
+            font=PHOENIX_THEME.font_caption,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+        )
+        self._dnd_canny_title.pack(anchor="w")
+        
+        self._canny_box = tk.Frame(self._dnd_canny_container, width=140, height=140, bg=PHOENIX_THEME.elevated_bg, highlightbackground=PHOENIX_THEME.border, highlightthickness=1)
+        self._canny_box.pack_propagate(False)
+        self._canny_box.pack(anchor="w", pady=(4, 0))
+
+        self._dnd_canny_preview_label = tk.Label(
+            self._canny_box,
+            text="-",
+            font=("Segoe UI", 16),
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_muted,
+        )
+        self._dnd_canny_preview_label.pack(fill="both", expand=True)
+
+        self._dnd_meta_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.card_bg)
+        self._dnd_meta_frame.grid(row=1, column=0, padx=12, pady=(0, 2), sticky="ew")
+        self._dnd_meta_frame.columnconfigure(0, weight=1)
+        
+        self._dnd_name_label = tk.Label(
+            self._dnd_meta_frame,
+            text="",
+            font=PHOENIX_THEME.font_caption,
+            fg=PHOENIX_THEME.text_primary,
+            bg=PHOENIX_THEME.card_bg,
+            anchor="center",
+        )
+        self._dnd_name_label.grid(row=0, column=0, sticky="ew")
+        
+        self._dnd_resolution_label = tk.Label(
+            self._dnd_meta_frame,
+            text="",
+            font=PHOENIX_THEME.font_caption,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+            anchor="center",
+        )
+        self._dnd_resolution_label.grid(row=1, column=0, sticky="ew")
+        
+        self._dnd_canny_status_label = tk.Label(
+            self._dnd_meta_frame,
+            text="",
+            font=PHOENIX_THEME.font_caption,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+            anchor="center",
+        )
+        self._dnd_canny_status_label.grid(row=2, column=0, sticky="ew")
+
+        self.buttons_frame = tk.Frame(self.dnd_card, bg=PHOENIX_THEME.card_bg)
+        self.buttons_frame.grid(row=2, column=0, padx=12, pady=(4, 12), sticky="n")
+
+        self.btn_select_image = tk.Button(
+            self.buttons_frame,
+            text=tr("select_image", "Bild auswählen"),
+            command=self._on_dnd_click,
+            bg=PHOENIX_THEME.accent,
+            fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_caption,
+            cursor="hand2",
+            padx=12,
+            pady=4,
+        )
+        self.btn_select_image.grid(row=0, column=0, padx=(0, 6), sticky="w")
+        self._add_button_hover(self.btn_select_image)
+
+        self.btn_remove_image = tk.Button(
+            self.buttons_frame,
+            text=tr("remove_image", "Bild entfernen"),
+            command=self._remove_reference_image,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            activebackground=PHOENIX_THEME.accent,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat",
+            bd=0,
+            font=PHOENIX_THEME.font_caption,
+            cursor="hand2",
+            padx=12,
+            pady=4,
+            state="disabled",
+        )
+        self.btn_remove_image.grid(row=0, column=1, padx=(6, 0), sticky="w")
+        self._add_button_hover(self.btn_remove_image)
+        self._dnd_remove_button = self.btn_remove_image
+
+        self.controlnet_frame = tk.Frame(self.controlnet_layout_frame, bg=PHOENIX_THEME.card_bg)
+        self.controlnet_frame.pack(fill="x", pady=5)
+        self.controlnet_frame.grid_columnconfigure(0, weight=1)
+        self.controlnet_frame.grid_columnconfigure(1, weight=1)
+
+        low_label = tk.Label(self.controlnet_frame, text=tr("canny_low_threshold_label", "Canny Low Threshold:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        low_label.grid(row=0, column=0, sticky="w", pady=(0, 1))
+        self.low_scale = tk.Scale(
+            self.controlnet_frame, from_=0, to=255, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.canny_low_var
+        )
+        self.low_scale.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(0, 2))
+        self.low_scale.bind("<ButtonRelease-1>", lambda e: self._trigger_canny_preview_update())
+
+        high_label = tk.Label(self.controlnet_frame, text=tr("canny_high_threshold_label", "Canny High Threshold:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        high_label.grid(row=0, column=1, sticky="w", pady=(0, 1))
+        self.high_scale = tk.Scale(
+            self.controlnet_frame, from_=0, to=255, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.canny_high_var
+        )
+        self.high_scale.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(0, 2))
+        self.high_scale.bind("<ButtonRelease-1>", lambda e: self._trigger_canny_preview_update())
+
+        strength_label = tk.Label(self.controlnet_frame, text=tr("conditioning_strength_label", "Conditioning Strength:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        strength_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(2, 1))
+        self.strength_scale = tk.Scale(
+            self.controlnet_frame, from_=0.0, to=2.0, resolution=0.05, orient="horizontal",
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            highlightthickness=0, font=PHOENIX_THEME.font_caption,
+            activebackground=PHOENIX_THEME.accent, troughcolor=PHOENIX_THEME.elevated_bg,
+            width=12, variable=self.conditioning_strength_var
+        )
+        self.strength_scale.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 4))
+
+        _Tooltip(low_label, lambda: tr("tooltip_canny_low", "Unterer Canny-Schwellenwert für die Kantenerkennung (0 - 255)."))
+        _Tooltip(high_label, lambda: tr("tooltip_canny_high", "Oberer Canny-Schwellenwert für die Kantenerkennung (0 - 255)."))
+        _Tooltip(strength_label, lambda: tr("tooltip_canny_strength", "Einflussstärke von ControlNet auf das generierte Bild (0.0 - 2.0)."))
+
+        # Setup drag & drop if available
+        if DND_AVAILABLE:
+            for widget in (self.dnd_card, self._dnd_preview_label):
+                try:
+                    widget.drop_target_register(DND_FILES)
+                    widget.dnd_bind("<<Drop>>", self._on_image_drop)
+                except Exception as e:
+                    logger.warning("TkDND not available: %s", e)
+
+        # Trigger visibility update immediately based on current checkbox state
+        self._on_controlnet_enable_changed()

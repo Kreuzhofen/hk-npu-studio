@@ -16,6 +16,54 @@ from engine.model_loader_service import ModelLoaderService
 
 logger = get_logger("GenerationController")
 
+def log_abort(event_name, error=None, model_id=None, model_path=None):
+    import os
+    import sys
+    import traceback
+    from pathlib import Path
+    import datetime
+
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if not local_app_data:
+        local_app_data = str(Path.home() / "AppData" / "Local")
+    log_file = Path(local_app_data) / "Snapdragon AI Studio" / "logs" / "early_generation_abort.log"
+    try:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.datetime.now().isoformat()
+        if error is not None:
+            tb = traceback.extract_tb(sys.exc_info()[2])
+            if tb:
+                filename, line_no, func_name, text = tb[-1]
+            else:
+                filename, line_no = "unknown", 0
+            
+            stacktrace = "".join(traceback.format_exception(type(error), error, sys.exc_info()[2]))
+            
+            log_line = (
+                f"[{timestamp}] ERROR: {event_name}\n"
+                f"Exception-Type: {type(error).__name__}\n"
+                f"Message: {str(error)}\n"
+                f"File: {filename}\n"
+                f"Line: {line_no}\n"
+                f"Model-ID: {model_id or 'Unknown'}\n"
+                f"Modelpath: {model_path or 'Unknown'}\n"
+                f"Stacktrace:\n{stacktrace}"
+                f"{'='*80}\n"
+            )
+        else:
+            log_line = f"[{timestamp}] EVENT: {event_name}\n"
+            if model_id:
+                log_line += f"Model-ID: {model_id}\n"
+            if model_path:
+                log_line += f"Modelpath: {model_path}\n"
+            log_line += f"{'='*80}\n"
+            
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(log_line)
+    except Exception as e:
+        print(f"Failed to write to early abort log: {e}", file=sys.stderr)
+
+
 
 class GenerationController:
     """
@@ -152,6 +200,15 @@ class GenerationController:
         self.queue.enqueue(job)
         self.queue.dequeue()
         logger.info("Job eingereiht | job_id=%s | model=%s", job.job_id, job_session.model_name)
+        
+        # LOG EVENT: job_created
+        model_path = None
+        try:
+            model_path = self.model_loader.get_model_path(job_session.model_name)
+        except Exception:
+            pass
+        log_abort("job_created", model_id=job_session.model_name, model_path=model_path)
+
         self.is_generating = True
         print("--- [GenerationController: Job Enqueued] ---")
         print(f"Job ID: {job.job_id}")
@@ -162,26 +219,34 @@ class GenerationController:
         # Resolve model metadata
         repo = self.repository
         # Verify model installation prior to execution
-        load_result = self.model_loader.load_model(
-            job_session.model_name, self.backend_manager
-        )
-        if not load_result.success or load_result.loaded_model is None:
-            job.fail(load_result.message)
+        try:
+            load_result = self.model_loader.load_model(
+                job_session.model_name, self.backend_manager
+            )
+            if not load_result.success or load_result.loaded_model is None:
+                raise RuntimeError(load_result.message)
+            
+            # LOG EVENT: model_resolved
+            log_abort("model_resolved", model_id=job_session.model_name, model_path=load_result.loaded_model.runtime_model.model_path)
+        except Exception as error:
+            log_abort("model_resolved", error=error, model_id=job_session.model_name, model_path=model_path)
+            job.fail(str(error))
             logger.error(
                 "Modellauflösung fehlgeschlagen | job_id=%s | model=%s | message=%s",
                 job.job_id,
                 job_session.model_name,
-                load_result.message,
+                str(error),
             )
             self.queue.clear_finished()
             self.is_generating = False
             return GenerationResult(
                 success=False,
                 status="LoadError",
-                message=load_result.message,
+                message=str(error),
                 model_name=job_session.model_name
             )
 
+        selected_backend = None
         try:
             # Route through the backend atomically bound by the shared loader.
             selected_backend = load_result.loaded_model.backend_adapter
@@ -199,7 +264,14 @@ class GenerationController:
                 backend_adapter=selected_backend,
                 runtime_model=load_result.loaded_model.runtime_model,
             )
+            
+            # LOG EVENT: backend_called
+            log_abort("backend_called", model_id=job_session.model_name, model_path=load_result.loaded_model.runtime_model.model_path)
+            
             result = pipeline.run()
+        except Exception as error:
+            log_abort("backend_called", error=error, model_id=job_session.model_name, model_path=load_result.loaded_model.runtime_model.model_path)
+            raise error
         finally:
             self.model_loader.unload_model(job_session.model_name)
 

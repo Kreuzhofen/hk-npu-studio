@@ -452,8 +452,8 @@
   "home_open_in_explorer": "Abrir en el Explorador",
   "home_delete_all_confirm_with_count": "¿Sigue queriendo eliminar permanentemente las {count} generaciones mostradas y sus metadatos? Esta acción no se puede deshacer.",
   "settings_restart_title": "Se requiere reinicio",
-  "settings_restart_msg": "Se guardaron los ajustes. Snapdragon AI Studio se reiniciará ahora para aplicar los cambios."
-  ,"loading_images": "Cargando imágenes",
+  "settings_restart_msg": "Se guardaron los ajustes. Snapdragon AI Studio se reiniciará ahora para aplicar los cambios.",
+  "loading_images": "Cargando imágenes",
   "size_huge": "Muy grande",
   "delete": "Eliminar",
   "sort_by": "Ordenar",
@@ -664,7 +664,6 @@
   "worker_running": "Proceso en ejecución",
   "worker_done": "Proceso finalizado",
   "worker_error": "Error del proceso",
-  "no_output_selected": "Ninguna salida seleccionada",
   "no_active_job": "Ninguna tarea activa",
   "queue_waiting": "Cola: {count} en espera",
   "batch_cancelled": "Lote cancelado",
@@ -769,5 +768,10 @@
   "rename_preset_prompt": "Nuevo nombre de la plantilla:",
   "rename_preset_exists": "Ya existe una plantilla con este nombre.",
   "apply": "Aplicar",
-  "no_reference_image": "Ninguna imagen de referencia seleccionada"
+  "no_reference_image": "Ninguna imagen de referencia seleccionada",
+  "canny_preview_label": "Vista previa Canny",
+  "enable_controlnet_canny": "ControlNet Canny",
+  "original_image_label": "Imagen original",
+  "select_image": "Seleccionar imagen",
+  "no_image_selected": "Ninguna imagen seleccionada"
 }

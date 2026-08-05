@@ -332,6 +332,46 @@ class SnapdragonAIStudioV2(BaseWindow):
 
 
 def main():
+    if "--qnn-worker" in sys.argv:
+        try:
+            idx = sys.argv.index("--qnn-worker")
+            backend = sys.argv[idx + 1]
+            input_file = sys.argv[idx + 2]
+            output_file = sys.argv[idx + 3]
+            
+            if backend == "sd15":
+                from engine.sd15_qnn_backend import StableDiffusion15QnnBackend
+                obj = StableDiffusion15QnnBackend()
+            elif backend == "sd21":
+                from engine.sd21_qnn_backend import StableDiffusion21QnnBackend
+                obj = StableDiffusion21QnnBackend()
+            elif backend == "controlnet-canny":
+                from engine.controlnet_canny_backend import ControlNetCannyQnnBackend
+                obj = ControlNetCannyQnnBackend()
+            else:
+                print(f"Unknown backend: {backend}", file=sys.stderr)
+                return 1
+                
+            with open(input_file, "r", encoding="utf-8") as f:
+                job_data = json.load(f)
+                
+            result = obj._execute_generation_physical(job_data)
+            
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2)
+                
+            return 0 if result.get("success", False) else 1
+        except Exception as e:
+            try:
+                if 'output_file' in locals():
+                    with open(output_file, "w", encoding="utf-8") as f:
+                        json.dump({"success": False, "message": str(e)}, f, indent=2)
+            except Exception:
+                pass
+            import traceback
+            traceback.print_exc()
+            return 1
+
     if "--release-smoke-test" in sys.argv:
         report = run_startup_diagnostics()
         print(

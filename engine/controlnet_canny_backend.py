@@ -457,16 +457,26 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             json.dump(job_data, f, indent=2)
 
         # Run subprocess using the venv python executable
-        venv_python = _resolve_worker_python()
-        script_path = Path(__file__).resolve()
-
+        import sys
         import subprocess
-        cmd = [
-            venv_python,
-            str(script_path),
-            str(input_json_path),
-            str(output_json_path)
-        ]
+        
+        if getattr(sys, "frozen", False):
+            cmd = [
+                sys.executable,
+                "--qnn-worker",
+                "controlnet-canny",
+                str(input_json_path),
+                str(output_json_path)
+            ]
+        else:
+            venv_python = _resolve_worker_python()
+            script_path = Path(__file__).resolve()
+            cmd = [
+                venv_python,
+                str(script_path),
+                str(input_json_path),
+                str(output_json_path)
+            ]
 
         logger.info(f"Executing: {' '.join(cmd)}")
         worker_output: list[str] = []

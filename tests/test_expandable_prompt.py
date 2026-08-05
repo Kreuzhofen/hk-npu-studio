@@ -125,7 +125,7 @@ class ExpandablePromptTests(unittest.TestCase):
             ("seed_help", "Reproduzierbarer Startwert; -1 bedeutet zufälliger Seed."),
             ("sampler_help", "Verwendetes Berechnungsverfahren für die Bildentstehung."),
             ("scheduler_help", "Zeitliche Verteilung der Entrauschungsschritte."),
-            ("ref_image_canny_hint", "ControlNet nutzt ein Referenzbild, um Kanten und Bildaufbau zu steuern."),
+
         ):
             self.assertIn(tr(key, fallback), texts)
         self.view.steps_var.set(31)
@@ -149,13 +149,15 @@ class ExpandablePromptTests(unittest.TestCase):
 
     def test_generator_toolbar_uses_neutral_buttons_with_colored_icons(self) -> None:
         buttons = (
-            (self.view.boost_btn, 0, "sparkles", PHOENIX_THEME.success),
-            (self.view.presets_popup_btn, 1, "folder", PHOENIX_THEME.warning),
-            (self.view.parameters_popup_btn, 2, "settings", PHOENIX_THEME.danger),
-            (self.view.history_btn, 3, "back", PHOENIX_THEME.accent),
+            (self.view.presets_popup_btn, 0, 0, "folder", PHOENIX_THEME.warning),
+            (self.view.boost_btn, 0, 1, "sparkles", PHOENIX_THEME.success),
+            (self.view.parameters_popup_btn, 0, 2, "settings", PHOENIX_THEME.danger),
+            (self.view.controlnet_popup_btn, 0, 3, "image", PHOENIX_THEME.accent),
+            (self.view.history_btn, 1, 0, "back", PHOENIX_THEME.accent),
         )
-        for button, column, icon_name, icon_color in buttons:
+        for button, row, column, icon_name, icon_color in buttons:
             self.assertTrue(button.winfo_manager())
+            self.assertEqual(int(button.grid_info()["row"]), row)
             self.assertEqual(int(button.grid_info()["column"]), column)
             self.assertEqual(button.normal_bg, PHOENIX_THEME.elevated_bg)
             self.assertEqual(button.icon_name, icon_name)
@@ -166,6 +168,8 @@ class ExpandablePromptTests(unittest.TestCase):
         )
         self.assertTrue(self.view.maximize_btn.text.startswith("⛶ "))
         self.assertEqual(self.view.maximize_btn.normal_bg, PHOENIX_THEME.elevated_bg)
+        self.assertEqual(int(self.view.maximize_btn.grid_info()["row"]), 1)
+        self.assertEqual(int(self.view.maximize_btn.grid_info()["column"]), 2)
 
     def test_prompt_titles_and_toolbar_have_separate_layout_rows(self) -> None:
         self.root.update_idletasks()

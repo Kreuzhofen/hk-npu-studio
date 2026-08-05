@@ -328,16 +328,26 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             json.dump(job_data, f, indent=2)
 
         # Run subprocess using the venv python executable
-        venv_python = r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Scripts\python.exe"
-        script_path = Path(__file__).resolve()
-
+        import sys
         import subprocess
-        cmd = [
-            venv_python,
-            str(script_path),
-            str(input_json_path),
-            str(output_json_path)
-        ]
+        
+        if getattr(sys, "frozen", False):
+            cmd = [
+                sys.executable,
+                "--qnn-worker",
+                "sd21",
+                str(input_json_path),
+                str(output_json_path)
+            ]
+        else:
+            venv_python = r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Scripts\python.exe"
+            script_path = Path(__file__).resolve()
+            cmd = [
+                venv_python,
+                str(script_path),
+                str(input_json_path),
+                str(output_json_path)
+            ]
 
         logger.info(f"Executing: {' '.join(cmd)}")
         worker_output: list[str] = []

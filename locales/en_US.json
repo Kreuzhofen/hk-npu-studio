@@ -422,7 +422,6 @@
   "missing": "Missing",
   "model_activate_incomplete_msg": "Model cannot be activated because it is incomplete or files are missing.",
   "model_activate_success_msg": "Model '{model_id}' was successfully activated.",
-  "no_model_selected": "No model selected.",
   "path_validation_title": "Path Validation",
   "validation_success_prefix": "Success: Model paths and manifest are intact.",
   "validation_error_prefix": "Validation error:",
@@ -453,8 +452,8 @@
   "home_open_in_explorer": "Open in Explorer",
   "home_delete_all_confirm_with_count": "Are you sure you want to permanently delete all {count} displayed generations and their metadata? This action cannot be undone.",
   "settings_restart_title": "Restart Required",
-  "settings_restart_msg": "Settings were saved. Snapdragon AI Studio will restart now to apply the changes."
-  ,"loading_images": "Loading images",
+  "settings_restart_msg": "Settings were saved. Snapdragon AI Studio will restart now to apply the changes.",
+  "loading_images": "Loading images",
   "size_huge": "Very Large",
   "delete": "Delete",
   "sort_by": "Sort",
@@ -665,7 +664,6 @@
   "worker_running": "Worker running",
   "worker_done": "Worker finished",
   "worker_error": "Worker error",
-  "no_output_selected": "No output selected",
   "no_active_job": "No active job",
   "queue_waiting": "Queue: {count} waiting",
   "batch_cancelled": "Batch cancelled",
@@ -770,5 +768,10 @@
   "rename_preset_prompt": "New template name:",
   "rename_preset_exists": "A template with this name already exists.",
   "apply": "Apply",
-  "no_reference_image": "No reference image selected"
+  "no_reference_image": "No reference image selected",
+  "canny_preview_label": "Canny Preview",
+  "enable_controlnet_canny": "ControlNet Canny",
+  "original_image_label": "Original Image",
+  "select_image": "Select Image",
+  "no_image_selected": "No image selected"
 }

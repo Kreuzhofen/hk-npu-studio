@@ -77,6 +77,27 @@ def build_arguments() -> list[str]:
         plugins,
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
     )
+    # Dynamische Erkennung und Validierung des onnxruntime_qnn-Pakets
+    try:
+        import onnxruntime_qnn
+        qnn_path = Path(onnxruntime_qnn.__file__).parent.resolve()
+    except ImportError:
+        raise RuntimeError("Das Paket 'onnxruntime_qnn' ist im aktuellen Python-Environment nicht installiert.")
+
+    required_files = [
+        "onnxruntime_providers_qnn.dll",
+        "QnnHtp.dll",
+        "QnnSystem.dll",
+        "QnnHtpV73Stub.dll",
+        "libQnnHtpV73Skel.so",
+    ]
+    for filename in required_files:
+        filepath = qnn_path / filename
+        if not filepath.is_file():
+            raise FileNotFoundError(
+                f"Die benötigte QNN-Datei fehlt im Verzeichnis des onnxruntime_qnn-Pakets: {filename}"
+            )
+
     version_file = _write_version_file()
     data_directories = {
         resources: "resources",
@@ -85,6 +106,7 @@ def build_arguments() -> list[str]:
         plugins: "plugins",
         PROJECT_ROOT / "workflows": "workflows",
         PROJECT_ROOT / "presets": "presets",
+        qnn_path: "onnxruntime_qnn",
     }
     arguments = [
         str(PROJECT_ROOT / "gui_v2.py"),

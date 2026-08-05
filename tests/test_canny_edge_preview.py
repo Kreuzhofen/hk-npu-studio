@@ -56,6 +56,12 @@ class CannyEdgePreviewTests(unittest.TestCase):
     def setUp(self) -> None:
         self.controller = PromptWorkspaceController()
         self.view = PhoenixPromptView(self.root, controller=self.controller)
+        orig_contract = self.view._apply_generation_contract
+        def patched_contract(model_id):
+            orig_contract(model_id)
+            if self.view.canny_supported:
+                self.view._open_controlnet_popup()
+        self.view._apply_generation_contract = patched_contract
 
         # Create a temporary image for testing canny edge extraction
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -162,7 +168,7 @@ class CannyEdgePreviewTests(unittest.TestCase):
         self.assertIsNone(self.view._dnd_canny_photo_ref)
         self.assertIsNone(self.view._canny_rendered_low)
         self.assertIn("Low Threshold >= High Threshold", self.view._dnd_canny_status_label.cget("text"))
-        self.assertEqual(self.view._dnd_canny_preview_label.cget("text"), "⚠️")
+        self.assertEqual(self.view._dnd_canny_preview_label.cget("text"), "Fehler")
 
     def test_removing_image_clears_previews_and_state(self) -> None:
         """5. Entfernen des Bildes löscht beide Vorschauen"""
