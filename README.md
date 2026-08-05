@@ -1,29 +1,60 @@
 <a id="top"></a>
 
-<h1 align="center">
-  <img src="docs/images/logo.png" width="48" height="48" valign="middle" alt="Phoenix Logo"> Snapdragon AI Studio
-</h1>
+<p align="center">
+  <img src="assets/brand/phoenix_logo_black.png" width="96" alt="Phoenix Logo">
+</p>
+
+<h1 align="center">Snapdragon AI Studio</h1>
 
 <p align="center">
-  Next-generation local generative AI desktop studio engineered for Windows 11 ARM64 and Qualcomm Snapdragon X series processors. Powered by the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.
+  <strong>Professional Local Generative AI Desktop Environment</strong><br>
+  <em>Engineered for Windows 11 ARM64 and Qualcomm Snapdragon X Series hardware. Optimized with the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.</em>
 </p>
 
 ---
 
 ## 🛡️ Badges
 
-[![License: MIT](https://img.shields.io/github/license/Kreuzhofen/snapdragon-ai-studio?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/LICENSE)
-[![Release](https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/releases)
-[![Platform](https://img.shields.io/badge/Platform-Windows_11--ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white)](https://github.com/Kreuzhofen/snapdragon-ai-studio#system-requirements)
-[![Hardware](https://img.shields.io/badge/Snapdragon-X_Elite-D00000?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio#system-requirements)
-[![Qualcomm QNN](https://img.shields.io/badge/Qualcomm_QNN-Integrated-EA272A?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio#supported-ai-backends)
-[![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-v1.19+-005CED?style=flat-square&logo=onnx&logoColor=white)](https://github.com/Kreuzhofen/snapdragon-ai-studio#supported-ai-backends)
-[![Python](https://img.shields.io/badge/Python-3.11_ARM64-3776AB?style=flat-square&logo=python&logoColor=white)](https://github.com/Kreuzhofen/snapdragon-ai-studio#development)
-[![Status](https://img.shields.io/badge/Status-2.0_RC1-success?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio#rc1-status)
-[![Open Source](https://img.shields.io/badge/Open_Source-True-blue?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio)
-[![GitHub stars](https://img.shields.io/github/stars/Kreuzhofen/snapdragon-ai-studio?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/Kreuzhofen/snapdragon-ai-studio?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/issues)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=flat-square)](https://github.com/Kreuzhofen/snapdragon-ai-studio/pulls)
+<p align="center">
+  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/releases">
+    <img src="https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square&color=0078D4" alt="Release">
+  </a>
+  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/Kreuzhofen/snapdragon-ai-studio?style=flat-square&color=808080" alt="License">
+  </a>
+  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/releases">
+    <img src="https://img.shields.io/github/downloads/Kreuzhofen/snapdragon-ai-studio/total?style=flat-square&color=blueviolet" alt="Downloads">
+  </a>
+  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/stargazers">
+    <img src="https://img.shields.io/github/stars/Kreuzhofen/snapdragon-ai-studio?style=flat-square&color=gold" alt="Stars">
+  </a>
+  <br>
+  <a href="#system-requirements">
+    <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
+  </a>
+  <a href="#system-requirements">
+    <img src="https://img.shields.io/badge/Hardware-Snapdragon_X_Elite-D00000?style=flat-square" alt="Snapdragon X Elite">
+  </a>
+  <a href="#supported-ai-backends">
+    <img src="https://img.shields.io/badge/NPU_Accel-Qualcomm_QNN_EP-EA272A?style=flat-square" alt="Qualcomm QNN">
+  </a>
+  <a href="#supported-ai-backends">
+    <img src="https://img.shields.io/badge/Engine-ONNX_Runtime-005CED?style=flat-square&logo=onnx&logoColor=white" alt="ONNX Runtime">
+  </a>
+  <br>
+  <a href="#installation">
+    <img src="https://img.shields.io/badge/Python-3.11_ARM64-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+  </a>
+  <a href="#rc1-status">
+    <img src="https://img.shields.io/badge/Status-2.0_RC1-success?style=flat-square" alt="RC1 Status">
+  </a>
+  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/issues">
+    <img src="https://img.shields.io/github/issues/Kreuzhofen/snapdragon-ai-studio?style=flat-square&color=red" alt="Issues">
+  </a>
+  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/CONTRIBUTING.md">
+    <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square" alt="PR Welcome">
+  </a>
+</p>
 
 ---
 
@@ -58,18 +89,18 @@
 
 ## 📖 About the Project
 
-Snapdragon AI Studio is an independent, open-source desktop application designed to run generative AI models locally on Windows 11 ARM64 PCs. Built from the ground up for modern ARM64 System-on-Chips (SoCs), it brings high-performance, private, and secure Stable Diffusion image generation directly to Snapdragon X Elite and X Plus hardware. 
+Snapdragon AI Studio is an independent, open-source desktop application designed to execute generative AI models locally on Windows 11 ARM64 PCs. Built from the ground up for modern ARM64 System-on-Chips (SoCs), it enables high-performance, private, and secure Stable Diffusion image generation directly on Snapdragon X Elite and X Plus hardware.
 
-At its core, the application leverages the **Phoenix Engine**—a decoupled, modular inference architecture that interfaces with ONNX Runtime and the Qualcomm QNN Execution Provider. By keeping all compute local, the studio ensures maximum privacy, eliminates cloud subscription costs, and operates fully offline.
+At its core, the application leverages the **Phoenix Engine**—a decoupled, modular inference architecture that interfaces with ONNX Runtime and the Qualcomm QNN Execution Provider. By keeping all computations local, the studio ensures maximum privacy, eliminates cloud subscription costs, and operates fully offline.
 
 ---
 
 ## 💡 Why Snapdragon AI Studio?
 
-- **Windows on ARM Native**: Built natively for ARM64 Windows PCs rather than wrapping x64 binaries.
+- **Windows on ARM Native**: Designed natively for ARM64 Windows PCs rather than wrapping x64 binaries.
 - **Qualcomm Hardware Acceleration**: Direct utilization of Qualcomm Snapdragon X NPU cores through the Qualcomm AI Stack and QNN.
-- **Privacy First**: All prompts, configurations, and generated images remain on your local drive.
-- **Transparent Diagnostics**: Provides deep insight into NPU compatibility, active providers, and operational metrics.
+- **Privacy First**: All prompts, configurations, and generated images remain entirely on your local drive.
+- **Transparent Diagnostics**: Provides deep runtime insight into NPU compatibility, active execution providers, and performance metrics.
 - **Deterministic Workflows**: Predictable generation outcomes through advanced seed controls and scheduler management.
 
 ---
@@ -79,7 +110,7 @@ At its core, the application leverages the **Phoenix Engine**—a decoupled, mod
 ### Holger Kreuzhofen
 *Founder • Lead Developer • Product Owner • Phoenix Engine Architect*
 
-Holger is the founder, lead developer, product owner, and Phoenix Engine architect of Snapdragon AI Studio. As the creator of Snapdragon AI Studio and the Phoenix Engine, he is responsible for product vision, software architecture, engineering strategy, UX, release management, and long-term development. Under his direction, the project bridges the gap between Windows on ARM systems and native AI execution runtimes.
+Holger is the founder, lead developer, product owner, and Phoenix Engine architect of Snapdragon AI Studio. As the creator of Snapdragon AI Studio and the Phoenix Engine, he is responsible for the overall product vision, software architecture, engineering strategy, user experience design, release management, and long-term development. Under his direction, the project bridges the gap between Windows on ARM systems and native local AI execution runtimes.
 
 ---
 
@@ -87,8 +118,8 @@ Holger is the founder, lead developer, product owner, and Phoenix Engine archite
 
 The **Phoenix Engine** is the orchestration layer driving Snapdragon AI Studio. It separates UI presentation from execution pipelines:
 
-- **Modular Architecture**: Clean MVC separation; views trigger commands without executing model loops.
-- **Model Discovery & Registry**: Automatically scans, registers, and validates local ONNX model folders.
+- **Modular Architecture**: Clean Model-View-Controller separation; views trigger commands without executing blocking model loops.
+- **Model Discovery & Registry**: Automatically scans, registers, and validates local ONNX model directories.
 - **Scheduler Service**: Integrates Euler, DPM-Solver, and DDIM schedulers for precise noise estimation.
 - **Pipeline Orchestration**: Handles text encoding, classifier-free guidance, UNet loops, and VAE decoding.
 - **Backend Abstraction**: Manages dynamic session instantiation for various Execution Providers (EPs).
@@ -99,11 +130,11 @@ The **Phoenix Engine** is the orchestration layer driving Snapdragon AI Studio. 
 ## ⚡ Features
 
 | Feature Group | Component | Status | Description |
-| :--- | :--- | :--- | :--- |
+|---------------|-----------|--------|-------------|
 | **Platform** | Native Windows ARM64 | 🟢 Supported | Fully compiled ARM64 binaries for Windows 11. |
 | **Inference** | Qualcomm QNN EP | 🟢 Integrated | Hardware-accelerated NPU execution via QNN stack. |
 | **Inference** | ONNX Runtime CPU | 🟢 Supported | Dependable CPU execution provider for baseline runs. |
-| **Inference** | Backend Switching | 🟢 Supported | Hot-swap between CPU and NPU runtimes without restarting. |
+| **Inference** | Dynamic Backend Switching | 🟢 Supported | Hot-swap between CPU and NPU runtimes without restarting. |
 | **AI Models** | Stable Diffusion v1.5 | 🟢 Supported | Native execution of SD 1.5 pipelines. |
 | **AI Models** | SDXL Ready | 🟡 Experimental | Support for Stable Diffusion XL pipelines in progress. |
 | **Diagnostics** | Environment Tracing | 🟢 Supported | Real-time discovery of installed runtimes and libraries. |
@@ -111,7 +142,7 @@ The **Phoenix Engine** is the orchestration layer driving Snapdragon AI Studio. 
 | **Extensibility** | Plugin Framework | 🟢 Supported | Dynamic loading of custom models, schedulers, and pipelines. |
 | **UX/UI** | Fluent UI Layout | 🟢 Supported | Modern, dark-mode optimized Windows 11 interface. |
 | **UX/UI** | Theme Manager | 🟢 Supported | Full parity between Light and Dark themes with zero glitches. |
-| **UX/UI** | Multi-Language Support| 🟢 Supported | Localization for English, German, and Spanish. |
+| **UX/UI** | Multi-Language Support | 🟢 Supported | Localization for English, German, and Spanish. |
 | **Management** | Model Registry | 🟢 Supported | Interactive UI for configuring and validating local models. |
 | **Management** | Prompt Management | 🟢 Supported | Dedicated workspace for positive, negative prompts and presets. |
 | **Inference** | NPU Optimizations | 🟡 In Development | Custom graph partitioning and quantization maps. |
@@ -123,62 +154,52 @@ The **Phoenix Engine** is the orchestration layer driving Snapdragon AI Studio. 
 ### Main Workspace
 
 <p align="center">
-  <img src="docs/images/workspace_preview.png"
-       width="95%"
-       alt="Snapdragon AI Studio main workspace">
+  <img src="docs/images/workspace_preview.png" width="95%" alt="Snapdragon AI Studio main workspace">
 </p>
 
 ### AI Image Generation
 
 <p align="center">
-  <img src="docs/images/generation.png"
-       width="95%"
-       alt="Local AI image generation workspace">
+  <img src="docs/images/generation.png" width="95%" alt="Local AI image generation workspace">
 </p>
 
 ### Model Management
 
 <p align="center">
-  <img src="docs/images/models.png"
-       width="95%"
-       alt="AI model management">
+  <img src="docs/images/models.png" width="95%" alt="AI model management">
 </p>
 
 ### Image Comparison
 
 <p align="center">
-  <img src="docs/images/compare.png"
-       width="95%"
-       alt="Generated image comparison">
+  <img src="docs/images/compare.png" width="95%" alt="Generated image comparison">
 </p>
 
 ### Gallery
 
 <p align="center">
-  <img src="docs/images/gallery.png"
-       width="95%"
-       alt="Generated image gallery">
+  <img src="docs/images/gallery.png" width="95%" alt="Generated image gallery">
 </p>
 
 ### Settings
 
 <p align="center">
-  <img src="docs/images/settings.png"
-       width="95%"
-       alt="Snapdragon AI Studio settings">
+  <img src="docs/images/settings.png" width="95%" alt="Snapdragon AI Studio settings">
 </p>
 
 ---
 
 ## ⚙️ Installation
 
-### Option A: Install via Release Package
+### Option A: Install via Release Package (Recommended)
+
 1. Navigate to [Snapdragon AI Studio Releases](https://github.com/Kreuzhofen/snapdragon-ai-studio/releases).
-2. Download the installer: `SnapdragonAIStudio-2.0.0-rc.1-ARM64-Setup.exe`.
+2. Download the latest installer: `SnapdragonAIStudio-2.0.0-rc.1-ARM64-Setup.exe`.
 3. Launch the installer and follow the Windows setup wizard.
 4. Run the application from your Start Menu or Desktop shortcut.
 
 ### Option B: Build and Run from Source
+
 Ensure Python 3.11 (ARM64) is installed on your Windows ARM64 PC.
 
 ```powershell
@@ -186,15 +207,15 @@ Ensure Python 3.11 (ARM64) is installed on your Windows ARM64 PC.
 git clone https://github.com/Kreuzhofen/snapdragon-ai-studio.git
 cd snapdragon-ai-studio
 
-# 2. Configure virtual environment
+# 2. Configure the native ARM64 virtual environment
 py -3.11-arm64 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# 3. Upgrade pip and install dependencies
+# 3. Upgrade pip and install all required dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 
-# 4. Launch the application
+# 4. Launch the application GUI
 python gui_v2.py
 ```
 
@@ -203,12 +224,12 @@ python gui_v2.py
 ## 💻 System Requirements
 
 | Requirement | Minimum Specifications | Recommended Specifications |
-| :--- | :--- | :--- |
-| **Operating System**| Windows 11 ARM64 (Build 22621 or higher) | Windows 11 ARM64 (Latest Update) |
+|-------------|------------------------|----------------------------|
+| **Operating System** | Windows 11 ARM64 (Build 22621 or higher) | Windows 11 ARM64 (Latest Update) |
 | **Processor** | Snapdragon X Plus (10 Cores) | Snapdragon X Elite (12 Cores) |
 | **System Memory** | 16 GB LPDDR5x | 32 GB LPDDR5x |
 | **Storage** | 5 GB for application + model space | 50 GB fast NVMe SSD for models |
-| **Qualcomm Drivers**| Snapdragon CPU/GPU Drivers (v31.0.38.0) | Latest Qualcomm NPU Drivers (v31.0.82.0+) |
+| **Qualcomm Drivers** | Snapdragon CPU/GPU Drivers (v31.0.38.0) | Latest Qualcomm NPU Drivers (v31.0.82.0+) |
 | **AI Runtime** | ONNX Runtime 1.19.0 | ONNX Runtime 1.20.0+ |
 
 ---
@@ -216,11 +237,11 @@ python gui_v2.py
 ## ⏱️ Quick Start
 
 1. Launch **Snapdragon AI Studio**.
-2. Go to **Settings** and verify your NPU status in the Diagnostics tab.
+2. Navigate to **Settings** and verify your NPU status in the Diagnostics tab.
 3. Select an ONNX model from the model list (ensure folders match `models/` directory structure).
 4. Enter your positive prompt (e.g., *"A futuristic city in the style of cyberpunk, 8k resolution, highly detailed"*) and negative prompt.
-5. Choose your backend: Select **Qualcomm QNN** for NPU acceleration, or **CPU** as a compatible fallback.
-6. Click **Generate** and track progress via the progress bar and real-time logs.
+5. Choose your backend: Select **Qualcomm QNN** for NPU hardware acceleration, or **CPU** as a compatible fallback.
+6. Click **Generate** and track the progress via the progress bar and real-time logs.
 7. View and save your generated image directly from the output history.
 
 ---
@@ -238,7 +259,7 @@ flowchart TD
     PHX --> BACKEND[Backend Manager]
     PHX --> DIAG[Diagnostics Engine]
     PHX --> OUT[Output Handler]
-
+ 
     BACKEND -->|Initializes Sessions| ORT[ONNX Runtime]
     ORT -->|Option 1| CPU[CPU EP fallback]
     ORT -->|Option 2| QNN[Qualcomm QNN EP NPU]
@@ -254,7 +275,7 @@ flowchart TD
 ## 🗃️ Supported AI Backends
 
 | Backend Provider | Execution Target | RC1 Status | Performance Notes |
-| :--- | :--- | :--- | :--- |
+|------------------|------------------|------------|-------------------|
 | **ONNX Runtime CPU EP** | Snapdragon CPU cores | 🟢 Supported | Slower execution; serves as a deterministic debug fallback. |
 | **Qualcomm QNN EP** | Hexagon NPU | 🟢 Integrated | High-speed local NPU inference; requires compiled model graphs. |
 | **DirectML** | Adreno GPU | 🟡 Planned | Future GPU acceleration path targeted for RC2. |
@@ -291,15 +312,18 @@ snapdragon-ai-studio/
 We welcome external contributions. Please align with the following standards:
 
 ### Branching Model
+
 - Release branches host production-ready release candidate tag commits (e.g. `v2.0.0-rc1`).
 - Active development occurs on development branches. Feature branches must diverge from and merge back into the main development branch.
 
 ### Coding Guidelines
+
 - **PEP 8**: Strict adherence to standard Python formatting rules.
 - **Architectural Isolation**: UI components (`gui/`) must never contain inference calculations; delegate all workload tasks to `engine/` via `controllers/`.
 - **Theme Support**: Every UI change must be verified against both Light and Dark themes via `ThemeManager`.
 
 ### Pull Request Rules
+
 - Target your PRs to the active development branch.
 - Ensure all automated unit tests pass.
 - Write descriptive commits using Conventional Commits.
@@ -338,7 +362,7 @@ A core strength of Snapdragon AI Studio is its diagnostic pipeline. Instead of f
 ## 📈 RC1 Status
 
 | Parameter | Scope | Status | Validation Result |
-| :--- | :--- | :--- | :--- |
+|-----------|-------|--------|-------------------|
 | **Installer** | Setup creation | 🟢 Complete | Generates clean installer packages on ARM64. |
 | **Localization** | Multi-language UI | 🟢 Complete | Full support for EN, DE, and ES translations. |
 | **CPU Pipeline** | ONNX fallback | 🟢 Verified | Validated stable generation. |
@@ -350,10 +374,10 @@ A core strength of Snapdragon AI Studio is its diagnostic pipeline. Instead of f
 ## 🗺️ RC2 Roadmap
 
 | Milestone | Target | Description | Progress |
-| :--- | :--- | :--- | :--- |
+|-----------|--------|-------------|----------|
 | **SDXL Optimization** | NPU Execution | Optimize SDXL layers to fit NPU memory profiles. | ⏳ Planned |
 | **QNN Quantization** | FP16/INT8 Compilation | Provide tools to compile and quantize models directly on device. | 🔄 In Progress |
-| **DirectML Integration**| Adreno GPU Support | Add DirectML backend as an alternative local acceleration path. | ⏳ Planned |
+| **DirectML Integration** | Adreno GPU Support | Add DirectML backend as an alternative local acceleration path. | ⏳ Planned |
 | **Custom Schedulers** | Pipeline Extension | Integrate UniPC and LCM schedulers. | ⏳ Planned |
 | **Benchmark Tool** | NPU performance tests | Add NPU benchmark utility to measure steps per second. | 🔄 In Progress |
 
@@ -449,15 +473,15 @@ We take security seriously. If you discover a vulnerability, please do not discl
 ## 💬 Support
 
 If you run into issues:
-- **Bug Reports** — Open a [GitHub Issue](../../issues) using the provided issue template.
-- **Feature Requests** — Open a feature request or start a [GitHub Discussion](../../discussions).
-- **Community Support** — Use [GitHub Discussions](../../discussions) for questions, setup help, and shared solutions.
+- **Bug Reports** — Open a [GitHub Issue](https://github.com/Kreuzhofen/snapdragon-ai-studio/issues) using the provided issue template.
+- **Feature Requests** — Open a feature request or start a [GitHub Discussion](https://github.com/Kreuzhofen/snapdragon-ai-studio/discussions).
+- **Community Support** — Use [GitHub Discussions](https://github.com/Kreuzhofen/snapdragon-ai-studio/discussions) for questions, setup help, and shared solutions.
 
 ---
 
 ## 📄 License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+Distributed under the MIT License. See [LICENSE](https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/LICENSE) for details.
 
 ---
 
