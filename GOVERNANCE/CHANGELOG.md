@@ -12,6 +12,8 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 - Added automatic GitHub Light/Dark theme logo switching.
 - Updated README branding with responsive <picture> support.
 - Improved GitHub, Desktop and Mobile logo compatibility.
+- Redesigned README header layout to place the logo side-by-side with the title, vertically centered, forming a single brand unit.
+
 
 
 

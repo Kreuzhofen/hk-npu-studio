@@ -1,17 +1,8 @@
 <a id="top"></a>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
-    <img src="assets/brand/phoenix_logo_black.png"
-         width="220"
-         alt="Snapdragon AI Studio">
-  </picture>
-</p>
-
-
-<h1 align="center">Snapdragon AI Studio</h1>
+<h1 align="center">
+  <span style="display: inline-block; vertical-align: middle; margin-right: 10px;"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png"><source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png"><img src="assets/brand/phoenix_logo_black.png" width="64" alt="Logo"></picture></span><span style="display: inline-block; vertical-align: middle;">Snapdragon AI Studio</span>
+</h1>
 
 <p align="center">
   <strong>Professional Local Generative AI Desktop Environment</strong><br>

@@ -8,7 +8,8 @@
 
 ## 1. Aktueller Status & Letzte Änderungen
 
-* **Branding Update:** The official Snapdragon AI Studio corporate logo assets have been finalized. GitHub now automatically switches between light and dark logo variants using the HTML <picture> element, providing optimal visibility on GitHub Desktop and Mobile while preserving a consistent corporate identity.
+* **Branding Update:** The official Snapdragon AI Studio corporate logo assets have been finalized. GitHub now automatically switches between light and dark logo variants using the HTML <picture> element, providing optimal visibility on GitHub Desktop and Mobile. The README header layout has been redesigned to place the logo side-by-side with the title (vertically centered, narrow spacing), creating a clean, modern brand representation while preserving generous whitespace.
+
 
 
 
