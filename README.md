@@ -39,14 +39,14 @@
   <a href="#-system-requirements">
     <img src="https://img.shields.io/badge/Hardware-Snapdragon_X_Elite-D00000?style=flat-square" alt="Snapdragon X Elite">
   </a>
-  <a href="#-supported-ai-backends">
+  <a href="#supported-ai-backends">
     <img src="https://img.shields.io/badge/NPU_Accel-Qualcomm_QNN_EP-EA272A?style=flat-square" alt="Qualcomm QNN">
   </a>
-  <a href="#-supported-ai-backends">
+  <a href="#supported-ai-backends">
     <img src="https://img.shields.io/badge/Engine-ONNX_Runtime-005CED?style=flat-square&logo=onnx&logoColor=white" alt="ONNX Runtime">
   </a>
   <br>
-  <a href="#-installation">
+  <a href="#installation">
     <img src="https://img.shields.io/badge/Python-3.11_ARM64-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
   </a>
   <a href="#-rc1-status">
@@ -70,24 +70,24 @@
 - [Phoenix Engine](#-phoenix-engine)
 - [Features](#-features)
 - [Screenshots](#-screenshots)
-- [Installation](#-installation)
+- [Installation](#installation)
 - [System Requirements](#-system-requirements)
-- [Quick Start](#-quick-start)
+- [Quick Start](#quick-start)
 - [Phoenix Architecture](#-phoenix-architecture)
-- [Supported AI Backends](#-supported-ai-backends)
+- [Supported AI Backends](#supported-ai-backends)
 - [Project Structure](#-project-structure)
-- [Development](#-development)
+- [Development](#development)
 - [Testing](#-testing)
 - [Diagnostics](#-diagnostics)
 - [RC1 Status](#-rc1-status)
-- [RC2 Roadmap](#-rc2-roadmap)
+- [RC2 Roadmap](#rc2-roadmap)
 - [FAQ](#-faq)
 - [Contributing](#-contributing)
 - [Security](#-security)
 - [Support](#-support)
 - [License](#-license)
 - [Acknowledgements](#-acknowledgements)
-- [Trademark Notice](#-trademark-notice)
+- [Trademark Notice](#trademark-notice)
 
 ---
 
@@ -193,7 +193,7 @@ The **Phoenix Engine** is the orchestration layer driving Snapdragon AI Studio. 
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 ### Option A: Install via Release Package (Recommended)
 
@@ -238,7 +238,7 @@ python gui_v2.py
 
 ---
 
-## ⏱️ Quick Start
+## Quick Start
 
 1. Launch **Snapdragon AI Studio**.
 2. Navigate to **Settings** and verify your NPU status in the Diagnostics tab.
@@ -276,7 +276,7 @@ flowchart TD
 
 ---
 
-## 🗃️ Supported AI Backends
+## Supported AI Backends
 
 | Backend Provider | Execution Target | RC1 Status | Performance Notes |
 |------------------|------------------|------------|-------------------|
@@ -311,7 +311,7 @@ snapdragon-ai-studio/
 
 ---
 
-## 🛠️ Development
+## Development
 
 We welcome external contributions. Please align with the following standards:
 
@@ -375,7 +375,7 @@ A core strength of Snapdragon AI Studio is its diagnostic pipeline. Instead of f
 
 ---
 
-## 🗺️ RC2 Roadmap
+## RC2 Roadmap
 
 | Milestone | Target | Description | Progress |
 |-----------|--------|-------------|----------|
@@ -500,7 +500,7 @@ We thank the developers of the following tools and frameworks:
 
 ---
 
-## ⚠️ Trademark Notice
+## Trademark Notice
 
 Qualcomm, Snapdragon, and Hexagon are trademarks or registered trademarks of Qualcomm Incorporated. Windows is a registered trademark of Microsoft Corporation. ONNX is a trademark of The Linux Foundation. All other trademarks belong to their respective owners.
 

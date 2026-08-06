@@ -66,7 +66,7 @@ and this project follows Semantic Versioning.
 
 \- Localization improvements
 
-\- README Table of Contents navigation links for GitHub rendering
+\- README Table of Contents navigation stabilized (plain text headings used for variation selector emojis) for GitHub rendering
 
 
 
