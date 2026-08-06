@@ -1,23 +1,8 @@
 <a id="top"></a>
 
-<table align="center" cellspacing="0" cellpadding="0">
-  <tr>
-    <td valign="middle">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
-        <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
-        <img src="assets/brand/phoenix_logo_black.png" height="84" alt="Logo">
-      </picture>
-    </td>
-    <td width="20"></td>
-    <td valign="middle">
-      <h1>Snapdragon AI Studio</h1>
-    </td>
-  </tr>
-</table>
 
 <p align="center">
-  <strong>Professional Local Generative AI Desktop Environment</strong><br>
+  <strong style="vertical-align: middle;">Professional Local Generative AI Desktop Environment</strong><br>
   <em>Engineered for Windows 11 ARM64 and Qualcomm Snapdragon X Series hardware. Optimized with the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.</em>
 </p>
 
