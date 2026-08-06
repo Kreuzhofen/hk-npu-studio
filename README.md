@@ -1,17 +1,20 @@
 <a id="top"></a>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
-    <img src="assets/brand/phoenix_logo_black.png"
-         width="220"
-         alt="Snapdragon AI Studio">
-  </picture>
-</p>
-
-
-<h1 align="center">Snapdragon AI Studio</h1>
+<table align="center" cellspacing="0" cellpadding="0">
+  <tr>
+    <td valign="middle">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
+        <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
+        <img src="assets/brand/phoenix_logo_black.png" height="84" alt="Logo">
+      </picture>
+    </td>
+    <td width="20"></td>
+    <td valign="middle">
+      <h1>Snapdragon AI Studio</h1>
+    </td>
+  </tr>
+</table>
 
 <p align="center">
   <strong>Professional Local Generative AI Desktop Environment</strong><br>
@@ -27,7 +30,7 @@
     <img src="https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square&color=0078D4" alt="Release">
   </a>
   <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Kreuzhofen/snapdragon-ai-studio?style=flat-square&color=808080" alt="License">
+    <img src="https://img.shields.io/badge/License-MIT-808080?style=flat-square" alt="License">
   </a>
   <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/releases">
     <img src="https://img.shields.io/github/downloads/Kreuzhofen/snapdragon-ai-studio/total?style=flat-square&color=blueviolet" alt="Downloads">
