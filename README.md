@@ -1,22 +1,14 @@
 <a id="top"></a>
 
-<table align="center" cellspacing="0" cellpadding="0">
-  <tr>
-    <td valign="middle" align="center">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
-        <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
-        <img src="assets/brand/phoenix_logo_black.png"
-             alt="Snapdragon AI Studio"
-             height="84">
-      </picture>
-    </td>
-    <td width="20"></td>
-    <td valign="middle">
-      <h1>Snapdragon AI Studio</h1>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
+    <img src="assets/brand/phoenix_logo_black.png" height="120" alt="Snapdragon AI Studio">
+  </picture>
+</p>
+
+<h1 align="center">Snapdragon AI Studio</h1>
 
 <p align="center">
   <strong>Professional Local Generative AI Desktop Environment</strong><br>
