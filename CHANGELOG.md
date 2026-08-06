@@ -66,6 +66,8 @@ and this project follows Semantic Versioning.
 
 \- Localization improvements
 
+\- README Table of Contents navigation links for GitHub rendering
+
 
 
 \---

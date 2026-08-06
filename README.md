@@ -33,23 +33,23 @@
     <img src="https://img.shields.io/github/stars/Kreuzhofen/snapdragon-ai-studio?style=flat-square&color=gold" alt="Stars">
   </a>
   <br>
-  <a href="#system-requirements">
+  <a href="#-system-requirements">
     <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
   </a>
-  <a href="#system-requirements">
+  <a href="#-system-requirements">
     <img src="https://img.shields.io/badge/Hardware-Snapdragon_X_Elite-D00000?style=flat-square" alt="Snapdragon X Elite">
   </a>
-  <a href="#supported-ai-backends">
+  <a href="#-supported-ai-backends">
     <img src="https://img.shields.io/badge/NPU_Accel-Qualcomm_QNN_EP-EA272A?style=flat-square" alt="Qualcomm QNN">
   </a>
-  <a href="#supported-ai-backends">
+  <a href="#-supported-ai-backends">
     <img src="https://img.shields.io/badge/Engine-ONNX_Runtime-005CED?style=flat-square&logo=onnx&logoColor=white" alt="ONNX Runtime">
   </a>
   <br>
-  <a href="#installation">
+  <a href="#-installation">
     <img src="https://img.shields.io/badge/Python-3.11_ARM64-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
   </a>
-  <a href="#rc1-status">
+  <a href="#-rc1-status">
     <img src="https://img.shields.io/badge/Status-2.0_RC1-success?style=flat-square" alt="RC1 Status">
   </a>
   <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/issues">
@@ -64,30 +64,30 @@
 
 ## 📋 Table of Contents
 
-- [About the Project](#about-the-project)
-- [Why Snapdragon AI Studio?](#why-snapdragon-ai-studio)
-- [Project Leadership](#project-leadership)
-- [Phoenix Engine](#phoenix-engine)
-- [Features](#features)
-- [Screenshots](#screenshots)
-- [Installation](#installation)
-- [System Requirements](#system-requirements)
-- [Quick Start](#quick-start)
-- [Phoenix Architecture](#phoenix-architecture)
-- [Supported AI Backends](#supported-ai-backends)
-- [Project Structure](#project-structure)
-- [Development](#development)
-- [Testing](#testing)
-- [Diagnostics](#diagnostics)
-- [RC1 Status](#rc1-status)
-- [RC2 Roadmap](#rc2-roadmap)
-- [FAQ](#faq)
-- [Contributing](#contributing)
-- [Security](#security)
-- [Support](#support)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
-- [Trademark Notice](#trademark-notice)
+- [About the Project](#-about-the-project)
+- [Why Snapdragon AI Studio?](#-why-snapdragon-ai-studio)
+- [Project Leadership](#-project-leadership)
+- [Phoenix Engine](#-phoenix-engine)
+- [Features](#-features)
+- [Screenshots](#-screenshots)
+- [Installation](#-installation)
+- [System Requirements](#-system-requirements)
+- [Quick Start](#-quick-start)
+- [Phoenix Architecture](#-phoenix-architecture)
+- [Supported AI Backends](#-supported-ai-backends)
+- [Project Structure](#-project-structure)
+- [Development](#-development)
+- [Testing](#-testing)
+- [Diagnostics](#-diagnostics)
+- [RC1 Status](#-rc1-status)
+- [RC2 Roadmap](#-rc2-roadmap)
+- [FAQ](#-faq)
+- [Contributing](#-contributing)
+- [Security](#-security)
+- [Support](#-support)
+- [License](#-license)
+- [Acknowledgements](#-acknowledgements)
+- [Trademark Notice](#-trademark-notice)
 
 ---
 
