@@ -1,11 +1,11 @@
 <a id="top"></a>
 
 <h1 align="center">
-  <span style="display: inline-block; vertical-align: middle; margin-right: 10px;"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png"><source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png"><img src="assets/brand/phoenix_logo_black.png" width="64" alt="Logo"></picture></span><span style="display: inline-block; vertical-align: middle;">Snapdragon AI Studio</span>
+  <span style="display: inline-block; vertical-align: middle; margin-right: 16px;"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png"><source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png"><img src="assets/brand/phoenix_logo_black.png" width="44" alt="Logo"></picture></span><span style="display: inline-block; vertical-align: middle;">Snapdragon AI Studio</span>
 </h1>
 
 <p align="center">
-  <strong>Professional Local Generative AI Desktop Environment</strong><br>
+  <strong style="vertical-align: middle;">Professional Local Generative AI Desktop Environment</strong><br>
   <em>Engineered for Windows 11 ARM64 and Qualcomm Snapdragon X Series hardware. Optimized with the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.</em>
 </p>
 
@@ -18,7 +18,7 @@
     <img src="https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square&color=0078D4" alt="Release">
   </a>
   <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Kreuzhofen/snapdragon-ai-studio?style=flat-square&color=808080" alt="License">
+    <img src="https://img.shields.io/badge/License-MIT-808080?style=flat-square" alt="License">
   </a>
   <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/releases">
     <img src="https://img.shields.io/github/downloads/Kreuzhofen/snapdragon-ai-studio/total?style=flat-square&color=blueviolet" alt="Downloads">
