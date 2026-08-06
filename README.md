@@ -11,9 +11,7 @@
              height="84">
       </picture>
     </td>
-
     <td width="20"></td>
-
     <td valign="middle">
       <h1>Snapdragon AI Studio</h1>
     </td>
@@ -22,11 +20,6 @@
 
 <p align="center">
   <strong>Professional Local Generative AI Desktop Environment</strong><br>
-  <em>Engineered for Windows 11 ARM64 and Qualcomm Snapdragon X Series hardware. Optimized with the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.</em>
-</p>
-
-<p align="center">
-  <strong style="vertical-align: middle;">Professional Local Generative AI Desktop Environment</strong><br>
   <em>Engineered for Windows 11 ARM64 and Qualcomm Snapdragon X Series hardware. Optimized with the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.</em>
 </p>
 
