@@ -255,7 +255,7 @@ python gui_v2.py
 ```mermaid
 flowchart TD
     UI[Desktop GUI] -->|Triggers| CTRL[Controllers]
-    CTRL -->|"Configures & Starts"| PHX[Phoenix Engine]
+    CTRL -->|Configures and Starts| PHX[Phoenix Engine]
     
     PHX --> DISC[Model Discovery]
     PHX --> PROMPT[Prompt Encoders]
