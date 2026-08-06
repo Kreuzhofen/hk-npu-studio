@@ -254,23 +254,24 @@ python gui_v2.py
 
 ```mermaid
 flowchart TD
-    UI[Desktop GUI] -->|Triggers| CTRL[Controllers]
-    CTRL -->|Configures and Starts| PHX[Phoenix Engine]
-    
-    PHX --> DISC[Model Discovery]
-    PHX --> PROMPT[Prompt Encoders]
-    PHX --> SCHED[Scheduler Service]
-    PHX --> BACKEND[Backend Manager]
-    PHX --> DIAG[Diagnostics Engine]
-    PHX --> OUT[Output Handler]
- 
-    BACKEND -->|Initializes Sessions| ORT[ONNX Runtime]
-    ORT -->|Option 1| CPU[CPU EP fallback]
-    ORT -->|Option 2| QNN[Qualcomm QNN EP NPU]
-    
-    PROMPT -->|Embeddings| LATENT[Latent Denoising Loop]
+
+    UI["Desktop GUI"] -->|Triggers| CTRL["Controllers"]
+    CTRL -->|Configures and Starts| PHX["Phoenix Engine"]
+
+    PHX --> DISC["Model Discovery"]
+    PHX --> PROMPT["Prompt Encoders"]
+    PHX --> SCHED["Scheduler Service"]
+    PHX --> BACKEND["Backend Manager"]
+    PHX --> DIAG["Diagnostics Engine"]
+    PHX --> OUT["Output Handler"]
+
+    BACKEND -->|Initializes Sessions| ORT["ONNX Runtime"]
+    ORT --> CPU["CPU EP Fallback"]
+    ORT --> QNN["Qualcomm QNN EP NPU"]
+
+    PROMPT -->|Embeddings| LATENT["Latent Denoising Loop"]
     SCHED -->|Calculates Noise| LATENT
-    LATENT -->|UNet Execution| VAE[VAE Decoder]
+    LATENT -->|UNet Execution| VAE["VAE Decoder"]
     VAE --> OUT
 ```
 
