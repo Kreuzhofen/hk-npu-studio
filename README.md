@@ -1,18 +1,9 @@
 <a id="top"></a>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
-    <img src="assets/brand/phoenix_logo_black.png" height="120" alt="Snapdragon AI Studio">
-  </picture>
-</p>
-
-<h1 align="center">Snapdragon AI Studio</h1>
-
-<p align="center">
-  <strong>Professional Local Generative AI Desktop Environment</strong><br>
-  <em>Engineered for Windows 11 ARM64 and Qualcomm Snapdragon X Series hardware. Optimized with the Phoenix Engine, ONNX Runtime, and Qualcomm QNN.</em>
+  <img src="assets/brand/snapdragon-ai-studio-banner.png"
+       width="100%"
+       alt="Snapdragon AI Studio — Phoenix Engine">
 </p>
 
 ---
