@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, filedialog, messagebox
 from typing import Any
 
 from widgets.phoenix.layout.workspace import WorkspaceFrame
@@ -29,8 +29,8 @@ class PhoenixModelManagerView(WorkspaceFrame):
         
         if controller is None:
             try:
-                from controllers.prompt_workspace_controller import PromptWorkspaceController
-                self.controller = PromptWorkspaceController()
+                from controllers.model_manager_controller import ModelManagerController
+                self.controller = ModelManagerController()
             except Exception:
                 self.controller = None
         else:
@@ -229,6 +229,16 @@ class PhoenixModelManagerView(WorkspaceFrame):
             height=34,
         )
         self.btn_activate.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+
+        self.btn_install = PhoenixButton(
+            self.action_frame,
+            text=tr("install", "Installieren"),
+            command=self._on_install_selected,
+            button_type="secondary",
+            icon_name="download",
+            height=34,
+        )
+        self.btn_install.grid(row=1, column=0, sticky="ew")
 
     # ==================================================================
     # DATA REFRESH & UI RENDERING (Anti-Flicker Caching)
@@ -439,13 +449,29 @@ class PhoenixModelManagerView(WorkspaceFrame):
             )
         )
         self.det_status.configure(text=status_str)
-        self.det_desc.configure(text=self._localized_description(selected_model))
+        description = self._localized_description(selected_model)
+        if not selected_model.get("installed", True):
+            availability_message = str(selected_model.get("availability_message") or "").strip()
+            if availability_message:
+                availability_message = tr(
+                    f"model_availability_{selected_model.get('id', '')}",
+                    availability_message,
+                )
+                description = f"{description}\n\n{availability_message}"
+        self.det_desc.configure(text=description)
 
-        if is_active:
+        is_installed = bool(selected_model.get("installed", True))
+        self.btn_install.configure(state="disabled" if is_installed else "normal")
+
+        if is_active or not is_installed:
             self.btn_activate.configure(
                 state="disabled",
-                text=tr("active_model", "Aktives Modell"),
-                icon_name="success"
+                text=(
+                    tr("active_model", "Aktives Modell")
+                    if is_active
+                    else tr("install_before_activation", "Vor Aktivierung lokal installieren")
+                ),
+                icon_name="success" if is_active else "info"
             )
         else:
             self.btn_activate.configure(
@@ -476,6 +502,45 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 tr("model_activated_msg", "Modell '{id}' erfolgreich als aktives NPU-Modell gesetzt.", id=self.selected_model_id)
             )
             self.refresh()
+
+    def _on_install_selected(self) -> None:
+        if not self.selected_model_id or not self.controller:
+            return
+
+        source_path = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title=tr("select_local_package", "Lokales Modellpaket auswählen"),
+            filetypes=[
+                (tr("model_package_files", "Modellpakete"), "*.smp *.zip"),
+                (tr("all_files", "Alle Dateien"), "*.*"),
+            ],
+        )
+        if not source_path:
+            return
+
+        install_package = getattr(self.controller, "install_package", None)
+        if not callable(install_package):
+            messagebox.showerror(
+                tr("model_manager_title", "Modell-Manager"),
+                tr("local_package_install_unavailable", "Der lokale Paketimport ist nicht verfügbar."),
+                parent=self.winfo_toplevel(),
+            )
+            return
+
+        if install_package(self.selected_model_id, source_path):
+            self._last_rendered_signature = None
+            self.refresh()
+            messagebox.showinfo(
+                tr("model_manager_title", "Modell-Manager"),
+                tr("local_package_install_success", "Das lokale Modellpaket wurde erfolgreich installiert."),
+                parent=self.winfo_toplevel(),
+            )
+        else:
+            messagebox.showerror(
+                tr("model_manager_title", "Modell-Manager"),
+                tr("local_package_install_failed", "Das Modellpaket konnte nicht installiert werden. Prüfen Sie Paket-ID, Manifest und Dateien."),
+                parent=self.winfo_toplevel(),
+            )
 
     def _add_button_hover(self, button: tk.Button) -> None:
         orig_bg = button.cget("bg")
