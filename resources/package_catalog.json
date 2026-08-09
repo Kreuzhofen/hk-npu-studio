@@ -163,6 +163,33 @@
       "status": "Not Installed"
     },
     {
+      "model_id": "controlnet_canny_qnn",
+      "catalog_status": "READY",
+      "official_qualcomm_package": true,
+      "product_available": true,
+      "availability_message": "Qualcomm ControlNet Canny NPU package ready.",
+      "display_name": "ControlNet Canny QNN",
+      "version": "0.58.0-qnn",
+      "description": "Qualcomm precompiled ControlNet Canny w8a16 package for Snapdragon X Elite.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": true,
+        "img2img": true,
+        "inpainting": false,
+        "outpainting": false,
+        "lora": false,
+        "controlnet": true,
+        "image_to_video": false,
+        "batch_generation": false,
+        "onnx_runtime": true,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "Qualcomm ControlNet Canny (HTP V73)",
+      "estimated_size_gb": 0.0,
+      "download_url": "",
+      "status": "Installed"
+    },
+    {
       "model_id": "stable_diffusion_v1_5_qai",
       "catalog_status": "LOCAL PACKAGE REQUIRED",
       "official_qualcomm_package": true,

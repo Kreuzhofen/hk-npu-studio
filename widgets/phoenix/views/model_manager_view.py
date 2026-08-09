@@ -248,7 +248,8 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if not hasattr(self, "cards_container"):
             return
 
-        repository = getattr(self.controller, "repository", None) if self.controller else None
+        controller_model = getattr(self.controller, "model", None) if self.controller else None
+        repository = getattr(controller_model, "repository", None)
         if repository is not None:
             try:
                 repository.load_repository()
