@@ -1,0 +1,76 @@
+================================================================================
+Snapdragon AI Studio - Manual de usuario
+================================================================================
+
+Este manual le guía a través del uso de Snapdragon AI Studio.
+Nota: Este es un proyecto de código abierto independiente y no es un producto oficial de Qualcomm.
+
+1. Primeros pasos
+-----------------
+Al iniciar la aplicación, se inicializa el hardware. El sistema verifica la 
+disponibilidad del proveedor de ejecución Qualcomm QNN HTP (Hexagon Tensor 
+Processor). Asegúrese de tener instalados los controladores adecuados para 
+utilizar la aceleración de la NPU. Si no se detecta ninguna NPU, el sistema 
+recurrirá a la CPU.
+
+2. Instalar y activar modelos
+-----------------------------
+Los modelos se pueden instalar a través del Administrador de Modelos integrado. 
+Para activar un modelo, selecciónelo en la lista de modelos. El proceso de 
+carga se muestra en la barra de estado.
+
+3. SD1.5 / SD2.1 / SD3.5 / SDXL
+-------------------------------
+- Stable Diffusion 1.5: Adecuado para generaciones rápidas con una resolución estándar de 512x512 píxeles.
+- Stable Diffusion 2.1: Proporciona una calidad de imagen mejorada y comprensión de texto a 512x512 píxeles.
+- Stable Diffusion 3.5: Utiliza una arquitectura Transformer moderna para prompts complejos.
+- Stable Diffusion XL (SDXL): Genera imágenes de alta resolución (1024x1024 píxeles por defecto).
+
+4. QNN vs. QAI/NPU
+------------------
+- QNN (Qualcomm AI Engine Direct): Se refiere a la API y al controlador de bajo nivel para controlar la NPU.
+- QAI/NPU: Se refiere a modelos cuantizados y compilados específicamente para la NPU de Qualcomm en formato DLC (Deep Learning Container) o como binarios de contexto QNN precompilados (.bin). Solo estos modelos se ejecutan con aceleración de hardware completa en la NPU.
+
+5. Prompt y Prompt Negativo
+---------------------------
+- Prompt: Descripción del contenido de imagen deseado. Utilice términos precisos en inglés.
+- Prompt Negativo: Criterios de exclusión para elementos de la imagen (por ejemplo, "blurry", "low quality").
+
+6. Parámetros de generación
+---------------------------
+- Pasos (Steps): Número de pasos de eliminación de ruido. Más pasos aumentan el detalle pero prolongan el tiempo de cálculo.
+- CFG-Scale: Determina con qué rigor el modelo sigue el prompt. El valor predeterminado recomendado es 7.5.
+- Semilla (Seed): Valor inicial para el generador de ruido. Utilice -1 para semillas aleatorias o un número fijo para la reproducción.
+- Sampler / Scheduler: Métodos matemáticos (por ejemplo, Euler, DDIM) para la eliminación de ruido.
+
+7. Presets
+----------
+Los presets guardan combinaciones predefinidas de parámetros (pasos, CFG, resolución) para diferentes estilos o niveles de calidad para acelerar el flujo de trabajo.
+
+8. Phoenix Boost
+----------------
+Phoenix Boost optimiza la velocidad de inferencia activando configuraciones optimizadas de la NPU, subprocesos optimizados y limpieza de memoria dirigida.
+
+9. ControlNet Canny
+-------------------
+Permite un control preciso sobre la composición de la imagen cargando una imagen de referencia de la cual se extraen los bordes (Canny Edge Detection). El control de intensidad regula la influencia de estos bordes en el resultado final.
+
+10. RealESRGAN 2x
+-----------------
+Permite un escalado de alta calidad de la imagen generada por un factor de 2 en la NPU/CPU para perfilar detalles y bordes finos.
+
+11. Galería e Historial
+-----------------------
+Todas las imágenes generadas se muestran en la galería integrada. Al seleccionar una imagen en el historial, se pueden ver sus parámetros de generación originales y metadatos.
+
+12. Ubicaciones de almacenamiento
+---------------------------------
+- Imágenes y metadatos (.json): Por defecto en la carpeta 'output/'.
+- Archivos de modelo: En la carpeta 'models/'.
+- Logs y configuraciones: En 'logs/' o en los directorios de datos de la aplicación.
+
+13. Resolución de problemas
+---------------------------
+- NPU no detectada: Verifique la instalación del controlador Qualcomm AI Stack (versión de QAIRT 2.45/2.47).
+- Memoria insuficiente (Out of Memory): Cierre otras aplicaciones o reduzca la resolución/tamaño de lote.
+- Generación fallida: Verifique la integridad del modelo y compruebe la salida del log a través del menú 'Herramientas' -> 'Mostrar archivo de log'.

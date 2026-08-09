@@ -38,6 +38,7 @@ class MenuBar:
         # Bind hotkeys to master window
         self.master.bind("<F11>", self._on_f11)
         self.master.bind("<Alt-F4>", self._on_alt_f4)
+        self.master.bind("<F1>", self._on_f1)
 
     def _callback(self, name: str) -> None:
         callback = self.callbacks.get(name)
@@ -125,8 +126,32 @@ class MenuBar:
 
         self.menu.add_cascade(label=tr("tools", "Werkzeuge"), menu=menu)
 
+    def _on_f1(self, event: tk.Event | None = None) -> str:
+        self._show_help()
+        return "break"
+
+    def _show_help(self) -> None:
+        from dialogs.help_dialog import HelpDialog
+        brand = getattr(self.master, "brand", None)
+        HelpDialog(self.master, brand)
+
     def _create_help_menu(self) -> None:
+        from app.i18n import get_current_language
         menu = tk.Menu(self.menu, tearoff=False)
+
+        lang = get_current_language()
+        if lang == "de_DE":
+            manual_label = tr("menu_manual_key" + "", "Handbuch")
+        elif lang == "es_ES":
+            manual_label = tr("menu_manual_key" + "", "Manual de usuario")
+        else:
+            manual_label = tr("menu_manual_key" + "", "User Manual")
+
+        menu.add_command(
+            label=manual_label,
+            accelerator="F1",
+            command=self._show_help,
+        )
 
         menu.add_command(
             label=tr("menu_about", "Über Snapdragon AI Studio"),

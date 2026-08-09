@@ -1,0 +1,75 @@
+================================================================================
+Snapdragon AI Studio - User Manual
+================================================================================
+
+This manual guides you through the usage of Snapdragon AI Studio.
+Note: This is an independent open-source project and not an official Qualcomm product.
+
+1. Getting Started
+------------------
+When the application starts, the hardware is initialized. The system checks the 
+availability of the Qualcomm QNN HTP (Hexagon Tensor Processor) Execution 
+Provider. Make sure that the appropriate drivers are installed to use NPU 
+acceleration. If no NPU is detected, it falls back to the CPU.
+
+2. Installing and Activating Models
+-----------------------------------
+Models can be installed via the integrated Model Manager. To activate a model, 
+select it from the model list. The loading process is displayed in the status 
+bar.
+
+3. SD1.5 / SD2.1 / SD3.5 / SDXL
+-------------------------------
+- Stable Diffusion 1.5: Suitable for fast generation with a default resolution of 512x512 pixels.
+- Stable Diffusion 2.1: Provides improved image quality and text understanding at 512x512 pixels.
+- Stable Diffusion 3.5: Uses a modern Transformer architecture for complex prompts.
+- Stable Diffusion XL (SDXL): Generates high-resolution images (defaulting to 1024x1024 pixels).
+
+4. QNN vs. QAI/NPU
+------------------
+- QNN (Qualcomm AI Engine Direct): Refers to the low-level API and driver to control the NPU.
+- QAI/NPU: Refers to models quantized and compiled specifically for the Qualcomm NPU in DLC (Deep Learning Container) format or as precompiled QNN-Context binaries (.bin). Only these models run with full hardware acceleration on the NPU.
+
+5. Prompt and Negative Prompt
+-----------------------------
+- Prompt: Description of the desired image content. Use precise English terms.
+- Negative Prompt: Exclusion criteria for image elements (e.g., "blurry", "low quality").
+
+6. Generation Parameters
+------------------------
+- Steps: Number of denoising steps. More steps increase detail but prolong computation time.
+- CFG-Scale: Determines how strictly the model follows the prompt. The recommended default is 7.5.
+- Seed: Initial value for the noise generator. Use -1 for random seeds or a fixed number for reproduction.
+- Sampler / Scheduler: Mathematical methods (e.g., Euler, DDIM) for noise removal.
+
+7. Presets
+----------
+Presets save predefined parameter combinations (steps, CFG, resolution) for different styles or quality levels to speed up workflows.
+
+8. Phoenix Boost
+----------------
+Phoenix Boost optimizes inference speed by activating optimized NPU settings, optimized threading, and targeted memory cleanup.
+
+9. ControlNet Canny
+-------------------
+Allows precise control over image composition by loading a reference image from which edges are extracted (Canny Edge Detection). The strength slider controls the influence of these edges on the final result.
+
+10. RealESRGAN 2x
+-----------------
+Allows high-quality upscaling of the generated image by a factor of 2 on the NPU/CPU to sharpen fine details and edges.
+
+11. Gallery and History
+-----------------------
+All generated images are displayed in the integrated gallery. Selecting an image in the history allows viewing its original generation parameters and metadata.
+
+12. File Locations
+------------------
+- Images & Metadata (.json): By default in the 'output/' directory.
+- Model files: In the 'models/' directory.
+- Logs & Configurations: Under 'logs/' or in the App Data directories.
+
+13. Troubleshooting
+-------------------
+- NPU not detected: Check your Qualcomm AI Stack driver installation (QAIRT version 2.45/2.47).
+- Out of Memory: Close other applications or reduce the resolution/batch size.
+- Generation failed: Verify model integrity and check the log output via the 'Tools' -> 'Show Log File' menu.

@@ -1,0 +1,77 @@
+================================================================================
+Snapdragon AI Studio - Benutzerhandbuch
+================================================================================
+
+Dieses Handbuch führt Sie in die Nutzung des Snapdragon AI Studio ein. 
+Hinweis: Dies ist ein unabhängiges Open-Source-Projekt und kein offizielles 
+Qualcomm-Produkt.
+
+1. Erste Schritte
+-----------------
+Beim Start der Anwendung wird die Hardware initialisiert. Das System prüft die 
+Verfügbarkeit des Qualcomm QNN HTP (Hexagon Tensor Processor) Execution 
+Providers. Vergewissern Sie sich, dass die passenden Treiber installiert sind, 
+um die NPU-Beschleunigung nutzen zu können. Falls keine NPU gefunden wird, 
+erfolgt ein Fallback auf die CPU.
+
+2. Modelle installieren und aktivieren
+--------------------------------------
+Modelle können über den integrierten Modell-Manager installiert werden. Um ein 
+Modell zu aktivieren, wählen Sie es in der Modellliste aus. Der Ladevorgang 
+wird in der Statusleiste angezeigt.
+
+3. SD1.5 / SD2.1 / SD3.5 / SDXL
+-------------------------------
+- Stable Diffusion 1.5: Eignet sich für schnelle Generationen mit einer Standardauflösung von 512x512 Pixeln.
+- Stable Diffusion 2.1: Bietet verbesserte Bildqualität und Textverständnis bei 512x512 Pixeln.
+- Stable Diffusion 3.5: Verwendet eine moderne Transformer-Architektur für komplexe Prompts.
+- Stable Diffusion XL (SDXL): Generiert hochauflösende Bilder (standardmäßig 1024x1024 Pixel).
+
+4. QNN vs. QAI/NPU
+------------------
+- QNN (Qualcomm AI Engine Direct): Bezeichnet die systemnahe API und Treiber zur Ansteuerung der NPU.
+- QAI/NPU: Steht für Modelle, die speziell für die Qualcomm NPU im DLC-Format (Deep Learning Container) bzw. als precompiled QNN-Context binaries (.bin) quantisiert und kompiliert wurden. Nur diese Modelle laufen mit voller Hardwarebeschleunigung auf der NPU.
+
+5. Prompt und Negative Prompt
+-----------------------------
+- Prompt: Beschreibung des gewünschten Bildinhalts. Formulieren Sie präzise englische Begriffe.
+- Negative Prompt: Ausschlusskriterien für Bildelemente (z. B. "blurry", "low quality").
+
+6. Generierungsparameter
+------------------------
+- Schritte (Steps): Anzahl der Denoising-Schritte. Mehr Schritte erhöhen die Detailtiefe, verlängern aber die Rechenzeit.
+- CFG-Scale: Bestimmt, wie strikt das Modell dem Prompt folgt. Empfohlener Standardwert liegt bei 7.5.
+- Seed: Startwert für den Rauschgenerator. Verwenden Sie -1 für zufällige Bilder oder eine feste Zahl zur Reproduktion.
+- Sampler / Scheduler: Mathematische Verfahren (z. B. Euler, DDIM) zur Rauschentfernung.
+
+7. Presets
+----------
+Presets speichern vordefinierte Parameterkombinationen (Schritte, CFG, Auflösung) für verschiedene Stile oder Qualitätsstufen ab, um Arbeitsabläufe zu beschleunigen.
+
+8. Phoenix Boost
+----------------
+Der Phoenix Boost optimiert die Inferenzgeschwindigkeit, indem er optimierte NPU-Einstellungen, optimiertes Threading und gezielte Speicherbereinigungen aktiviert.
+
+9. ControlNet Canny
+-------------------
+Ermöglicht die präzise Steuerung der Bildkomposition durch das Laden eines Referenzbildes, aus dem Kanten extrahiert werden (Canny Edge Detection). Die Stärke regelt den Einfluss der Kanten auf das Endergebnis.
+
+10. RealESRGAN 2x
+-----------------
+Ermöglicht ein qualitativ hochwertiges Upscaling des generierten Bildes um den Faktor 2 auf der NPU/CPU, um feine Details und Kanten zu schärfen.
+
+11. Galerie und Verlauf
+-----------------------
+Alle generierten Bilder werden in der integrierten Galerie angezeigt. Durch Auswahl eines Bildes im Verlauf können die ursprünglichen Parameter und Metadaten eingesehen werden.
+
+12. Speicherorte
+----------------
+- Bilder & Metadaten (.json): Standardmäßig im Ordner 'output/'.
+- Modell-Dateien: Im Ordner 'models/'.
+- Logs & Konfigurationen: Unter 'logs/' bzw. in den App-Datenverzeichnissen.
+
+13. Fehlerbehebung
+------------------
+- NPU wird nicht erkannt: Prüfen Sie die Qualcomm AI Stack Treiberinstallation (QAIRT Version 2.45/2.47).
+- Out of Memory: Schließen Sie andere Anwendungen oder reduzieren Sie die Auflösung/Batch-Größe.
+- Generation abgebrochen: Verifizieren Sie die Modellintegrität und die Log-Ausgabe über das Menü 'Werkzeuge' -> 'Log-Datei anzeigen'.
