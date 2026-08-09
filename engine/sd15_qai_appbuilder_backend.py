@@ -12,6 +12,8 @@ import socket
 from pathlib import Path
 from typing import Any
 
+from config import MODELS_DIR
+
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
@@ -25,7 +27,8 @@ from engine.logging_config import get_logger
 
 logger = get_logger("StableDiffusion15QaiAppBuilderBackend")
 BACKEND_NAME = "Qualcomm SD1.5 QAI AppBuilder (HTP)"
-MODEL_ID = "stable_diffusion_v1_5_qnn"
+MODEL_ID = "stable_diffusion_v1_5_qai"
+LEGACY_MODEL_ID = "stable_diffusion_v1_5_qnn"
 _MODEL_FILES = (
     "stable_diffusion_v1_5_w8a16_quantized-textencoderquantizable-qualcomm_snapdragon_x_elite.bin",
     "stable_diffusion_v1_5_w8a16_quantized-unetquantizable-qualcomm_snapdragon_x_elite.bin",
@@ -53,16 +56,16 @@ def _model_dir() -> Path:
     configured = os.environ.get("SNAPDRAGON_QAI_SD15_MODEL_DIR", "").strip()
     if configured:
         return Path(configured).expanduser().resolve()
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent / "models" / "stable_diffusion_v1_5_qai"
-    return (
-        _qai_root()
-        / "samples"
-        / "GenerativeAI"
-        / "Image_Generation"
-        / "stable_diffusion_v1_5"
-        / "models"
-    )
+    return MODELS_DIR / MODEL_ID
+
+
+def _has_local_tokenizer(model_dir: Path) -> bool:
+    tokenizer_dir = model_dir / "tokenizer"
+    if not tokenizer_dir.is_dir():
+        return False
+    return bool(list(tokenizer_dir.rglob("tokenizer_config.json"))) and bool(
+        list(tokenizer_dir.rglob("vocab.json"))
+    ) and bool(list(tokenizer_dir.rglob("merges.txt")))
 
 
 class StableDiffusion15QaiAppBuilderBackend(InferenceBackend):
@@ -83,12 +86,16 @@ class StableDiffusion15QaiAppBuilderBackend(InferenceBackend):
         return "prototype"
 
     def get_supported_models(self) -> list[str]:
-        return [MODEL_ID]
+        return [MODEL_ID, LEGACY_MODEL_ID]
 
     def is_available(self) -> bool:
         python = _worker_python()
         model_dir = _model_dir()
-        if not python.is_file() or not all((model_dir / name).is_file() for name in _MODEL_FILES):
+        if (
+            not python.is_file()
+            or not all((model_dir / name).is_file() for name in _MODEL_FILES)
+            or not _has_local_tokenizer(model_dir)
+        ):
             return False
         probe = (
             "from qai_appbuilder import QNNConfig,QNNContext,Runtime,LogLevel,ProfilingLevel; "

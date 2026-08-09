@@ -1,0 +1,47 @@
+{
+  "id": "stable_diffusion_v1_5_qai",
+  "display_name": "Stable Diffusion 1.5 QAI AppBuilder",
+  "author": "Qualcomm",
+  "version": "1.5.0-qai",
+  "license": "CreativeML Open RAIL-M",
+  "description": "Qualcomm SD1.5 w8a16 contexts for local QAI AppBuilder inference on Snapdragon X Elite.",
+  "category": "Text-to-Image",
+  "backend": "Qualcomm SD1.5 QAI AppBuilder (HTP)",
+  "recommended_backend": "Qualcomm SD1.5 QAI AppBuilder (HTP)",
+  "minimum_ram_gb": 8,
+  "recommended_ram_gb": 16,
+  "supports": [
+    "txt2img"
+  ],
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Not Installed",
+  "catalog_status": "LOCAL PACKAGE REQUIRED",
+  "product_available": false,
+  "official_qualcomm_package": true,
+  "availability_message": "Install a local Qualcomm SD1.5 QAI package through Model Manager.",
+  "generation_parameters": {
+    "resolution_locked": true,
+    "width": {"default": 512, "values": [512], "editable": false},
+    "height": {"default": 512, "values": [512], "editable": false},
+    "steps": {"default": 20, "min": 1, "max": 100},
+    "cfg": {"default": 7.5, "min": 1.0, "max": 20.0, "resolution": 0.5},
+    "seed": {"default": -1},
+    "sampler": {"default": "DPM Solver Multistep", "values": ["DPM Solver Multistep"], "editable": false},
+    "scheduler": {"default": "Normal", "values": ["Normal"], "editable": false},
+    "prediction_type": "epsilon"
+  },
+  "capabilities": {
+    "txt2img": true,
+    "img2img": false,
+    "inpainting": false,
+    "outpainting": false,
+    "lora": false,
+    "controlnet": false,
+    "image_to_video": false,
+    "batch_generation": false,
+    "onnx_runtime": false,
+    "qnn_runtime": true
+  }
+}
