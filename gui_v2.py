@@ -342,6 +342,11 @@ def main():
 
         return _worker_main()
 
+    if "--qai-appbuilder-sd21-worker" in sys.argv:
+        from engine.sd21_qai_appbuilder_backend import _worker_main
+
+        return _worker_main()
+
     if "--qnn-worker" in sys.argv:
         try:
             idx = sys.argv.index("--qnn-worker")

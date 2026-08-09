@@ -9,6 +9,7 @@ from engine.backends.sd15_qnn_backend_adapter import StableDiffusion15QnnBackend
 from engine.backends.sd21_qnn_backend_adapter import StableDiffusion21QnnBackendAdapter
 from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
 from engine.backends.sd15_qai_appbuilder_backend_adapter import StableDiffusion15QaiAppBuilderBackendAdapter
+from engine.backends.sd21_qai_appbuilder_backend_adapter import StableDiffusion21QaiAppBuilderBackendAdapter
 from engine.backends.discovery_result import DiscoveryResult
 from engine.error_diagnostics import diagnose_exception
 from engine.logging_config import get_logger
@@ -36,6 +37,7 @@ class BackendManager:
         self.register_backend(StableDiffusion21QnnBackendAdapter())
         self.register_backend(ControlNetCannyQnnBackendAdapter())
         self.register_backend(StableDiffusion15QaiAppBuilderBackendAdapter())
+        self.register_backend(StableDiffusion21QaiAppBuilderBackendAdapter())
 
         # Initialize status from the persisted provider. Actual model routing still
         # happens in get_best_backend() and is intentionally unchanged.
@@ -143,6 +145,7 @@ class BackendManager:
                 StableDiffusion21QnnBackendAdapter,
                 ControlNetCannyQnnBackendAdapter,
                 StableDiffusion15QaiAppBuilderBackendAdapter,
+                StableDiffusion21QaiAppBuilderBackendAdapter,
             ),
         ):
             return "QNN EP"
@@ -175,7 +178,10 @@ class BackendManager:
         preferred = None
 
         active = self.get_active_backend()
-        if isinstance(active, StableDiffusion15QaiAppBuilderBackendAdapter):
+        if isinstance(
+            active,
+            (StableDiffusion15QaiAppBuilderBackendAdapter, StableDiffusion21QaiAppBuilderBackendAdapter),
+        ):
             model_id = model.get("id") if isinstance(model, dict) else model
             if model_id in active.get_supported_models() and active.is_available():
                 return active
@@ -191,6 +197,19 @@ class BackendManager:
                         adapter
                         for adapter in self._backends.values()
                         if isinstance(adapter, StableDiffusion15QaiAppBuilderBackendAdapter)
+                    ),
+                    None,
+                )
+                if qai_adapter is not None and qai_adapter.is_available():
+                    self._active_backend_name = qai_adapter.get_backend_name()
+                    return qai_adapter
+            sd21_qai_requested = os.environ.get("SNAPDRAGON_SD21_QAI_APPBUILDER", "").strip() == "1"
+            if model_id in {"stable_diffusion_v2_1_qnn", "stable_diffusion_v2_1_qai"} and sd21_qai_requested:
+                qai_adapter = next(
+                    (
+                        adapter
+                        for adapter in self._backends.values()
+                        if isinstance(adapter, StableDiffusion21QaiAppBuilderBackendAdapter)
                     ),
                     None,
                 )
@@ -225,7 +244,10 @@ class BackendManager:
             from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
             if isinstance(adapter, (StableDiffusion15QnnBackendAdapter, StableDiffusion21QnnBackendAdapter, ControlNetCannyQnnBackendAdapter)):
                 return 0
-            if isinstance(adapter, StableDiffusion15QaiAppBuilderBackendAdapter):
+            if isinstance(
+                adapter,
+                (StableDiffusion15QaiAppBuilderBackendAdapter, StableDiffusion21QaiAppBuilderBackendAdapter),
+            ):
                 return 6
             if isinstance(adapter, QNNBackendAdapter):
                 return 1

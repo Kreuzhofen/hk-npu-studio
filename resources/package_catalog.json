@@ -190,6 +190,33 @@
       "status": "Not Installed"
     },
     {
+      "model_id": "stable_diffusion_v2_1_qai",
+      "catalog_status": "LOCAL PACKAGE REQUIRED",
+      "official_qualcomm_package": true,
+      "product_available": false,
+      "availability_message": "Install a local Qualcomm SD2.1 QAI package through Model Manager.",
+      "display_name": "Stable Diffusion 2.1 QAI AppBuilder",
+      "version": "2.1.0-qai",
+      "description": "Local Qualcomm SD2.1 QAI AppBuilder package for Snapdragon X Elite.",
+      "package_type": "SMP",
+      "capabilities": {
+        "txt2img": true,
+        "img2img": false,
+        "inpainting": false,
+        "outpainting": false,
+        "lora": false,
+        "controlnet": false,
+        "image_to_video": false,
+        "batch_generation": false,
+        "onnx_runtime": false,
+        "qnn_runtime": true
+      },
+      "recommended_runtime": "Qualcomm SD2.1 QAI AppBuilder (HTP)",
+      "estimated_size_gb": 1.2,
+      "download_url": "",
+      "status": "Not Installed"
+    },
+    {
       "model_id": "wan22",
       "catalog_status": "RESEARCH",
       "official_qualcomm_package": false,
