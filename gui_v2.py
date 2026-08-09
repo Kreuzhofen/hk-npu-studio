@@ -332,6 +332,16 @@ class SnapdragonAIStudioV2(BaseWindow):
 
 
 def main():
+    if "--qai-appbuilder-probe" in sys.argv:
+        from engine.sd15_qai_appbuilder_backend import worker_probe_main
+
+        return worker_probe_main()
+
+    if "--qai-appbuilder-worker" in sys.argv:
+        from engine.sd15_qai_appbuilder_backend import _worker_main
+
+        return _worker_main()
+
     if "--qnn-worker" in sys.argv:
         try:
             idx = sys.argv.index("--qnn-worker")

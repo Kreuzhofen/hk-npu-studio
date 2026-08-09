@@ -18,6 +18,43 @@ DIST_ROOT = PROJECT_ROOT / "dist"
 APP_DIST = DIST_ROOT / "SnapdragonAIStudio"
 
 
+def _find_optional_qai_appbuilder() -> tuple[Path, Path] | None:
+    configured = os.environ.get("SNAPDRAGON_QAI_APPBUILDER_PACKAGE", "").strip()
+    candidates = [
+        Path(configured).expanduser() if configured else None,
+        PROJECT_ROOT.parent
+        / "QAI-AppBuilder-Test"
+        / ".venv"
+        / "Lib"
+        / "site-packages"
+        / "qai_appbuilder",
+    ]
+    package = next((path.resolve() for path in candidates if path and path.is_dir()), None)
+    if package is None:
+        return None
+    required = (
+        "__init__.py",
+        "appbuilder.cp311-win_arm64.pyd",
+        "libappbuilder.dll",
+        "QAIAppSvc.exe",
+        "libs/QnnHtp.dll",
+        "libs/QnnSystem.dll",
+        "libs/QnnHtpV73Stub.dll",
+        "libs/libQnnHtpV73Skel.so",
+    )
+    missing = [name for name in required if not (package / name).is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "QAI AppBuilder package is incomplete: " + ", ".join(missing)
+        )
+    common = package.parents[2] / "samples" / "common"
+    if not (common / "_stable_diffusion.py").is_file():
+        common = PROJECT_ROOT.parent / "QAI-AppBuilder-Test" / "samples" / "common"
+    if not (common / "_stable_diffusion.py").is_file():
+        raise FileNotFoundError("QAI Stable Diffusion helper '_stable_diffusion.py' is missing")
+    return package, common.resolve()
+
+
 def _prepare_release_resources() -> Path:
     target = BUILD_ROOT / "release_data" / "resources"
     if target.parent.exists():
@@ -99,6 +136,7 @@ def build_arguments() -> list[str]:
             )
 
     version_file = _write_version_file()
+    qai_runtime = _find_optional_qai_appbuilder()
     data_directories = {
         resources: "resources",
         PROJECT_ROOT / "assets": "assets",
@@ -108,6 +146,10 @@ def build_arguments() -> list[str]:
         PROJECT_ROOT / "presets": "presets",
         qnn_path: "onnxruntime_qnn",
     }
+    if qai_runtime is not None:
+        qai_package, qai_common = qai_runtime
+        data_directories[qai_package] = "qai_appbuilder"
+        data_directories[qai_common] = "qai_appbuilder_common"
     arguments = [
         str(PROJECT_ROOT / "gui_v2.py"),
         "--name",
@@ -132,9 +174,53 @@ def build_arguments() -> list[str]:
         "plugins",
         "--collect-submodules",
         "tkinterdnd2",
+        "--collect-submodules",
+        "setuptools._vendor.backports",
         "--add-data",
         f"{PROJECT_ROOT / 'release.json'}{os.pathsep}.",
     ]
+    if qai_runtime is not None:
+        qai_package, _ = qai_runtime
+        qai_site_packages = qai_package.parent
+        arguments.extend(
+            [
+                "--paths",
+                str(qai_site_packages),
+                "--collect-all",
+                "qai_appbuilder",
+                "--collect-submodules",
+                "qai_hub",
+                "--hidden-import",
+                "torch",
+                "--hidden-import",
+                "diffusers",
+                "--hidden-import",
+                "transformers",
+                "--hidden-import",
+                "qai_hub",
+                "--hidden-import",
+                "py3_wget",
+            ]
+        )
+        for distribution in (
+            "requests",
+            "filelock",
+            "numpy",
+            "tqdm",
+            "regex",
+            "packaging",
+            "tokenizers",
+            "huggingface-hub",
+            "safetensors",
+            "pyyaml",
+            "torch",
+            "qai-hub",
+            "transformers",
+            "diffusers",
+            "qai_appbuilder",
+            "py3_wget",
+        ):
+            arguments.extend(["--copy-metadata", distribution])
     for source, destination in data_directories.items():
         if source.exists():
             arguments.extend(
@@ -144,6 +230,12 @@ def build_arguments() -> list[str]:
 
 
 def main() -> int:
+    qai_runtime = _find_optional_qai_appbuilder()
+    if qai_runtime is not None:
+        qai_site_packages = str(qai_runtime[0].parent)
+        if qai_site_packages not in sys.path:
+            sys.path.insert(0, qai_site_packages)
+
     from PyInstaller.__main__ import run
 
     if APP_DIST.exists():
