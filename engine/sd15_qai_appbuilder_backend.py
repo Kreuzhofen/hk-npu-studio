@@ -19,6 +19,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from controllers.generation_job import GenerationJob
+from app.i18n import tr
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
 from engine.job_lifecycle import cancel_job
@@ -29,6 +30,7 @@ logger = get_logger("StableDiffusion15QaiAppBuilderBackend")
 BACKEND_NAME = "Qualcomm SD1.5 QAI AppBuilder (HTP)"
 MODEL_ID = "stable_diffusion_v1_5_qai"
 LEGACY_MODEL_ID = "stable_diffusion_v1_5_qnn"
+_ERROR_FIELD = "error"
 _MODEL_FILES = (
     "stable_diffusion_v1_5_w8a16_quantized-textencoderquantizable-qualcomm_snapdragon_x_elite.bin",
     "stable_diffusion_v1_5_w8a16_quantized-unetquantizable-qualcomm_snapdragon_x_elite.bin",
@@ -196,7 +198,7 @@ class StableDiffusion15QaiAppBuilderBackend(InferenceBackend):
             return GenerationResponse(
                 success=False,
                 status="CANCELLED",
-                message="Generation cancelled",
+                message=tr("generation_cancelled", "Generierung abgebrochen."),
                 model_name=job.parameters.model_name,
             )
         with self._generation_lock:
@@ -221,7 +223,7 @@ class StableDiffusion15QaiAppBuilderBackend(InferenceBackend):
                     return GenerationResponse(
                         success=False,
                         status="CANCELLED",
-                        message="Generation cancelled",
+                        message=tr("generation_cancelled", "Generierung abgebrochen."),
                         model_name=job.parameters.model_name,
                     )
                 logger.error("QAI AppBuilder worker failed: %s", error)
@@ -236,14 +238,14 @@ class StableDiffusion15QaiAppBuilderBackend(InferenceBackend):
             return GenerationResponse(
                 success=False,
                 status="PipelineError",
-                message=str(result.get("error", "QAI generation failed")),
+                message=str(result.get(_ERROR_FIELD, tr("pipeline_failed", "Pipeline fehlgeschlagen."))),
                 model_name=job.parameters.model_name,
             )
         image_path = str(result["image_path"])
         return GenerationResponse(
             success=True,
             status="FINISHED",
-            message="QAI AppBuilder SD1.5 generation completed",
+            message=tr("generation_completed", "Generierung abgeschlossen."),
             image_path=image_path,
             thumbnail_path=image_path,
             generation_time=float(result["generation_time"]),
