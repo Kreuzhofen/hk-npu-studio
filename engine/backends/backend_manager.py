@@ -10,6 +10,7 @@ from engine.backends.sd21_qnn_backend_adapter import StableDiffusion21QnnBackend
 from engine.backends.controlnet_canny_backend_adapter import ControlNetCannyQnnBackendAdapter
 from engine.backends.sd15_qai_appbuilder_backend_adapter import StableDiffusion15QaiAppBuilderBackendAdapter
 from engine.backends.sd21_qai_appbuilder_backend_adapter import StableDiffusion21QaiAppBuilderBackendAdapter
+from engine.backends.sd35_qai_appbuilder_backend_adapter import StableDiffusion35QaiAppBuilderBackendAdapter
 from engine.backends.discovery_result import DiscoveryResult
 from engine.error_diagnostics import diagnose_exception
 from engine.logging_config import get_logger
@@ -38,6 +39,7 @@ class BackendManager:
         self.register_backend(ControlNetCannyQnnBackendAdapter())
         self.register_backend(StableDiffusion15QaiAppBuilderBackendAdapter())
         self.register_backend(StableDiffusion21QaiAppBuilderBackendAdapter())
+        self.register_backend(StableDiffusion35QaiAppBuilderBackendAdapter())
 
         # Initialize status from the persisted provider. Actual model routing still
         # happens in get_best_backend() and is intentionally unchanged.
@@ -146,6 +148,7 @@ class BackendManager:
                 ControlNetCannyQnnBackendAdapter,
                 StableDiffusion15QaiAppBuilderBackendAdapter,
                 StableDiffusion21QaiAppBuilderBackendAdapter,
+                StableDiffusion35QaiAppBuilderBackendAdapter,
             ),
         ):
             return "QNN EP"
@@ -180,7 +183,7 @@ class BackendManager:
         active = self.get_active_backend()
         if isinstance(
             active,
-            (StableDiffusion15QaiAppBuilderBackendAdapter, StableDiffusion21QaiAppBuilderBackendAdapter),
+            (StableDiffusion15QaiAppBuilderBackendAdapter, StableDiffusion21QaiAppBuilderBackendAdapter, StableDiffusion35QaiAppBuilderBackendAdapter),
         ):
             model_id = model.get("id") if isinstance(model, dict) else model
             if model_id in active.get_supported_models() and active.is_available():
@@ -216,6 +219,14 @@ class BackendManager:
                 if qai_adapter is not None and qai_adapter.is_available():
                     self._active_backend_name = qai_adapter.get_backend_name()
                     return qai_adapter
+            if model_id == "stable_diffusion_v3_5_qai":
+                qai_adapter = next(
+                    (adapter for adapter in self._backends.values() if isinstance(adapter, StableDiffusion35QaiAppBuilderBackendAdapter)),
+                    None,
+                )
+                if qai_adapter is not None and qai_adapter.is_available():
+                    self._active_backend_name = qai_adapter.get_backend_name()
+                    return qai_adapter
         
         if model is not None:
             if isinstance(model, dict):
@@ -246,7 +257,7 @@ class BackendManager:
                 return 0
             if isinstance(
                 adapter,
-                (StableDiffusion15QaiAppBuilderBackendAdapter, StableDiffusion21QaiAppBuilderBackendAdapter),
+                (StableDiffusion15QaiAppBuilderBackendAdapter, StableDiffusion21QaiAppBuilderBackendAdapter, StableDiffusion35QaiAppBuilderBackendAdapter),
             ):
                 return 6
             if isinstance(adapter, QNNBackendAdapter):

@@ -62,6 +62,7 @@ from engine.sd21_qnn_backend import StableDiffusion21QnnBackend
 from engine.controlnet_canny_backend import ControlNetCannyQnnBackend
 from engine.sd15_qai_appbuilder_backend import StableDiffusion15QaiAppBuilderBackend, get_shared_backend
 from engine.sd21_qai_appbuilder_backend import StableDiffusion21QaiAppBuilderBackend, get_shared_backend as get_shared_sd21_qai_backend
+from engine.sd35_qai_appbuilder_backend import StableDiffusion35QaiAppBuilderBackend, get_shared_backend as get_shared_sd35_qai_backend
 
 InferenceBackendFactory.register_backend("Stub", StubImageBackend, lambda runtime: StubImageBackend("Stub", runtime))
 InferenceBackendFactory.register_backend("Local CPU (Stub)", StubImageBackend, lambda runtime: StubImageBackend("Local CPU (Stub)", runtime))
@@ -73,3 +74,4 @@ InferenceBackendFactory.register_backend("Qualcomm Stable Diffusion 2.1 (HTP V73
 InferenceBackendFactory.register_backend("Qualcomm ControlNet Canny (HTP V73)", ControlNetCannyQnnBackend, lambda runtime: ControlNetCannyQnnBackend())
 InferenceBackendFactory.register_backend("Qualcomm SD1.5 QAI AppBuilder (HTP)", StableDiffusion15QaiAppBuilderBackend, lambda runtime: get_shared_backend())
 InferenceBackendFactory.register_backend("Qualcomm SD2.1 QAI AppBuilder (HTP)", StableDiffusion21QaiAppBuilderBackend, lambda runtime: get_shared_sd21_qai_backend())
+InferenceBackendFactory.register_backend("Qualcomm SD3.5 Medium QAI AppBuilder (HTP)", StableDiffusion35QaiAppBuilderBackend, lambda runtime: get_shared_sd35_qai_backend())
