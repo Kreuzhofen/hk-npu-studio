@@ -494,7 +494,8 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if not self.selected_model_id or not self.controller:
             return
 
-        repository = getattr(self.controller, "repository", None)
+        controller_model = getattr(self.controller, "model", None)
+        repository = getattr(controller_model, "repository", None)
         if repository and hasattr(repository, "set_active_model_id"):
             repository.set_active_model_id(self.selected_model_id)
             self._last_rendered_signature = None

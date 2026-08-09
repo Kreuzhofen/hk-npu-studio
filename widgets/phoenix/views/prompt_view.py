@@ -1090,6 +1090,8 @@ class PhoenixPromptView(WorkspaceFrame):
             self.output_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 4))
 
             if contract.get("resolution_locked") is True:
+                width_default = contract.get("width", {}).get("default", self.width_var.get())
+                height_default = contract.get("height", {}).get("default", self.height_var.get())
                 self.width_menu.configure(state="disabled")
                 self.height_menu.configure(state="disabled")
                 self.width_label.grid_remove()
@@ -1097,8 +1099,13 @@ class PhoenixPromptView(WorkspaceFrame):
                 self.height_label.grid_remove()
                 self.height_menu.grid_remove()
                 self.locked_res_frame.grid(row=0, column=0, columnspan=4, sticky="ew")
-                self.width_var.set("512")
-                self.height_var.set("512")
+                self.width_var.set(str(width_default))
+                self.height_var.set(str(height_default))
+                self.res_512_btn.configure(text=f"{width_default} × {height_default}")
+                if width_default == 1024 and height_default == 1024:
+                    self.res_1024_btn.grid_remove()
+                else:
+                    self.res_1024_btn.grid(row=0, column=1, sticky="ew", padx=(6, 0), pady=(2, 2))
             else:
                 self.locked_res_frame.grid_remove()
                 self.width_label.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
@@ -3359,8 +3366,10 @@ class PhoenixPromptView(WorkspaceFrame):
         popup_locked_res_frame.grid_columnconfigure(0, weight=1)
         popup_locked_res_frame.grid_columnconfigure(1, weight=1)
 
+        width_default = contract.get("width", {}).get("default", self.width_var.get())
+        height_default = contract.get("height", {}).get("default", self.height_var.get())
         popup_res_512_btn = tk.Button(
-            popup_locked_res_frame, text="512 × 512",
+            popup_locked_res_frame, text=f"{width_default} × {height_default}",
             bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
             activebackground=PHOENIX_THEME.accent, activeforeground=PHOENIX_THEME.text_on_accent,
             relief="flat", bd=0, font=PHOENIX_THEME.font_button, state="normal", padx=10, pady=8
@@ -3390,6 +3399,8 @@ class PhoenixPromptView(WorkspaceFrame):
             popup_height_label.grid_remove()
             popup_height_menu.grid_remove()
             popup_locked_res_frame.grid(row=0, column=0, columnspan=4, sticky="ew")
+            if width_default == 1024 and height_default == 1024:
+                popup_res_1024_btn.grid_remove()
         else:
             popup_locked_res_frame.grid_remove()
             popup_width_label.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)

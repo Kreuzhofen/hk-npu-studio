@@ -16,7 +16,7 @@
   "path": "",
   "status": "Not Installed",
   "catalog_status": "LOCAL PACKAGE REQUIRED",
-  "product_available": false,
+  "product_available": true,
   "official_qualcomm_package": true,
   "availability_message": "Install a local Qualcomm SD3.5 Medium QAI package through Model Manager.",
   "generation_parameters": {
