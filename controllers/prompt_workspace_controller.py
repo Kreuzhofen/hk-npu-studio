@@ -154,6 +154,33 @@ class PromptWorkspaceController:
             self.save_prompt_to_history(self.model.state.prompt)
         return result
 
+    def upscale_generated_image_2x(self, image_path: str) -> str:
+        """Create a separate 2x image through the existing RealESRGAN skill."""
+        from PIL import Image
+        from engine.file_utils import get_unique_filename
+        from engine.phoenix_adapter import PhoenixAdapter
+
+        source_path = Path(image_path).resolve()
+        if not source_path.is_file():
+            raise FileNotFoundError(source_path)
+
+        upscale_result = PhoenixAdapter().run("image.upscale", input_path=str(source_path))
+        intermediate_path = Path(str(upscale_result["output_path"])).resolve()
+        if not intermediate_path.is_file():
+            raise FileNotFoundError(intermediate_path)
+
+        target_path = get_unique_filename(
+            source_path.parent,
+            f"{source_path.stem}_2x.png",
+        )
+        with Image.open(source_path) as original, Image.open(intermediate_path) as enhanced:
+            target_size = (original.width * 2, original.height * 2)
+            enhanced.resize(target_size, Image.Resampling.LANCZOS).save(target_path)
+
+        if intermediate_path not in {source_path, target_path.resolve()}:
+            intermediate_path.unlink(missing_ok=True)
+        return str(target_path.resolve())
+
     def load_prompt_history(self, return_dicts: bool = False) -> list[Any]:
         """Load prompt history from disk."""
         from config import PROMPT_HISTORY_PATH

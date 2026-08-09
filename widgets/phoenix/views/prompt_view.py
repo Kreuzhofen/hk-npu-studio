@@ -305,6 +305,8 @@ class PhoenixPromptView(WorkspaceFrame):
         self.canny_high_var = tk.IntVar(value=150)
         self.conditioning_strength_var = tk.DoubleVar(value=1.0)
         self.controlnet_canny_var = tk.BooleanVar(value=False)
+        self.upscale_2x_var = tk.BooleanVar(value=False)
+        self._upscale_requested_for_job = False
 
         self.canny_low_var.trace_add("write", self._on_canny_param_changed)
         self.canny_high_var.trace_add("write", self._on_canny_param_changed)
@@ -1633,6 +1635,7 @@ class PhoenixPromptView(WorkspaceFrame):
         sampler = self.sampler_var.get()
         scheduler = self.scheduler_var.get()
         canny_low, canny_high, cond_scale = self._get_controlnet_params()
+        self._upscale_requested_for_job = bool(self.upscale_2x_var.get())
 
         self.controller.update_parameters(
             prompt=prompt, negative_prompt=neg_prompt,
@@ -1681,6 +1684,19 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._generation_events.put(("progress", (percent, stage)))
 
             result = self.controller.generate_image(notify_workflow=False, progress_callback=progress_cb)
+            if (
+                self._upscale_requested_for_job
+                and result.success
+                and result.status != "CANCELLED"
+                and result.image_path
+            ):
+                try:
+                    result.metadata["upscaled_2x_image_path"] = (
+                        self.controller.upscale_generated_image_2x(result.image_path)
+                    )
+                except Exception as error:
+                    logger.exception("Optional RealESRGAN 2x upscale failed")
+                    result.metadata["upscale_2x_error"] = str(error)
             self._generation_events.put(("result", result))
         except Exception as error:
             logger.exception("Prompt-to-image generation failed")
@@ -1757,6 +1773,16 @@ class PhoenixPromptView(WorkspaceFrame):
             self._append_generation_diagnostic(result, "before_finish_callback")
             self._notify_generation_finished(result)
             self._append_generation_diagnostic(result, "after_finish_callback")
+            upscale_error = result.metadata.get("upscale_2x_error")
+            if upscale_error:
+                messagebox.showwarning(
+                    tr("upscale_2x_title", "2× Upscaling"),
+                    tr(
+                        "upscale_2x_failed",
+                        "Das Originalbild wurde gespeichert, aber das optionale 2×-Upscaling ist fehlgeschlagen: {error}",
+                        error=upscale_error,
+                    ),
+                )
         elif not cancelled:
             self._append_generation_diagnostic(result, "generation_failed", result.message)
             messagebox.showerror(tr("nav_ai_generate", "KI-Generierung"), result.message)
@@ -3506,6 +3532,33 @@ class PhoenixPromptView(WorkspaceFrame):
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
         ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(3, 0))
+
+        popup_upscale_check = tk.Checkbutton(
+            output_frame,
+            text=tr("upscale_2x_option", "Nach Generierung mit RealESRGAN 2× hochskalieren"),
+            variable=self.upscale_2x_var,
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary,
+            activebackground=PHOENIX_THEME.card_bg,
+            activeforeground=PHOENIX_THEME.text_primary,
+            selectcolor=PHOENIX_THEME.elevated_bg,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+        )
+        popup_upscale_check.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(12, 2))
+        tk.Label(
+            output_frame,
+            text=tr(
+                "upscale_2x_help",
+                "Optional; erhält das Original und speichert zusätzlich ein separates Bild mit doppelter Auflösung.",
+            ),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            justify="left",
+            wraplength=460,
+        ).grid(row=3, column=0, columnspan=4, sticky="ew", pady=(0, 4))
 
 
 
