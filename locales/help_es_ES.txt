@@ -3,7 +3,7 @@ Snapdragon AI Studio - Manual de usuario
 ================================================================================
 
 Este manual le guía a través del uso de Snapdragon AI Studio.
-Nota: Este es un proyecto de código abierto independiente y no es un producto oficial de Qualcomm.
+Proyecto independiente de código abierto para Windows en Snapdragon. No es un producto oficial de Qualcomm.
 
 1. Primeros pasos
 -----------------

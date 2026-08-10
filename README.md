@@ -6,6 +6,13 @@
        alt="Snapdragon AI Studio — Phoenix Engine">
 </p>
 
+> [!NOTE]
+> **EN:** Independent open-source project for Windows on Snapdragon. Not an official Qualcomm product.
+>
+> **DE:** Unabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt.
+>
+> **ES:** Proyecto independiente de código abierto para Windows en Snapdragon. No es un producto oficial de Qualcomm.
+
 ---
 
 ## 🛡️ Badges

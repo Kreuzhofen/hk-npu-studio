@@ -23,8 +23,8 @@ class AboutDialog(StudioDialog):
             master,
             title=f"{tr('about', 'Über')} {brand.app_name()}",
             brand=brand,
-            size=(460, 700),
-            min_size=(420, 640),
+            size=(460, 760),
+            min_size=(420, 700),
             resizable=False,
         )
 
@@ -119,6 +119,16 @@ class AboutDialog(StudioDialog):
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
+        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_md))
+
+        tk.Label(
+            self.body,
+            text=tr("qualcomm_independence_notice", "Unabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt."),
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+            justify="center",
+            wraplength=340,
         ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_xl))
 
         self.add_footer_button(tr("ok", "OK"), self.close)

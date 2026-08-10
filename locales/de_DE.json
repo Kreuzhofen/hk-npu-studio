@@ -1,5 +1,6 @@
 {
   "reference_image": "Referenzbild",
+  "qualcomm_independence_notice": "Unabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt.",
   "canny_edges": "Canny-Kanten",
   "preview_current": "Vorschau aktuell",
   "calculating": "Berechne...",
