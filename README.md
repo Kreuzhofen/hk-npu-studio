@@ -156,37 +156,37 @@ The **Phoenix Engine** is the orchestration layer driving Snapdragon AI Studio. 
 ### Main Workspace
 
 <p align="center">
-  <img src="docs/images/workspace_preview.png" width="95%" alt="Snapdragon AI Studio main workspace">
+  <img src="docs/images/home-dark-light.png" width="95%" alt="Snapdragon AI Studio main workspace">
 </p>
 
 ### AI Image Generation
 
 <p align="center">
-  <img src="docs/images/generation.png" width="95%" alt="Local AI image generation workspace">
+  <img src="docs/images/ai-generate-dark-light.png" width="95%" alt="Local AI image generation workspace">
 </p>
 
 ### Model Management
 
 <p align="center">
-  <img src="docs/images/models.png" width="95%" alt="AI model management">
+  <img src="docs/images/model-manager-dark-light.png" width="95%" alt="AI model management">
 </p>
 
 ### Image Comparison
 
 <p align="center">
-  <img src="docs/images/compare.png" width="95%" alt="Generated image comparison">
+  <img src="docs/images/compare-dark-light.png" width="95%" alt="Generated image comparison">
 </p>
 
 ### Gallery
 
 <p align="center">
-  <img src="docs/images/gallery.png" width="95%" alt="Generated image gallery">
+  <img src="docs/images/gallery-dark-light.png" width="95%" alt="Generated image gallery">
 </p>
 
 ### Settings
 
 <p align="center">
-  <img src="docs/images/settings.png" width="95%" alt="Snapdragon AI Studio settings">
+  <img src="docs/images/settings-dark-light.png" width="95%" alt="Snapdragon AI Studio settings">
 </p>
 
 ---
