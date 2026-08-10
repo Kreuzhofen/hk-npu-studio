@@ -1676,6 +1676,9 @@ class PhoenixPromptView(WorkspaceFrame):
             except queue.Empty:
                 break
 
+        import time
+        self._generation_start_time = time.time()
+
         self._generation_thread = threading.Thread(
             target=self._run_generation_worker,
             name="PromptGenerationWorker",
@@ -1769,6 +1772,32 @@ class PhoenixPromptView(WorkspaceFrame):
         
         if presentable_success:
             self._progress_current_step = self._progress_total_steps
+            import time
+            elapsed = time.time() - getattr(self, "_generation_start_time", time.time())
+            from app.i18n import get_current_language
+            lang = get_current_language()
+            dec_char = "," if lang in ("de_DE", "es_ES") else "."
+            secs = round(elapsed, 1)
+            if secs >= 60:
+                minutes = int(secs // 60)
+                rem_secs = round(secs % 60, 1)
+                rem_secs_str = f"{rem_secs}".replace(".", dec_char)
+                if lang == "de_DE":
+                    time_part = f"{minutes} Min. {rem_secs_str} s"
+                else:
+                    time_part = f"{minutes} min {rem_secs_str} s"
+            else:
+                secs_str = f"{secs}".replace(".", dec_char)
+                time_part = f"{secs_str} s"
+            
+            if lang == "de_DE":
+                self._last_generation_time_str = f"Fertig – Gesamtzeit: {time_part}"
+            elif lang == "es_ES":
+                self._last_generation_time_str = f"Listo – Tiempo total: {time_part}"
+            else:
+                self._last_generation_time_str = f"Done – Total time: {time_part}"
+        else:
+            self._last_generation_time_str = None
 
         if cancelled:
             self._set_progress(self._progress_percent, tr("status_cancelled", "CANCELLED"), self._step_text())
@@ -1801,6 +1830,7 @@ class PhoenixPromptView(WorkspaceFrame):
             return
 
         self._generation_running = False
+        self._last_generation_time_str = None
         self._cancel_progress_tick()
         self.controller.model.update_state(status=f"error: {error}")
         self._set_progress(100, "Fehler", self._step_text())
@@ -1855,7 +1885,10 @@ class PhoenixPromptView(WorkspaceFrame):
         elif status_text_lower in ("cancelled", "canceled"):
             status_text = tr("status_cancelled", "CANCELLED")
         elif status_text_lower in ("completed", "finished", "success"):
-            status_text = tr("status_completed", "Fertig")
+            if getattr(self, "_last_generation_time_str", None):
+                status_text = self._last_generation_time_str
+            else:
+                status_text = tr("status_completed", "Fertig")
         elif status_text_lower in ("error", "failed"):
             status_text = tr("status_failed", "Fehler")
 
@@ -2005,6 +2038,10 @@ class PhoenixPromptView(WorkspaceFrame):
         state = self.controller.get_state()
         if not self._generation_running:
             localized_status = localize_runtime_text(state.status)
+            localized_status_lower = localized_status.lower()
+            if localized_status_lower in ("completed", "finished", "success", "fertig", "listo", "done"):
+                if getattr(self, "_last_generation_time_str", None):
+                    localized_status = self._last_generation_time_str
             self.status_label.configure(text=tr("status_prefix", "Status: {status}", status=localized_status))
 
         active_backend_name = "None"
@@ -2029,7 +2066,12 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_model.configure(text=state.selected_model if state.selected_model else "-")
         self.insp_backend.configure(text=active_backend_name)
         if not self._generation_running:
-            self.insp_gen_status.configure(text=localize_runtime_text(state.status))
+            localized_status = localize_runtime_text(state.status)
+            localized_status_lower = localized_status.lower()
+            if localized_status_lower in ("completed", "finished", "success", "fertig", "listo", "done"):
+                if getattr(self, "_last_generation_time_str", None):
+                    localized_status = self._last_generation_time_str
+            self.insp_gen_status.configure(text=localized_status)
         self.insp_queue.configure(
             text=tr("job_count", "{count} Job(s)", count=queued_count)
         )

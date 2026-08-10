@@ -134,8 +134,32 @@ class StableDiffusion35QaiAppBuilderBackend(StableDiffusion15QaiAppBuilderBacken
         self._writer = writer
         return process
 
+    def _read_response(self, process: subprocess.Popen[str]) -> dict[str, Any]:
+        if self._reader is None:
+            raise RuntimeError("QAI worker channel is unavailable")
+        while True:
+            line = self._reader.readline()
+            if not line:
+                raise RuntimeError("QAI worker exited without a response")
+            try:
+                data = json.loads(line)
+                if isinstance(data, dict) and data.get("event") == "progress":
+                    percent = data.get("percent", 0)
+                    stage = data.get("stage", "")
+                    job = getattr(self, "_current_job", None)
+                    if job is not None:
+                        job.report_progress(percent / 100.0, stage)
+                    continue
+                return data
+            except json.JSONDecodeError:
+                continue
+
     def generate(self, job):
-        response = super().generate(job)
+        self._current_job = job
+        try:
+            response = super().generate(job)
+        finally:
+            self._current_job = None
         if response.success:
             response.backend_name = BACKEND_NAME
             response.metadata["backend"] = BACKEND_NAME
@@ -253,15 +277,36 @@ def _worker_main() -> int:
                     seed = int(np.random.randint(0, 9_999_999_999, dtype=np.int64))
                 start = time.perf_counter()
                 prompt, negative = str(job.get("prompt", "")), str(job.get("negative_prompt", ""))
+                
+                writer.write(json.dumps({"event": "progress", "percent": 10, "stage": "Modell wird geladen (Text Encoder)..."}) + "\n")
+                writer.flush()
+
                 h1c, p1c = text_encoder.Inference(tokenize(prompt, tokenizer))
                 h2c, p2c = text_encoder_2.Inference(tokenize(prompt, tokenizer_2))
                 h1u, p1u = text_encoder.Inference(tokenize(negative, tokenizer))
                 h2u, p2u = text_encoder_2.Inference(tokenize(negative, tokenizer_2))
                 cond_hs, uncond_hs = encoder_hidden_states(h1c, h2c), encoder_hidden_states(h1u, h2u)
                 cond_pool, uncond_pool = pooled_projection(p1c, p2c), pooled_projection(p1u, p2u)
+                
+                writer.write(json.dumps({"event": "progress", "percent": 25, "stage": "Modell wird geladen..."}) + "\n")
+                writer.flush()
+
                 latent = np.random.RandomState(seed).randn(1, 16, 128, 128).astype(np.float32)
                 scheduler.set_timesteps(steps)
-                for timestep in scheduler.timesteps:
+                total_steps = len(scheduler.timesteps)
+                for index, timestep in enumerate(scheduler.timesteps):
+                    # Report progress
+                    sampling_progress = index / total_steps
+                    progress = 0.30 + (sampling_progress * 0.55)
+                    percent = int(progress * 100)
+                    step_num = index + 1
+                    writer.write(json.dumps({
+                        "event": "progress",
+                        "percent": percent,
+                        "stage": f"Sampling Phase (Schritt {step_num}/{total_steps})...."
+                    }) + "\n")
+                    writer.flush()
+
                     t_value = timestep.item()
                     t_tensor = torch.tensor([t_value], dtype=torch.float32)
                     with torch.no_grad():
@@ -272,10 +317,18 @@ def _worker_main() -> int:
                     noise_uncond = unpatchify(transformer.Inference(uncond_temb, latent_nhwc, uncond_hs))
                     noise = noise_uncond + guidance * (noise_cond - noise_uncond)
                     latent = scheduler.step(torch.from_numpy(noise), timestep, torch.from_numpy(latent)).prev_sample.numpy().astype(np.float32)
+                
+                writer.write(json.dumps({"event": "progress", "percent": 90, "stage": "VAE Decoding..."}) + "\n")
+                writer.flush()
+
                 sample = (latent / 1.5305 + 0.0609).astype(np.float32).transpose(0, 2, 3, 1)
                 output = vae_decoder.Inference(sample)
                 image_array = output.reshape(1, 1024, 1024, 3) / 2.0 + 0.5
                 image = Image.fromarray(np.clip(image_array[0] * 255.0, 0, 255).astype(np.uint8), mode="RGB")
+                
+                writer.write(json.dumps({"event": "progress", "percent": 95, "stage": "Bild wird gespeichert & Metadaten geschrieben..."}) + "\n")
+                writer.flush()
+
                 output_dir = Path(str(job.get("output_directory", "output"))).resolve()
                 output_dir.mkdir(parents=True, exist_ok=True)
                 image_path = output_dir / f"{job.get('output_prefix', 'generate')}_{str(job.get('job_id', ''))[:8]}.png"
