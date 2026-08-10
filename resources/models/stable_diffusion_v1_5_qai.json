@@ -20,6 +20,7 @@
   "catalog_status": "LOCAL PACKAGE REQUIRED",
   "product_available": false,
   "official_qualcomm_package": true,
+  "source_url": "https://aihub.qualcomm.com/models/stable_diffusion_v1_5",
   "availability_message": "Install a local Qualcomm SD1.5 QAI package through Model Manager.",
   "generation_parameters": {
     "resolution_locked": true,

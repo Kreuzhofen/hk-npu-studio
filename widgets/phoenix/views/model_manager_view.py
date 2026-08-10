@@ -509,6 +509,25 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if not self.selected_model_id or not self.controller:
             return
 
+        controller_model = getattr(self.controller, "model", None) if self.controller else None
+        repository = getattr(controller_model, "repository", None)
+        selected_model = None
+        if repository is not None:
+            selected_model = repository.get_model(self.selected_model_id)
+
+        source_url = selected_model.get("source_url") if selected_model else None
+        if source_url:
+            from dialogs.model_source_dialog import ModelSourceDialog
+            brand = getattr(self.winfo_toplevel(), "brand", None)
+            dialog = ModelSourceDialog(
+                self.winfo_toplevel(),
+                model_name=selected_model.get("name") or self.selected_model_id,
+                source_url=source_url,
+                brand=brand,
+            )
+            if dialog.choice != "install":
+                return
+
         source_path = filedialog.askopenfilename(
             parent=self.winfo_toplevel(),
             title=tr("select_local_package", "Lokales Modellpaket auswählen"),
