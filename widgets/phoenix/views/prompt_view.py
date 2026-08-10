@@ -1650,7 +1650,7 @@ class PhoenixPromptView(WorkspaceFrame):
             width=width, height=height, selected_model=selected_model,
             sampler=sampler, scheduler=scheduler, batch_size=batch_size,
             input_image_path=self.controller.model.state.input_image_path,
-            controlnet_enabled=bool(self.canny_supported and self.active_tab == "canny"),
+            controlnet_enabled=bool(self.canny_supported and self.controlnet_canny_var.get()),
             canny_low_threshold=canny_low,
             canny_high_threshold=canny_high,
             controlnet_conditioning_scale=cond_scale,
@@ -2943,7 +2943,94 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._prompt_popup_text.insert("1.0", entry)
 
     def apply_generation_settings(self, settings: dict) -> None:
-        self._load_prompt_from_history(self._normalize_preset_settings(settings))
+        normalized = self._normalize_preset_for_active_model(settings)
+
+        prompt = str(normalized.get("prompt", ""))
+        negative_prompt = str(normalized.get("negative_prompt", ""))
+        self.prompt_text.delete("1.0", "end")
+        self.prompt_text.insert("1.0", prompt)
+        self.neg_prompt_text.delete("1.0", "end")
+        self.neg_prompt_text.insert("1.0", negative_prompt)
+
+        if hasattr(self, "_prompt_popup_text") and self._prompt_popup_text.winfo_exists():
+            self._prompt_popup_text.delete("1.0", "end")
+            self._prompt_popup_text.insert("1.0", prompt)
+        if (
+            hasattr(self, "_negative_prompt_popup_text")
+            and self._negative_prompt_popup_text.winfo_exists()
+        ):
+            self._negative_prompt_popup_text.delete("1.0", "end")
+            self._negative_prompt_popup_text.insert("1.0", negative_prompt)
+
+        self.width_var.set(str(normalized["width"]))
+        self.height_var.set(str(normalized["height"]))
+        self.steps_var.set(int(normalized["steps"]))
+        self.cfg_var.set(float(normalized["cfg_scale"]))
+        self.seed_var.set(str(normalized["seed"]))
+        self.batch_var.set(str(normalized["batch"]))
+        self.sampler_var.set(str(normalized["sampler"]))
+        self.scheduler_var.set(str(normalized["scheduler"]))
+        self._update_prompt_counters()
+
+    def _normalize_preset_for_active_model(self, settings: dict) -> dict:
+        """Normalize preset values without changing model or ControlNet state."""
+        contract = self.controller.get_generation_parameters(self.model_var.get()) or {}
+
+        def contract_default(name: str, fallback):
+            spec = contract.get(name)
+            return spec.get("default", fallback) if isinstance(spec, dict) else fallback
+
+        normalized = {
+            "prompt": settings.get("prompt", ""),
+            "negative_prompt": settings.get("negative_prompt", ""),
+            "seed": settings.get("seed", contract_default("seed", -1)),
+            "width": settings.get("width", contract_default("width", 512)),
+            "height": settings.get("height", contract_default("height", 512)),
+            "steps": settings.get("steps", contract_default("steps", 20)),
+            "cfg_scale": settings.get(
+                "cfg_scale", settings.get("cfg", contract_default("cfg", 7.5))
+            ),
+            "sampler": settings.get("sampler", contract_default("sampler", "Euler")),
+            "scheduler": settings.get(
+                "scheduler", contract_default("scheduler", "Normal")
+            ),
+            "batch": settings.get("batch", settings.get("batch_size", 1)),
+        }
+
+        fields = {
+            "width": "width",
+            "height": "height",
+            "steps": "steps",
+            "cfg_scale": "cfg",
+            "seed": "seed",
+            "sampler": "sampler",
+            "scheduler": "scheduler",
+        }
+        for value_name, contract_name in fields.items():
+            spec = contract.get(contract_name)
+            if not isinstance(spec, dict):
+                continue
+            value = normalized[value_name]
+            valid = True
+            allowed = spec.get("values")
+            if isinstance(allowed, list) and allowed and value not in allowed:
+                valid = False
+            try:
+                if "min" in spec and value < spec["min"]:
+                    valid = False
+                if "max" in spec and value > spec["max"]:
+                    valid = False
+                resolution = spec.get("resolution")
+                if resolution and "min" in spec:
+                    offset = (float(value) - float(spec["min"])) / float(resolution)
+                    if abs(offset - round(offset)) > 1e-9:
+                        valid = False
+            except (TypeError, ValueError):
+                valid = False
+            if not valid:
+                normalized[value_name] = spec.get("default", normalized[value_name])
+
+        return normalized
 
     def _normalize_preset_settings(self, settings: dict) -> dict:
         """Fill fields omitted by older presets with the existing model defaults."""
@@ -3035,6 +3122,7 @@ class PhoenixPromptView(WorkspaceFrame):
             return
         self.active_tab = tab_name
         controlnet_enabled = bool(self.canny_supported and tab_name == "canny")
+        self.controlnet_canny_var.set(controlnet_enabled)
         self.controller.model.update_state(controlnet_enabled=controlnet_enabled)
         self.controller.generation_controller.update_session(
             controlnet_enabled=controlnet_enabled
@@ -3216,9 +3304,15 @@ class PhoenixPromptView(WorkspaceFrame):
         return header
 
     def _open_presets_popup(self) -> None:
-        if hasattr(self, "_presets_popup") and self._presets_popup.winfo_exists():
-            self._presets_popup.focus()
-            return
+        existing_popup = getattr(self, "_presets_popup", None)
+        if existing_popup is not None:
+            try:
+                if existing_popup.winfo_exists():
+                    existing_popup.focus()
+                    return
+            except tk.TclError:
+                pass
+            self._presets_popup = None
 
         popup = tk.Toplevel(self)
         BrandManager.apply_window_icon(popup)
@@ -3229,6 +3323,7 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.transient(self.winfo_toplevel())
         popup.grab_set()
         self._presets_popup = popup
+        popup.protocol("WM_DELETE_WINDOW", self._close_presets_popup)
 
         container = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
         container.pack(fill="both", expand=True, padx=24, pady=20)
@@ -3284,12 +3379,22 @@ class PhoenixPromptView(WorkspaceFrame):
         delete_btn.grid(row=0, column=2, sticky="ew", padx=(5, 0))
 
         close_btn = PhoenixButton(
-            container, text=tr("cancel", "Abbrechen"), command=popup.destroy,
+            container, text=tr("cancel", "Abbrechen"), command=self._close_presets_popup,
             button_type="neutral", width=110,
         )
         close_btn.pack(side="right", pady=(14, 0))
         self._refresh_presets_dropdown()
-        popup.bind("<Escape>", lambda _event: popup.destroy())
+        popup.bind("<Escape>", lambda _event: self._close_presets_popup())
+
+    def _close_presets_popup(self) -> None:
+        popup = getattr(self, "_presets_popup", None)
+        self._presets_popup = None
+        if popup is not None:
+            try:
+                if popup.winfo_exists():
+                    popup.destroy()
+            except tk.TclError:
+                pass
 
     def _open_advanced_settings_popup(self) -> None:
         if hasattr(self, "_advanced_popup") and self._advanced_popup.winfo_exists():
@@ -3984,7 +4089,7 @@ class PhoenixPromptView(WorkspaceFrame):
         webbrowser.open(OllamaStatusService.DOWNLOAD_URL)
 
     def _controlnet_active(self) -> bool:
-        return bool(self.canny_supported and self.active_tab == "canny")
+        return bool(self.canny_supported and self.controlnet_canny_var.get())
 
     def _boost_resolution_allowed(self, suggestion: BoostSuggestion) -> bool:
         if self._controlnet_active():
@@ -4273,7 +4378,7 @@ class PhoenixPromptView(WorkspaceFrame):
             except (TypeError, ValueError, tk.TclError):
                 return fallback
 
-        controlnet_enabled = bool(self.canny_supported and self.active_tab == "canny")
+        controlnet_enabled = bool(self.canny_supported and self.controlnet_canny_var.get())
         return {
             "prompt": prompt if prompt is not None else self.prompt_text.get("1.0", "end-1c").strip(),
             "negative_prompt": negative_prompt if negative_prompt is not None else self.neg_prompt_text.get("1.0", "end-1c").strip(),
