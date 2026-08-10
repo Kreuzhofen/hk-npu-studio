@@ -1,76 +1,255 @@
-================================================================================
-Snapdragon AI Studio - Benutzerhandbuch
-================================================================================
+Snapdragon AI Studio – Schritt-für-Schritt-Hilfe
 
-Dieses Handbuch führt Sie in die Nutzung des Snapdragon AI Studio ein. 
-Unabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt.
+1. Was ist Snapdragon AI Studio?
+---------------------------------
+Snapdragon AI Studio erzeugt Bilder aus Textbeschreibungen. Die Verarbeitung läuft lokal auf Ihrem Windows-PC. Je nach Modell arbeitet die App mit der Snapdragon-NPU oder mit der CPU.
 
-1. Erste Schritte
------------------
-Beim Start der Anwendung wird die Hardware initialisiert. Das System prüft die 
-Verfügbarkeit des Qualcomm QNN HTP (Hexagon Tensor Processor) Execution 
-Providers. Vergewissern Sie sich, dass die passenden Treiber installiert sind, 
-um die NPU-Beschleunigung nutzen zu können. Falls keine NPU gefunden wird, 
-erfolgt ein Fallback auf die CPU.
+Ein „Modell“ ist die Datei, die gelernt hat, Bilder zu erzeugen. Das Modell muss installiert und aktiviert sein, bevor Sie ein Bild erstellen können.
 
-2. Modelle installieren und aktivieren
---------------------------------------
-Modelle können über den integrierten Modell-Manager installiert werden. Um ein 
-Modell zu aktivieren, wählen Sie es in der Modellliste aus. Der Ladevorgang 
-wird in der Statusleiste angezeigt.
-
-3. SD1.5 / SD2.1 / SD3.5 / SDXL
--------------------------------
-- Stable Diffusion 1.5: Eignet sich für schnelle Generationen mit einer Standardauflösung von 512x512 Pixeln.
-- Stable Diffusion 2.1: Bietet verbesserte Bildqualität und Textverständnis bei 512x512 Pixeln.
-- Stable Diffusion 3.5: Verwendet eine moderne Transformer-Architektur für komplexe Prompts.
-- Stable Diffusion XL (SDXL): Generiert hochauflösende Bilder (standardmäßig 1024x1024 Pixel).
-
-4. QNN vs. QAI/NPU
+2. Voraussetzungen
 ------------------
-- QNN (Qualcomm AI Engine Direct): Bezeichnet die systemnahe API und Treiber zur Ansteuerung der NPU.
-- QAI/NPU: Steht für Modelle, die speziell für die Qualcomm NPU im DLC-Format (Deep Learning Container) bzw. als precompiled QNN-Context binaries (.bin) quantisiert und kompiliert wurden. Nur diese Modelle laufen mit voller Hardwarebeschleunigung auf der NPU.
+- Ein Windows-11-PC mit ARM64 und Qualcomm Snapdragon.
+- Genügend freier Speicher für das gewählte Modell.
+- Für NPU-Modelle: eine funktionierende Qualcomm-QNN-Laufzeit und passende Treiber.
+- Ein vollständig installiertes Modellpaket.
+- Für einen lokalen Import: eine passende ZIP- oder SMP-Datei.
 
-5. Prompt und Negative Prompt
------------------------------
-- Prompt: Beschreibung des gewünschten Bildinhalts. Formulieren Sie präzise englische Begriffe.
-- Negative Prompt: Ausschlusskriterien für Bildelemente (z. B. "blurry", "low quality").
+Die App lädt nicht jedes Modell automatisch. Wenn keine offizielle Quelle hinterlegt ist, benötigen Sie ein bereits heruntergeladenes lokales Paket.
 
-6. Generierungsparameter
-------------------------
-- Schritte (Steps): Anzahl der Denoising-Schritte. Mehr Schritte erhöhen die Detailtiefe, verlängern aber die Rechenzeit.
-- CFG-Scale: Bestimmt, wie strikt das Modell dem Prompt folgt. Empfohlener Standardwert liegt bei 7.5.
-- Seed: Startwert für den Rauschgenerator. Verwenden Sie -1 für zufällige Bilder oder eine feste Zahl zur Reproduktion.
-- Sampler / Scheduler: Mathematische Verfahren (z. B. Euler, DDIM) zur Rauschentfernung.
+3. Erster Start
+---------------
+1. Starten Sie Snapdragon AI Studio.
+2. Warten Sie, bis die Hauptansicht sichtbar ist.
+3. Öffnen Sie links den „Modell-Manager“.
+4. Prüfen Sie, ob mindestens ein Modell als „Installiert“ angezeigt wird.
+5. Falls nicht, folgen Sie Abschnitt 6.
+6. Aktivieren Sie ein installiertes Modell.
+7. Öffnen Sie danach „KI-Generierung“.
 
-7. Presets
+4. Oberfläche kurz erklärt
+--------------------------
+- „Startseite“: zeigt den allgemeinen Status.
+- „KI-Generierung“: hier schreiben Sie den Prompt und starten ein Bild.
+- „Modell-Manager“: hier installieren und aktivieren Sie Modelle.
+- „Galerie“: zeigt gespeicherte Bilder.
+- „Einstellungen“: enthält unter anderem Sprache und Speicherordner.
+
+In „KI-Generierung“ finden Sie:
+- „DEIN PROMPT“ und „AUSSCHLIESSEN“ für die Texteingabe.
+- „Presets & Vorlagen“ für gespeicherte Einstellungen.
+- „Phoenix Boost“ für lokale Prompt-Vorschläge.
+- „Generierungsparameter“ für Auflösung, Schritte, CFG, Seed und weitere Werte.
+- „ControlNet/Canny“ für die Steuerung mit einem Referenzbild.
+- „Verlauf“ für frühere Prompts.
+- „BILD GENERIEREN →“ zum Starten.
+
+5. Welches Modell soll ich wählen?
+----------------------------------
+Stable Diffusion 1.5 (SD1.5)
+- Einfacher Einstieg und native Auflösung 512 × 512.
+- In Phoenix gibt es QNN- und optionale QAI-AppBuilder-Varianten.
+
+Stable Diffusion 2.1 (SD2.1)
+- Alternative zu SD1.5 mit eigener Bildcharakteristik.
+- Die aktuellen QNN/QAI-Pakete verwenden 512 × 512.
+
+Stable Diffusion 3.5 Medium QAI AppBuilder
+- Das größte der hier aufgeführten NPU-Modelle.
+- Verwendet in Phoenix fest 1024 × 1024.
+- Benötigt ein lokales Paket mit vier QAI-Kontexten, zwei Tokenizern und Zusatzdateien.
+
+Stable Diffusion XL Base (SDXL)
+- Läuft im aktuellen Phoenix-Pfad über die CPU.
+- Verwenden Sie die Auflösung und Standardwerte, die Phoenix für das installierte Paket anzeigt.
+
+QNN und QAI einfach erklärt
+- Die NPU ist der KI-Rechenteil des Snapdragon-Prozessors.
+- QNN ist Qualcomms Laufzeit für diese NPU.
+- QAI AppBuilder lädt dafür vorbereitete Modellkontexte. In Phoenix läuft dies in einem getrennten Workerprozess.
+- Sie müssen diese Begriffe nicht einstellen. Wählen Sie nur das passende installierte Modell.
+
+6. Schritt für Schritt: Modell installieren
+--------------------------------------------
+1. Öffnen Sie links den „Modell-Manager“.
+2. Klicken Sie auf das gewünschte Modell.
+3. Lesen Sie den Status:
+   - „Nicht installiert“: Die benötigten Dateien fehlen.
+   - „Installiert“: Das Paket wurde gefunden.
+   - „Aktives Modell“: Dieses Modell ist für die nächste Generierung gewählt.
+4. Bei „Nicht installiert“ klicken Sie auf „Installieren“.
+5. Der Dialog „Modell-Installation“ erscheint immer.
+6. Wählen Sie eine der drei Aktionen:
+   - „Von offizieller Quelle herunterladen“: öffnet die hinterlegte offizielle Webseite.
+   - Ist keine URL hinterlegt, ist diese Aktion sichtbar als „Nicht verfügbar“ markiert.
+   - „Bereits heruntergeladenes Modell installieren“: öffnet erst jetzt die Windows-Dateiauswahl.
+   - „Abbrechen“: beendet den Vorgang ohne Änderung.
+7. Für den lokalen Import wählen Sie eine passende ZIP- oder SMP-Datei.
+8. Warten Sie, bis der Import beendet ist.
+9. Wählen Sie das Modell erneut aus.
+10. Klicken Sie auf „Als aktives Modell setzen“.
+
+Phoenix prüft Paket-ID, Manifest und Dateien. Benennen Sie Modellinhalte nicht eigenmächtig um.
+
+7. Schritt für Schritt: Erstes Bild erzeugen
+---------------------------------------------
+1. Aktivieren Sie im „Modell-Manager“ ein installiertes Modell.
+2. Öffnen Sie links „KI-Generierung“.
+3. Schreiben Sie unter „DEIN PROMPT“ zum Beispiel:
+   a professional photograph of a red sports car on a mountain road, daylight, sharp focus
+4. Schreiben Sie unter „AUSSCHLIESSEN“ zum Beispiel:
+   blurry, distorted, low quality
+5. Öffnen Sie „Generierungsparameter“.
+6. Lassen Sie für den ersten Versuch die vom Modell angezeigten Standardwerte stehen.
+   - SD1.5/SD2.1: 512 × 512, meist 20 Schritte und CFG 7,5.
+   - SD3.5 Medium QAI: 1024 × 1024, 8 Schritte und CFG 3,5.
+   - SDXL: die aktuell angezeigten Paketwerte.
+7. Verwenden Sie Seed -1 für ein zufälliges Bild oder zum Beispiel 12345 für einen wiederholbaren Startwert.
+8. Schließen oder übernehmen Sie den Parameterdialog.
+9. Klicken Sie „BILD GENERIEREN →“.
+10. Beobachten Sie Status und Fortschritt. Brechen Sie die App während der Generierung nicht ab.
+11. Nach Erfolg zeigt der Status die gemessene Gesamtzeit.
+12. Das Bild erscheint in der Vorschau und wird im Ausgabeordner gespeichert. Sie finden es außerdem über die „Galerie“.
+
+Die Dauer hängt von Modell, Schritten, Upscaling, Hardware und laufenden Programmen ab.
+
+8. Parameter einfach erklärt
+----------------------------
+- Schritte: Anzahl der Entrauschungsschritte. Mehr Schritte benötigen mehr Zeit. Mehr ist nicht automatisch besser.
+- CFG Scale: Stärke der Prompt-Befolgung. Für viele klassische Stable-Diffusion-Modelle ist 6 bis 8 ein sinnvoller Bereich. Verwenden Sie bei SD3.5 zuerst den angezeigten Modellstandard.
+- Seed: Startzahl für die Bildberechnung. Derselbe Seed und dieselben Einstellungen helfen, ein Ergebnis zu wiederholen. -1 wählt einen zufälligen Seed.
+- Sampler: Rechenverfahren für die Bildentstehung.
+- Scheduler: verteilt die Entrauschungsschritte über den Ablauf.
+
+Wenn Sampler oder Scheduler ausgegraut sind, sind sie für dieses Modell oder Backend fest vorgegeben.
+
+9. Presets
 ----------
-Presets speichern vordefinierte Parameterkombinationen (Schritte, CFG, Auflösung) für verschiedene Stile oder Qualitätsstufen ab, um Arbeitsabläufe zu beschleunigen.
+Ein Preset speichert Prompt, Negative Prompt sowie Generierungswerte und ermöglicht deren schnelles Laden.
 
-8. Phoenix Boost
-----------------
-Der Phoenix Boost optimiert die Inferenzgeschwindigkeit, indem er optimierte NPU-Einstellungen, optimiertes Threading und gezielte Speicherbereinigungen aktiviert.
+Regeln beim Anwenden eines Presets:
+- Das aktive Modell wird beim Laden eines Presets nicht gewechselt.
+- Ein aktives ControlNet und das geladene Referenzbild bleiben unberührt erhalten.
+- Prompt, Negative Prompt und mit dem Modell kompatible Parameter werden direkt übernommen.
+- Parameter, die das aktive Modell nicht unterstützt, werden automatisch auf gültige Standardwerte dieses Modells gesetzt.
+- Nach dem Schließen kann das Preset-Auswahlfenster jederzeit erneut geöffnet werden.
 
-9. ControlNet Canny
--------------------
-Ermöglicht die präzise Steuerung der Bildkomposition durch das Laden eines Referenzbildes, aus dem Kanten extrahiert werden (Canny Edge Detection). Die Stärke regelt den Einfluss der Kanten auf das Endergebnis.
+Vorhandene Vorlage verwenden:
+1. Klicken Sie in „KI-Generierung“ auf „Presets & Vorlagen“.
+2. Wählen Sie eine Vorlage.
+3. Klicken Sie „Anwenden“.
 
-10. RealESRGAN 2x
+Im selben Fenster können Sie Vorlagen „Umbenennen“ oder „Löschen“. Eine neue Vorlage kann nach einer Phoenix-Boost-Vorschau über „Als Vorlage speichern“ angelegt werden.
+
+10. Phoenix Boost
 -----------------
-Ermöglicht ein qualitativ hochwertiges Upscaling des generierten Bildes um den Faktor 2 auf der NPU/CPU, um feine Details und Kanten zu schärfen.
+Phoenix Boost verbessert den eingegebenen Prompt lokal und schlägt einen Negative Prompt sowie Parameter vor. Der Originalprompt wird nicht ohne Bestätigung ersetzt.
 
-11. Galerie und Verlauf
+1. Schreiben Sie zuerst einen Prompt.
+2. Klicken Sie „Phoenix Boost“.
+3. Vergleichen Sie Original und Vorschlag.
+4. Prüfen Sie Negative Prompt, Schritte, CFG und Auflösung.
+5. Klicken Sie „Übernehmen“ oder „Abbrechen“.
+6. Optional können Sie den Vorschlag „Als Vorlage speichern“.
+
+Phoenix Boost funktioniert ohne Ollama. Wenn Ollama und Qwen2.5 3B lokal bereit sind, kann „Phoenix Boost AI“ verwendet werden. Es wird keine Cloud benötigt.
+
+11. RealESRGAN 2x – Schritt für Schritt
+----------------------------------------
+RealESRGAN vergrößert das fertige Bild auf die doppelte Breite und Höhe. Das Original bleibt erhalten. Der aktuelle Pluginpfad verwendet das vorhandene QNN-Backend.
+
+1. Öffnen Sie „Generierungsparameter“.
+2. Aktivieren Sie „Nach Generierung mit RealESRGAN 2× hochskalieren“.
+3. Übernehmen Sie die Einstellungen.
+4. Klicken Sie „BILD GENERIEREN →“.
+5. Warten Sie zuerst auf die normale Generierung und danach auf das Upscaling.
+6. Im Ausgabeordner bleiben das Original und eine zusätzliche Datei mit „_2x“ im Namen.
+
+Bleibt die Option aus, ändert sich der bisherige Generierungsablauf nicht. Für das Upscaling müssen QNN-Laufzeit und RealESRGAN-Modell verfügbar sein.
+
+12. ControlNet Canny – Schritt für Schritt
+-------------------------------------------
+ControlNet Canny übernimmt Kanten aus einem Referenzbild. So kann die grobe Form des neuen Bildes beeinflusst werden.
+
+1. Öffnen Sie den „Modell-Manager“.
+2. Installieren Sie „ControlNet Canny QNN“ und setzen Sie genau dieses Modell als aktives Modell. Es enthält die benötigte SD1.5-Basispipeline bereits. „Stable Diffusion 1.5 QNN“ darf daher nicht stattdessen aktiv bleiben; Phoenix verwendet immer nur ein aktives Modell.
+3. Öffnen Sie „KI-Generierung“.
+4. Klicken Sie in der Prompt-Werkzeugleiste auf „ControlNet/Canny“. Es öffnet sich ein eigenes Popup, kein Tab.
+5. Aktivieren Sie zusätzlich im Popup das Kontrollkästchen „ControlNet Canny“. Damit schalten Sie die Canny-Steuerung für den Auftrag ein; es wird kein zweites Basismodell aktiviert.
+6. Klicken Sie „Bild auswählen“ oder legen Sie ein Bild im Referenzbereich ab.
+7. Prüfen Sie „Originalbild“ und „Canny-Vorschau“.
+8. Stellen Sie bei Bedarf „Canny Low Threshold“, „Canny High Threshold“ und „ControlNet-Stärke“ ein. Für den ersten Test lassen Sie die Standardwerte stehen.
+9. Schließen Sie das Popup. Bild und Werte bleiben in der Oberfläche erhalten.
+10. Schreiben Sie Prompt und Negative Prompt.
+11. Klicken Sie „BILD GENERIEREN →“.
+
+„Bild entfernen“ löscht das gewählte Referenzbild aus dem aktuellen Auftrag. ControlNet Canny arbeitet in Phoenix mit 512 × 512.
+
+Hinweis: Wenn das Kontrollkästchen im Popup aktiv ist, wird die Struktursteuerung zuverlässig für den Generierungsauftrag angewendet.
+
+13. Galerie und Verlauf
 -----------------------
-Alle generierten Bilder werden in der integrierten Galerie angezeigt. Durch Auswahl eines Bildes im Verlauf können die ursprünglichen Parameter und Metadaten eingesehen werden.
+- „Galerie“ zeigt Bilder aus dem Ausgabeordner. Wählen Sie ein Bild, um es anzusehen.
+- „Verlauf“ in „KI-Generierung“ zeigt frühere Prompts und zugehörige Einstellungen.
+- Ein Verlaufseintrag kann Prompt, Negative Prompt, Modell, Auflösung, Schritte, CFG, Seed und ControlNet-Werte zurückladen.
 
-12. Speicherorte
+Galerie und Verlauf sind nicht dasselbe: Die Galerie verwaltet Bilddateien. Der Verlauf verwaltet frühere Generierungseingaben.
+
+14. Speicherorte
 ----------------
-- Bilder & Metadaten (.json): Standardmäßig im Ordner 'output/'.
-- Modell-Dateien: Im Ordner 'models/'.
-- Logs & Konfigurationen: Unter 'logs/' bzw. in den App-Datenverzeichnissen.
+Standard in der Entwicklung:
+- Bilder: C:\SnapdragonAI\output
+- Modelle: C:\SnapdragonAI\models
+- Einstellungen und Verlauf: C:\SnapdragonAI\data
+- Logs: C:\SnapdragonAI\logs
 
-13. Fehlerbehebung
+Standard in der installierten Version:
+- Bilder: %LOCALAPPDATA%\Snapdragon AI Studio\output
+- Modelle: %LOCALAPPDATA%\Snapdragon AI Studio\models
+- Einstellungen und Verlauf: %LOCALAPPDATA%\Snapdragon AI Studio\data
+- Logs: %LOCALAPPDATA%\Snapdragon AI Studio\logs
+
+Ausgabe- und Modellordner können in „Einstellungen“ abweichend festgelegt werden. Prüfen Sie dort den aktuell gespeicherten Pfad.
+
+15. Sprache ändern und speichern
+--------------------------------
+1. Öffnen Sie „Einstellungen“.
+2. Suchen Sie „UI & Sprache“.
+3. Wählen Sie bei „Sprache“ Deutsch, English oder Español.
+4. Klicken Sie „Speichern“.
+5. Bestätigen Sie den Hinweis zum Neustart.
+6. Die App startet neu und verwendet die gewählte Sprache.
+
+16. Häufige Fehler
 ------------------
-- NPU wird nicht erkannt: Prüfen Sie die Qualcomm AI Stack Treiberinstallation (QAIRT Version 2.45/2.47).
-- Out of Memory: Schließen Sie andere Anwendungen oder reduzieren Sie die Auflösung/Batch-Größe.
-- Generation abgebrochen: Verifizieren Sie die Modellintegrität und die Log-Ausgabe über das Menü 'Werkzeuge' -> 'Log-Datei anzeigen'.
+- „Modell ist nicht installiert“: Öffnen Sie den Modell-Manager und importieren Sie das passende ZIP-/SMP-Paket.
+- Download-Aktion ist „Nicht verfügbar“: Für dieses Modell ist keine offizielle URL hinterlegt. Verwenden Sie ein rechtmäßig beschafftes lokales Paket.
+- „width wird ... nicht unterstützt“: Aktivieren Sie das richtige Modell erneut. Phoenix setzt SD3.5 auf 1024 × 1024 und SD1.5/SD2.1 auf 512 × 512.
+- NPU-Modell startet nicht: Prüfen Sie, ob Paket, QNN-Laufzeit und Treiber zum Gerät passen.
+- Zu wenig Speicher: Schließen Sie andere große Programme. Verwenden Sie keine höhere Auflösung als das Modell erlaubt.
+- RealESRGAN schlägt fehl: Prüfen Sie das lokale RealESRGAN-Modell und die QNN-Laufzeit. Das Originalbild bleibt erhalten.
+- ControlNet hat keinen Einfluss: Prüfen Sie, ob das Kontrollkästchen im Popup aktiv ist, ein gültiges Referenzbild geladen wurde und das aktive Modell ControlNet unterstützt.
+- Sprache bleibt unverändert: Klicken Sie in „Einstellungen“ auf „Speichern“ und lassen Sie die App neu starten.
+
+17. FAQ
+-------
+Kann ich ohne Internet Bilder erzeugen?
+Ja. Installierte Modelle laufen lokal. Für das Beschaffen eines noch fehlenden Modells kann Internet nötig sein.
+
+Muss ich Prompts auf Englisch schreiben?
+Nein. Phoenix Boost berücksichtigt Deutsch, Englisch und Spanisch. Die Reaktion des Bildmodells auf verschiedene Sprachen kann sich unterscheiden.
+
+Warum kann ich die Auflösung nicht ändern?
+Einige Backends unterstützen nur eine feste Größe. Phoenix blendet dann die freie Auswahl aus.
+
+Warum sehen zwei Bilder mit Seed -1 verschieden aus?
+-1 fordert bei jedem Auftrag einen zufälligen Seed an.
+
+Wird das Original beim 2x-Upscaling überschrieben?
+Nein. Das vergrößerte Bild wird separat gespeichert.
+
+Kann ich mehrere Modelle gleichzeitig aktivieren?
+Nein. Ein Modell ist als aktives Modell für den nächsten Auftrag ausgewählt.
+
+18. Hinweis zum unabhängigen Open-Source-Projekt
+-------------------------------------------------
+Snapdragon AI Studio ist ein unabhängiges Open-Source-Projekt. Es ist kein offizielles Produkt von Qualcomm. Marken und Modellnamen gehören ihren jeweiligen Eigentümern. Beachten Sie die Lizenzen der verwendeten Modelle und laden Sie Modellpakete nur aus Quellen herunter, zu deren Nutzung Sie berechtigt sind.
