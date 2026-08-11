@@ -631,13 +631,16 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 brand=getattr(self.winfo_toplevel(), "brand", None),
             )
             return
-        if source_url:
+        if source_type != "direct":
             from dialogs.model_source_dialog import ModelSourceDialog
             brand = getattr(self.winfo_toplevel(), "brand", None)
             dialog = ModelSourceDialog(
                 self.winfo_toplevel(),
-                model_name=selected_model.get("name") or self.selected_model_id,
-                source_url=source_url,
+                model_name=self._display_title(selected_model or {}),
+                source_type=source_type or "local_only",
+                source_url=source_url if source_type == "official_external" else None,
+                package_format=str((selected_model or {}).get("package_format") or "smp_or_zip"),
+                required_variant=(selected_model or {}).get("required_variant"),
                 brand=brand,
             )
             if dialog.choice != "install":

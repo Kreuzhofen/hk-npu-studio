@@ -5,8 +5,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from app.i18n import set_language
 from controllers.model_manager_controller import ModelManagerController
 from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
+from dialogs.model_source_dialog import ModelSourceDialog
 from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
 
 
@@ -144,7 +146,7 @@ class DirectModelInstallTests(unittest.TestCase):
         service.cleanup_staged_download.assert_called_once_with(r"C:\temp\model.zip")
         self.assertIn("install_failed", [update["phase"] for update in updates])
 
-    def test_non_direct_model_does_not_enter_direct_download(self) -> None:
+    def test_local_only_shows_explanation_before_file_picker(self) -> None:
         repository = _Repository({
             "id": "local_model", "display_name": "Local Model",
             "installed": False, "source_type": "local_only", "source_url": "",
@@ -156,12 +158,59 @@ class DirectModelInstallTests(unittest.TestCase):
         view = SimpleNamespace(
             selected_model_id="local_model", controller=controller,
             winfo_toplevel=lambda: object(),
+            _display_title=lambda model: model["display_name"],
         )
-        with patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename", return_value="") as picker, \
+        dialog = SimpleNamespace(choice="cancel")
+        with patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename") as picker, \
+             patch("dialogs.model_source_dialog.ModelSourceDialog", return_value=dialog) as source_dialog, \
              patch("dialogs.model_direct_download_dialog.ModelDirectDownloadDialog") as direct_dialog:
             PhoenixModelManagerView._on_install_selected(view)
-        picker.assert_called_once()
+        picker.assert_not_called()
+        self.assertEqual(source_dialog.call_args.kwargs["source_type"], "local_only")
+        self.assertIsNone(source_dialog.call_args.kwargs["source_url"])
         direct_dialog.assert_not_called()
+
+    def test_official_external_uses_existing_source_and_explicit_file_selection(self) -> None:
+        source_url = "https://aihub.qualcomm.com/models/stable_diffusion_v1_5"
+        repository = _Repository({
+            "id": "external_model", "display_name": "External Model",
+            "installed": False, "source_type": "official_external",
+            "source_url": source_url, "package_format": "smp_or_zip",
+        })
+        controller = SimpleNamespace(
+            model=SimpleNamespace(repository=repository),
+            install_package=MagicMock(return_value=True),
+        )
+        view = SimpleNamespace(
+            selected_model_id="external_model", controller=controller,
+            winfo_toplevel=lambda: SimpleNamespace(brand=None),
+            _display_title=lambda model: model["display_name"],
+            _last_rendered_signature=None, refresh=MagicMock(),
+        )
+        dialog = SimpleNamespace(choice="install")
+        with patch("dialogs.model_source_dialog.ModelSourceDialog", return_value=dialog) as source_dialog, \
+             patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename", return_value=r"C:\temp\model.smp") as picker, \
+             patch("widgets.phoenix.views.model_manager_view.messagebox.showinfo"):
+            PhoenixModelManagerView._on_install_selected(view)
+        self.assertEqual(source_dialog.call_args.kwargs["source_url"], source_url)
+        self.assertEqual(source_dialog.call_args.kwargs["package_format"], "smp_or_zip")
+        self.assertIsNone(source_dialog.call_args.kwargs["required_variant"])
+        picker.assert_called_once()
+        controller.install_package.assert_called_once_with("external_model", r"C:\temp\model.smp")
+
+    def test_official_page_button_does_not_open_file_picker_or_close_dialog(self) -> None:
+        dialog = ModelSourceDialog.__new__(ModelSourceDialog)
+        dialog.source_url = "https://aihub.qualcomm.com/models/example"
+        dialog.close = MagicMock()
+        with patch("dialogs.model_source_dialog.webbrowser.open") as browser:
+            dialog._on_download()
+        browser.assert_called_once_with(dialog.source_url)
+        dialog.close.assert_not_called()
+
+    def test_package_format_is_clear_and_localized(self) -> None:
+        set_language("en_US")
+        self.assertEqual(ModelSourceDialog.package_format_text("zip"), "ZIP package")
+        self.assertEqual(ModelSourceDialog.package_format_text("smp_or_zip"), "SMP or ZIP package")
 
     def test_progress_is_clamped_and_shown(self) -> None:
         dialog = ModelDirectDownloadDialog.__new__(ModelDirectDownloadDialog)
@@ -190,11 +239,59 @@ class DirectModelInstallTests(unittest.TestCase):
             "direct_model_installation_failed", "direct_model_activation_failed",
             "direct_model_install_success", "direct_model_install_error",
             "direct_model_source_unavailable",
+            "model_src_subtitle", "model_src_official_description",
+            "model_src_local_description", "model_src_official_source",
+            "model_src_official_source_name", "model_src_required_variant",
+            "model_src_variant_missing", "model_src_official_compatible_help",
+            "model_src_expected_format", "model_src_format_zip",
+            "model_src_format_smp", "model_src_format_smp_zip",
+            "model_src_official_compatible_help", "model_src_local_install_note",
+            "model_src_open_official",
+            "model_src_select_existing",
         }
         root = Path(__file__).resolve().parents[1]
         for locale in ("de_DE", "en_US", "es_ES"):
             data = json.loads((root / "locales" / f"{locale}.json").read_text(encoding="utf-8"))
             self.assertTrue(keys.issubset(data), locale)
+            self.assertNotIn("http", data["model_src_official_source_name"].lower())
+            self.assertIn("Qualcomm AI Hub", data["model_src_official_source_name"])
+            self.assertNotIn("download the model package required", data["model_src_official_compatible_help"].lower())
+
+    def test_external_contract_does_not_claim_an_unknown_qualcomm_variant(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        for model_id in ("stable_diffusion_v1_5_qai", "stable_diffusion_v2_1_qai"):
+            model = json.loads(
+                (root / "resources" / "models" / f"{model_id}.json").read_text(encoding="utf-8")
+            )
+            with self.subTest(model=model_id):
+                self.assertEqual(model["source_type"], "official_external")
+                self.assertEqual(model["package_format"], "smp_or_zip")
+                self.assertFalse(model.get("required_variant"))
+
+    def test_official_dialog_wraps_long_text_and_buttons_fit(self) -> None:
+        container = MagicMock()
+        label = MagicMock()
+        ModelSourceDialog._bind_responsive_wrap(container, label)
+        callback = container.bind.call_args.args[1]
+        callback(SimpleNamespace(width=500))
+        label.configure.assert_called_once_with(wraplength=498)
+        self.assertGreaterEqual(ModelSourceDialog.OFFICIAL_SIZE[0], 720)
+        self.assertGreaterEqual(ModelSourceDialog.OFFICIAL_SIZE[1], 660)
+        self.assertLess(460, ModelSourceDialog.OFFICIAL_MIN_SIZE[0])
+
+    def test_official_layout_texts_are_complete_in_all_languages(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        keys = {
+            "model_src_official_description", "model_src_official_source_name",
+            "model_src_expected_format", "model_src_variant_missing",
+            "model_src_official_compatible_help", "model_src_open_official",
+            "model_src_select_existing",
+        }
+        for locale in ("de_DE", "en_US", "es_ES"):
+            data = json.loads((root / "locales" / f"{locale}.json").read_text(encoding="utf-8"))
+            with self.subTest(locale=locale):
+                self.assertTrue(all(str(data[key]).strip() for key in keys))
+                self.assertTrue(all(max(map(len, str(data[key]).split())) < 45 for key in keys))
 
     def test_dialog_uses_existing_green_phoenix_progress_style(self) -> None:
         self.assertEqual(
