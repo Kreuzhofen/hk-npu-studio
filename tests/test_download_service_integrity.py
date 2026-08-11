@@ -4,6 +4,7 @@ import hashlib
 import io
 import tempfile
 import unittest
+import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
@@ -67,6 +68,21 @@ class DownloadServiceIntegrityTests(unittest.TestCase):
             self.assertTrue(result.success)
             self.assertEqual(result.path.read_bytes(), payload)
             self.assertFalse((Path(directory) / "model.zip.part").exists())
+
+    def test_optional_hf_token_is_forwarded_as_bearer_auth(self):
+        payload = b"gated package"
+        digest = hashlib.sha256(payload).hexdigest()
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", return_value=Response(payload)
+        ), patch("urllib.request.Request", wraps=urllib.request.Request) as request:
+            service = DownloadService(Path(directory))
+            result = service.download(
+                "https://huggingface.co/model.zip",
+                expected_sha256=digest,
+                authorization_token="hf_verified",
+            )
+        self.assertTrue(result.success)
+        self.assertEqual(request.call_args.kwargs["headers"]["Authorization"], "Bearer hf_verified")
 
     def test_hash_mismatch_removes_untrusted_partial(self):
         with tempfile.TemporaryDirectory() as directory, patch(

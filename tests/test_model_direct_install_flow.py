@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 from app.i18n import set_language
 from controllers.model_manager_controller import ModelManagerController
 from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
+from dialogs.hf_auth_dialog import HuggingFaceAuthDialog
 from dialogs.model_source_dialog import ModelSourceDialog
 from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
 
@@ -51,6 +52,7 @@ class DirectModelInstallTests(unittest.TestCase):
             selected_model_id="direct_model", controller=controller,
             winfo_toplevel=lambda: SimpleNamespace(brand=None),
             _display_title=lambda model: model["display_name"],
+            _requires_hf_auth=PhoenixModelManagerView._requires_hf_auth,
             _last_rendered_signature=("old",), refresh=MagicMock(),
         )
 
@@ -61,10 +63,12 @@ class DirectModelInstallTests(unittest.TestCase):
             self.assertEqual(controller.download_and_install_package.call_args.args[:2], ("direct_model", source_url))
 
         with patch("dialogs.model_direct_download_dialog.ModelDirectDownloadDialog", side_effect=run_dialog), \
+             patch("dialogs.hf_auth_dialog.HuggingFaceAuthDialog") as auth_dialog, \
              patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename") as picker:
             PhoenixModelManagerView._on_install_selected(view)
 
         picker.assert_not_called()
+        auth_dialog.assert_not_called()
         view.refresh.assert_called_once()
 
     def test_controller_uses_staged_package_and_existing_installer(self) -> None:
@@ -75,7 +79,8 @@ class DirectModelInstallTests(unittest.TestCase):
         })
         install_service = MagicMock()
 
-        def stage(_model_id, _url, callback):
+        def stage(_model_id, _url, callback, hf_token=None):
+            self.assertIsNone(hf_token)
             callback(42.0)
             repository.model["path"] = r"C:\temp\model.zip"
             return True
@@ -109,7 +114,7 @@ class DirectModelInstallTests(unittest.TestCase):
             "source_type": "direct", "source_url": source_url, "path": "", "status": "Available",
         })
         service = MagicMock()
-        service.start_download.side_effect = lambda _id, _url, _cb: repository.model.update(path=r"C:\temp\bad.zip") or True
+        service.start_download.side_effect = lambda _id, _url, _cb, **_kwargs: repository.model.update(path=r"C:\temp\bad.zip") or True
         service.validate_package_source.return_value = {"success": False}
         controller = ModelManagerController.__new__(ModelManagerController)
         controller.model = SimpleNamespace(repository=repository)
@@ -131,7 +136,7 @@ class DirectModelInstallTests(unittest.TestCase):
             "source_type": "direct", "source_url": source_url, "path": "", "status": "Available",
         })
         service = MagicMock()
-        service.start_download.side_effect = lambda _id, _url, _cb: repository.model.update(path=r"C:\temp\model.zip") or True
+        service.start_download.side_effect = lambda _id, _url, _cb, **_kwargs: repository.model.update(path=r"C:\temp\model.zip") or True
         service.validate_package_source.return_value = {"success": True}
         service.install_package.return_value = False
         controller = ModelManagerController.__new__(ModelManagerController)
@@ -248,6 +253,11 @@ class DirectModelInstallTests(unittest.TestCase):
             "model_src_official_compatible_help", "model_src_local_install_note",
             "model_src_open_official",
             "model_src_select_existing",
+            "settings_hf_token_optional", "hf_auth_title",
+            "hf_auth_required_explanation", "hf_auth_token_label",
+            "hf_auth_enter_token", "hf_auth_check", "hf_auth_checking_saved",
+            "hf_auth_checking", "hf_auth_missing", "hf_auth_invalid",
+            "hf_auth_save_failed",
         }
         root = Path(__file__).resolve().parents[1]
         for locale in ("de_DE", "en_US", "es_ES"):
@@ -292,6 +302,71 @@ class DirectModelInstallTests(unittest.TestCase):
             with self.subTest(locale=locale):
                 self.assertTrue(all(str(data[key]).strip() for key in keys))
                 self.assertTrue(all(max(map(len, str(data[key]).split())) < 45 for key in keys))
+
+    def test_no_current_model_contract_requires_hf_auth(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        models = [
+            json.loads(path.read_text(encoding="utf-8"))
+            for path in (root / "resources" / "models").glob("*.json")
+        ]
+        self.assertFalse(any(PhoenixModelManagerView._requires_hf_auth(model) for model in models))
+
+    def test_hf_auth_contract_is_demand_driven(self) -> None:
+        self.assertFalse(PhoenixModelManagerView._requires_hf_auth({"requires_hf_auth": False}))
+        self.assertFalse(PhoenixModelManagerView._requires_hf_auth({"requires_hf_token": False}))
+        self.assertTrue(PhoenixModelManagerView._requires_hf_auth({"requires_hf_auth": True}))
+
+    def test_required_hf_auth_passes_verified_token_to_direct_flow(self) -> None:
+        source_url = "https://huggingface.co/example/model.zip"
+        repository = _Repository({
+            "id": "gated_model", "display_name": "Gated Model", "installed": False,
+            "source_type": "direct", "source_url": source_url,
+            "requires_hf_auth": True, "download_size": None,
+        })
+        controller = SimpleNamespace(
+            model=SimpleNamespace(repository=repository),
+            download_and_install_package=MagicMock(return_value=True),
+        )
+        view = SimpleNamespace(
+            selected_model_id="gated_model", controller=controller,
+            winfo_toplevel=lambda: SimpleNamespace(brand=None),
+            _display_title=lambda model: model["display_name"],
+            _requires_hf_auth=PhoenixModelManagerView._requires_hf_auth,
+            _last_rendered_signature=None, refresh=MagicMock(),
+        )
+        auth = SimpleNamespace(authenticated=True, token="hf_verified")
+
+        def run_download(*_args, **kwargs):
+            self.assertTrue(kwargs["start_install"](MagicMock()))
+
+        with patch("dialogs.hf_auth_dialog.HuggingFaceAuthDialog", return_value=auth), \
+             patch("dialogs.model_direct_download_dialog.ModelDirectDownloadDialog", side_effect=run_download):
+            PhoenixModelManagerView._on_install_selected(view)
+        self.assertEqual(
+            controller.download_and_install_package.call_args.kwargs["hf_token"],
+            "hf_verified",
+        )
+
+    def test_valid_saved_token_needs_no_new_save_or_entry(self) -> None:
+        dialog = HuggingFaceAuthDialog.__new__(HuggingFaceAuthDialog)
+        dialog.submit_button = MagicMock()
+        dialog.status_label = MagicMock()
+        dialog.close = MagicMock()
+        with patch("dialogs.hf_auth_dialog.SettingsManager.save_settings") as save:
+            dialog._apply_result(True, "hf_saved", False)
+        save.assert_not_called()
+        self.assertTrue(dialog.authenticated)
+        self.assertEqual(dialog.token, "hf_saved")
+        dialog.close.assert_called_once()
+
+    def test_invalid_token_keeps_dialog_open_for_retry(self) -> None:
+        dialog = HuggingFaceAuthDialog.__new__(HuggingFaceAuthDialog)
+        dialog.submit_button = MagicMock()
+        dialog.status_label = MagicMock()
+        dialog.close = MagicMock()
+        dialog._apply_result(False, "hf_invalid", True)
+        dialog.submit_button.configure.assert_called_once_with(state="normal")
+        dialog.close.assert_not_called()
 
     def test_dialog_uses_existing_green_phoenix_progress_style(self) -> None:
         self.assertEqual(

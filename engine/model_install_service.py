@@ -565,7 +565,8 @@ class ModelInstallService:
         self, 
         model_id: str, 
         url: str, 
-        progress_callback: Callable[[float], None] | None = None
+        progress_callback: Callable[[float], None] | None = None,
+        hf_token: str | None = None,
     ) -> bool:
         """
         Download a package into temp/downloads and keep it staged for installation.
@@ -584,6 +585,7 @@ class ModelInstallService:
             expected_sha256=expected_sha256,
             resume=True,
             require_checksum=bool(expected_sha256),
+            authorization_token=hf_token,
         )
         if not result.success:
             self._set_package_status(model_id, status=f"Download Failed: {result.error_code}")

@@ -477,6 +477,10 @@ class PhoenixModelManagerView(WorkspaceFrame):
         return "use" if installed else "install"
 
     @staticmethod
+    def _requires_hf_auth(model: dict[str, Any]) -> bool:
+        return bool(model.get("requires_hf_auth") is True or model.get("requires_hf_token") is True)
+
+    @staticmethod
     def _beginner_model_summary(model: dict[str, Any], active: bool) -> str:
         model_id = str(model.get("id", ""))
         if model_id == "stable_diffusion_v1_5_qnn":
@@ -601,13 +605,24 @@ class PhoenixModelManagerView(WorkspaceFrame):
         source_type = str((selected_model or {}).get("source_type") or "")
         source_url = selected_model.get("source_url") if selected_model else None
         if source_type == "direct":
-            if not source_url or (selected_model or {}).get("requires_hf_token") is True:
+            if not source_url:
                 messagebox.showerror(
                     tr("model_manager_title", "Modell-Manager"),
                     tr("direct_model_source_unavailable", "Der automatische Download ist für dieses Modell derzeit nicht verfügbar."),
                     parent=self.winfo_toplevel(),
                 )
                 return
+            hf_token: str | None = None
+            if self._requires_hf_auth(selected_model or {}):
+                from dialogs.hf_auth_dialog import HuggingFaceAuthDialog
+                auth_dialog = HuggingFaceAuthDialog(
+                    self.winfo_toplevel(),
+                    model_name=self._display_title(selected_model or {}),
+                    brand=getattr(self.winfo_toplevel(), "brand", None),
+                )
+                if not auth_dialog.authenticated:
+                    return
+                hf_token = auth_dialog.token
             from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
             download_install = getattr(self.controller, "download_and_install_package", None)
             if not callable(download_install):
@@ -624,7 +639,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 model_name=self._display_title(selected_model),
                 download_size=selected_model.get("download_size"),
                 start_install=lambda callback: download_install(
-                    self.selected_model_id, source_url, callback
+                    self.selected_model_id, source_url, callback, hf_token=hf_token
                 ),
                 on_installed=_installed,
                 on_open_generate=WorkflowController.get_instance().open_generate,

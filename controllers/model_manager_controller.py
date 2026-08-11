@@ -93,6 +93,7 @@ class ModelManagerController:
         model_id: str,
         source_url: str,
         progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        hf_token: str | None = None,
     ) -> bool:
         """Download, validate, install, and activate one DIRECT package."""
         def emit(phase: str, percent: float) -> None:
@@ -119,6 +120,7 @@ class ModelManagerController:
                 model_id,
                 source_url,
                 lambda percent: emit("downloading", min(70.0, float(percent) * 0.7)),
+                hf_token=hf_token,
             ):
                 emit("download_failed", 0.0)
                 self.model.repository.update_model(model_id, **original_state)

@@ -70,12 +70,14 @@ class DownloadService:
         expected_sha256: str | None = None,
         resume: bool = True,
         require_checksum: bool = True,
+        authorization_token: str | None = None,
     ) -> DownloadResult:
         self.reset_cancel()
         try:
             return self._download(
                 url, filename, progress_callback, overwrite, expected_sha256, resume,
                 require_checksum,
+                authorization_token,
             )
         except DownloadError as exc:
             logger.error("Download failed: %s", exc.message)
@@ -94,6 +96,7 @@ class DownloadService:
         expected_sha256: str | None,
         resume: bool,
         require_checksum: bool,
+        authorization_token: str | None,
     ) -> DownloadResult:
         parsed = urllib.parse.urlparse(url)
         if parsed.scheme not in {"http", "https"}:
@@ -124,6 +127,8 @@ class DownloadService:
 
         existing_bytes = partial_path.stat().st_size if partial_path.exists() else 0
         headers = {"User-Agent": "SnapdragonAIStudio/2.0"}
+        if authorization_token:
+            headers["Authorization"] = f"Bearer {authorization_token}"
         if existing_bytes:
             headers["Range"] = f"bytes={existing_bytes}-"
         request = urllib.request.Request(url, headers=headers)

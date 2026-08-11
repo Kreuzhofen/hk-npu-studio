@@ -487,6 +487,20 @@ class PhoenixSettingsView(tk.Frame):
         links_frame = tk.Frame(hf_form, bg=PHOENIX_THEME.card_bg)
         links_frame.grid(row=2, column=0, columnspan=2, sticky="ew")
 
+        tk.Label(
+            links_frame,
+            text=tr(
+                "settings_hf_token_optional",
+                "Optional — required only for models that need Hugging Face authentication.",
+            ),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            justify="left",
+            wraplength=360,
+        ).pack(fill="x", pady=(2, 0))
+
         self.token_help_lbl = tk.Label(
             links_frame,
             text=tr("settings_hf_token_hint", "Token erstellen unter: huggingface.co/settings/tokens ↗"),
