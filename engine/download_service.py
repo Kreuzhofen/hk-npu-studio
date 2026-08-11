@@ -69,11 +69,13 @@ class DownloadService:
         overwrite: bool = False,
         expected_sha256: str | None = None,
         resume: bool = True,
+        require_checksum: bool = True,
     ) -> DownloadResult:
         self.reset_cancel()
         try:
             return self._download(
-                url, filename, progress_callback, overwrite, expected_sha256, resume
+                url, filename, progress_callback, overwrite, expected_sha256, resume,
+                require_checksum,
             )
         except DownloadError as exc:
             logger.error("Download failed: %s", exc.message)
@@ -91,6 +93,7 @@ class DownloadService:
         overwrite: bool,
         expected_sha256: str | None,
         resume: bool,
+        require_checksum: bool,
     ) -> DownloadResult:
         parsed = urllib.parse.urlparse(url)
         if parsed.scheme not in {"http", "https"}:
@@ -183,14 +186,14 @@ class DownloadService:
                 f"Incomplete download: expected {total_bytes} bytes, got {final_size} bytes.",
             )
 
-        if not self._valid_sha256(expected_sha256):
+        if require_checksum and not self._valid_sha256(expected_sha256):
             self._cleanup_partial(partial_path)
             raise DownloadError(
                 DownloadErrorCode.INVALID_FILE,
                 "A valid SHA-256 checksum is required before registration.",
             )
-        actual_sha256 = self._sha256(partial_path)
-        if actual_sha256 != expected_sha256.lower():
+        actual_sha256 = self._sha256(partial_path) if expected_sha256 else ""
+        if expected_sha256 and actual_sha256 != expected_sha256.lower():
             self._cleanup_partial(partial_path)
             raise DownloadError(
                 DownloadErrorCode.INVALID_FILE,

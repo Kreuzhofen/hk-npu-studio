@@ -583,6 +583,7 @@ class ModelInstallService:
             progress_callback=progress_callback,
             expected_sha256=expected_sha256,
             resume=True,
+            require_checksum=bool(expected_sha256),
         )
         if not result.success:
             self._set_package_status(model_id, status=f"Download Failed: {result.error_code}")

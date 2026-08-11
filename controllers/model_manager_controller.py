@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 from controllers.model_manager_model import ModelManagerModel
 from engine.backends.backend_manager import BackendManager
 from engine.backends.discovery_result import DiscoveryResult
@@ -84,6 +84,24 @@ class ModelManagerController:
     def install_package(self, model_id: str, source_path: str) -> bool:
         """Install a new SMP package from source path."""
         return self.install_service.install_package(model_id, source_path)
+
+    def download_and_install_package(
+        self,
+        model_id: str,
+        source_url: str,
+        progress_callback: Callable[[float], None] | None = None,
+    ) -> bool:
+        """Stage a DIRECT package download, then pass it to the existing installer."""
+        model = self.model.repository.get_model(model_id)
+        if not model or model.get("installed") is True:
+            return False
+        if model.get("source_type") != "direct" or source_url != model.get("source_url"):
+            return False
+        if not self.install_service.start_download(model_id, source_url, progress_callback):
+            return False
+        staged = self.model.repository.get_model(model_id)
+        staged_path = str((staged or {}).get("path") or "")
+        return bool(staged_path and self.install_service.install_package(model_id, staged_path))
 
     def list_available_packages(self) -> list[dict[str, Any]]:
         """List package catalog entries with locally derived PackageStatus."""

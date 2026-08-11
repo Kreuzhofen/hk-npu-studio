@@ -54,6 +54,20 @@ class DownloadServiceIntegrityTests(unittest.TestCase):
             self.assertEqual(result.path.read_bytes(), payload)
             self.assertFalse((Path(directory) / "model.bin.part").exists())
 
+    def test_package_staging_can_defer_integrity_to_package_installer(self):
+        payload = b"package validated by the model installer"
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", return_value=Response(payload)
+        ):
+            service = DownloadService(Path(directory))
+            result = service.download(
+                "https://example.com/model.zip", require_checksum=False
+            )
+
+            self.assertTrue(result.success)
+            self.assertEqual(result.path.read_bytes(), payload)
+            self.assertFalse((Path(directory) / "model.zip.part").exists())
+
     def test_hash_mismatch_removes_untrusted_partial(self):
         with tempfile.TemporaryDirectory() as directory, patch(
             "urllib.request.urlopen", return_value=Response(b"tampered")

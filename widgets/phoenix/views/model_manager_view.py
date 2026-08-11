@@ -598,7 +598,36 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if repository is not None:
             selected_model = repository.get_model(self.selected_model_id)
 
+        source_type = str((selected_model or {}).get("source_type") or "")
         source_url = selected_model.get("source_url") if selected_model else None
+        if source_type == "direct":
+            if not source_url or (selected_model or {}).get("requires_hf_token") is True:
+                messagebox.showerror(
+                    tr("model_manager_title", "Modell-Manager"),
+                    tr("direct_model_source_unavailable", "Der automatische Download ist für dieses Modell derzeit nicht verfügbar."),
+                    parent=self.winfo_toplevel(),
+                )
+                return
+            from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
+            download_install = getattr(self.controller, "download_and_install_package", None)
+            if not callable(download_install):
+                return
+
+            def _installed() -> None:
+                self._last_rendered_signature = None
+                self.refresh()
+
+            ModelDirectDownloadDialog(
+                self.winfo_toplevel(),
+                model_name=self._display_title(selected_model),
+                download_size=selected_model.get("download_size"),
+                start_install=lambda callback: download_install(
+                    self.selected_model_id, source_url, callback
+                ),
+                on_installed=_installed,
+                brand=getattr(self.winfo_toplevel(), "brand", None),
+            )
+            return
         if source_url:
             from dialogs.model_source_dialog import ModelSourceDialog
             brand = getattr(self.winfo_toplevel(), "brand", None)
