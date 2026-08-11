@@ -113,6 +113,7 @@ class _TkProxy:
 
 tk = _TkProxy()
 import datetime
+import math
 import time
 import os
 import shutil
@@ -1668,7 +1669,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self._progress_current_step = 0
         self._progress_percent = 0
         self._set_generation_busy(True)
-        self._set_progress(3, "Vorbereiten", "-")
+        self._set_progress(3, tr("generation_phase_preparing", "Vorbereiten"), "-")
 
         while not self._generation_events.empty():
             try:
@@ -1833,7 +1834,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self._last_generation_time_str = None
         self._cancel_progress_tick()
         self.controller.model.update_state(status=f"error: {error}")
-        self._set_progress(100, "Fehler", self._step_text())
+        self._set_progress(100, tr("status_failed", "Fehler"), self._step_text())
         self._set_generation_busy(False)
         messagebox.showerror(tr("nav_ai_generate", "KI-Generierung"), str(error))
         self.refresh()
@@ -1918,13 +1919,17 @@ class PhoenixPromptView(WorkspaceFrame):
         if not self._is_view_alive() or not self._generation_running:
             return
 
+        stage = localize_runtime_text(stage)
+
         step_text = "-"
-        if "Schritt " in stage:
-            try:
-                parts = stage.split("Schritt ")[1].split(")...")[0]
-                step_text = f"{tr('step', 'Schritt')} {parts}"
-            except Exception:
-                step_text = "-"
+        import re
+        step_match = re.search(r"(\d+/\d+)", stage)
+        if step_match:
+            step_text = f"{tr('step', 'Schritt')} {step_match.group(1)}"
+        else:
+            parts_match = re.search(r"(\d+)\s+(?:von|of|de)\s+(\d+)", stage, re.IGNORECASE)
+            if parts_match:
+                step_text = f"{tr('step', 'Schritt')} {parts_match.group(1)}/{parts_match.group(2)}"
 
         self._set_progress(percent, stage, step_text)
         self.controller.model.update_state(status=stage)
@@ -2864,9 +2869,22 @@ class PhoenixPromptView(WorkspaceFrame):
                 command=lambda e=entry: self._load_prompt_from_history(e)
             )
 
+        menu.add_separator()
+        menu.add_command(
+            label=tr("clear_history", "Historie leeren"),
+            command=self._clear_history_with_confirm
+        )
+
         x = self.history_btn.winfo_rootx()
         y = self.history_btn.winfo_rooty() + self.history_btn.winfo_height()
         menu.post(x, y)
+
+    def _clear_history_with_confirm(self) -> None:
+        from tkinter import messagebox
+        title = tr("clear_history_title", "Historie leeren")
+        message = tr("clear_history_confirm", "Möchten Sie die gesamte Generierungshistorie wirklich löschen?")
+        if messagebox.askyesno(title, message):
+            self.controller.clear_prompt_history()
 
     def _load_prompt_from_history(self, entry: str | dict) -> None:
         if isinstance(entry, dict):
@@ -3754,6 +3772,8 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             return
 
+        suggestion = self._recommend_boost_for_active_model(suggestion)
+
         popup = tk.Toplevel(self)
         BrandManager.apply_window_icon(popup)
         popup.title(tr("boost_preview_title", "Phoenix Boost – Vorschau"))
@@ -3763,9 +3783,15 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.transient(self.winfo_toplevel())
         popup.grab_set()
         self._boost_popup = popup
+        self._boost_run_token = object()
+        self._boost_install_btn = None
+        self._boost_ollama_status_lbl = None
+        self._boost_model_status_lbl = None
+        self._boost_ai_status_lbl = None
+        self._boost_ai_info_lbl = None
         self._boost_suggestion = suggestion
         self._boost_mode = "Boost"
-        self._ollama_status = OllamaStatus(False, False)
+        self._ollama_status = OllamaStatusService.cached_status() or OllamaStatus(False, False)
 
         dialog_shell = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
         dialog_shell.pack(fill="both", expand=True)
@@ -3810,11 +3836,12 @@ class PhoenixPromptView(WorkspaceFrame):
         )
 
         if self._ollama_status.available:
-            tk.Label(
-                container, text=tr("boost_ai_available", "Phoenix Boost AI verfügbar"),
+            self._boost_ai_title_lbl = tk.Label(
+                container, text=tr("boost_ai_title", "Phoenix Boost AI"),
                 bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.success,
                 font=PHOENIX_THEME.font_small, anchor="w",
-            ).pack(fill="x", pady=(0, 8))
+            )
+            self._boost_ai_title_lbl.pack(fill="x", pady=(0, 8))
         else:
             ai_info = tk.Frame(container, bg=PHOENIX_THEME.surface)
             ai_info.pack(fill="x", pady=(0, 10))
@@ -3858,6 +3885,32 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             self._boost_install_btn.pack(side="right", padx=8, pady=5)
 
+        self._boost_run_status_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        self._boost_run_status_frame.pack(fill="x", pady=(0, 8))
+        self._boost_countdown_bar = ttk.Progressbar(
+            self._boost_run_status_frame,
+            orient="horizontal",
+            mode="determinate",
+            maximum=BoostAIService.REQUEST_TIMEOUT_SECONDS,
+            value=BoostAIService.REQUEST_TIMEOUT_SECONDS,
+            style="Phoenix.Horizontal.TProgressbar",
+        )
+        self._boost_run_feedback_lbl = tk.Label(
+            self._boost_run_status_frame,
+            text="⏳ Phoenix Boost AI status is being checked — please wait...",
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+            justify="left",
+        )
+        self._boost_run_feedback_lbl.pack(fill="x")
+        self._boost_summary_lbl = tk.Label(
+            container, text="", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small,
+            anchor="w", justify="left",
+        )
+
         self._boost_preview_field(container, tr("boost_original_prompt", "Originalprompt"), suggestion.original_prompt)
         self._boost_optimized_value = self._boost_preview_field(
             container, tr("boost_optimized_prompt", "Optimierter Prompt"), suggestion.optimized_prompt
@@ -3877,6 +3930,8 @@ class PhoenixPromptView(WorkspaceFrame):
             (tr("boost_steps", "Schritte"), str(suggestion.current_steps), str(suggestion.recommended_steps)),
             (tr("boost_cfg", "CFG Scale"), f"{suggestion.current_cfg:g}", f"{suggestion.recommended_cfg:g}"),
             (tr("boost_resolution", "Auflösung"), f"{suggestion.current_resolution[0]} × {suggestion.current_resolution[1]}", f"{suggestion.recommended_resolution[0]} × {suggestion.recommended_resolution[1]}"),
+            (tr("sampler_label", "Sampler"), self.sampler_var.get(), self._boost_recommended_sampler),
+            (tr("scheduler_label", "Scheduler"), self.scheduler_var.get(), self._boost_recommended_scheduler),
         )
         for column, text_value in enumerate(("", tr("boost_current", "Aktuell"), tr("boost_recommended", "Empfohlen"))):
             tk.Label(values, text=text_value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
@@ -3947,14 +4002,23 @@ class PhoenixPromptView(WorkspaceFrame):
             relief="flat", bd=0, font=PHOENIX_THEME.font_button, cursor="hand2", padx=18, pady=8,
         )
         self._boost_apply_btn = apply_btn
+        apply_btn.configure(state="disabled")
         apply_btn.pack(side="right")
         self._add_button_hover(apply_btn, PHOENIX_THEME.button_hover, PHOENIX_THEME.text_on_accent)
         popup.bind("<Escape>", lambda _event: popup.destroy())
-        self._boost_ai_queue = queue.Queue(maxsize=1)
+        self._boost_ai_queue = queue.Queue(maxsize=2)
         threading.Thread(
-            target=self._load_boost_ai_suggestion, args=(suggestion,), daemon=True,
+            target=self._load_boost_ai_suggestion,
+            args=(suggestion, self.model_var.get(), self._boost_ai_queue, self._boost_run_token),
+            daemon=True,
         ).start()
-        popup.after(100, self._poll_boost_ai_suggestion)
+        popup.after(
+            100,
+            self._poll_boost_ai_suggestion,
+            self._boost_ai_queue,
+            self._boost_run_token,
+            popup,
+        )
 
     def _save_boost_as_template(self) -> None:
         suggestion = self._boost_suggestion
@@ -3976,11 +4040,28 @@ class PhoenixPromptView(WorkspaceFrame):
         value_label.pack(fill="x", pady=(2, 8))
         return value_label
 
-    def _load_boost_ai_suggestion(self, local_suggestion: BoostSuggestion) -> None:
+    def _load_boost_ai_suggestion(
+        self,
+        local_suggestion: BoostSuggestion,
+        model_id: str,
+        result_queue: queue.Queue | None = None,
+        run_token: object | None = None,
+    ) -> None:
+        result_queue = result_queue or self._boost_ai_queue
         status = OllamaStatusService.detect()
-        result = BoostAIService.optimize(local_suggestion.original_prompt) if status.available else None
+        if not status.ai_ready:
+            result_queue.put((status, None, "unavailable", 0.0, ()))
+            return
+        started_at = time.monotonic()
+        result_queue.put((status, None, "ready", started_at, ()))
+        run = BoostAIService.optimize_with_status(
+            local_suggestion.original_prompt,
+            model_verified=True,
+            model_id=model_id,
+        )
+        result = run.result
         if result is None:
-            self._boost_ai_queue.put((status, None))
+            result_queue.put((status, None, run.outcome, run.duration_seconds, run.summary))
             return
         existing = local_suggestion.existing_negative_prompt
         combined = f"{existing}, {result.negative_prompt}" if existing else result.negative_prompt
@@ -3995,23 +4076,100 @@ class PhoenixPromptView(WorkspaceFrame):
             negative_addition=result.negative_prompt,
             recommended_negative_prompt=combined, analysis=analysis,
         )
-        self._boost_ai_queue.put((status, ai_suggestion))
+        result_queue.put((status, ai_suggestion, run.outcome, run.duration_seconds, run.summary))
 
-    def _poll_boost_ai_suggestion(self) -> None:
-        if not hasattr(self, "_boost_popup") or not self._boost_popup.winfo_exists():
+    def _poll_boost_ai_suggestion(
+        self,
+        result_queue: queue.Queue | None = None,
+        run_token: object | None = None,
+        popup: tk.Toplevel | None = None,
+    ) -> None:
+        result_queue = result_queue or self._boost_ai_queue
+        run_token = run_token or getattr(self, "_boost_run_token", None)
+        popup = popup or getattr(self, "_boost_popup", None)
+        if (
+            popup is None
+            or not popup.winfo_exists()
+            or run_token is not getattr(self, "_boost_run_token", None)
+        ):
             return
         try:
-            status, suggestion = self._boost_ai_queue.get_nowait()
+            status, suggestion, outcome, duration, summary = result_queue.get_nowait()
         except queue.Empty:
-            self._boost_popup.after(100, self._poll_boost_ai_suggestion)
+            popup.after(100, self._poll_boost_ai_suggestion, result_queue, run_token, popup)
             return
         self._update_ollama_install_button(status)
+        if outcome == "ready":
+            self._start_boost_countdown(run_token, popup, duration)
+            popup.after(100, self._poll_boost_ai_suggestion, result_queue, run_token, popup)
+            return
+        self._stop_boost_countdown(run_token)
         if suggestion is not None:
-            self._apply_boost_ai_preview(suggestion)
+            self._apply_boost_ai_preview(suggestion, duration, summary)
+        elif outcome == "failed":
+            self._boost_run_feedback_lbl.configure(
+                text=(
+                    tr("boost_ai_run_failed", "❌ AI optimization failed")
+                    + "\n"
+                    + tr("boost_ai_run_fallback", "⚠ Phoenix fallback used")
+                ),
+                fg=PHOENIX_THEME.danger,
+            )
+        else:
+            self._boost_run_feedback_lbl.configure(
+                text=tr(
+                    "boost_ai_run_fallback",
+                    "⚠ AI optimization unavailable – Phoenix fallback used",
+                ),
+                fg=PHOENIX_THEME.warning,
+            )
+        if self._boost_apply_btn.winfo_exists():
+            self._boost_apply_btn.configure(state="normal")
+
+    def _start_boost_countdown(
+        self, run_token: object, popup: tk.Toplevel, started_at: float
+    ) -> None:
+        self._boost_countdown_started_at = started_at
+        self._boost_countdown_bar.pack(
+            fill="x", pady=(0, 6), before=self._boost_run_feedback_lbl
+        )
+        self._update_boost_countdown(run_token, popup)
+
+    def _update_boost_countdown(self, run_token: object, popup: tk.Toplevel) -> None:
+        if (
+            run_token is not getattr(self, "_boost_run_token", None)
+            or not popup.winfo_exists()
+        ):
+            return
+        elapsed = max(0.0, time.monotonic() - self._boost_countdown_started_at)
+        remaining = max(0.0, BoostAIService.REQUEST_TIMEOUT_SECONDS - elapsed)
+        self._boost_countdown_bar.configure(value=remaining)
+        self._boost_run_feedback_lbl.configure(
+            text=f"Optimizing with Qwen2.5 3B — {int(math.ceil(remaining))}s remaining",
+            fg=PHOENIX_THEME.text_secondary,
+        )
+        if remaining > 0:
+            self._boost_countdown_after_id = popup.after(
+                200, self._update_boost_countdown, run_token, popup
+            )
+
+    def _stop_boost_countdown(self, run_token: object) -> None:
+        if run_token is not getattr(self, "_boost_run_token", None):
+            return
+        after_id = getattr(self, "_boost_countdown_after_id", None)
+        popup = getattr(self, "_boost_popup", None)
+        if after_id and popup is not None and popup.winfo_exists():
+            try:
+                popup.after_cancel(after_id)
+            except tk.TclError:
+                pass
+        self._boost_countdown_after_id = None
+        if self._boost_countdown_bar.winfo_exists():
+            self._boost_countdown_bar.pack_forget()
 
     def _update_ollama_install_button(self, status: OllamaStatus) -> None:
         self._ollama_status = status
-        if not hasattr(self, "_boost_install_btn"):
+        if self._boost_install_btn is None or not self._boost_install_btn.winfo_exists():
             return
         self._boost_ollama_status_lbl.configure(text=tr(
             "boost_ollama_status_ready" if status.available else "boost_ollama_status_missing",
@@ -4071,15 +4229,40 @@ class PhoenixPromptView(WorkspaceFrame):
         except OSError:
             OllamaStatusService.invalidate_cache()
 
-    def _apply_boost_ai_preview(self, suggestion: BoostSuggestion) -> None:
+    def _apply_boost_ai_preview(
+        self,
+        suggestion: BoostSuggestion,
+        duration: float = 0.0,
+        summary: tuple[str, ...] = (),
+    ) -> None:
         if not hasattr(self, "_boost_popup") or not self._boost_popup.winfo_exists():
             return
         self._boost_suggestion = suggestion
         self._boost_mode = "Boost AI"
         self._boost_optimized_value.configure(text=suggestion.optimized_prompt)
         self._boost_negative_value.configure(text=suggestion.negative_addition)
-        if hasattr(self, "_boost_ai_title_lbl"):
-            self._boost_ai_title_lbl.configure(text=tr("boost_ai_available", "Phoenix Boost AI verfügbar"), fg=PHOENIX_THEME.success)
+        self._boost_run_feedback_lbl.configure(
+            text=(f"✓ AI optimization completed — {duration:.1f}s\n"
+                  "Model: Qwen2.5 3B\nMode: Local via Ollama"),
+            fg=PHOENIX_THEME.success,
+        )
+        summary_labels = {
+            "subject_preserved": ("boost_summary_subject", "✓ Subject preserved"),
+            "details_preserved": ("boost_summary_details", "✓ Details preserved"),
+            "lighting_style_refined": ("boost_summary_lighting_style", "✓ Lighting/style refined"),
+            "composition_improved": ("boost_summary_composition", "✓ Composition improved"),
+        }
+        summary_text = "\n".join(
+            tr(*summary_labels[item]) for item in summary if item in summary_labels
+        )
+        if summary_text:
+            self._boost_summary_lbl.configure(text=summary_text)
+            self._boost_summary_lbl.pack(fill="x", pady=(0, 8))
+        if self._boost_ai_title_lbl is not None and self._boost_ai_title_lbl.winfo_exists():
+            self._boost_ai_title_lbl.configure(
+                text=tr("boost_ai_title", "Phoenix Boost AI"), fg=PHOENIX_THEME.success
+            )
+        if self._boost_ai_info_lbl is not None and self._boost_ai_info_lbl.winfo_exists():
             self._boost_ai_info_lbl.pack_forget()
 
     @staticmethod
@@ -4089,7 +4272,10 @@ class PhoenixPromptView(WorkspaceFrame):
         webbrowser.open(OllamaStatusService.DOWNLOAD_URL)
 
     def _controlnet_active(self) -> bool:
-        return bool(self.canny_supported and self.controlnet_canny_var.get())
+        return bool(
+            self.canny_supported
+            and (self.controlnet_canny_var.get() or getattr(self, "active_tab", "") == "canny")
+        )
 
     def _boost_resolution_allowed(self, suggestion: BoostSuggestion) -> bool:
         if self._controlnet_active():
@@ -4102,6 +4288,29 @@ class PhoenixPromptView(WorkspaceFrame):
                 return False
         return True
 
+    def _recommend_boost_for_active_model(self, suggestion: BoostSuggestion) -> BoostSuggestion:
+        contract = self.controller.get_generation_parameters(self.model_var.get()) or {}
+
+        def contract_default(name: str, fallback):
+            spec = contract.get(name, {})
+            if not isinstance(spec, dict):
+                return fallback
+            value = spec.get("default", fallback)
+            values = spec.get("values", [])
+            return value if not values or value in values else fallback
+
+        self._boost_recommended_sampler = str(contract_default("sampler", self.sampler_var.get()))
+        self._boost_recommended_scheduler = str(contract_default("scheduler", self.scheduler_var.get()))
+        return replace(
+            suggestion,
+            recommended_steps=int(contract_default("steps", suggestion.recommended_steps)),
+            recommended_cfg=float(contract_default("cfg", suggestion.recommended_cfg)),
+            recommended_resolution=(
+                int(contract_default("width", suggestion.recommended_resolution[0])),
+                int(contract_default("height", suggestion.recommended_resolution[1])),
+            ),
+        )
+
     def _apply_boost_suggestion(self) -> None:
         suggestion = self._boost_suggestion
         self.prompt_text.delete("1.0", "end")
@@ -4111,6 +4320,9 @@ class PhoenixPromptView(WorkspaceFrame):
             self.neg_prompt_text.insert("1.0", suggestion.recommended_negative_prompt)
         self.steps_var.set(suggestion.recommended_steps)
         self.cfg_var.set(suggestion.recommended_cfg)
+        if not self._controlnet_active():
+            self.sampler_var.set(self._boost_recommended_sampler)
+            self.scheduler_var.set(self._boost_recommended_scheduler)
         if self._boost_apply_resolution_var.get() and self._boost_resolution_allowed(suggestion):
             self.width_var.set(str(suggestion.recommended_resolution[0]))
             self.height_var.set(str(suggestion.recommended_resolution[1]))

@@ -61,12 +61,45 @@ _STATUS_KEYS: dict[str, tuple[str, str]] = {
     "processing": ("queue_status_processing", "Wird verarbeitet"),
     "verarbeitet": ("queue_status_processing", "Wird verarbeitet"),
     "procesando": ("queue_status_processing", "Wird verarbeitet"),
+    "vorbereiten": ("generation_phase_preparing", "Vorbereiten"),
+    "preparing": ("generation_phase_preparing", "Vorbereiten"),
+    "preparando": ("generation_phase_preparing", "Vorbereiten"),
+    "onnx-modell wird vorbereitet": ("generation_phase_onnx_model", "ONNX-Modell wird vorbereitet"),
+    "preparing onnx model": ("generation_phase_onnx_model", "ONNX-Modell wird vorbereitet"),
+    "preparando modelo onnx": ("generation_phase_onnx_model", "ONNX-Modell wird vorbereitet"),
+    "onnx runtime wird geprüft": ("generation_phase_onnx_runtime", "ONNX Runtime wird geprüft"),
+    "checking onnx runtime": ("generation_phase_onnx_runtime", "ONNX Runtime wird geprüft"),
+    "comprobando onnx runtime": ("generation_phase_onnx_runtime", "ONNX Runtime wird geprüft"),
+    "prompt wird kodiert": ("generation_phase_prompt_encoding", "Prompt wird kodiert"),
+    "encoding prompt": ("generation_phase_prompt_encoding", "Prompt wird kodiert"),
+    "codificando prompt": ("generation_phase_prompt_encoding", "Prompt wird kodiert"),
+    "scheduler wird vorbereitet": ("generation_phase_scheduler", "Scheduler wird vorbereitet"),
+    "preparing scheduler": ("generation_phase_scheduler", "Scheduler wird vorbereitet"),
+    "preparando scheduler": ("generation_phase_scheduler", "Scheduler wird vorbereitet"),
+    "bild wird gespeichert": ("saving_image", "Bild wird gespeichert & Metadaten geschrieben..."),
+    "saving image": ("saving_image", "Bild wird gespeichert & Metadaten geschrieben..."),
+    "guardando imagen": ("saving_image", "Bild wird gespeichert & Metadaten geschrieben..."),
+    "modell wird geladen (text encoder)": ("model_loading_text_encoder", "Modell wird geladen (Text Encoder)..."),
+    "loading model (text encoder)": ("model_loading_text_encoder", "Modell wird geladen (Text Encoder)..."),
+    "cargando modelo (codificador de texto)": ("model_loading_text_encoder", "Modell wird geladen (Text Encoder)..."),
+    "modell wird geladen": ("model_loading", "Modell wird geladen..."),
+    "model loading": ("model_loading", "Modell wird geladen..."),
+    "cargando modelo": ("model_loading", "Modell wird geladen..."),
+    "vae decoding": ("vae_decoding", "VAE-Dekodierung..."),
+    "vae-dekodierung": ("vae_decoding", "VAE-Dekodierung..."),
+    "decodificación vae": ("vae_decoding", "VAE-Dekodierung..."),
+    "bild wird gespeichert & metadaten geschrieben": ("saving_image", "Bild wird gespeichert & Metadaten geschrieben..."),
+    "saving image & writing metadata": ("saving_image", "Bild wird gespeichert & Metadaten geschrieben..."),
+    "guardando imagen y escribiendo metadatos": ("saving_image", "Bild wird gespeichert & Metadaten geschrieben..."),
     "deferred": ("queue_status_deferred", "Zurückgestellt"),
     "zurückgestellt": ("queue_status_deferred", "Zurückgestellt"),
     "aplazado": ("queue_status_deferred", "Zurückgestellt"),
 }
 
 _ERROR_PREFIX = re.compile(r"^(?:error|fehler|error del proceso)\s*:\s*", re.IGNORECASE)
+_SAMPLING_PHASE = re.compile(
+    r"^sampling phase \((?:schritt|step|paso)\s+(\d+)/(\d+)\)", re.IGNORECASE
+)
 
 
 def localize_runtime_text(value: object) -> str:
@@ -80,8 +113,17 @@ def localize_runtime_text(value: object) -> str:
         detail = text[error_match.end():]
         return f"{tr('error', 'Fehler')}: {detail}"
 
+    sampling_match = _SAMPLING_PHASE.match(text)
+    if sampling_match:
+        return tr(
+            "sampling_phase",
+            "Sampling Phase (Schritt {curr}/{total})...",
+            curr=int(sampling_match.group(1)),
+            total=int(sampling_match.group(2)),
+        )
+
     normalized = text.casefold()
-    entry = _STATUS_KEYS.get(normalized)
+    entry = _STATUS_KEYS.get(normalized) or _STATUS_KEYS.get(normalized.rstrip(" .…"))
     if entry is None:
         return text
     key, fallback = entry

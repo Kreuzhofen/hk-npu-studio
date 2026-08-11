@@ -133,6 +133,7 @@ class PhoenixBoostEngine:
         recommendations = {
             "sd15": (28, 7.5, (512, 512)),
             "sd21": (30, 7.5, (512, 512)),
+            "sd35": (8, 3.5, (1024, 1024)),
             "sdxl": (30, 7.0, (1024, 1024)),
         }
         recommended_steps, recommended_cfg, resolution = recommendations[profile]
@@ -141,7 +142,7 @@ class PhoenixBoostEngine:
         elif profile == "sdxl" and motif == "landscape":
             resolution = (1024, 768)
         model_hint = None
-        if profile != "sdxl" and motif in {"photo", "portrait", "landscape", "product"}:
+        if profile in {"sd15", "sd21"} and motif in {"photo", "portrait", "landscape", "product"}:
             model_hint = "sdxl"
         return BoostSuggestion(
             original, optimized, existing, negative_addition, combined,
@@ -210,6 +211,9 @@ class PhoenixBoostEngine:
 
     @classmethod
     def _build_prompt(cls, original: str, analysis: PromptAnalysis, motif: str) -> str:
+        if len(original.split()) >= 40:
+            enhancement = cls._ENHANCEMENTS[cls._detect_language(original)][motif]
+            return f"{original.rstrip('.,; ')}, {enhancement}"
         clauses: list[str] = []
         if analysis.main_object == "giraffe":
             count = analysis.count or 1
@@ -270,6 +274,8 @@ class PhoenixBoostEngine:
     @staticmethod
     def _model_profile(model_id: str) -> str:
         value = model_id.casefold().replace("_", "").replace("-", "")
+        if "3.5" in value or "sd35" in value or "stablediffusionv35" in value:
+            return "sd35"
         if "sdxl" in value or "stable diffusion xl" in value:
             return "sdxl"
         if "2.1" in value or "sd21" in value or "sd2" in value:
