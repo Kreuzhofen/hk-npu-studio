@@ -22,6 +22,7 @@ class ModelDirectDownloadDialog(StudioDialog):
     MIN_SIZE = (580, 470)
     START_BUTTON_WIDTH = 290
     CANCEL_BUTTON_WIDTH = 130
+    NAVIGATION_DELAY_MS = 180
 
     def __init__(
         self,
@@ -226,5 +227,12 @@ class ModelDirectDownloadDialog(StudioDialog):
             )
 
     def _open_generate(self) -> None:
-        self._on_open_generate()
+        callback = self._on_open_generate
+        self.master.after(
+            self.NAVIGATION_DELAY_MS,
+            lambda: self._close_and_navigate(callback),
+        )
+
+    def _close_and_navigate(self, callback: Callable[[], None]) -> None:
         self.close()
+        callback()

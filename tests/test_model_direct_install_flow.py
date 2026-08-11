@@ -438,13 +438,32 @@ class DirectModelInstallTests(unittest.TestCase):
         self.assertEqual(repository.active, "previous_model")
 
     def test_ready_action_navigates_without_starting_generation(self) -> None:
-        dialog = ModelReadyDialog.__new__(ModelReadyDialog)
-        dialog._on_open_generate = MagicMock()
-        dialog.close = MagicMock()
         generation = MagicMock()
-        dialog._open_generate()
-        dialog._on_open_generate.assert_called_once()
-        dialog.close.assert_called_once()
+        for dialog_class, button_name in (
+            (ModelReadyDialog, "create_button"),
+            (ModelDirectDownloadDialog, "start_button"),
+        ):
+            with self.subTest(dialog=dialog_class.__name__):
+                order = []
+                dialog = dialog_class.__new__(dialog_class)
+                dialog.master = MagicMock()
+                dialog._on_open_generate = MagicMock(side_effect=lambda: order.append("navigate"))
+                dialog.close = MagicMock(side_effect=lambda: order.append("close"))
+                button = MagicMock()
+                setattr(dialog, button_name, button)
+
+                dialog._open_generate()
+
+                dialog.close.assert_not_called()
+                dialog._on_open_generate.assert_not_called()
+                self.assertEqual(button.mock_calls, [])
+                delay, scheduled = dialog.master.after.call_args.args
+                self.assertGreaterEqual(delay, 180)
+
+                scheduled()
+
+                self.assertEqual(order, ["close", "navigate"])
+                self.assertEqual(button.mock_calls, [])
         generation.assert_not_called()
 
     def test_dialog_uses_existing_green_phoenix_progress_style(self) -> None:

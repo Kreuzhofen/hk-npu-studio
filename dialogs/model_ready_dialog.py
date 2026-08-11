@@ -13,6 +13,8 @@ from widgets.phoenix.theme import PHOENIX_THEME
 class ModelReadyDialog(StudioDialog):
     """Shared non-technical completion for guided model setup."""
 
+    NAVIGATION_DELAY_MS = 180
+
     def __init__(
         self,
         master: tk.Misc,
@@ -57,5 +59,12 @@ class ModelReadyDialog(StudioDialog):
         self.create_button.pack(anchor="center")
 
     def _open_generate(self) -> None:
-        self._on_open_generate()
+        callback = self._on_open_generate
+        self.master.after(
+            self.NAVIGATION_DELAY_MS,
+            lambda: self._close_and_navigate(callback),
+        )
+
+    def _close_and_navigate(self, callback: Callable[[], None]) -> None:
         self.close()
+        callback()
