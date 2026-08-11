@@ -288,6 +288,19 @@ class PromptWorkspaceController:
         except Exception as e:
             print(f"[PromptWorkspaceController] Error saving prompt history: {e}")
 
+    def clear_prompt_history(self) -> None:
+        """Clear saved generation-history entries without touching generated files."""
+        from config import PROMPT_HISTORY_PATH
+
+        try:
+            PROMPT_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+            temp_path = PROMPT_HISTORY_PATH.with_suffix(PROMPT_HISTORY_PATH.suffix + ".tmp")
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump([], f, indent=2, ensure_ascii=False)
+            os.replace(temp_path, PROMPT_HISTORY_PATH)
+        except Exception as e:
+            print(f"[PromptWorkspaceController] Error clearing prompt history: {e}")
+
     def load_prompt_templates(self) -> dict[str, list[dict[str, str]]]:
         """Load prompt templates from resources JSON file."""
         from config import PROMPT_TEMPLATES_PATH

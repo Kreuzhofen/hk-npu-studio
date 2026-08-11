@@ -2885,6 +2885,7 @@ class PhoenixPromptView(WorkspaceFrame):
         message = tr("clear_history_confirm", "Möchten Sie die gesamte Generierungshistorie wirklich löschen?")
         if messagebox.askyesno(title, message):
             self.controller.clear_prompt_history()
+            self._show_prompt_history_popup()
 
     def _load_prompt_from_history(self, entry: str | dict) -> None:
         if isinstance(entry, dict):
