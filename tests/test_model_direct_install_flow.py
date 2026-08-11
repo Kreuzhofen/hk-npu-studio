@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from app.i18n import set_language
+from app.i18n import set_language, tr
 from controllers.model_manager_controller import ModelManagerController
 from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
 from dialogs.hf_auth_dialog import HuggingFaceAuthDialog
@@ -38,6 +38,9 @@ class _Repository:
 
 
 class DirectModelInstallTests(unittest.TestCase):
+    def tearDown(self) -> None:
+        set_language("de_DE")
+
     def test_direct_handler_opens_progress_dialog_without_file_picker(self) -> None:
         source_url = "https://example.invalid/model.zip"
         repository = _Repository({
@@ -493,6 +496,75 @@ class DirectModelInstallTests(unittest.TestCase):
             + ModelDirectDownloadDialog.CANCEL_BUTTON_WIDTH
         )
         self.assertLess(button_width, ModelDirectDownloadDialog.MIN_SIZE[0])
+
+    def test_all_source_routes_are_safe_before_user_file_selection_in_each_language(self) -> None:
+        for locale in ("de_DE", "en_US", "es_ES"):
+            set_language(locale)
+            for source_type in ("direct", "official_external", "local_only"):
+                with self.subTest(locale=locale, source_type=source_type):
+                    model = {
+                        "id": f"{source_type}_model",
+                        "display_name": "Stable Diffusion",
+                        "installed": False,
+                        "source_type": source_type,
+                        "source_url": (
+                            "https://example.invalid/model.zip" if source_type == "direct"
+                            else "https://aihub.qualcomm.com/models/example" if source_type == "official_external"
+                            else ""
+                        ),
+                        "package_format": "smp_or_zip",
+                        "requires_hf_token": False,
+                    }
+                    repository = _Repository(model)
+                    controller = SimpleNamespace(
+                        model=SimpleNamespace(repository=repository),
+                        download_and_install_package=MagicMock(return_value=False),
+                    )
+                    view = SimpleNamespace(
+                        selected_model_id=model["id"], controller=controller,
+                        winfo_toplevel=lambda: SimpleNamespace(brand=None),
+                        _display_title=lambda item: item["display_name"],
+                        _requires_hf_auth=PhoenixModelManagerView._requires_hf_auth,
+                    )
+                    with patch(
+                        "widgets.phoenix.views.model_manager_view.filedialog.askopenfilename"
+                    ) as picker, patch(
+                        "dialogs.model_direct_download_dialog.ModelDirectDownloadDialog"
+                    ) as direct_dialog, patch(
+                        "dialogs.model_source_dialog.ModelSourceDialog",
+                        return_value=SimpleNamespace(choice="cancel"),
+                    ) as source_dialog:
+                        PhoenixModelManagerView._on_install_selected(view)
+                    picker.assert_not_called()
+                    if source_type == "direct":
+                        direct_dialog.assert_called_once()
+                        source_dialog.assert_not_called()
+                    else:
+                        source_dialog.assert_called_once()
+                        direct_dialog.assert_not_called()
+
+    def test_first_run_visible_copy_is_resolved_in_each_language(self) -> None:
+        expected = {
+            "de_DE": ("Einrichtung starten", "Erstes Bild erstellen"),
+            "en_US": ("Start setup", "Create your first image"),
+            "es_ES": ("Iniciar configuración", "Crear la primera imagen"),
+        }
+        static_keys = (
+            "home_setup_required", "home_studio_ready", "home_start_setup",
+            "home_create_first_image", "model_install_action", "model_use_action",
+            "model_active_ready_action", "model_src_select_existing",
+            "cancel", "direct_model_install_error",
+        )
+        for locale, actions in expected.items():
+            set_language(locale)
+            with self.subTest(locale=locale):
+                values = [tr(key) for key in static_keys]
+                values.extend((
+                    tr("direct_model_downloading_percent", percent=50.0),
+                    tr("model_src_official_source", source="Qualcomm AI Hub"),
+                ))
+                self.assertEqual((tr("home_start_setup"), tr("home_create_first_image")), actions)
+                self.assertTrue(all(value and "{" not in value and "}" not in value for value in values))
 
 
 if __name__ == "__main__":

@@ -3897,7 +3897,10 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self._boost_run_feedback_lbl = tk.Label(
             self._boost_run_status_frame,
-            text="⏳ Phoenix Boost AI status is being checked — please wait...",
+            text=tr(
+                "boost_ai_checking",
+                "⏳ Phoenix Boost AI status is being checked — please wait...",
+            ),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_small,
@@ -4145,7 +4148,11 @@ class PhoenixPromptView(WorkspaceFrame):
         remaining = max(0.0, BoostAIService.REQUEST_TIMEOUT_SECONDS - elapsed)
         self._boost_countdown_bar.configure(value=remaining)
         self._boost_run_feedback_lbl.configure(
-            text=f"Optimizing with Qwen2.5 3B — {int(math.ceil(remaining))}s remaining",
+            text=tr(
+                "boost_ai_countdown",
+                "Optimizing with Qwen2.5 3B — {seconds}s remaining",
+                seconds=int(math.ceil(remaining)),
+            ),
             fg=PHOENIX_THEME.text_secondary,
         )
         if remaining > 0:
@@ -4253,8 +4260,12 @@ class PhoenixPromptView(WorkspaceFrame):
         self._boost_optimized_value.configure(text=suggestion.optimized_prompt)
         self._boost_negative_value.configure(text=suggestion.negative_addition)
         self._boost_run_feedback_lbl.configure(
-            text=(f"✓ AI optimization completed — {duration:.1f}s\n"
-                  "Model: Qwen2.5 3B\nMode: Local via Ollama"),
+            text=tr(
+                "boost_ai_completed_details",
+                "✓ AI optimization completed — {duration:.1f}s\n"
+                "Model: Qwen2.5 3B\nMode: Local via Ollama",
+                duration=duration,
+            ),
             fg=PHOENIX_THEME.success,
         )
         summary_labels = {

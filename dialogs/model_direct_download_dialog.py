@@ -199,8 +199,9 @@ class ModelDirectDownloadDialog(StudioDialog):
         }
         failed = phase.endswith("_failed")
         self._failure_message_shown = failed
+        default_message = next(iter(messages.values()))
         self.status_label.configure(
-            text=messages.get(phase, messages["downloading"]),
+            text=messages.get(phase, default_message),
             fg=PHOENIX_THEME.danger if failed else PHOENIX_THEME.success,
         )
 
