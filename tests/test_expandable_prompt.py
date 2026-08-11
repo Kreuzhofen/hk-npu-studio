@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 import tkinter as tk
 
-from app.i18n import tr
+from app.i18n import set_language, tr
 from engine.theme_manager import ThemeManager, ThemePalette
 
 # Setup a mock palette for widgets/phoenix/theme initialization
@@ -56,6 +56,7 @@ class ExpandablePromptTests(unittest.TestCase):
         cls.root.destroy()
 
     def setUp(self) -> None:
+        set_language("de_DE")
         OllamaStatusService.invalidate_cache()
         self.controller = PromptWorkspaceController()
         self.view = PhoenixPromptView(self.root, controller=self.controller)
@@ -453,8 +454,25 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(self.view._boost_popup.cget("bg"), PHOENIX_THEME.card_bg)
         self.assertTrue(self.view._boost_popup._standard_dialog_title.winfo_manager())
         self.assertIn("Phoenix Boost AI", texts)
+        self.assertIn(
+            "Phoenix Boost nutzt KI, um Ihre Bildbeschreibung zu verbessern.\n"
+            "So versteht die Bilderzeugung besser, was Sie erstellen möchten.\n"
+            "Phoenix Boost ist freiwillig – Sie können auch ohne Phoenix Boost Bilder erstellen.",
+            texts,
+        )
+        self.assertEqual(self.view._boost_ai_optional_lbl.cget("wraplength"), 470)
+        self.assertEqual(self.view._boost_ai_optional_lbl.pack_info()["pady"], (7, 6))
+        self.assertNotEqual(self.view.gen_btn.cget("state"), "disabled")
         self.assertIn("Ollama: nicht installiert", texts)
         self.assertIn("Ollama installieren", texts)
+        self.assertIn("Sampler:", texts)
+        self.assertIn("Scheduler:", texts)
+        self.assertFalse(any("{sampler}" in text or "{scheduler}" in text for text in texts))
+        self.assertIn(
+            "Installieren Sie zuerst Ollama. Die offizielle Downloadseite wird geöffnet; "
+            "Ihre Bildgenerierung bleibt weiterhin verfügbar.",
+            texts,
+        )
         self.assertTrue(self.view._boost_suggestion.optimized_prompt)
         self.assertEqual(self.view._boost_install_btn.cget("state"), "normal")
         self.assertEqual(self.view._boost_install_btn.cget("bg"), PHOENIX_THEME.accent)
@@ -469,6 +487,11 @@ class ExpandablePromptTests(unittest.TestCase):
         self.view._update_ollama_install_button(OllamaStatus(True, True, True))
         self.assertEqual(self.view._boost_install_btn.cget("state"), "disabled")
         self.assertEqual(self.view._boost_install_btn.cget("text"), "Phoenix Boost AI bereit ✓")
+        self.assertEqual(self.view._boost_ai_status_lbl.cget("text"), "✓ Phoenix Boost ist bereit")
+        self.assertEqual(
+            self.view._boost_ai_info_lbl.cget("text"),
+            "Alles eingerichtet. Phoenix Boost kann verwendet werden.",
+        )
         self.assertEqual(self.view._boost_install_btn.cget("bg"), PHOENIX_THEME.elevated_bg)
 
     def test_missing_model_offers_qwen_install(self) -> None:
@@ -482,6 +505,24 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(self.view._boost_install_btn.cget("state"), "normal")
         self.assertEqual(self.view._boost_install_btn.cget("text"), "Qwen2.5 3B installieren")
         self.assertEqual(self.view._boost_model_status_lbl.cget("text"), "Qwen2.5 3B: nicht installiert")
+        self.assertIn("benötigte Qwen-Modell", self.view._boost_ai_info_lbl.cget("text"))
+
+    def test_boost_ready_cached_state_is_visible_on_second_open(self) -> None:
+        self.view.prompt_text.delete("1.0", "end")
+        self.view.prompt_text.insert("1.0", "one red car")
+        ready = OllamaStatus(True, True, True)
+        with patch.object(OllamaStatusService, "cached_status", return_value=ready), patch.object(
+            OllamaStatusService, "detect", return_value=ready
+        ):
+            self.view._open_boost_preview()
+            first_popup = self.view._boost_popup
+            self.assertEqual(self.view._boost_ai_status_lbl.cget("text"), "✓ Phoenix Boost ist bereit")
+            first_popup.destroy()
+            self.view._open_boost_preview()
+        self.assertTrue(self.view._boost_popup.winfo_exists())
+        self.assertEqual(self.view._boost_ai_status_lbl.cget("text"), "✓ Phoenix Boost ist bereit")
+        self.assertEqual(self.view._boost_install_btn.cget("state"), "disabled")
+        self.view._boost_popup.destroy()
 
     @patch("engine.ollama_status.urlopen")
     @patch("engine.ollama_status.shutil.which", return_value="C:/Ollama/ollama.exe")
@@ -610,9 +651,12 @@ class ExpandablePromptTests(unittest.TestCase):
             "boost_existing_negative", "boost_negative_addition", "boost_none",
             "boost_current", "boost_recommended", "boost_model_hint",
             "boost_steps", "boost_cfg", "boost_resolution",
+            "boost_sampler_label", "boost_scheduler_label",
             "boost_apply_negative", "boost_apply_resolution",
             "boost_resolution_controlnet_locked", "boost_resolution_model_locked",
             "boost_ai_available", "boost_ai_info", "boost_install_ollama",
+            "boost_ai_optional_info", "boost_ai_setup_ollama",
+            "boost_ai_setup_qwen", "boost_ai_setup_ready",
             "boost_ai_title", "boost_ollama_not_installed", "boost_ollama_not_available",
             "boost_ollama_installed",
             "boost_ollama_status_missing", "boost_ollama_status_ready",
@@ -629,6 +673,40 @@ class ExpandablePromptTests(unittest.TestCase):
         for locale in ("de_DE.json", "en_US.json", "es_ES.json"):
             data = json.loads((root / "locales" / locale).read_text(encoding="utf-8"))
             self.assertTrue(required.issubset(data), locale)
+
+        expected_explanations = {
+            "de_DE.json": (
+                "Phoenix Boost nutzt KI, um Ihre Bildbeschreibung zu verbessern.\n"
+                "So versteht die Bilderzeugung besser, was Sie erstellen möchten.\n"
+                "Phoenix Boost ist freiwillig – Sie können auch ohne Phoenix Boost Bilder erstellen."
+            ),
+            "en_US.json": (
+                "Phoenix Boost uses AI to improve your image description.\n"
+                "This helps the image generator understand what you want to create.\n"
+                "Phoenix Boost is optional – you can create images without it."
+            ),
+            "es_ES.json": (
+                "Phoenix Boost utiliza IA para mejorar la descripción de su imagen.\n"
+                "Así, el generador de imágenes entiende mejor lo que desea crear.\n"
+                "Phoenix Boost es opcional: puede crear imágenes sin utilizarlo."
+            ),
+        }
+        for locale, expected in expected_explanations.items():
+            data = json.loads((root / "locales" / locale).read_text(encoding="utf-8"))
+            self.assertEqual(data["boost_ai_optional_info"], expected, locale)
+        expected_parameter_labels = {
+            "de_DE.json": ("Sampler:", "Scheduler:"),
+            "en_US.json": ("Sampler:", "Scheduler:"),
+            "es_ES.json": ("Muestreador:", "Planificador:"),
+        }
+        for locale, expected in expected_parameter_labels.items():
+            data = json.loads((root / "locales" / locale).read_text(encoding="utf-8"))
+            self.assertEqual(
+                (data["boost_sampler_label"], data["boost_scheduler_label"]),
+                expected,
+                locale,
+            )
+            self.assertNotIn("{", data["boost_sampler_label"] + data["boost_scheduler_label"])
 
 
 if __name__ == "__main__":

@@ -3836,55 +3836,54 @@ class PhoenixPromptView(WorkspaceFrame):
             popup, container, tr("boost_preview_title", "Phoenix Boost – Vorschau"),
         )
 
-        if self._ollama_status.available:
-            self._boost_ai_title_lbl = tk.Label(
-                container, text=tr("boost_ai_title", "Phoenix Boost AI"),
-                bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.success,
-                font=PHOENIX_THEME.font_small, anchor="w",
-            )
-            self._boost_ai_title_lbl.pack(fill="x", pady=(0, 8))
-        else:
-            ai_info = tk.Frame(container, bg=PHOENIX_THEME.surface)
-            ai_info.pack(fill="x", pady=(0, 10))
-            ai_copy = tk.Frame(ai_info, bg=PHOENIX_THEME.surface)
-            ai_copy.pack(side="left", fill="x", expand=True, padx=10, pady=7)
-            self._boost_ai_title_lbl = tk.Label(
-                ai_copy, text=tr("boost_ai_title", "Phoenix Boost AI"),
-                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
-                font=PHOENIX_THEME.font_card_title, anchor="w",
-            )
-            self._boost_ai_title_lbl.pack(fill="x")
-            self._boost_ollama_status_lbl = tk.Label(
-                ai_copy, text=tr("boost_ollama_status_missing", "Ollama: nicht installiert"),
-                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
-                font=PHOENIX_THEME.font_small, anchor="w",
-            )
-            self._boost_ollama_status_lbl.pack(fill="x", pady=(2, 0))
-            self._boost_model_status_lbl = tk.Label(
-                ai_copy, text=tr("boost_model_status_unavailable", "Qwen2.5 3B: nicht verfügbar"),
-                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
-                font=PHOENIX_THEME.font_small, anchor="w",
-            )
-            self._boost_model_status_lbl.pack(fill="x", pady=(2, 0))
-            self._boost_ai_status_lbl = tk.Label(
-                ai_copy, text=tr("boost_ai_status_not_ready", "Phoenix Boost AI: nicht bereit"),
-                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
-                font=PHOENIX_THEME.font_small, anchor="w",
-            )
-            self._boost_ai_status_lbl.pack(fill="x", pady=(2, 0))
-            self._boost_ai_info_lbl = tk.Label(
-                ai_copy,
-                text=tr("boost_ai_info", "Erweitert die Prompt-Optimierung optional mit lokaler KI."),
-                bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_muted,
-                font=PHOENIX_THEME.font_caption, anchor="w",
-            )
-            self._boost_ai_info_lbl.pack(fill="x", pady=(2, 0))
-            self._boost_install_btn = PhoenixButton(
-                ai_info, text=tr("boost_install_ollama", "Ollama installieren"),
-                command=self._open_ollama_download,
-                button_type="primary", font=PHOENIX_THEME.font_small,
-            )
-            self._boost_install_btn.pack(side="right", padx=8, pady=5)
+        ai_info = tk.Frame(container, bg=PHOENIX_THEME.surface)
+        ai_info.pack(fill="x", pady=(0, 10))
+        ai_copy = tk.Frame(ai_info, bg=PHOENIX_THEME.surface)
+        ai_copy.pack(side="left", fill="x", expand=True, padx=10, pady=(11, 8))
+        self._boost_ai_title_lbl = tk.Label(
+            ai_copy, text=tr("boost_ai_title", "Phoenix Boost AI"),
+            bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        )
+        self._boost_ai_title_lbl.pack(fill="x")
+        self._boost_ai_optional_lbl = tk.Label(
+            ai_copy,
+            text=tr(
+                "boost_ai_optional_info",
+                "Phoenix Boost nutzt KI, um Ihre Bildbeschreibung zu verbessern.\n"
+                "So versteht die Bilderzeugung besser, was Sie erstellen möchten.\n"
+                "Phoenix Boost ist freiwillig – Sie können auch ohne Phoenix Boost Bilder erstellen.",
+            ),
+            bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=470,
+        )
+        self._boost_ai_optional_lbl.pack(fill="x", pady=(7, 6))
+        self._boost_ollama_status_lbl = tk.Label(
+            ai_copy, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        )
+        self._boost_ollama_status_lbl.pack(fill="x", pady=(2, 0))
+        self._boost_model_status_lbl = tk.Label(
+            ai_copy, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        )
+        self._boost_model_status_lbl.pack(fill="x", pady=(2, 0))
+        self._boost_ai_status_lbl = tk.Label(
+            ai_copy, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        )
+        self._boost_ai_status_lbl.pack(fill="x", pady=(2, 0))
+        self._boost_ai_info_lbl = tk.Label(
+            ai_copy, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left", wraplength=470,
+        )
+        self._boost_ai_info_lbl.pack(fill="x", pady=(3, 0))
+        self._boost_install_btn = PhoenixButton(
+            ai_info, command=self._open_ollama_download,
+            button_type="primary", font=PHOENIX_THEME.font_small,
+        )
+        self._boost_install_btn.pack(side="right", padx=8, pady=5)
+        self._update_ollama_install_button(self._ollama_status)
 
         self._boost_run_status_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         self._boost_run_status_frame.pack(fill="x", pady=(0, 8))
@@ -3931,8 +3930,8 @@ class PhoenixPromptView(WorkspaceFrame):
             (tr("boost_steps", "Schritte"), str(suggestion.current_steps), str(suggestion.recommended_steps)),
             (tr("boost_cfg", "CFG Scale"), f"{suggestion.current_cfg:g}", f"{suggestion.recommended_cfg:g}"),
             (tr("boost_resolution", "Auflösung"), f"{suggestion.current_resolution[0]} × {suggestion.current_resolution[1]}", f"{suggestion.recommended_resolution[0]} × {suggestion.recommended_resolution[1]}"),
-            (tr("sampler_label", "Sampler"), self.sampler_var.get(), self._boost_recommended_sampler),
-            (tr("scheduler_label", "Scheduler"), self.scheduler_var.get(), self._boost_recommended_scheduler),
+            (tr("boost_sampler_label", "Sampler:"), self.sampler_var.get(), self._boost_recommended_sampler),
+            (tr("boost_scheduler_label", "Scheduler:"), self.scheduler_var.get(), self._boost_recommended_scheduler),
         )
         for column, text_value in enumerate(("", tr("boost_current", "Aktuell"), tr("boost_recommended", "Empfohlen"))):
             tk.Label(values, text=text_value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
@@ -4182,20 +4181,31 @@ class PhoenixPromptView(WorkspaceFrame):
         ) if status.available else tr("boost_model_status_unavailable", "Qwen2.5 3B: nicht verfügbar"))
         self._boost_ai_status_lbl.configure(text=tr(
             "boost_ai_status_ready" if status.ai_ready else "boost_ai_status_not_ready",
-            "Phoenix Boost AI: bereit" if status.ai_ready else "Phoenix Boost AI: nicht bereit",
-        ))
+            "✓ Phoenix Boost ist bereit" if status.ai_ready else "Phoenix Boost ist noch nicht bereit",
+        ), fg=PHOENIX_THEME.success if status.ai_ready else PHOENIX_THEME.text_secondary)
         if status.ai_ready:
+            self._boost_ai_info_lbl.configure(
+                text=tr("boost_ai_setup_ready", "Alles eingerichtet. Phoenix Boost kann verwendet werden."),
+            )
             self._boost_install_btn.configure(
                 text=tr("boost_ai_ready_button", "Phoenix Boost AI bereit ✓"),
                 state="disabled",
             )
         elif status.available:
+            self._boost_ai_info_lbl.configure(text=tr(
+                "boost_ai_setup_qwen",
+                "Installieren Sie jetzt das benötigte Qwen-Modell. Snapdragon AI Studio startet den lokalen Download.",
+            ))
             self._boost_install_btn.configure(
                 text=tr("boost_install_qwen", "Qwen2.5 3B installieren"),
                 command=self._confirm_qwen_install,
                 button_type="primary", state="normal",
             )
         else:
+            self._boost_ai_info_lbl.configure(text=tr(
+                "boost_ai_setup_ollama",
+                "Installieren Sie zuerst Ollama. Die offizielle Downloadseite wird geöffnet; Ihre Bildgenerierung bleibt weiterhin verfügbar.",
+            ))
             self._boost_install_btn.configure(
                 text=tr("boost_install_ollama", "Ollama installieren"),
                 command=self._open_ollama_download,
