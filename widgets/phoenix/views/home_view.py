@@ -13,7 +13,7 @@ from typing import Callable
 
 from PIL import Image, ImageTk
 
-from config import BASE, OUTPUT_DIR
+from config import BASE, MODELS_DIR, OUTPUT_DIR
 from controllers.model_manager_controller import ModelManagerController
 from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
@@ -37,6 +37,9 @@ class HomeSnapshot:
     onnx_runtime: str
     installed_models: str
     active_model: str
+    model_ready: bool
+    model_directory_ready: bool
+    system_ready: bool
     version: str
     branch: str
     installed_packages: str
@@ -83,7 +86,7 @@ class PhoenixHomeView(tk.Frame):
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(3, weight=1)
+        self.grid_rowconfigure(4, weight=1)
 
         welcome = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
         welcome.grid(
@@ -146,9 +149,56 @@ class PhoenixHomeView(tk.Frame):
         for column, (icon, title, target) in enumerate(action_specs):
             self._create_action_card(actions, icon, title, target, column)
 
+        readiness_card = tk.Frame(
+            self,
+            bg=PHOENIX_THEME.card_bg,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightthickness=1,
+        )
+        readiness_card.grid(
+            row=2, column=0, sticky="ew",
+            padx=PHOENIX_THEME.space_xl,
+            pady=(0, PHOENIX_THEME.space_sm),
+        )
+        readiness_card.grid_columnconfigure(0, weight=1)
+        self._readiness_title = tk.Label(
+            readiness_card,
+            text=tr("home_get_started_title", "Erste Schritte"),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        )
+        self._readiness_title.grid(
+            row=0, column=0, sticky="ew",
+            padx=PHOENIX_THEME.card_pad_x, pady=(8, 2),
+        )
+        self._readiness_status = tk.Label(
+            readiness_card, text="", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_body,
+            anchor="w", justify="left",
+        )
+        self._readiness_status.grid(
+            row=1, column=0, sticky="ew",
+            padx=PHOENIX_THEME.card_pad_x, pady=(2, 4),
+        )
+        self._readiness_button = tk.Button(
+            readiness_card, text="", command=self._on_readiness_action,
+            bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
+            activebackground=PHOENIX_THEME.accent_dark,
+            activeforeground=PHOENIX_THEME.text_on_accent,
+            relief="flat", bd=0, font=PHOENIX_THEME.font_button,
+            cursor="hand2", padx=PHOENIX_THEME.button_pad_x, pady=8,
+        )
+        self._readiness_button.grid(
+            row=0, column=1, rowspan=2, sticky="e",
+            padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y,
+        )
+        self._model_ready = False
+
         status_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
         status_host.grid(
-            row=2,
+            row=3,
             column=0,
             sticky="ew",
             padx=PHOENIX_THEME.space_xl,
@@ -182,7 +232,7 @@ class PhoenixHomeView(tk.Frame):
 
         self._last_card = self._create_section_card(self, tr("home_latest_generations", "Letzte Generierungen"))
         self._last_card.grid(
-            row=3,
+            row=4,
             column=0,
             sticky="nsew",
             padx=PHOENIX_THEME.space_xl,
@@ -348,6 +398,9 @@ class PhoenixHomeView(tk.Frame):
         if self._on_navigate is not None:
             self._on_navigate(target)
 
+    def _on_readiness_action(self) -> None:
+        self._navigate("prompt" if self._model_ready else "models")
+
     def refresh(self, force: bool = False) -> None:
         now = time.monotonic()
         if not force and now - self._last_refresh_at < self.REFRESH_INTERVAL_SECONDS:
@@ -357,11 +410,21 @@ class PhoenixHomeView(tk.Frame):
         self._render(snapshot)
 
     def _read_snapshot(self) -> HomeSnapshot:
+        model_directory_ready = MODELS_DIR.is_dir() or MODELS_DIR.parent.is_dir()
         try:
             self._model_controller.refresh_repository()
             models = self._model_controller.get_all_models()
             active_model_id = self._model_controller.get_active_model_id()
             installed_models = [model for model in models if model.get("installed") is True]
+            active_model_record = next(
+                (model for model in models if model.get("id") == active_model_id),
+                None,
+            )
+            model_ready = bool(
+                active_model_id
+                and active_model_record
+                and active_model_record.get("installed") is True
+            )
             active_model = next(
                 (
                     str(model.get("display_name") or active_model_id)
@@ -373,6 +436,7 @@ class PhoenixHomeView(tk.Frame):
         except Exception:
             installed_models = []
             active_model = tr("home_not_available", "Nicht verfügbar")
+            model_ready = False
 
         try:
             discovery = self._model_controller.get_discovery_result()
@@ -383,10 +447,15 @@ class PhoenixHomeView(tk.Frame):
                 if discovery.onnx_available
                 else tr("home_not_installed", "Nicht installiert")
             )
+            system_ready = bool(
+                discovery.onnx_available
+                or (discovery.qnn_sdk_found and discovery.qnn_tools_found)
+            )
         except Exception:
             npu_status = tr("home_not_available", "Nicht verfügbar")
             qnn_runtime = tr("home_not_available", "Nicht verfügbar")
             onnx_runtime = tr("home_not_available", "Nicht verfügbar")
+            system_ready = False
 
         try:
             packages = self._model_controller.reconcile_installed_packages()
@@ -409,6 +478,9 @@ class PhoenixHomeView(tk.Frame):
             onnx_runtime=onnx_runtime,
             installed_models=str(len(installed_models)),
             active_model=active_model,
+            model_ready=model_ready,
+            model_directory_ready=model_directory_ready,
+            system_ready=system_ready,
             version=BrandManager.APP_VERSION,
             branch=self._project_branch,
             installed_packages=installed_packages,
@@ -481,6 +553,11 @@ class PhoenixHomeView(tk.Frame):
         return text
 
     def _render(self, snapshot: HomeSnapshot) -> None:
+        self._render_readiness(
+            snapshot.model_ready,
+            snapshot.model_directory_ready,
+            snapshot.system_ready,
+        )
         system_values = {
             "npu": snapshot.npu_status,
             "active": snapshot.active_model,
@@ -620,6 +697,52 @@ class PhoenixHomeView(tk.Frame):
             btn_enter, btn_leave = make_btn_handlers()
             delete_btn.bind("<Enter>", btn_enter, add="+")
             delete_btn.bind("<Leave>", btn_leave, add="+")
+
+    def _render_readiness(
+        self,
+        model_ready: bool,
+        model_directory_ready: bool = True,
+        system_ready: bool = True,
+    ) -> None:
+        self._model_ready = model_ready
+        folder_status = (
+            "✓ " + tr("home_model_folder_ready", "Modellordner verfügbar")
+            if model_directory_ready
+            else "→ " + tr("home_model_folder_not_ready", "Modellordner nicht verfügbar")
+        )
+        system_status = (
+            "✓ " + tr("home_system_ready", "System bereit")
+            if system_ready
+            else "→ " + tr("home_system_not_ready", "Systemprüfung erforderlich")
+        )
+        if model_ready:
+            self._readiness_title.configure(
+                text=tr(
+                    "home_studio_ready",
+                    "✓ Snapdragon AI Studio ist bereit",
+                ),
+                fg=PHOENIX_THEME.success,
+            )
+            self._readiness_status.configure(
+                text=f"{folder_status}\n{system_status}",
+                fg=PHOENIX_THEME.text_primary,
+            )
+            self._readiness_button.configure(
+                text=tr("home_create_first_image", "Erstes Bild erstellen")
+            )
+        else:
+            self._readiness_title.configure(
+                text=tr("home_setup_required", "Einrichtung erforderlich"),
+                fg=PHOENIX_THEME.warning,
+            )
+            self._readiness_status.configure(
+                text=(f"{folder_status}\n{system_status}\n→ "
+                      + tr("home_select_install_next", "Modell auswählen und installieren")),
+                fg=PHOENIX_THEME.text_primary,
+            )
+            self._readiness_button.configure(
+                text=tr("home_start_setup", "Einrichtung starten")
+            )
 
     def _show_generation_menu(self, event: tk.Event, path: Path) -> None:
         menu = tk.Menu(
