@@ -369,7 +369,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         title_lbl = tk.Label(
             card,
-            text=self._display_name(model),
+            text=self._display_title(model),
             bg=card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
@@ -458,6 +458,18 @@ class PhoenixModelManagerView(WorkspaceFrame):
             value = re.sub(pattern, "", value, flags=re.IGNORECASE).strip()
         return value
 
+    @classmethod
+    def _display_title(cls, model: dict[str, Any]) -> str:
+        """Add a short, localized variant only when equal model names need it."""
+        name = cls._display_name(model)
+        variant = str(model.get("beginner_variant_label") or "").strip()
+        localized = {
+            "Standard package": tr("model_variant_standard", "Standard package"),
+            "External package": tr("model_variant_external", "External package"),
+            "Local package": tr("model_variant_local", "Local package"),
+        }.get(variant, variant)
+        return f"{name} — {localized}" if localized else name
+
     @staticmethod
     def _model_action_state(installed: bool, active: bool) -> str:
         if active:
@@ -502,7 +514,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         is_active = (self.selected_model_id == active_id)
 
-        model_name = self._display_name(selected_model)
+        model_name = self._display_title(selected_model)
         self.det_name.configure(text=model_name)
         self.det_id.configure(text=selected_model.get("id", "-"))
         self.det_backend.configure(text=selected_model.get("backend", "Qualcomm QNN HTP"))

@@ -1,6 +1,12 @@
 {
   "id": "controlnet_canny_qnn",
-  "display_name": "ControlNet Canny QNN",
+  "display_name": "ControlNet Canny",
+  "beginner_variant_label": "",
+  "source_type": "direct",
+  "source_url": "https://huggingface.co/qualcomm/controlnet-canny-qnn/resolve/main/controlnet_canny_qnn.zip",
+  "package_format": "zip",
+  "download_size": null,
+  "requires_hf_token": false,
   "author": "Qualcomm",
   "version": "0.58.0-qnn",
   "license": "CreativeML Open RAIL-M",

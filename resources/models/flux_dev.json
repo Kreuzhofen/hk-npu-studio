@@ -1,6 +1,12 @@
 {
   "id": "flux_dev",
   "display_name": "Flux.1 Dev",
+  "beginner_variant_label": "Local package",
+  "source_type": "local_only",
+  "source_url": "",
+  "package_format": "smp_or_zip",
+  "download_size": null,
+  "requires_hf_token": false,
   "author": "Black Forest Labs",
   "version": "1.0.0",
   "license": "FLUX.1-dev Non-Commercial License",

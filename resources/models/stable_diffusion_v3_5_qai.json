@@ -1,6 +1,12 @@
 {
   "id": "stable_diffusion_v3_5_qai",
-  "display_name": "Stable Diffusion 3.5 Medium QAI AppBuilder",
+  "display_name": "Stable Diffusion 3.5 Medium",
+  "beginner_variant_label": "Local package",
+  "source_type": "local_only",
+  "source_url": "",
+  "package_format": "smp_or_zip",
+  "download_size": 3.93,
+  "requires_hf_token": false,
   "author": "Qualcomm / Stability AI",
   "version": "3.5.0-medium-qai",
   "license": "Stability AI Community License",

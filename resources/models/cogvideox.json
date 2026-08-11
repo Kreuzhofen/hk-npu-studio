@@ -1,6 +1,12 @@
 {
   "id": "cogvideox",
   "display_name": "CogVideoX 5B",
+  "beginner_variant_label": "Local package",
+  "source_type": "local_only",
+  "source_url": "",
+  "package_format": "smp_or_zip",
+  "download_size": null,
+  "requires_hf_token": false,
   "author": "THUDM Group",
   "version": "1.0",
   "license": "CogVideoX License",

@@ -55,6 +55,15 @@ class ModelManagerBeginnerTests(unittest.TestCase):
         self.assertEqual(display_name({"name": "Named", "title": "Titled"}), "Named")
         self.assertEqual(display_name({"title": "Titled", "id": "technical_id"}), "Titled")
 
+    def test_duplicate_names_have_clear_localized_variants(self) -> None:
+        set_language("de_DE")
+        title = PhoenixModelManagerView._display_title
+        standard = title({"display_name": "Stable Diffusion 1.5", "beginner_variant_label": "Standard package"})
+        local = title({"display_name": "Stable Diffusion 1.5", "beginner_variant_label": "Local package"})
+        self.assertEqual(standard, "Stable Diffusion 1.5 — Standardpaket")
+        self.assertEqual(local, "Stable Diffusion 1.5 — Lokales Paket")
+        self.assertNotEqual(standard, local)
+
     def test_localization_keys_complete(self) -> None:
         required = {
             "model_beginner_guide", "model_beginner_recommended",
@@ -64,6 +73,7 @@ class ModelManagerBeginnerTests(unittest.TestCase):
             "model_status_active_ready", "model_status_installed",
             "model_status_not_installed", "model_install_action",
             "model_use_action", "model_active_ready_action",
+            "model_variant_standard", "model_variant_external", "model_variant_local",
         }
         root = Path(__file__).resolve().parents[1]
         for locale in ("de_DE", "en_US", "es_ES"):

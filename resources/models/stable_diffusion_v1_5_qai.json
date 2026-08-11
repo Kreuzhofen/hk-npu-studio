@@ -1,6 +1,12 @@
 {
   "id": "stable_diffusion_v1_5_qai",
-  "display_name": "Stable Diffusion 1.5 QAI AppBuilder",
+  "display_name": "Stable Diffusion 1.5",
+  "beginner_variant_label": "External package",
+  "source_type": "official_external",
+  "source_url": "",
+  "package_format": "smp_or_zip",
+  "download_size": 1.04,
+  "requires_hf_token": false,
   "author": "Qualcomm",
   "version": "1.5.0-qai",
   "license": "CreativeML Open RAIL-M",

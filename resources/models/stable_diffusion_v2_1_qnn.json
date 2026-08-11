@@ -1,6 +1,12 @@
 {
   "id": "stable_diffusion_v2_1_qnn",
-  "display_name": "Stable Diffusion 2.1 QNN",
+  "display_name": "Stable Diffusion 2.1",
+  "beginner_variant_label": "Standard package",
+  "source_type": "direct",
+  "source_url": "https://huggingface.co/qualcomm/stable-diffusion-v2-1-qnn/resolve/main/stable_diffusion_v2_1_qnn.zip",
+  "package_format": "zip",
+  "download_size": null,
+  "requires_hf_token": false,
   "author": "Qualcomm / Stability AI",
   "version": "2.1.0-qnn",
   "license": "CreativeML Open RAIL++-M",

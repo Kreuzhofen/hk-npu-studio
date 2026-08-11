@@ -1,6 +1,12 @@
 {
   "id": "ltx_video",
   "display_name": "LTX Video",
+  "beginner_variant_label": "Local package",
+  "source_type": "local_only",
+  "source_url": "",
+  "package_format": "smp_or_zip",
+  "download_size": null,
+  "requires_hf_token": false,
   "author": "Lightricks",
   "version": "0.9.0",
   "license": "LTX-Video License",

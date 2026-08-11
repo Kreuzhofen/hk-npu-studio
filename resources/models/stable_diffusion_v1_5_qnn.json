@@ -1,6 +1,12 @@
 {
   "id": "stable_diffusion_v1_5_qnn",
-  "display_name": "Stable Diffusion 1.5 QNN",
+  "display_name": "Stable Diffusion 1.5",
+  "beginner_variant_label": "Standard package",
+  "source_type": "direct",
+  "source_url": "https://huggingface.co/qualcomm/stable-diffusion-v1-5-qnn/resolve/main/stable_diffusion_v1_5_qnn.zip",
+  "package_format": "zip",
+  "download_size": null,
+  "requires_hf_token": false,
   "author": "Qualcomm",
   "version": "1.5.0-qnn",
   "license": "CreativeML Open RAIL-M",
