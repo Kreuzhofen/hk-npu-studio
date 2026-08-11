@@ -190,7 +190,7 @@ class ModelDirectDownloadDialog(StudioDialog):
             "checking": tr("direct_model_checking", "Model package is being checked …"),
             "installing": tr("direct_model_installing", "Model is being installed …"),
             "activating": tr("direct_model_activating", "Model is being activated …"),
-            "ready": tr("direct_model_ready", "✓ Model is ready"),
+            "ready": tr("home_studio_ready", "✓ Snapdragon AI Studio is ready"),
             "download_failed": tr("direct_model_download_failed", "Download failed. Please check your connection and try again."),
             "validation_failed": tr("direct_model_validation_failed", "The downloaded model package could not be verified."),
             "install_failed": tr("direct_model_installation_failed", "The verified model package could not be installed."),
@@ -208,7 +208,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         if success:
             self.progress_var.set(100.0)
             self.status_label.configure(
-                text=tr("direct_model_ready", "✓ Model is ready"),
+                text=tr("home_studio_ready", "✓ Snapdragon AI Studio is ready"),
                 fg=PHOENIX_THEME.success,
             )
             self._on_installed()

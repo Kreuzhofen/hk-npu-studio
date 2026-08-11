@@ -552,6 +552,7 @@
   "model_src_open_official": "Qualcomm AI Hub öffnen",
   "model_src_select_existing": "Vorhandenes Modellpaket auswählen",
   "settings_hf_token_optional": "Optional – nur für Modelle erforderlich, die eine Hugging-Face-Authentifizierung benötigen.",
+  "setup_complete_title": "Einrichtung abgeschlossen",
   "hf_auth_title": "Hugging-Face-Anmeldung",
   "hf_auth_required_explanation": "Dieses Modell benötigt für den Download eine Hugging-Face-Anmeldung.",
   "hf_auth_token_label": "Hugging-Face-Token",

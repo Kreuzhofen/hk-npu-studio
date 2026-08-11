@@ -10,6 +10,7 @@ from controllers.model_manager_controller import ModelManagerController
 from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
 from dialogs.hf_auth_dialog import HuggingFaceAuthDialog
 from dialogs.model_source_dialog import ModelSourceDialog
+from dialogs.model_ready_dialog import ModelReadyDialog
 from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
 
 
@@ -158,7 +159,7 @@ class DirectModelInstallTests(unittest.TestCase):
         })
         controller = SimpleNamespace(
             model=SimpleNamespace(repository=repository),
-            install_package=MagicMock(return_value=False),
+            install_and_activate_package=MagicMock(return_value=False),
         )
         view = SimpleNamespace(
             selected_model_id="local_model", controller=controller,
@@ -184,7 +185,7 @@ class DirectModelInstallTests(unittest.TestCase):
         })
         controller = SimpleNamespace(
             model=SimpleNamespace(repository=repository),
-            install_package=MagicMock(return_value=True),
+            install_and_activate_package=MagicMock(return_value=True),
         )
         view = SimpleNamespace(
             selected_model_id="external_model", controller=controller,
@@ -195,13 +196,14 @@ class DirectModelInstallTests(unittest.TestCase):
         dialog = SimpleNamespace(choice="install")
         with patch("dialogs.model_source_dialog.ModelSourceDialog", return_value=dialog) as source_dialog, \
              patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename", return_value=r"C:\temp\model.smp") as picker, \
-             patch("widgets.phoenix.views.model_manager_view.messagebox.showinfo"):
+             patch("dialogs.model_ready_dialog.ModelReadyDialog") as ready_dialog:
             PhoenixModelManagerView._on_install_selected(view)
         self.assertEqual(source_dialog.call_args.kwargs["source_url"], source_url)
         self.assertEqual(source_dialog.call_args.kwargs["package_format"], "smp_or_zip")
         self.assertIsNone(source_dialog.call_args.kwargs["required_variant"])
         picker.assert_called_once()
-        controller.install_package.assert_called_once_with("external_model", r"C:\temp\model.smp")
+        controller.install_and_activate_package.assert_called_once_with("external_model", r"C:\temp\model.smp")
+        ready_dialog.assert_called_once()
 
     def test_official_page_button_does_not_open_file_picker_or_close_dialog(self) -> None:
         dialog = ModelSourceDialog.__new__(ModelSourceDialog)
@@ -211,6 +213,49 @@ class DirectModelInstallTests(unittest.TestCase):
             dialog._on_download()
         browser.assert_called_once_with(dialog.source_url)
         dialog.close.assert_not_called()
+
+    def test_local_only_success_uses_same_ready_completion(self) -> None:
+        repository = _Repository({
+            "id": "local_model", "display_name": "Local Model", "installed": False,
+            "source_type": "local_only", "source_url": "", "package_format": "smp_or_zip",
+        })
+        controller = SimpleNamespace(
+            model=SimpleNamespace(repository=repository),
+            install_and_activate_package=MagicMock(return_value=True),
+        )
+        view = SimpleNamespace(
+            selected_model_id="local_model", controller=controller,
+            winfo_toplevel=lambda: SimpleNamespace(brand=None),
+            _display_title=lambda model: model["display_name"],
+            _last_rendered_signature=None, refresh=MagicMock(),
+        )
+        with patch("dialogs.model_source_dialog.ModelSourceDialog", return_value=SimpleNamespace(choice="install")), \
+             patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename", return_value=r"C:\temp\local.zip"), \
+             patch("dialogs.model_ready_dialog.ModelReadyDialog") as ready_dialog:
+            PhoenixModelManagerView._on_install_selected(view)
+        controller.install_and_activate_package.assert_called_once_with("local_model", r"C:\temp\local.zip")
+        ready_dialog.assert_called_once()
+
+    def test_install_error_never_shows_ready_completion(self) -> None:
+        repository = _Repository({
+            "id": "local_model", "display_name": "Local Model", "installed": False,
+            "source_type": "local_only", "source_url": "", "package_format": "smp_or_zip",
+        })
+        controller = SimpleNamespace(
+            model=SimpleNamespace(repository=repository),
+            install_and_activate_package=MagicMock(return_value=False),
+        )
+        view = SimpleNamespace(
+            selected_model_id="local_model", controller=controller,
+            winfo_toplevel=lambda: SimpleNamespace(brand=None),
+            _display_title=lambda model: model["display_name"],
+        )
+        with patch("dialogs.model_source_dialog.ModelSourceDialog", return_value=SimpleNamespace(choice="install")), \
+             patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename", return_value=r"C:\temp\bad.zip"), \
+             patch("dialogs.model_ready_dialog.ModelReadyDialog") as ready_dialog, \
+             patch("widgets.phoenix.views.model_manager_view.messagebox.showerror"):
+            PhoenixModelManagerView._on_install_selected(view)
+        ready_dialog.assert_not_called()
 
     def test_package_format_is_clear_and_localized(self) -> None:
         set_language("en_US")
@@ -258,6 +303,7 @@ class DirectModelInstallTests(unittest.TestCase):
             "hf_auth_enter_token", "hf_auth_check", "hf_auth_checking_saved",
             "hf_auth_checking", "hf_auth_missing", "hf_auth_invalid",
             "hf_auth_save_failed",
+            "setup_complete_title", "home_studio_ready", "home_create_first_image",
         }
         root = Path(__file__).resolve().parents[1]
         for locale in ("de_DE", "en_US", "es_ES"):
@@ -367,6 +413,39 @@ class DirectModelInstallTests(unittest.TestCase):
         dialog._apply_result(False, "hf_invalid", True)
         dialog.submit_button.configure.assert_called_once_with(state="normal")
         dialog.close.assert_not_called()
+
+    def test_local_install_activates_only_after_success(self) -> None:
+        repository = _Repository({
+            "id": "local_model", "installed": False, "product_available": True,
+            "generation_parameters": {"width": {"default": 512}},
+        })
+        service = MagicMock()
+        service.install_package.side_effect = lambda *_args: repository.model.update(installed=True) or True
+        controller = ModelManagerController.__new__(ModelManagerController)
+        controller.model = SimpleNamespace(repository=repository)
+        controller.install_service = service
+        self.assertTrue(controller.install_and_activate_package("local_model", r"C:\temp\model.smp"))
+        self.assertEqual(repository.active, "local_model")
+
+    def test_local_install_failure_preserves_active_model_and_never_completes(self) -> None:
+        repository = _Repository({"id": "local_model", "installed": False})
+        service = MagicMock()
+        service.install_package.return_value = False
+        controller = ModelManagerController.__new__(ModelManagerController)
+        controller.model = SimpleNamespace(repository=repository)
+        controller.install_service = service
+        self.assertFalse(controller.install_and_activate_package("local_model", r"C:\temp\bad.smp"))
+        self.assertEqual(repository.active, "previous_model")
+
+    def test_ready_action_navigates_without_starting_generation(self) -> None:
+        dialog = ModelReadyDialog.__new__(ModelReadyDialog)
+        dialog._on_open_generate = MagicMock()
+        dialog.close = MagicMock()
+        generation = MagicMock()
+        dialog._open_generate()
+        dialog._on_open_generate.assert_called_once()
+        dialog.close.assert_called_once()
+        generation.assert_not_called()
 
     def test_dialog_uses_existing_green_phoenix_progress_style(self) -> None:
         self.assertEqual(

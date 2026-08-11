@@ -672,8 +672,8 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if not source_path:
             return
 
-        install_package = getattr(self.controller, "install_package", None)
-        if not callable(install_package):
+        install_and_activate = getattr(self.controller, "install_and_activate_package", None)
+        if not callable(install_and_activate):
             messagebox.showerror(
                 tr("model_manager_title", "Modell-Manager"),
                 tr("local_package_install_unavailable", "Der lokale Paketimport ist nicht verfügbar."),
@@ -681,13 +681,15 @@ class PhoenixModelManagerView(WorkspaceFrame):
             )
             return
 
-        if install_package(self.selected_model_id, source_path):
+        if install_and_activate(self.selected_model_id, source_path):
             self._last_rendered_signature = None
             self.refresh()
-            messagebox.showinfo(
-                tr("model_manager_title", "Modell-Manager"),
-                tr("local_package_install_success", "Das lokale Modellpaket wurde erfolgreich installiert."),
-                parent=self.winfo_toplevel(),
+            from controllers.workflow_controller import WorkflowController
+            from dialogs.model_ready_dialog import ModelReadyDialog
+            ModelReadyDialog(
+                self.winfo_toplevel(),
+                on_open_generate=WorkflowController.get_instance().open_generate,
+                brand=getattr(self.winfo_toplevel(), "brand", None),
             )
         else:
             messagebox.showerror(

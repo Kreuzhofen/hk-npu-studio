@@ -88,6 +88,18 @@ class ModelManagerController:
         """Install a new SMP package from source path."""
         return self.install_service.install_package(model_id, source_path)
 
+    def install_and_activate_package(self, model_id: str, source_path: str) -> bool:
+        """Use the existing installer, then activate only after successful validation."""
+        previous_active = self.get_active_model_id()
+        if not self.install_service.install_package(model_id, source_path):
+            return False
+        self.set_active_model_id(model_id)
+        if self.get_active_model_id() == model_id:
+            return True
+        if self.get_active_model_id() != previous_active:
+            self.set_active_model_id(previous_active)
+        return False
+
     def download_and_install_package(
         self,
         model_id: str,

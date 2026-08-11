@@ -552,6 +552,7 @@
   "model_src_open_official": "Open Qualcomm AI Hub",
   "model_src_select_existing": "Select existing model package",
   "settings_hf_token_optional": "Optional — required only for models that need Hugging Face authentication.",
+  "setup_complete_title": "Setup complete",
   "hf_auth_title": "Hugging Face sign-in",
   "hf_auth_required_explanation": "This model requires a Hugging Face sign-in for downloading.",
   "hf_auth_token_label": "Hugging Face token",
