@@ -4,7 +4,7 @@ import threading
 import tkinter as tk
 from queue import Empty, Queue
 from tkinter import ttk
-from typing import Callable
+from typing import Any, Callable
 
 from app.i18n import tr
 from config import MODELS_DIR
@@ -29,13 +29,16 @@ class ModelDirectDownloadDialog(StudioDialog):
         *,
         model_name: str,
         download_size: float | int | None,
-        start_install: Callable[[Callable[[float], None]], bool],
+        start_install: Callable[[Callable[[Any], None]], bool],
         on_installed: Callable[[], None],
+        on_open_generate: Callable[[], None],
         brand: BrandManager | None = None,
     ) -> None:
         self._start_install = start_install
         self._on_installed = on_installed
+        self._on_open_generate = on_open_generate
         self._running = False
+        self._failure_message_shown = False
         self._events: Queue[tuple[str, object]] = Queue()
         super().__init__(
             master,
@@ -156,15 +159,15 @@ class ModelDirectDownloadDialog(StudioDialog):
             success = False
         self._events.put(("finished", success))
 
-    def _queue_progress(self, percent: float) -> None:
-        self._events.put(("progress", percent))
+    def _queue_progress(self, update: Any) -> None:
+        self._events.put(("progress", update))
 
     def _poll_events(self) -> None:
         try:
             while True:
                 event, value = self._events.get_nowait()
                 if event == "progress":
-                    self._set_progress(float(value))
+                    self._set_progress(value)
                 elif event == "finished":
                     self._finish(bool(value))
                     return
@@ -173,24 +176,55 @@ class ModelDirectDownloadDialog(StudioDialog):
         if self._running and self.winfo_exists():
             self.after(100, self._poll_events)
 
-    def _set_progress(self, percent: float) -> None:
+    def _set_progress(self, update: Any) -> None:
+        phase = "downloading"
+        percent = update
+        if isinstance(update, dict):
+            phase = str(update.get("phase") or phase)
+            percent = update.get("percent", 0.0)
         value = max(0.0, min(100.0, float(percent)))
         self.progress_var.set(value)
+        messages = {
+            "downloading": tr("direct_model_downloading_percent", "Model is being downloaded … {percent:.0f}%", percent=value),
+            "download_complete": tr("direct_model_download_complete", "Download completed."),
+            "checking": tr("direct_model_checking", "Model package is being checked …"),
+            "installing": tr("direct_model_installing", "Model is being installed …"),
+            "activating": tr("direct_model_activating", "Model is being activated …"),
+            "ready": tr("direct_model_ready", "✓ Model is ready"),
+            "download_failed": tr("direct_model_download_failed", "Download failed. Please check your connection and try again."),
+            "validation_failed": tr("direct_model_validation_failed", "The downloaded model package could not be verified."),
+            "install_failed": tr("direct_model_installation_failed", "The verified model package could not be installed."),
+            "activation_failed": tr("direct_model_activation_failed", "The model was installed but could not be activated."),
+        }
+        failed = phase.endswith("_failed")
+        self._failure_message_shown = failed
         self.status_label.configure(
-            text=tr("direct_model_downloading_percent", "Model is being downloaded … {percent:.0f}%", percent=value),
-            fg=PHOENIX_THEME.success,
+            text=messages.get(phase, messages["downloading"]),
+            fg=PHOENIX_THEME.danger if failed else PHOENIX_THEME.success,
         )
 
     def _finish(self, success: bool) -> None:
         self._running = False
         if success:
             self.progress_var.set(100.0)
-            self.status_label.configure(text=tr("direct_model_install_success", "The model was installed successfully."))
+            self.status_label.configure(
+                text=tr("direct_model_ready", "✓ Model is ready"),
+                fg=PHOENIX_THEME.success,
+            )
             self._on_installed()
-            self.close()
+            self.start_button.configure(
+                text=tr("home_create_first_image", "Create first image"),
+                command=self._open_generate,
+            )
+            self.start_button.grid()
             return
         self.start_button.grid()
-        self.status_label.configure(
-            text=tr("direct_model_install_error", "The model could not be downloaded or installed. Please check your connection and try again."),
-            fg=PHOENIX_THEME.danger,
-        )
+        if not self._failure_message_shown:
+            self.status_label.configure(
+                text=tr("direct_model_install_error", "The model could not be downloaded or installed. Please check your connection and try again."),
+                fg=PHOENIX_THEME.danger,
+            )
+
+    def _open_generate(self) -> None:
+        self._on_open_generate()
+        self.close()

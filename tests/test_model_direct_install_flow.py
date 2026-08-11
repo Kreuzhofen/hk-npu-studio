@@ -1,4 +1,5 @@
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,11 +11,26 @@ from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
 
 
 class _Repository:
-    def __init__(self, model: dict) -> None:
+    def __init__(self, model: dict, active: str | None = "previous_model") -> None:
         self.model = model
+        self.active = active
 
     def get_model(self, _model_id: str) -> dict:
         return dict(self.model)
+
+    def update_model(self, _model_id: str, **updates) -> bool:
+        self.model.update(updates)
+        return True
+
+    def is_selectable_model(self, model_id: str) -> bool:
+        return model_id == self.model.get("id") and self.model.get("installed") is True
+
+    def set_active_model_id(self, model_id: str | None) -> None:
+        if model_id is None or self.is_selectable_model(model_id):
+            self.active = model_id
+
+    def get_active_model_id(self) -> str | None:
+        return self.active
 
 
 class DirectModelInstallTests(unittest.TestCase):
@@ -63,15 +79,70 @@ class DirectModelInstallTests(unittest.TestCase):
             return True
 
         install_service.start_download.side_effect = stage
-        install_service.install_package.return_value = True
+        install_service.validate_package_source.return_value = {"success": True}
+        install_service.install_package.side_effect = lambda *_args, **_kwargs: repository.model.update(installed=True) or True
         controller = ModelManagerController.__new__(ModelManagerController)
         controller.model = SimpleNamespace(repository=repository)
         controller.install_service = install_service
         updates = []
 
-        self.assertTrue(controller.download_and_install_package("direct_model", source_url, updates.append))
-        self.assertEqual(updates, [42.0])
-        install_service.install_package.assert_called_once_with("direct_model", r"C:\temp\model.zip")
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "controllers.model_manager_controller.config.MODELS_DIR", Path(directory)
+        ):
+            self.assertTrue(controller.download_and_install_package("direct_model", source_url, updates.append))
+        self.assertEqual(
+            [update["phase"] for update in updates],
+            ["downloading", "download_complete", "checking", "installing", "activating", "ready"],
+        )
+        install_service.install_package.assert_called_once_with(
+            "direct_model", r"C:\temp\model.zip", replace_existing=False
+        )
+        install_service.cleanup_staged_download.assert_called_once_with(r"C:\temp\model.zip")
+        self.assertEqual(repository.active, "direct_model")
+
+    def test_validation_failure_preserves_previous_active_model(self) -> None:
+        source_url = "https://example.invalid/model.zip"
+        repository = _Repository({
+            "id": "direct_model", "installed": False, "downloaded": False,
+            "source_type": "direct", "source_url": source_url, "path": "", "status": "Available",
+        })
+        service = MagicMock()
+        service.start_download.side_effect = lambda _id, _url, _cb: repository.model.update(path=r"C:\temp\bad.zip") or True
+        service.validate_package_source.return_value = {"success": False}
+        controller = ModelManagerController.__new__(ModelManagerController)
+        controller.model = SimpleNamespace(repository=repository)
+        controller.install_service = service
+        updates = []
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "controllers.model_manager_controller.config.MODELS_DIR", Path(directory)
+        ):
+            self.assertFalse(controller.download_and_install_package("direct_model", source_url, updates.append))
+        service.install_package.assert_not_called()
+        service.cleanup_staged_download.assert_called_once_with(r"C:\temp\bad.zip")
+        self.assertEqual(repository.active, "previous_model")
+        self.assertIn("validation_failed", [update["phase"] for update in updates])
+
+    def test_install_failure_does_not_activate_or_replace_previous_model(self) -> None:
+        source_url = "https://example.invalid/model.zip"
+        repository = _Repository({
+            "id": "direct_model", "installed": False, "downloaded": False,
+            "source_type": "direct", "source_url": source_url, "path": "", "status": "Available",
+        })
+        service = MagicMock()
+        service.start_download.side_effect = lambda _id, _url, _cb: repository.model.update(path=r"C:\temp\model.zip") or True
+        service.validate_package_source.return_value = {"success": True}
+        service.install_package.return_value = False
+        controller = ModelManagerController.__new__(ModelManagerController)
+        controller.model = SimpleNamespace(repository=repository)
+        controller.install_service = service
+        updates = []
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "controllers.model_manager_controller.config.MODELS_DIR", Path(directory)
+        ):
+            self.assertFalse(controller.download_and_install_package("direct_model", source_url, updates.append))
+        self.assertEqual(repository.active, "previous_model")
+        service.cleanup_staged_download.assert_called_once_with(r"C:\temp\model.zip")
+        self.assertIn("install_failed", [update["phase"] for update in updates])
 
     def test_non_direct_model_does_not_enter_direct_download(self) -> None:
         repository = _Repository({
@@ -96,6 +167,7 @@ class DirectModelInstallTests(unittest.TestCase):
         dialog = ModelDirectDownloadDialog.__new__(ModelDirectDownloadDialog)
         dialog.progress_var = MagicMock()
         dialog.status_label = MagicMock()
+        dialog._failure_message_shown = False
         for percent in (0.0, 50.0, 100.0):
             with self.subTest(percent=percent):
                 dialog.progress_var.reset_mock()
@@ -112,6 +184,10 @@ class DirectModelInstallTests(unittest.TestCase):
             "direct_model_automatic_steps",
             "direct_model_ready_to_download", "direct_model_start",
             "direct_model_downloading", "direct_model_downloading_percent",
+            "direct_model_download_complete", "direct_model_checking",
+            "direct_model_installing", "direct_model_activating", "direct_model_ready",
+            "direct_model_download_failed", "direct_model_validation_failed",
+            "direct_model_installation_failed", "direct_model_activation_failed",
             "direct_model_install_success", "direct_model_install_error",
             "direct_model_source_unavailable",
         }
@@ -124,6 +200,21 @@ class DirectModelInstallTests(unittest.TestCase):
         self.assertEqual(
             ModelDirectDownloadDialog.PROGRESS_STYLE,
             "Phoenix.Horizontal.TProgressbar",
+        )
+
+    def test_success_exposes_first_image_action(self) -> None:
+        dialog = ModelDirectDownloadDialog.__new__(ModelDirectDownloadDialog)
+        dialog.progress_var = MagicMock()
+        dialog.status_label = MagicMock()
+        dialog.start_button = MagicMock()
+        dialog._on_installed = MagicMock()
+        dialog._on_open_generate = MagicMock()
+        dialog._running = True
+        dialog._finish(True)
+        dialog._on_installed.assert_called_once()
+        self.assertEqual(
+            dialog.start_button.configure.call_args.kwargs["command"],
+            dialog._open_generate,
         )
 
     def test_footer_buttons_fit_minimum_dialog_width(self) -> None:

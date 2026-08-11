@@ -596,6 +596,24 @@ class ModelInstallService:
         )
         return True
 
+    def validate_package_source(self, model_id: str, source_path: str) -> dict[str, Any]:
+        """Validate a staged local package without installing or modifying models."""
+        return self._validate_local_package_source(model_id, source_path)
+
+    def cleanup_staged_download(self, source_path: str) -> None:
+        """Remove only a staged download inside the managed download directory."""
+        candidate = Path(source_path)
+        try:
+            candidate.resolve().relative_to(self.download_service.download_dir.resolve())
+        except (OSError, ValueError):
+            logger.warning("Refusing to clean download outside staging directory: %s", candidate)
+            return
+        try:
+            if candidate.is_file():
+                candidate.unlink()
+        except OSError as exc:
+            logger.warning("Failed to clean staged download '%s': %s", candidate, exc)
+
     def cancel_download(self, model_id: str) -> bool:
         """
         Cancel a running package download.
@@ -980,6 +998,7 @@ class ModelInstallService:
         model_id: str,
         source_path: str,
         progress_callback: Callable[[float], None] | None = None,
+        replace_existing: bool = True,
     ) -> bool:
         """
         Install an SMP package from a local directory or local ZIP/SMP archive only.
@@ -1004,6 +1023,10 @@ class ModelInstallService:
             return False
 
         package_dir = MODELS_DIR / model_id
+        if package_dir.exists() and not replace_existing:
+            logger.error("Package installation refused to replace existing model '%s'.", model_id)
+            self._set_package_status(model_id, status="Install Failed")
+            return False
         try:
             self._set_package_status(model_id, status="Installing")
             self._copy_local_package_source(source_path, package_dir, source_info)

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Callable
+
+import config
 from controllers.model_manager_model import ModelManagerModel
 from engine.backends.backend_manager import BackendManager
 from engine.backends.discovery_result import DiscoveryResult
@@ -89,19 +92,76 @@ class ModelManagerController:
         self,
         model_id: str,
         source_url: str,
-        progress_callback: Callable[[float], None] | None = None,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
     ) -> bool:
-        """Stage a DIRECT package download, then pass it to the existing installer."""
+        """Download, validate, install, and activate one DIRECT package."""
+        def emit(phase: str, percent: float) -> None:
+            if progress_callback:
+                progress_callback({"phase": phase, "percent": percent})
+
         model = self.model.repository.get_model(model_id)
         if not model or model.get("installed") is True:
             return False
         if model.get("source_type") != "direct" or source_url != model.get("source_url"):
             return False
-        if not self.install_service.start_download(model_id, source_url, progress_callback):
+        if (Path(config.MODELS_DIR) / model_id).exists():
+            emit("install_failed", 0.0)
             return False
-        staged = self.model.repository.get_model(model_id)
-        staged_path = str((staged or {}).get("path") or "")
-        return bool(staged_path and self.install_service.install_package(model_id, staged_path))
+
+        original_state = {
+            key: model.get(key) for key in ("installed", "downloaded", "path", "status")
+        }
+        previous_active = self.get_active_model_id()
+        staged_path = ""
+        installed = False
+        try:
+            if not self.install_service.start_download(
+                model_id,
+                source_url,
+                lambda percent: emit("downloading", min(70.0, float(percent) * 0.7)),
+            ):
+                emit("download_failed", 0.0)
+                self.model.repository.update_model(model_id, **original_state)
+                return False
+
+            staged = self.model.repository.get_model(model_id)
+            staged_path = str((staged or {}).get("path") or "")
+            emit("download_complete", 70.0)
+            emit("checking", 75.0)
+            validation = self.install_service.validate_package_source(model_id, staged_path)
+            if not validation.get("success"):
+                emit("validation_failed", 75.0)
+                self.model.repository.update_model(model_id, **original_state)
+                return False
+
+            emit("installing", 82.0)
+            if not self.install_service.install_package(
+                model_id, staged_path, replace_existing=False
+            ):
+                emit("install_failed", 82.0)
+                self.model.repository.update_model(model_id, **original_state)
+                return False
+            installed = True
+
+            emit("activating", 95.0)
+            self.set_active_model_id(model_id)
+            if self.get_active_model_id() != model_id:
+                if self.get_active_model_id() != previous_active:
+                    self.set_active_model_id(previous_active)
+                emit("activation_failed", 95.0)
+                return False
+            emit("ready", 100.0)
+            return True
+        except Exception:
+            emit("activation_failed" if installed else "install_failed", 95.0 if installed else 82.0)
+            if not installed:
+                self.model.repository.update_model(model_id, **original_state)
+            elif self.get_active_model_id() != previous_active:
+                self.set_active_model_id(previous_active)
+            return False
+        finally:
+            if staged_path:
+                self.install_service.cleanup_staged_download(staged_path)
 
     def list_available_packages(self) -> list[dict[str, Any]]:
         """List package catalog entries with locally derived PackageStatus."""

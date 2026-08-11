@@ -617,6 +617,8 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 self._last_rendered_signature = None
                 self.refresh()
 
+            from controllers.workflow_controller import WorkflowController
+
             ModelDirectDownloadDialog(
                 self.winfo_toplevel(),
                 model_name=self._display_title(selected_model),
@@ -625,6 +627,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                     self.selected_model_id, source_url, callback
                 ),
                 on_installed=_installed,
+                on_open_generate=WorkflowController.get_instance().open_generate,
                 brand=getattr(self.winfo_toplevel(), "brand", None),
             )
             return
