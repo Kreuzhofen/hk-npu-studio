@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import Any
@@ -18,6 +19,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
     Phoenix Workspace View for Model Management & Qualcomm NPU Package Qualification.
     Displays available Snapdragon AI models, package statuses, and installation options.
     """
+    BEGINNER_RECOMMENDED_MODEL_ID = "stable_diffusion_v1_5_qnn"
 
     def __init__(self, master: tk.Misc, controller: Any | None = None) -> None:
         super().__init__(
@@ -62,7 +64,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             highlightthickness=1
         )
         self.list_card.grid(row=0, column=0, sticky="nsew", padx=PHOENIX_THEME.space_xs, pady=PHOENIX_THEME.space_xs)
-        self.list_card.grid_rowconfigure(1, weight=1)
+        self.list_card.grid_rowconfigure(2, weight=1)
         self.list_card.grid_columnconfigure(0, weight=1)
 
         header_frame = tk.Frame(self.list_card, bg=PHOENIX_THEME.card_bg)
@@ -78,13 +80,21 @@ class PhoenixModelManagerView(WorkspaceFrame):
             anchor="w"
         ).grid(row=0, column=0, sticky="w")
 
+        self.beginner_guide_label = tk.Label(
+            header_frame,
+            text=tr("model_beginner_guide", "Wählen Sie für den ersten Start das empfohlene Modell. Snapdragon AI Studio führt Sie anschließend zur Installation oder Aktivierung."),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_body, anchor="w", justify="left", wraplength=680,
+        )
+        self.beginner_guide_label.grid(row=1, column=0, sticky="ew", pady=(4, 2))
+
         self.canvas = tk.Canvas(
             self.list_card,
             bg=PHOENIX_THEME.card_bg,
             bd=0,
             highlightthickness=0
         )
-        self.canvas.grid(row=1, column=0, sticky="nsew")
+        self.canvas.grid(row=2, column=0, sticky="nsew")
 
         self.cards_container = tk.Frame(self.canvas, bg=PHOENIX_THEME.card_bg)
         self.canvas_window = self.canvas.create_window((0, 0), window=self.cards_container, anchor="nw")
@@ -359,13 +369,22 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         title_lbl = tk.Label(
             card,
-            text=model.get("name", model_id),
+            text=self._display_name(model),
             bg=card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w"
         )
         title_lbl.grid(row=0, column=0, sticky="w")
+
+        recommended_lbl = None
+        if self._is_beginner_recommended(model):
+            recommended_lbl = tk.Label(
+                card, text=tr("model_beginner_recommended", "Empfohlen für den Einstieg"),
+                bg=card_bg, fg=PHOENIX_THEME.success,
+                font=PHOENIX_THEME.font_caption, anchor="w",
+            )
+            recommended_lbl.grid(row=1, column=0, columnspan=2, sticky="w", pady=(3, 0))
 
         if is_active:
             badge_text = f"  {tr('status_active', 'AKTIV')}  "
@@ -376,7 +395,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             badge_bg = PHOENIX_THEME.elevated_bg
             badge_fg = PHOENIX_THEME.success
         else:
-            badge_text = f"  {tr('status_download_ready', 'DOWNLOAD BEREIT')}  "
+            badge_text = f"  {tr('not_installed', 'Nicht installiert')}  "
             badge_bg = PHOENIX_THEME.elevated_bg
             badge_fg = PHOENIX_THEME.text_muted
 
@@ -392,9 +411,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
         )
         badge.grid(row=0, column=1, sticky="e")
 
-        desc_text = self._localized_description(model)
-        if len(desc_text) > 110:
-            desc_text = desc_text[:107] + "..."
+        desc_text = self._beginner_model_summary(model, is_active)
 
         desc_lbl = tk.Label(
             card,
@@ -405,7 +422,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             anchor="w",
             justify="left"
         )
-        desc_lbl.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        desc_lbl.grid(row=2 if recommended_lbl is not None else 1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
 
         def _on_click(e=None, m_id=model_id):
             if self.selected_model_id != m_id:
@@ -413,8 +430,63 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 self._last_rendered_signature = None
                 self.refresh()
 
-        for w in (card, title_lbl, badge, desc_lbl):
+        clickable_widgets = (card, title_lbl, badge, desc_lbl)
+        if recommended_lbl is not None:
+            clickable_widgets += (recommended_lbl,)
+        for w in clickable_widgets:
             w.bind("<Button-1>", _on_click)
+
+    @classmethod
+    def _is_beginner_recommended(cls, model: dict[str, Any]) -> bool:
+        return model.get("id") == cls.BEGINNER_RECOMMENDED_MODEL_ID
+
+    @staticmethod
+    def _display_name(model: dict[str, Any]) -> str:
+        """Resolve the user-facing metadata name and suppress backend suffixes."""
+        value = str(
+            model.get("display_name")
+            or model.get("name")
+            or model.get("title")
+            or model.get("id")
+            or "-"
+        ).strip()
+        for pattern in (
+            r"\s+QAI\s+AppBuilder$",
+            r"\s+QNN$",
+            r"\s+\((?:Qualcomm\s+)?NPU(?:\s+Package)?\)$",
+        ):
+            value = re.sub(pattern, "", value, flags=re.IGNORECASE).strip()
+        return value
+
+    @staticmethod
+    def _model_action_state(installed: bool, active: bool) -> str:
+        if active:
+            return "active"
+        return "use" if installed else "install"
+
+    @staticmethod
+    def _beginner_model_summary(model: dict[str, Any], active: bool) -> str:
+        model_id = str(model.get("id", ""))
+        if model_id == "stable_diffusion_v1_5_qnn":
+            quality = tr("model_quality_entry", "Bildqualität: gut für erste Bilder")
+            speed = tr("model_speed_fast", "Geschwindigkeit: schnell")
+        elif model_id in {"stable_diffusion_v3_5_qai", "sdxl_base"}:
+            quality = tr("model_quality_high", "Bildqualität: sehr hoch")
+            speed = tr("model_speed_patient", "Geschwindigkeit: benötigt mehr Zeit")
+        else:
+            quality = tr("model_quality_good", "Bildqualität: gut")
+            speed = tr("model_speed_balanced", "Geschwindigkeit: ausgewogen")
+        size = float(model.get("estimated_size_gb") or 0.0)
+        storage = (
+            tr("model_storage_approx", "Speicherbedarf: ungefähr {size:g} GB", size=size)
+            if size > 0 else tr("model_storage_package", "Speicherbedarf: abhängig vom Modellpaket")
+        )
+        status = {
+            "active": tr("model_status_active_ready", "Status: aktiv und bereit"),
+            "use": tr("model_status_installed", "Status: installiert"),
+            "install": tr("model_status_not_installed", "Status: nicht installiert"),
+        }[PhoenixModelManagerView._model_action_state(bool(model.get("installed", True)), active)]
+        return f"{quality} · {speed}\n{storage} · {status}"
 
     def _update_inspector(self, models: list[Any], active_id: str | None) -> None:
         selected_model = None
@@ -430,7 +502,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         is_active = (self.selected_model_id == active_id)
 
-        model_name = selected_model.get("name") or selected_model.get("id", "-")
+        model_name = self._display_name(selected_model)
         self.det_name.configure(text=model_name)
         self.det_id.configure(text=selected_model.get("id", "-"))
         self.det_backend.configure(text=selected_model.get("backend", "Qualcomm QNN HTP"))
@@ -462,24 +534,23 @@ class PhoenixModelManagerView(WorkspaceFrame):
         self.det_desc.configure(text=description)
 
         is_installed = bool(selected_model.get("installed", True))
-        self.btn_install.configure(state="disabled" if is_installed else "normal")
-
-        if is_active or not is_installed:
+        action_state = self._model_action_state(is_installed, is_active)
+        if action_state == "install":
+            self.btn_activate.grid_remove()
+            self.btn_install.grid(row=0, column=0, sticky="ew")
+            self.btn_install.configure(state="normal", text=tr("model_install_action", "Modell installieren"), button_type="primary")
+        elif action_state == "active":
+            self.btn_install.grid_remove()
+            self.btn_activate.grid(row=0, column=0, sticky="ew")
             self.btn_activate.configure(
-                state="disabled",
-                text=(
-                    tr("active_model", "Aktives Modell")
-                    if is_active
-                    else tr("install_before_activation", "Vor Aktivierung lokal installieren")
-                ),
-                icon_name="success" if is_active else "info"
+                state="disabled", text=tr("model_active_ready_action", "✓ Aktiv und bereit"), icon_name="success"
             )
         else:
+            self.btn_install.grid_remove()
+            self.btn_activate.grid(row=0, column=0, sticky="ew")
             self.btn_activate.configure(
-                state="normal",
-                text=tr("btn_activate_model", "Als aktives Modell setzen"),
-                button_type="primary",
-                icon_name="start"
+                state="normal", text=tr("model_use_action", "Modell verwenden"),
+                button_type="primary", icon_name="start"
             )
 
     @staticmethod
