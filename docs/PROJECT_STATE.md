@@ -1,12 +1,20 @@
 # Projektstatus – Snapdragon AI Studio
 
-**Stand:** 01.08.2026
-**Zweig:** `feature/phoenix-rebuild`
+**Stand:** 12.08.2026
+**Zweig:** `main`
 **Zielplattform:** Windows 11 ARM64 (Qualcomm Snapdragon X NPU via QNN)
 
 ---
 
 ## 1. Aktueller Status & Letzte Änderungen
+
+* **Release Candidate 2 (RC2) Integration & Polish:** 
+  * **First-Run & Installation**: Complete overhaul of the model installer workflow supporting `DIRECT`, `OFFICIAL_EXTERNAL`, and `LOCAL_ONLY` installation vectors. Added automatic configuration qualification checking, optional Hugging Face authentication, and guided model download, validation, staging, and activation sequence.
+  * **History Management**: Added a "Clear history" / "Historie leeren" action in the prompt tab with a localized safety confirmation dialog (clears only the history index file, leaving generated output image files preserved).
+  * **Settings Hints**: Integrated informative text hints in Settings under "UI & Language" (pointing out that changes are applied after saving) and "System & NPU" (explaining automatic model processing selection).
+  * **ControlNet Canny Bugfix**: Corrected the activation routing synchronization so that the internal Canny mode is reliably enabled and disabled alongside the UI tab/popup states.
+  * **Presets Enhancement**: Presets now preserve active models, ControlNet status, and reference images. Incompatible parameters are adapted to active model limits. The preset selection dialog can be opened repeatedly without errors.
+  * **Translation Purity & Audit (PASS)**: All progress state labels (e.g., "Sampling-Phase") and CPU denoising status messages are fully localized. Missing model availability translation keys have been added to prevent UI language mixing, passing the localization audit. About Dialog layout dimensions were adjusted to prevent vertical and horizontal text clipping.
 
 * **Branding Update:** The official Snapdragon AI Studio corporate logo assets have been finalized. GitHub now automatically switches between light and dark logo variants using the HTML <picture> element, providing optimal visibility on GitHub Desktop and Mobile. The README header layout has been redesigned to place the logo side-by-side with the title (vertically centered, narrow spacing), creating a clean, modern brand representation while preserving generous whitespace. The incorrect dynamic "license not specified" badge has been replaced with the correct static MIT license badge in the same style and color.
 
@@ -555,13 +563,29 @@ Das Projekt nutzt lokale NPU-Beschleunigung:
 
 ---
 
-## 3. Nächste Schritte
+## 3. Nächste Schritte & Roadmap
 
-**R-005 (15.07.2026):** Das automatische headless QNN Package Qualification Gate ist implementiert. `models/sdxl_base` wird wegen dynamischer Verträge, großem FP32-/16-GB-Risiko und fehlender QNN-Freigabe abgelehnt. Das produktive `models/stable_diffusion_v2_1` besteht die statische Prüfung und Strict Loads aller drei EPContext-Wrapper ohne CPU-Fallback (`CONDITIONALLY_QUALIFIED`). Reale QNN-Ausführung und HTP-Profiling bleiben Voraussetzung für die Produktfreigabe.
+### Abgeschlossen (Release Candidate 2)
+* **First-Run & Modellauswahl**: Geführte Bereitschaftsprüfung, vereinfachter Einstieg für Einsteiger, Support für `DIRECT`, `OFFICIAL_EXTERNAL` und `LOCAL_ONLY` Installationswege.
+* **Modellkompatible Presets**: Presets ändern das aktive Modell nicht mehr, passen Parameter intelligent an Modellgrenzen an, behalten ControlNet-Status und Referenzbilder bei, und der Preset-Dialog kann wiederholt fehlerfrei geöffnet werden.
+* **ControlNet Canny Integration**: Korrigierte Routing-Logik zur zuverlässigen De-/Aktivierung des Canny-Modus.
+* **Historie leeren**: Möglichkeit, den Generierungsverlauf unter Beibehaltung der physischen Bilddateien nach Sicherheitsabfrage zu leeren.
+* **Einstellungen-Hilfe**: Erläuternde Infotexte zu UI-/Sprachänderungen, die nach dem Speichern übernommen werden, sowie zur automatischen NPU-Verarbeitungsauswahl.
+* **i18n-Purity & Layouts**: Vollständig lokalisierte Inferenzphasen, korrigierte model_availability-Übersetzungen (Audit PASS) und vergrößerter About-Dialog gegen Textkürzungen.
 
-1. **Manueller Test:** Validierung der Stabilität des Galerie-Grids beim langsamen Resize und Überprüfung der Doppelklick-Funktion.
-2. **Architektur-Reviews:** Abstimmung mit dem Product Owner zur Zusammenführung der QNN-Pfade.
-3. **Erweiterungen:** Vorbereitung der RAM- und Disk-Caches für den `ThumbnailProvider` ohne das bestehende Design zu brechen.
+### RC2 Release-Finalisierung (Offene Punkte)
+1. **Handbuch-Aktualisierung**: Finalisieren des RC2-Benutzerhandbuchs.
+2. **Erzeugung des Executable-Builds**: Kompilieren auf Snapdragon Windows ARM64 Hardware via `tools/build_app.py`.
+3. **Erzeugung des Setup-Installers**: Kompilieren des Setups via `tools/build_installer.py`.
+4. **Finaler Manueller Akzeptanztest**: E2E-Validierung (Clean Install, Upgrade, History Clear, Language Switch, ControlNet, Presets).
+5. **Release Notes & Veröffentlichung**: Bereitstellen der Versionsmitteilung und Publikation des Release-Pakets.
+
+### Nach RC2 geplant
+- Weitere QAI AppBuilder Forschung und tiefergehende Leistungstests.
+- ControlNet-Erweiterung für Stable Diffusion 3.5.
+- SDXL HTP Graph-Splitting und HTP Load-on-Demand (zur Optimierung des NPU-RAM-Verbrauchs).
+- Integration zusätzlicher großer Bild-/Video-Modelle.
+- Größere UX-Erweiterungen an der Benutzeroberfläche.
 
 *Ältere Projektberichte siehe:*
 * [CURRENT_PROJECT_STATE_2026-07-01.md](file:///C:/SnapdragonAI/docs/CURRENT_PROJECT_STATE_2026-07-01.md)

@@ -4,6 +4,20 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC2] – 2026-08-12
+
+### Hinzugefügt
+- **Unabhängigkeitshinweis (Project Disclaimer)**: Etablierung des Hinweises als unabhängiges Open-Source-Projekt (kein offizielles Qualcomm-Produkt) im About-Dialog, in den Lokalisierungsdateien und im Inno-Setup-Installer-Wizard.
+- **Historie leeren**: Neue Option "Historie leeren" / "Clear history" im Verlauf-Menü mit Sicherheitsabfrage. Löscht nur die Verlaufseinträge in `prompt_history.json`, nicht die generierten Bilddateien.
+- **Einstellungen-Hilfetext**: Erläuternde Hinweise zu UI-/Sprachänderungen, die nach dem Speichern übernommen werden, sowie zur automatischen Auswahl der passenden Verarbeitung für das verwendete Modell.
+
+### Behoben
+- **ControlNet Canny Aktivierungs-Fix**: Behebung des Synchronisationsfehlers zwischen Canny-Tab und internem Canny-Modus, sodass ControlNet zuverlässig aktiviert/deaktiviert wird.
+- **Preset-Verhalten**: Presets wechseln das aktive Modell nicht mehr, behalten ControlNet-Status und Referenzbild bei, passen inkompatible Parameter an die Modellgrenzen an und der Preset-Dialog kann wiederholt fehlerfrei geöffnet werden.
+- **Status & Phasen i18n**: Dynamische Generierungs-Status- und CPU-Denoising-Statusmeldungen werden vollständig über das i18n-System lokalisiert (z. B. "Sampling-Phase (Schritt 6/8)...").
+- **Language Purity & Translations**: Fehlende Modell-Verfügbarkeits-Übersetzungen ergänzt, um Sprachmischungen im Model Manager zu beheben (Audit PASS).
+- **About-Dialog-Layout**: Dimensionen vergrößert zur Vermeidung von Textkürzungen in allen Sprachen.
+
 ## [2.0 RC1.2] – 2026-08-05
 
 ### Added
