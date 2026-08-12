@@ -18,13 +18,13 @@ Die App lädt nicht jedes Modell automatisch. Wenn keine offizielle Quelle hinte
 
 3. Erster Start
 ---------------
-1. Starten Sie Snapdragon AI Studio.
-2. Warten Sie, bis die Hauptansicht sichtbar ist.
-3. Öffnen Sie links den „Modell-Manager“.
-4. Prüfen Sie, ob mindestens ein Modell als „Installiert“ angezeigt wird.
-5. Falls nicht, folgen Sie Abschnitt 6.
-6. Aktivieren Sie ein installiertes Modell.
-7. Öffnen Sie danach „KI-Generierung“.
+1. Starten Sie Snapdragon AI Studio. Beim ersten Start analysiert eine Bereitschaftsprüfung im Hintergrund Ihre Systemumgebung (Windows 11 ARM64, NPU-Treiber, Python).
+2. Warten Sie, bis die Hauptansicht geladen ist.
+3. Öffnen Sie in der linken Navigation den „Modell-Manager“.
+4. Suchen Sie nach dem gewünschten Modell (für den Einstieg wird Stable Diffusion 1.5 QNN empfohlen).
+5. Prüfen Sie den Status: Wenn das Modell als „Nicht installiert“ markiert ist, folgen Sie der Anleitung in Abschnitt 6.
+6. Sobald ein Modell installiert ist, wählen Sie es aus und klicken Sie auf „Als aktives Modell setzen“.
+7. Wechseln Sie zur „KI-Generierung“, um Ihr erstes Bild zu erstellen.
 
 4. Oberfläche kurz erklärt
 --------------------------
@@ -72,21 +72,21 @@ QNN und QAI einfach erklärt
 --------------------------------------------
 1. Öffnen Sie links den „Modell-Manager“.
 2. Klicken Sie auf das gewünschte Modell.
-3. Lesen Sie den Status:
-   - „Nicht installiert“: Die benötigten Dateien fehlen.
-   - „Installiert“: Das Paket wurde gefunden.
-   - „Aktives Modell“: Dieses Modell ist für die nächste Generierung gewählt.
-4. Bei „Nicht installiert“ klicken Sie auf „Installieren“.
-5. Der Dialog „Modell-Installation“ erscheint immer.
-6. Wählen Sie eine der drei Aktionen:
-   - „Von offizieller Quelle herunterladen“: öffnet die hinterlegte offizielle Webseite.
-   - Ist keine URL hinterlegt, ist diese Aktion sichtbar als „Nicht verfügbar“ markiert.
-   - „Bereits heruntergeladenes Modell installieren“: öffnet erst jetzt die Windows-Dateiauswahl.
-   - „Abbrechen“: beendet den Vorgang ohne Änderung.
-7. Für den lokalen Import wählen Sie eine passende ZIP- oder SMP-Datei.
-8. Warten Sie, bis der Import beendet ist.
-9. Wählen Sie das Modell erneut aus.
-10. Klicken Sie auf „Als aktives Modell setzen“.
+3. Prüfen Sie den Status:
+   - „Nicht installiert“: Die benötigten Modelldateien fehlen lokal auf Ihrem System.
+   - „Installiert“: Das Paket wurde gefunden und ist bereit.
+   - „Aktives Modell“: Dieses Modell ist aktuell für Generierungen ausgewählt.
+4. Klicken Sie bei einem nicht installierten Modell auf „Installieren“.
+5. Im Installationsdialog stehen Ihnen je nach Modell bis zu drei Wege zur Verfügung:
+   - DIRECT / OFFICIAL_EXTERNAL: Herunterladen von einer hinterlegten offiziellen Webseite oder Quelle (Hugging Face / Qualcomm Link). Hinweis: Ein vollautomatischer Direkt-Download aus dem Qualcomm AI Hub existiert nicht; Sie werden zur entsprechenden offiziellen Downloadseite geführt.
+   - LOCAL_ONLY: Importieren Sie ein bereits manuell heruntergeladenes lokales Paket.
+   - Abbrechen: Beendet den Installationsvorgang.
+6. Bei lokalem Import (LOCAL_ONLY): Wählen Sie die passende ZIP- oder SMP-Datei im Windows-Dateidialog aus.
+7. Der Installer prüft und entpackt das Paket (Staging), führt die statische Prüfung durch und verschiebt die Dateien in Ihr Modellverzeichnis.
+8. Wählen Sie das Modell nach erfolgreichem Import erneut aus und klicken Sie auf „Als aktives Modell setzen“.
+9. Über die Schaltfläche „Erstes Bild erstellen“ gelangen Sie direkt zur Generierungsseite.
+
+Hinweis zu Hugging Face: Die Eingabe eines Hugging Face Tokens in den Einstellungen ist optional. Ein Token ist nur für den Zugriff auf bestimmte geschützte Modelle auf Hugging Face erforderlich, es besteht jedoch keine generelle Registrierungs- oder Tokenpflicht.
 
 Phoenix prüft Paket-ID, Manifest und Dateien. Benennen Sie Modellinhalte nicht eigenmächtig um.
 
@@ -127,11 +127,11 @@ Wenn Sampler oder Scheduler ausgegraut sind, sind sie für dieses Modell oder Ba
 Ein Preset speichert Prompt, Negative Prompt sowie Generierungswerte und ermöglicht deren schnelles Laden.
 
 Regeln beim Anwenden eines Presets:
-- Das aktive Modell wird beim Laden eines Presets nicht gewechselt.
+- Das aktive Modell wird beim Laden eines Presets nicht gewechselt (das ausgewählte Modell bleibt erhalten).
 - Ein aktives ControlNet und das geladene Referenzbild bleiben unberührt erhalten.
-- Prompt, Negative Prompt und mit dem Modell kompatible Parameter werden direkt übernommen.
-- Parameter, die das aktive Modell nicht unterstützt, werden automatisch auf gültige Standardwerte dieses Modells gesetzt.
-- Nach dem Schließen kann das Preset-Auswahlfenster jederzeit erneut geöffnet werden.
+- Prompt, Negative Prompt und kompatible Parameter werden direkt übernommen.
+- Parameter, die das aktive Modell nicht unterstützt, werden automatisch an die Grenzen des aktiven Modells angepasst.
+- Der Preset-Dialog kann wiederholt fehlerfrei geöffnet werden.
 
 Vorhandene Vorlage verwenden:
 1. Klicken Sie in „KI-Generierung“ auf „Presets & Vorlagen“.
@@ -142,16 +142,17 @@ Im selben Fenster können Sie Vorlagen „Umbenennen“ oder „Löschen“. Ein
 
 10. Phoenix Boost
 -----------------
-Phoenix Boost verbessert den eingegebenen Prompt lokal und schlägt einen Negative Prompt sowie Parameter vor. Der Originalprompt wird nicht ohne Bestätigung ersetzt.
+Phoenix Boost ist eine rein optionale KI-Unterstützung zur Optimierung von Prompts.
+- Funktionsweise: Die Funktion verbessert Ihren eingegebenen Prompt und schlägt passende Parameter (Schritte, CFG) sowie Ausschlüsse vor. Die Ausführung erfolgt lokal und offline unter Verwendung von Ollama und dem Modell Qwen (keine Cloud erforderlich).
+- Wichtig: Phoenix Boost ist für die normale Bildgenerierung NICHT erforderlich. Es handelt sich um eine Formulierungshilfe und NICHT um einen Speedboost, der die eigentliche Bildgenerierung beschleunigt.
 
+Bedienung:
 1. Schreiben Sie zuerst einen Prompt.
 2. Klicken Sie „Phoenix Boost“.
 3. Vergleichen Sie Original und Vorschlag.
 4. Prüfen Sie Negative Prompt, Schritte, CFG und Auflösung.
 5. Klicken Sie „Übernehmen“ oder „Abbrechen“.
 6. Optional können Sie den Vorschlag „Als Vorlage speichern“.
-
-Phoenix Boost funktioniert ohne Ollama. Wenn Ollama und Qwen2.5 3B lokal bereit sind, kann „Phoenix Boost AI“ verwendet werden. Es wird keine Cloud benötigt.
 
 11. RealESRGAN 2x – Schritt für Schritt
 ----------------------------------------
@@ -188,36 +189,37 @@ Hinweis: Wenn das Kontrollkästchen im Popup aktiv ist, wird die Struktursteueru
 
 13. Galerie und Verlauf
 -----------------------
-- „Galerie“ zeigt Bilder aus dem Ausgabeordner. Wählen Sie ein Bild, um es anzusehen.
-- „Verlauf“ in „KI-Generierung“ zeigt frühere Prompts und zugehörige Einstellungen.
-- Ein Verlaufseintrag kann Prompt, Negative Prompt, Modell, Auflösung, Schritte, CFG, Seed und ControlNet-Werte zurückladen.
+- „Galerie“ zeigt generierte Bilder aus dem Ausgabeordner. Wählen Sie ein Bild, um es anzusehen.
+- „Verlauf“ in „KI-Generierung“ zeigt frühere Prompts und deren Einstellungen. Über die Menüoption „Historie leeren“ / „Clear history“ kann der Verlauf nach Bestätigung einer Sicherheitsabfrage vollständig geleert werden. Wichtig: Die generierten Bilddateien auf der Festplatte werden durch das Leeren des Verlaufs NICHT gelöscht.
 
-Galerie und Verlauf sind nicht dasselbe: Die Galerie verwaltet Bilddateien. Der Verlauf verwaltet frühere Generierungseingaben.
+Galerie und Verlauf sind getrennte Bereiche: Die Galerie verwaltet physische Bilddateien. Der Verlauf speichert Ihre Generierungseingaben.
 
-14. Speicherorte
-----------------
-Standard in der Entwicklung:
+14. Speicherorte und System-Einstellungen
+-----------------------------------------
+Standardpfade in der Entwicklung:
 - Bilder: C:\SnapdragonAI\output
 - Modelle: C:\SnapdragonAI\models
 - Einstellungen und Verlauf: C:\SnapdragonAI\data
 - Logs: C:\SnapdragonAI\logs
 
-Standard in der installierten Version:
+Standardpfade in der installierten Version:
 - Bilder: %LOCALAPPDATA%\Snapdragon AI Studio\output
 - Modelle: %LOCALAPPDATA%\Snapdragon AI Studio\models
 - Einstellungen und Verlauf: %LOCALAPPDATA%\Snapdragon AI Studio\data
 - Logs: %LOCALAPPDATA%\Snapdragon AI Studio\logs
+
+Hinweise zur Hardware-Nutzung (System & NPU):
+Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus (z. B. Snapdragon NPU-Beschleunigung über QNN oder CPU-Verarbeitung). In den Einstellungen unter „System & NPU“ muss der Nutzer normalerweise nichts manuell konfigurieren.
 
 Ausgabe- und Modellordner können in „Einstellungen“ abweichend festgelegt werden. Prüfen Sie dort den aktuell gespeicherten Pfad.
 
 15. Sprache ändern und speichern
 --------------------------------
 1. Öffnen Sie „Einstellungen“.
-2. Suchen Sie „UI & Sprache“.
+2. Navigieren Sie zu „UI & Sprache“.
 3. Wählen Sie bei „Sprache“ Deutsch, English oder Español.
 4. Klicken Sie „Speichern“.
-5. Bestätigen Sie den Hinweis zum Neustart.
-6. Die App startet neu und verwendet die gewählte Sprache.
+5. UI- und Sprachänderungen werden nach dem Speichern direkt übernommen.
 
 16. Häufige Fehler
 ------------------
@@ -228,7 +230,7 @@ Ausgabe- und Modellordner können in „Einstellungen“ abweichend festgelegt w
 - Zu wenig Speicher: Schließen Sie andere große Programme. Verwenden Sie keine höhere Auflösung als das Modell erlaubt.
 - RealESRGAN schlägt fehl: Prüfen Sie das lokale RealESRGAN-Modell und die QNN-Laufzeit. Das Originalbild bleibt erhalten.
 - ControlNet hat keinen Einfluss: Prüfen Sie, ob das Kontrollkästchen im Popup aktiv ist, ein gültiges Referenzbild geladen wurde und das aktive Modell ControlNet unterstützt.
-- Sprache bleibt unverändert: Klicken Sie in „Einstellungen“ auf „Speichern“ und lassen Sie die App neu starten.
+- Sprache bleibt unverändert: Stellen Sie sicher, dass Sie in „Einstellungen“ nach der Sprachauswahl auf „Speichern“ geklickt haben.
 
 17. FAQ
 -------

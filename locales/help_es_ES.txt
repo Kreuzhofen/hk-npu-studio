@@ -18,13 +18,13 @@ La aplicación no descarga todos los modelos automáticamente. Si no hay una fue
 
 3. Primer inicio
 ----------------
-1. Inicie Snapdragon AI Studio.
-2. Espere hasta que aparezca la vista principal.
-3. Abra «Gestor de modelos» a la izquierda.
-4. Compruebe si al menos un modelo aparece como «Instalado».
-5. Si no es así, siga la sección 6.
-6. Active un modelo instalado.
-7. Después, abra «Generación con IA».
+1. Inicie Snapdragon AI Studio. En el primer inicio, una verificación de preparación en segundo plano analiza su entorno del sistema (Windows 11 ARM64, controladores NPU, Python).
+2. Espere hasta que se cargue la vista principal.
+3. Abra el «Gestor de modelos» en la navegación izquierda.
+4. Busque el modelo deseado (se recomienda Stable Diffusion 1.5 QNN para comenzar).
+5. Compruebe el estado: si el modelo aparece como «No instalado», siga las instrucciones de la sección 6.
+6. Una vez que un modelo esté instalado, selecciónelo y haga clic en «Establecer como modelo activo».
+7. Vaya a «Generación con IA» para crear su primera imagen.
 
 4. Resumen de la interfaz
 -------------------------
@@ -72,21 +72,21 @@ QNN y QAI en palabras sencillas
 ----------------------------------
 1. Abra «Gestor de modelos» a la izquierda.
 2. Haga clic en el modelo deseado.
-3. Lea su estado:
-   - «No instalado»: faltan los archivos necesarios.
-   - «Instalado»: se encontró el paquete.
-   - «Modelo activo»: este modelo está seleccionado para la próxima generación.
-4. Si aparece «No instalado», haga clic en «Instalar».
-5. Siempre aparece el diálogo «Instalación del modelo».
-6. Elija una de las tres acciones:
-   - «Descargar de la fuente oficial»: abre el sitio web oficial configurado.
-   - Si no hay URL configurada, la acción sigue visible y aparece como «No disponible».
-   - «Instalar modelo ya descargado»: solo esta acción abre el selector de archivos de Windows.
-   - «Cancelar»: termina el proceso sin cambios.
-7. Para la importación local, seleccione un archivo ZIP o SMP compatible.
-8. Espere a que termine la importación.
-9. Seleccione de nuevo el modelo.
-10. Haga clic en «Establecer como modelo activo».
+3. Compruebe el estado:
+   - «No instalado»: los archivos de modelo necesarios no están disponibles localmente en su sistema.
+   - «Instalado»: se encontró el paquete y está listo.
+   - «Modelo activo»: este modelo está seleccionado actualmente para las generaciones.
+4. Para un modelo marcado como «No instalado», haga clic en «Instalar».
+5. En el diálogo de instalación, según el modelo, hay hasta tres opciones disponibles:
+   - DIRECT / OFFICIAL_EXTERNAL: Descargar desde un sitio web o fuente oficial configurada (Hugging Face / enlace de Qualcomm). Nota: No hay descarga directa totalmente automatizada desde Qualcomm AI Hub; se le guiará a la página oficial de descarga correspondiente.
+   - LOCAL_ONLY: Importar un paquete local que ya haya descargado manualmente.
+   - Cancelar: Finaliza el proceso de instalación.
+6. Para la importación local (LOCAL_ONLY): Seleccione el archivo ZIP o SMP correspondiente en el diálogo de archivos de Windows.
+7. El instalador comprueba y descomprime el paquete (staging), realiza la verificación estática y mueve los archivos a su directorio de modelos.
+8. Tras una importación correcta, seleccione de nuevo el modelo y haga clic en «Establecer como modelo activo».
+9. Haga clic en el botón «Crear primera imagen» para ir directamente a la página de generación.
+
+Nota sobre Hugging Face: Introducir un token de Hugging Face en la configuración es opcional. Solo se requiere un token para acceder a ciertos modelos protegidos por contraseña en Hugging Face; no existe un requisito general de registro o token.
 
 Phoenix comprueba el ID del paquete, el manifiesto y los archivos. No cambie por su cuenta los nombres del contenido del modelo.
 
@@ -127,11 +127,11 @@ Si Sampler o Scheduler están desactivados, están fijados para ese modelo o bac
 Un preset guarda el prompt, el prompt negativo y los valores de generación, lo que permite cargarlos rápidamente.
 
 Reglas al aplicar un preset:
-- El modelo activo no se cambia al cargar un preset.
+- El modelo activo no se cambia al cargar un preset (el modelo seleccionado se conserva).
 - Un estado activo de ControlNet y la imagen de referencia cargada se conservan.
-- El prompt, el prompt negativo y los parámetros compatibles con el modelo se aplican directamente.
-- Los parámetros no compatibles con el modelo activo se cambian automáticamente por valores predeterminados válidos para ese modelo.
-- Después de cerrar la ventana de selección de presets, puede volver a abrirla en cualquier momento.
+- El prompt, el prompt negativo y los parámetros compatibles se aplican directamente.
+- Los parámetros no compatibles con el modelo activo se ajustan automáticamente a los límites del modelo activo.
+- El diálogo de selección de presets se puede abrir repetidamente sin errores.
 
 Usar una plantilla existente:
 1. En «Generación con IA», haga clic en «Ajustes preestablecidos y plantillas».
@@ -142,16 +142,17 @@ En la misma ventana puede «Renombrar» o «Eliminar» plantillas. Puede crear u
 
 10. Phoenix Boost
 -----------------
-Phoenix Boost mejora localmente el prompt introducido y sugiere un prompt negativo y parámetros. El prompt original no se sustituye sin confirmación.
+Phoenix Boost es un asistente de IA puramente opcional para optimizar prompts.
+- Cómo funciona: La función mejora el prompt introducido y sugiere parámetros coincidentes (pasos, CFG) y exclusiones. La ejecución se realiza localmente y sin conexión utilizando Ollama y el modelo Qwen (no se requiere nube).
+- Importante: Phoenix Boost NO es necesario para la generación de imágenes normal. Es una ayuda de formulación y NO un aumento de velocidad que acelere el proceso de generación real.
 
+Operación:
 1. Escriba primero un prompt.
 2. Haga clic en «Phoenix Boost».
 3. Compare el original y la sugerencia.
 4. Compruebe el prompt negativo, los pasos, CFG y la resolución.
 5. Haga clic en «Aplicar» o «Cancelar».
 6. Opcionalmente, seleccione «Guardar como plantilla».
-
-Phoenix Boost funciona sin Ollama. Si Ollama y Qwen2.5 3B están preparados localmente, puede usarse «Phoenix Boost AI». No se necesita la nube.
 
 11. RealESRGAN 2x – paso a paso
 --------------------------------
@@ -188,25 +189,27 @@ Nota: Si la casilla de verificación en el menú emergente está activa, el cont
 
 13. Galería e Historia
 -----------------------
-- «Galería» muestra las imágenes de la carpeta de salida. Seleccione una imagen para verla.
-- «Historia» en «Generación con IA» muestra prompts anteriores y sus ajustes.
-- Una entrada del historial puede restaurar prompt, prompt negativo, modelo, resolución, pasos, CFG, semilla y valores de ControlNet.
+- «Galería» muestra las imágenes generadas de la carpeta de salida. Seleccione una imagen para verla.
+- «Historia» en «Generación con IA» muestra prompts anteriores y sus ajustes. Mediante la opción del menú «Historie leeren» / «Clear history», el historial se puede vaciar por completo después de confirmar un diálogo de seguridad. Importante: Los archivos de imagen generados en su disco NO se eliminan al borrar el historial.
 
-Galería e Historia no son lo mismo: Galería gestiona archivos de imagen. Historia gestiona entradas de generación anteriores.
+Galería e Historia son independientes: Galería gestiona archivos de imagen físicos. Historia guarda sus entradas de generación.
 
-14. Ubicaciones de almacenamiento
-----------------------------------
-Valores predeterminados en desarrollo:
+14. Ubicaciones de almacenamiento y Configuración del sistema
+-------------------------------------------------------------
+Rutas predeterminadas en desarrollo:
 - Imágenes: C:\SnapdragonAI\output
 - Modelos: C:\SnapdragonAI\models
 - Configuración e historial: C:\SnapdragonAI\data
 - Logs: C:\SnapdragonAI\logs
 
-Valores predeterminados en la versión instalada:
+Rutas predeterminadas en la versión instalada:
 - Imágenes: %LOCALAPPDATA%\Snapdragon AI Studio\output
 - Modelos: %LOCALAPPDATA%\Snapdragon AI Studio\models
 - Configuración e historial: %LOCALAPPDATA%\Snapdragon AI Studio\data
 - Logs: %LOCALAPPDATA%\Snapdragon AI Studio\logs
+
+Notas sobre el uso del hardware (Sistema y NPU):
+Snapdragon AI Studio selecciona automáticamente el método de procesamiento adecuado (por ejemplo, aceleración Snapdragon NPU a través de QNN o procesamiento de CPU) para el modelo que está utilizando. Normalmente no necesita configurar nada manualmente en la pestaña «Sistema y NPU».
 
 Las carpetas de salida y modelos pueden cambiarse en «Configuración». Compruebe allí la ruta guardada actualmente.
 
@@ -216,8 +219,7 @@ Las carpetas de salida y modelos pueden cambiarse en «Configuración». Comprue
 2. Busque «Interfaz de usuario e idioma».
 3. En «Idioma», elija Deutsch, English o Español.
 4. Haga clic en «Guardar».
-5. Confirme el aviso de reinicio.
-6. La aplicación se reinicia y utiliza el idioma elegido.
+5. Los cambios de interfaz e idioma se aplican directamente después de guardar.
 
 16. Errores frecuentes
 -----------------------
@@ -228,7 +230,7 @@ Las carpetas de salida y modelos pueden cambiarse en «Configuración». Comprue
 - Memoria insuficiente: cierre otros programas grandes. No use una resolución superior a la permitida por el modelo.
 - RealESRGAN falla: compruebe el modelo RealESRGAN local y el runtime QNN. La imagen original se conserva.
 - ControlNet no influye: compruebe si la casilla de verificación en el menú emergente está activa, si se ha cargado una imagen de referencia válida y si el modelo activo es compatible con ControlNet.
-- El idioma no cambia: haga clic en «Guardar» en Configuración y permita que la aplicación se reinicie.
+- El idioma no cambia: asegúrese de hacer clic en «Guardar» en Configuración después de seleccionar el idioma.
 
 17. Preguntas frecuentes
 ------------------------

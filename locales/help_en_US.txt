@@ -18,13 +18,13 @@ The app does not download every model automatically. If no official source is co
 
 3. First start
 --------------
-1. Start Snapdragon AI Studio.
-2. Wait until the main view is visible.
-3. Open “Model Manager” on the left.
-4. Check whether at least one model is shown as “Installed”.
-5. If not, follow section 6.
-6. Activate an installed model.
-7. Then open “AI Generate”.
+1. Start Snapdragon AI Studio. On the first start, a background readiness check analyzes your system environment (Windows 11 ARM64, NPU drivers, Python).
+2. Wait until the main view is loaded.
+3. Open the "Model Manager" in the left navigation.
+4. Search for the desired model (Stable Diffusion 1.5 QNN is recommended as a starting point).
+5. Check the status: If the model is marked as "Not Installed", follow the instructions in Section 6.
+6. Once a model is installed, select it and click "Set as active model".
+7. Switch to "AI Generate" to create your first image.
 
 4. Quick tour of the interface
 -------------------------------
@@ -72,21 +72,21 @@ QNN and QAI in simple terms
 ---------------------------------
 1. Open “Model Manager” on the left.
 2. Click the model you want.
-3. Read its status:
-   - “Not Installed”: required files are missing.
-   - “Installed”: the package was found.
-   - “Active Model”: this model is selected for the next generation.
-4. For “Not Installed”, click “Install”.
-5. The “Model Installation” dialog always appears.
-6. Choose one of three actions:
-   - “Download from official source”: opens the configured official website.
-   - If no URL is configured, this action remains visible and is marked “Not available”.
-   - “Install already downloaded model”: only this action opens the Windows file picker.
-   - “Cancel”: ends the process without changes.
-7. For local import, select a matching ZIP or SMP file.
-8. Wait until the import finishes.
-9. Select the model again.
-10. Click “Set as active model”.
+3. Check the status:
+   - “Not Installed”: the required model files are missing locally on your system.
+   - “Installed”: the package was found and is ready.
+   - “Active Model”: this model is currently selected for generations.
+4. For a model marked “Not Installed”, click “Install”.
+5. In the installation dialog, depending on the model, up to three options are available:
+   - DIRECT / OFFICIAL_EXTERNAL: Download from a configured official website or source (Hugging Face / Qualcomm Link). Note: There is no fully automated direct download from the Qualcomm AI Hub; you will be guided to the respective official download page.
+   - LOCAL_ONLY: Import a local package that you have already downloaded manually.
+   - Cancel: Ends the installation process.
+6. For local import (LOCAL_ONLY): Select the matching ZIP or SMP file in the Windows file dialog.
+7. The installer checks and unpacks the package (staging), performs the static verification, and moves the files to your model directory.
+8. After a successful import, select the model again and click “Set as active model”.
+9. Click the “Create First Image” button to navigate directly to the generation page.
+
+Note on Hugging Face: Entering a Hugging Face token in the settings is optional. A token is only required to access certain password-protected models on Hugging Face; there is no general registration or token requirement.
 
 Phoenix checks the package ID, manifest, and files. Do not rename model contents yourself.
 
@@ -127,11 +127,11 @@ If Sampler or Scheduler is disabled, it is fixed for that model or backend.
 A preset stores the prompt, negative prompt, and generation values, allowing them to be loaded quickly.
 
 Rules when applying a preset:
-- The active model is not changed when loading a preset.
+- The active model is not changed when loading a preset (the selected model is preserved).
 - An active ControlNet state and the loaded reference image remain preserved.
-- Prompt, negative prompt, and parameters compatible with the model are applied directly.
-- Parameters not supported by the active model are automatically set to valid defaults for that model.
-- After you close the preset selection window, you can open it again at any time.
+- Prompt, negative prompt, and compatible parameters are applied directly.
+- Parameters not supported by the active model are automatically adjusted to the boundaries of the active model.
+- The preset selection dialog can be opened repeatedly without errors.
 
 Use an existing template:
 1. In “AI Generate”, click “Presets & Templates”.
@@ -142,16 +142,17 @@ In the same window, you can “Rename” or “Delete” templates. A new templa
 
 10. Phoenix Boost
 -----------------
-Phoenix Boost improves the entered prompt locally and suggests a negative prompt and parameters. The original prompt is not replaced without confirmation.
+Phoenix Boost is a purely optional AI assistant to optimize prompts.
+- How it works: The function enhances your entered prompt and suggests matching parameters (steps, CFG) and exclusions. Execution runs locally and offline using Ollama and the Qwen model (no cloud required).
+- Important: Phoenix Boost is NOT required for normal image generation. It is a formulation helper and NOT a speed boost that accelerates the actual image generation process.
 
+Operation:
 1. Enter a prompt first.
 2. Click “Phoenix Boost”.
 3. Compare the original and the suggestion.
 4. Check the negative prompt, steps, CFG, and resolution.
 5. Click “Apply” or “Cancel”.
 6. Optionally select “Save as Template”.
-
-Phoenix Boost works without Ollama. If Ollama and Qwen2.5 3B are locally ready, “Phoenix Boost AI” can be used. No cloud is required.
 
 11. RealESRGAN 2x – step by step
 ---------------------------------
@@ -188,36 +189,37 @@ Note: If the checkbox in the popup is active, the structure control is reliably 
 
 13. Gallery and History
 -----------------------
-- “Gallery” shows images from the output folder. Select an image to view it.
-- “History” in “AI Generate” shows earlier prompts and their settings.
-- A history entry can restore the prompt, negative prompt, model, resolution, steps, CFG, seed, and ControlNet values.
+- “Gallery” shows generated images from the output folder. Select an image to view it.
+- “History” in “AI Generate” shows earlier prompts and their settings. Using the menu option “Clear history” / “Historie leeren”, the history can be completely cleared after confirming a security dialog. Important: The generated image files on your disk are NOT deleted by clearing the history.
 
-Gallery and History are different: Gallery manages image files. History manages earlier generation inputs.
+Gallery and History are separate: Gallery manages physical image files. History stores your generation inputs.
 
-14. Storage locations
----------------------
-Development defaults:
+14. Storage locations and System settings
+-----------------------------------------
+Development default paths:
 - Images: C:\SnapdragonAI\output
 - Models: C:\SnapdragonAI\models
 - Settings and history: C:\SnapdragonAI\data
 - Logs: C:\SnapdragonAI\logs
 
-Installed-version defaults:
+Installed-version default paths:
 - Images: %LOCALAPPDATA%\Snapdragon AI Studio\output
 - Models: %LOCALAPPDATA%\Snapdragon AI Studio\models
 - Settings and history: %LOCALAPPDATA%\Snapdragon AI Studio\data
 - Logs: %LOCALAPPDATA%\Snapdragon AI Studio\logs
+
+Notes on hardware usage (System & NPU):
+Snapdragon AI Studio automatically selects the appropriate processing method (e.g. Snapdragon NPU acceleration via QNN or CPU processing) for the model you are using. In the settings under “System & NPU”, the user normally does not need to configure anything manually.
 
 Output and model folders can be changed in “Settings”. Check the currently saved path there.
 
 15. Change and save the language
 --------------------------------
 1. Open “Settings”.
-2. Find “UI & Language”.
+2. Navigate to “UI & Language”.
 3. Under “Language”, choose Deutsch, English, or Español.
 4. Click “Save”.
-5. Confirm the restart message.
-6. The app restarts and uses the selected language.
+5. UI and language changes are applied directly after saving.
 
 16. Common errors
 -----------------
@@ -228,7 +230,7 @@ Output and model folders can be changed in “Settings”. Check the currently s
 - Not enough memory: close other large programs. Do not use a higher resolution than the model allows.
 - RealESRGAN fails: check the local RealESRGAN model and QNN runtime. The original image remains preserved.
 - ControlNet has no influence: check if the checkbox in the popup is active, a valid reference image has been loaded, and the active model supports ControlNet.
-- Language remains unchanged: click “Save” in Settings and allow the app to restart.
+- Language remains unchanged: make sure you clicked “Save” in Settings after choosing your language.
 
 17. FAQ
 -------
