@@ -291,6 +291,23 @@ class PhoenixSettingsView(tk.Frame):
         )
         self.hw_acc_cb.grid(row=2, column=0, columnspan=2, sticky="w", pady=(12, 8))
 
+        self.system_npu_hint = tk.Label(
+            sys_form,
+            text=tr(
+                "settings_system_npu_hint",
+                "Hinweis: Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
+            ),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+            justify="left",
+            wraplength=440,
+        )
+        self.system_npu_hint.grid(
+            row=3, column=0, columnspan=2, sticky="ew", pady=(8, 4)
+        )
+
         # ==========================================
         # CARD 2: PFADE & SPEICHER
         # ==========================================
@@ -429,6 +446,23 @@ class PhoenixSettingsView(tk.Frame):
             font=PHOENIX_THEME.font_body,
         )
         self.language_cb.grid(row=1, column=1, sticky="ew", pady=8)
+
+        self.ui_language_save_hint = tk.Label(
+            ui_form,
+            text=tr(
+                "settings_ui_language_save_hint",
+                "Hinweis: Änderungen an Sprache und Benutzeroberfläche werden erst nach dem Speichern übernommen.",
+            ),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+            justify="left",
+            wraplength=440,
+        )
+        self.ui_language_save_hint.grid(
+            row=2, column=0, columnspan=2, sticky="ew", pady=(8, 4)
+        )
 
         # ==========================================
         # CARD 4: HUGGING FACE INTEGRATION

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import unittest
+import json
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 import tkinter as tk
 
 from widgets.phoenix.views.settings_view import PhoenixSettingsView
+from app.i18n import set_language
 from app.settings_manager import SettingsManager
 
 
 class SettingsViewTests(unittest.TestCase):
     def setUp(self) -> None:
+        set_language("de_DE")
         self.root = tk.Tk()
         self.root.withdraw()  # Withdraw to prevent rendering actual window
         
@@ -37,9 +41,41 @@ class SettingsViewTests(unittest.TestCase):
         self.assertIsNotNone(self.view.toggle_btn)
         self.assertIsNotNone(self.view.save_btn)
         self.assertIsNotNone(self.view.test_btn)
+        self.assertEqual(
+            self.view.ui_language_save_hint.cget("text"),
+            "Hinweis: Änderungen an Sprache und Benutzeroberfläche werden erst nach dem Speichern übernommen.",
+        )
+        self.assertEqual(self.view.ui_language_save_hint.cget("wraplength"), 440)
+        self.assertEqual(
+            self.view.system_npu_hint.cget("text"),
+            "Hinweis: Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
+        )
+        self.assertEqual(self.view.system_npu_hint.cget("wraplength"), 440)
         
         # Verify initial token matches the patched get_hf_token value
         self.assertEqual(self.view.token_entry.get(), "dummy_saved_token")
+
+    def test_ui_language_save_hint_is_complete_in_all_languages(self) -> None:
+        expected = {
+            "de_DE": (
+                "Hinweis: Änderungen an Sprache und Benutzeroberfläche werden erst nach dem Speichern übernommen.",
+                "Hinweis: Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
+            ),
+            "en_US": (
+                "Note: Changes to the language and user interface are applied after you save the settings.",
+                "Note: Snapdragon AI Studio automatically selects the appropriate processing method for the model you are using. You normally do not need to change anything here.",
+            ),
+            "es_ES": (
+                "Nota: Los cambios de idioma y de la interfaz se aplican después de guardar la configuración.",
+                "Nota: Snapdragon AI Studio selecciona automáticamente el procesamiento adecuado para el modelo que está utilizando. Normalmente no necesita cambiar nada aquí.",
+            ),
+        }
+        root = Path(__file__).resolve().parents[1]
+        for locale, texts in expected.items():
+            data = json.loads((root / "locales" / f"{locale}.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["settings_ui_language_save_hint"], texts[0], locale)
+            self.assertEqual(data["settings_system_npu_hint"], texts[1], locale)
+            self.assertNotIn("{", "".join(texts))
 
     def test_toggle_token_visibility(self) -> None:
         # Initial state should be masked (show="*")
