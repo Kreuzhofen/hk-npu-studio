@@ -80,7 +80,8 @@ class StableDiffusion21QaiAppBuilderBackend(StableDiffusion15QaiAppBuilderBacken
                 else [str(python), "-c", probe]
             )
             completed = subprocess.run(
-                command, capture_output=True, text=True, timeout=15, check=False
+                command, capture_output=True, text=True, timeout=15, check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except (OSError, subprocess.SubprocessError):
             return False
@@ -124,6 +125,7 @@ class StableDiffusion21QaiAppBuilderBackend(StableDiffusion15QaiAppBuilderBacken
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             text=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         try:
             channel, _ = listener.accept()

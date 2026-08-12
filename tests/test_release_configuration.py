@@ -8,6 +8,7 @@ import version
 from engine.brand_manager import BrandManager
 from engine.release_config import RELEASE, ReleaseConfig
 from tools.build_installer import INSTALLER_SCRIPT, build_command
+from widgets.phoenix import header
 
 
 def test_release_configuration_is_the_shared_version_source():
@@ -17,6 +18,12 @@ def test_release_configuration_is_the_shared_version_source():
     assert version.BUILD == RELEASE.build
     assert version.CODENAME == RELEASE.codename
     assert version.ARCHITECTURE == "arm64"
+
+
+def test_main_header_uses_shared_release_version_without_rc1_literal():
+    source = Path(header.__file__).read_text(encoding="utf-8")
+    assert "self.brand.APP_VERSION" in source
+    assert "Version 2.0.0 RC1" not in source
 
 
 def test_window_icon_uses_the_canonical_main_window_resource():

@@ -2590,16 +2590,17 @@ class PhoenixPromptView(WorkspaceFrame):
             resolution = "-"
             photo_image = None
             try:
-                from PIL import Image, ImageTk
+                from PIL import Image, ImageOps, ImageTk
                 from pathlib import Path
                 path = Path(input_path)
                 if path.exists() and path.is_file():
                     filename = path.name
                     with Image.open(path) as img:
-                        width, height = img.size
+                        oriented = ImageOps.exif_transpose(img).convert("RGB")
+                        width, height = oriented.size
                         resolution = f"{width} × {height}"
-                        img.thumbnail((140, 140))
-                        photo_image = ImageTk.PhotoImage(img)
+                        oriented.thumbnail((140, 140))
+                        photo_image = ImageTk.PhotoImage(oriented)
                 else:
                     filename = "Datei nicht gefunden"
             except Exception as e:
@@ -4763,7 +4764,7 @@ class PhoenixPromptView(WorkspaceFrame):
         from engine.brand_manager import BrandManager
         BrandManager.apply_window_icon(popup)
         popup.title(tr("tab_controlnet", "ControlNet Canny"))
-        popup.geometry("380x540")
+        popup.geometry("380x600")
         popup.configure(bg=PHOENIX_THEME.card_bg)
         popup.resizable(False, False)
         popup.transient(self.winfo_toplevel())
@@ -4789,6 +4790,24 @@ class PhoenixPromptView(WorkspaceFrame):
                 pass
         self._controlnet_popup = None
         self._ensure_controlnet_widgets(self._dummy_hidden_frame)
+
+    def _apply_controlnet_popup(self) -> None:
+        low, high, strength = self._get_controlnet_params()
+        self.controller.model.update_state(
+            controlnet_enabled=bool(self.controlnet_canny_var.get()),
+            input_image_path=self.controller.model.state.input_image_path,
+            canny_low_threshold=low,
+            canny_high_threshold=high,
+            controlnet_conditioning_scale=strength,
+        )
+        self.controller.generation_controller.update_session(
+            controlnet_enabled=bool(self.controlnet_canny_var.get()),
+            input_image_path=self.controller.model.state.input_image_path,
+            canny_low_threshold=low,
+            canny_high_threshold=high,
+            controlnet_conditioning_scale=strength,
+        )
+        self._close_controlnet_popup()
 
     def _ensure_controlnet_widgets(self, master: tk.Misc) -> None:
         if hasattr(self, "dnd_card") and self.dnd_card and self.dnd_card.winfo_exists():
@@ -4823,7 +4842,9 @@ class PhoenixPromptView(WorkspaceFrame):
             "controlnet_frame",
             "low_scale",
             "high_scale",
-            "strength_scale"
+            "strength_scale",
+            "controlnet_apply_frame",
+            "controlnet_apply_btn",
         ]
         for w_name in widgets:
             if hasattr(self, w_name):
@@ -5053,6 +5074,16 @@ class PhoenixPromptView(WorkspaceFrame):
             width=12, variable=self.conditioning_strength_var
         )
         self.strength_scale.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 4))
+
+        self.controlnet_apply_frame = tk.Frame(master, bg=PHOENIX_THEME.card_bg)
+        self.controlnet_apply_frame.pack(fill="x", padx=20, pady=(8, 16))
+        self.controlnet_apply_btn = PhoenixButton(
+            self.controlnet_apply_frame,
+            text=tr("apply", "Übernehmen"),
+            command=self._apply_controlnet_popup,
+            button_type="primary",
+        )
+        self.controlnet_apply_btn.pack(side="right")
 
         _Tooltip(low_label, lambda: tr("tooltip_canny_low", "Unterer Canny-Schwellenwert für die Kantenerkennung (0 - 255)."))
         _Tooltip(high_label, lambda: tr("tooltip_canny_high", "Oberer Canny-Schwellenwert für die Kantenerkennung (0 - 255)."))

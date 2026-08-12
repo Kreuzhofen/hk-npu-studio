@@ -63,7 +63,9 @@ class PhoenixHeader(tk.Frame):
 
         tk.Label(
             release_group,
-            text="Version 2.0.0 RC1",
+            text=tr(
+                "version_value", "Version {version}", version=self.brand.APP_VERSION
+            ),
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_section,

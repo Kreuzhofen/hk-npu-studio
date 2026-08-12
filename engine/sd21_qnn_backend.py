@@ -365,6 +365,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             bufsize=1,
             cwd=project_root,
             env=worker_env,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         self._active_process = process
 

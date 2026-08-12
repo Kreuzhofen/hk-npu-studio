@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageOps
+from PIL import Image
 
 from controllers.gallery_model import GalleryImage
 from engine.asset_files import read_asset_metadata
@@ -37,8 +37,10 @@ class ImageLoader:
         height: int | None = None
         try:
             with Image.open(path) as source:
-                image = ImageOps.exif_transpose(source)
-                width, height = image.size
+                width, height = source.size
+                orientation = source.getexif().get(274, 1)
+                if orientation in (5, 6, 7, 8):
+                    width, height = height, width
         except Exception:
             width = None
             height = None

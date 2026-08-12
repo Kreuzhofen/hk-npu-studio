@@ -15,6 +15,22 @@ import gui_v2
 
 class FrozenQnnWorkerFixTests(unittest.TestCase):
 
+    def test_all_generation_worker_launches_suppress_windows_console(self):
+        root = Path(__file__).resolve().parents[1]
+        worker_files = (
+            "engine/sd15_qnn_backend.py",
+            "engine/sd21_qnn_backend.py",
+            "engine/controlnet_canny_backend.py",
+            "engine/sd15_qai_appbuilder_backend.py",
+            "engine/sd21_qai_appbuilder_backend.py",
+            "engine/sd35_qai_appbuilder_backend.py",
+            "engine/backends/qnn_backend.py",
+        )
+        for relative in worker_files:
+            with self.subTest(file=relative):
+                source = (root / relative).read_text(encoding="utf-8")
+                self.assertIn("CREATE_NO_WINDOW", source)
+
     def test_sd15_cmd_frozen_correct(self):
         backend = StableDiffusion15QnnBackend()
         session = GenerationSessionModel(model_name="stable_diffusion_v1_5_qnn")
@@ -40,6 +56,10 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
             self.assertEqual(called_cmd[0], "SnapdragonAIStudio.exe")
             self.assertEqual(called_cmd[1], "--qnn-worker")
             self.assertEqual(called_cmd[2], "sd15")
+            self.assertEqual(
+                mock_popen.call_args.kwargs["creationflags"],
+                getattr(__import__("subprocess"), "CREATE_NO_WINDOW", 0),
+            )
 
     def test_sd21_cmd_frozen_correct(self):
         backend = StableDiffusion21QnnBackend()
@@ -64,6 +84,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
             self.assertEqual(called_cmd[0], "SnapdragonAIStudio.exe")
             self.assertEqual(called_cmd[1], "--qnn-worker")
             self.assertEqual(called_cmd[2], "sd21")
+            self.assertIn("creationflags", mock_popen.call_args.kwargs)
 
     def test_controlnet_cmd_frozen_correct(self):
         backend = ControlNetCannyQnnBackend()
@@ -88,6 +109,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
             self.assertEqual(called_cmd[0], "SnapdragonAIStudio.exe")
             self.assertEqual(called_cmd[1], "--qnn-worker")
             self.assertEqual(called_cmd[2], "controlnet-canny")
+            self.assertIn("creationflags", mock_popen.call_args.kwargs)
 
     def test_gui_worker_mode_runs_physical_backend(self):
         # Test that --qnn-worker flag runs backend, doesn't start GUI, and returns correct exit code

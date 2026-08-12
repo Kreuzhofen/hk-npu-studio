@@ -227,8 +227,9 @@ def preprocess_image_aspect_ratio(img, target_size=(512, 512)):
     return img.resize(target_size, Image.Resampling.LANCZOS)
 
 def canny_edge_detector(img_path, low_threshold=50, high_threshold=150):
-    from PIL import Image
-    img = Image.open(img_path).convert('L')
+    from PIL import Image, ImageOps
+    with Image.open(img_path) as source:
+        img = ImageOps.exif_transpose(source).convert('L')
     img = preprocess_image_aspect_ratio(img, (512, 512))
     img_arr = np.array(img, dtype=np.float32)
     
@@ -493,6 +494,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             bufsize=1,
             cwd=project_root,
             env=worker_env,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         self._active_process = process
 
@@ -848,7 +850,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
 
             # 8. Save Images using Pillow
             print("Saving image and inputs", flush=True)
-            from PIL import Image
+            from PIL import Image, ImageOps
             out_img = Image.fromarray(image_rgb)
             canny_img = Image.fromarray(canny_edges)
 
@@ -874,7 +876,10 @@ class ControlNetCannyQnnBackend(InferenceBackend):
             shutil.copy2(input_image_path, input_dest_path)
 
             # Save contact sheet (Eingang, Canny, Ergebnis)
-            img_in = preprocess_image_aspect_ratio(Image.open(input_image_path).convert("RGB"), (512, 512))
+            with Image.open(input_image_path) as source:
+                img_in = preprocess_image_aspect_ratio(
+                    ImageOps.exif_transpose(source).convert("RGB"), (512, 512)
+                )
             img_canny_rgb = canny_img.convert("RGB")
             img_out_res = out_img
 

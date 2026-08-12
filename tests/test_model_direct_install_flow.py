@@ -555,15 +555,20 @@ class DirectModelInstallTests(unittest.TestCase):
             "model_active_ready_action", "model_src_select_existing",
             "cancel", "direct_model_install_error",
         )
+        root = Path(__file__).resolve().parents[1]
         for locale, actions in expected.items():
-            set_language(locale)
+            data = json.loads(
+                (root / "locales" / f"{locale}.json").read_text(encoding="utf-8")
+            )
             with self.subTest(locale=locale):
-                values = [tr(key) for key in static_keys]
+                values = [data[key] for key in static_keys]
                 values.extend((
-                    tr("direct_model_downloading_percent", percent=50.0),
-                    tr("model_src_official_source", source="Qualcomm AI Hub"),
+                    data["direct_model_downloading_percent"].format(percent=50.0),
+                    data["model_src_official_source"].format(source="Qualcomm AI Hub"),
                 ))
-                self.assertEqual((tr("home_start_setup"), tr("home_create_first_image")), actions)
+                self.assertEqual(
+                    (data["home_start_setup"], data["home_create_first_image"]), actions
+                )
                 self.assertTrue(all(value and "{" not in value and "}" not in value for value in values))
 
 

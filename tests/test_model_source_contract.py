@@ -69,6 +69,14 @@ class ModelSourceContractTests(unittest.TestCase):
                 self.assertTrue(all(labels))
                 self.assertEqual(len(labels), len(set(labels)))
 
+    def test_sd35_local_package_is_available_after_disk_detection(self) -> None:
+        model = next(item for item in self.models if item["id"] == "stable_diffusion_v3_5_qai")
+        catalog = self.catalog["stable_diffusion_v3_5_qai"]
+        self.assertTrue(model["product_available"])
+        self.assertTrue(catalog["product_available"])
+        self.assertEqual(model["source_type"], "local_only")
+        self.assertFalse(model["source_url"])
+
 
 if __name__ == "__main__":
     unittest.main()

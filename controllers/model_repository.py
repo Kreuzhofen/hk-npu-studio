@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import sys
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -151,6 +152,8 @@ class ModelRepository:
             if configured_root:
                 roots.append(configured_root)
             roots.append(MODELS_DIR)
+            if getattr(sys, "frozen", False):
+                roots.append(Path(sys.executable).resolve().parent / "models")
 
         unique: list[Path] = []
         seen: set[str] = set()

@@ -109,7 +109,12 @@ class QNNBackend:
             "info",
         ]
 
-        subprocess.run(cmd, env=env, check=True)
+        subprocess.run(
+            cmd,
+            env=env,
+            check=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
 
         return {
             "status": "qnn_executed",

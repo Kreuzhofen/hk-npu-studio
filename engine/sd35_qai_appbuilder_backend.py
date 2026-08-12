@@ -38,7 +38,11 @@ def _model_dir() -> Path:
     configured = os.environ.get("SNAPDRAGON_QAI_SD35_MODEL_DIR", "").strip()
     if configured:
         return Path(configured).expanduser().resolve()
-    return MODELS_DIR / MODEL_ID
+    canonical = MODELS_DIR / MODEL_ID
+    if canonical.is_dir() or not getattr(sys, "frozen", False):
+        return canonical
+    legacy = Path(sys.executable).resolve().parent / "models" / MODEL_ID
+    return legacy if legacy.is_dir() else canonical
 
 
 def _has_tokenizer(model_dir: Path, name: str) -> bool:
@@ -82,7 +86,8 @@ class StableDiffusion35QaiAppBuilderBackend(StableDiffusion15QaiAppBuilderBacken
                 else [str(python), "-c", probe]
             )
             completed = subprocess.run(
-                command, capture_output=True, text=True, timeout=20, check=False
+                command, capture_output=True, text=True, timeout=20, check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except (OSError, subprocess.SubprocessError):
             return False
@@ -113,6 +118,7 @@ class StableDiffusion35QaiAppBuilderBackend(StableDiffusion15QaiAppBuilderBacken
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             text=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         try:
             channel, _ = listener.accept()

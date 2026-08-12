@@ -367,7 +367,7 @@
       "model_id": "stable_diffusion_v3_5_qai",
       "catalog_status": "LOCAL PACKAGE REQUIRED",
       "official_qualcomm_package": true,
-      "product_available": false,
+      "product_available": true,
       "availability_message": "Install a local Qualcomm SD3.5 Medium QAI package through Model Manager.",
       "display_name": "Stable Diffusion 3.5 Medium",
       "beginner_variant_label": "Local package",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import queue
+from unittest.mock import MagicMock, patch
 
 from widgets.phoenix.gallery.thumbnail_provider import ThumbnailProvider
 
@@ -48,3 +49,24 @@ def test_new_signature_evicts_stale_cached_thumbnail(tmp_path):
     provider.get_thumbnail(image, 124, callback)
 
     assert old_key not in provider._thumbnail_cache
+
+
+def test_ui_poll_processes_large_thumbnail_results_in_small_batches():
+    provider = ThumbnailProvider.__new__(ThumbnailProvider)
+    provider.RESPONSES_PER_TICK = 4
+    provider._is_cleaned_up = False
+    provider._poll_handle = None
+    provider.master = MagicMock()
+    provider.master.winfo_exists.return_value = True
+    provider._response_queue = queue.Queue()
+    provider._pending_callbacks = {}
+    provider._thumbnail_cache = {}
+    for index in range(10):
+        request = MagicMock()
+        request.cache_key = (index, 124, 0, 0)
+        request.callback = MagicMock()
+        provider._response_queue.put((request, MagicMock()))
+    with patch("widgets.phoenix.gallery.thumbnail_provider.ImageTk.PhotoImage", return_value=MagicMock()):
+        provider._poll_responses()
+    assert provider._response_queue.qsize() == 6
+    provider.master.after.assert_called_once()

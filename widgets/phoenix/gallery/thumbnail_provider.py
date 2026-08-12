@@ -28,6 +28,8 @@ class ThumbnailRequest:
 class ThumbnailProvider:
     """Provides thumbnails for the Gallery UI, loading them asynchronously via background threads."""
 
+    RESPONSES_PER_TICK = 4
+
     def __init__(self, master: tk.Misc, service: ThumbnailService | None = None) -> None:
         self.master = master
         self.service = service or ThumbnailService()
@@ -124,9 +126,11 @@ class ThumbnailProvider:
         if getattr(self, "_is_cleaned_up", False):
             return
         # Process all available responses in this tick
-        while not self._response_queue.empty():
+        processed = 0
+        while processed < self.RESPONSES_PER_TICK and not self._response_queue.empty():
             try:
                 request, resized_img = self._response_queue.get_nowait()
+                processed += 1
                 # Fetch all registered callbacks for this key, falling back to the request's callback if none found
                 callbacks = self._pending_callbacks.pop(request.cache_key, [])
                 if not callbacks:

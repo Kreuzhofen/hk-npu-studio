@@ -470,6 +470,82 @@ class ControlNetUITests(unittest.TestCase):
         is_valid, msg = self.controller.generation_controller.validate_session()
         self.assertTrue(is_valid)
 
+    def test_controlnet_apply_keeps_values_and_closes_popup(self) -> None:
+        self.view.model_var.set("controlnet_canny_qnn")
+        self.view._apply_generation_contract("controlnet_canny_qnn")
+        self.view._open_controlnet_popup()
+        self.view.controlnet_canny_var.set(True)
+        self.view.canny_low_var.set(35)
+        self.view.canny_high_var.set(170)
+        self.view.conditioning_strength_var.set(0.8)
+        self.view.controller.model.update_state(input_image_path="portrait.jpg")
+
+        self.view.controlnet_apply_btn.invoke()
+
+        state = self.view.controller.model.state
+        self.assertEqual(state.input_image_path, "portrait.jpg")
+        self.assertEqual(state.canny_low_threshold, 35)
+        self.assertEqual(state.canny_high_threshold, 170)
+        self.assertAlmostEqual(state.controlnet_conditioning_scale, 0.8)
+        self.assertIsNone(self.view._controlnet_popup)
+        self.view._open_controlnet_popup()
+        self.assertTrue(self.view._controlnet_popup.winfo_exists())
+
+    def test_canny_normalizes_exif_orientation_before_preprocessing(self) -> None:
+        from PIL import Image
+        from engine.controlnet_canny_backend import canny_edge_detector
+
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:
+            path = Path(handle.name)
+        try:
+            image = Image.new("RGB", (12, 20), "white")
+            exif = Image.Exif()
+            exif[274] = 6
+            image.save(path, exif=exif)
+            captured = []
+
+            def preprocess(oriented, _target):
+                captured.append(oriented.size)
+                return oriented.resize((8, 8))
+
+            with patch(
+                "engine.controlnet_canny_backend.preprocess_image_aspect_ratio",
+                side_effect=preprocess,
+            ):
+                edges = canny_edge_detector(path, 50, 150)
+            self.assertEqual(captured, [(20, 12)])
+            self.assertEqual(edges.shape, (8, 8))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_reference_preview_uses_same_exif_orientation(self) -> None:
+        from PIL import Image
+
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:
+            path = Path(handle.name)
+        try:
+            image = Image.new("RGB", (12, 20), "white")
+            exif = Image.Exif()
+            exif[274] = 6
+            image.save(path, exif=exif)
+            self.view.model_var.set("controlnet_canny_qnn")
+            self.view._apply_generation_contract("controlnet_canny_qnn")
+            self.view.controller.model.update_state(input_image_path=str(path))
+            captured = []
+            with patch(
+                "PIL.ImageTk.PhotoImage",
+                side_effect=lambda image, **_kwargs: captured.append(image.size) or MagicMock(),
+            ), patch.object(
+                self.view._dnd_preview_label, "configure"
+            ), patch.object(
+                self.view, "_trigger_canny_preview_update"
+            ):
+                self.view._update_dnd_preview()
+            self.assertEqual(captured, [(20, 12)])
+            self.assertEqual(self.view._dnd_resolution_label.cget("text"), "20 × 12")
+        finally:
+            path.unlink(missing_ok=True)
+
     def test_requantize_tensor_clipping(self) -> None:
         import numpy as np
         from engine.controlnet_canny_backend import ControlNetCannyQnnBackend

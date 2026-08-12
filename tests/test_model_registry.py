@@ -5,9 +5,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from controllers.model_repository import ModelRepository
 from engine.model_registry import ModelHealthStatus, ModelRegistry
+from engine.sd35_qai_appbuilder_backend import _model_dir
 
 
 def valid_metadata(**overrides):
@@ -227,6 +229,31 @@ class ModelRegistryTests(unittest.TestCase):
                 Path(repository.get_model("demo")["path"]),
                 declared.resolve(),
             )
+
+    def test_frozen_upgrade_includes_existing_installation_models_root(self):
+        executable = Path("C:/Program Files/Snapdragon AI Studio/SnapdragonAIStudio.exe")
+        with patch("controllers.model_repository.sys.frozen", True, create=True), patch(
+            "controllers.model_repository.sys.executable", str(executable)
+        ), patch(
+            "controllers.model_repository.ConfigurationManager.load", return_value={}
+        ):
+            roots = ModelRepository._build_installation_roots(
+                None, include_configured_roots=True
+            )
+        self.assertIn(executable.parent / "models", roots)
+
+    def test_sd35_backend_uses_existing_frozen_legacy_model_path(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            executable = Path(temp_dir) / "SnapdragonAIStudio.exe"
+            legacy = executable.parent / "models" / "stable_diffusion_v3_5_qai"
+            legacy.mkdir(parents=True)
+            missing_canonical = executable.parent / "new-models"
+            with patch("engine.sd35_qai_appbuilder_backend.sys.frozen", True, create=True), patch(
+                "engine.sd35_qai_appbuilder_backend.sys.executable", str(executable)
+            ), patch(
+                "engine.sd35_qai_appbuilder_backend.MODELS_DIR", missing_canonical
+            ):
+                self.assertEqual(_model_dir(), legacy)
 
 
 if __name__ == "__main__":

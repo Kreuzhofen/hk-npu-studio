@@ -114,6 +114,7 @@ class StableDiffusion15QaiAppBuilderBackend(InferenceBackend):
                 text=True,
                 timeout=15,
                 check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except (OSError, subprocess.SubprocessError):
             return False
@@ -164,6 +165,7 @@ class StableDiffusion15QaiAppBuilderBackend(InferenceBackend):
                 stderr=subprocess.DEVNULL,
                 text=True,
                 cwd=str(worker_cwd),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
             self._process = process
             channel, _ = listener.accept()

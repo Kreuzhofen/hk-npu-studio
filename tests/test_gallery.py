@@ -72,6 +72,17 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
                 self.assertIsNone(img.width)
                 self.assertIsNone(img.height)
 
+    def test_image_loader_reads_exif_orientation_without_transposing_pixels(self):
+        loader = ImageLoader()
+        with patch("PIL.Image.open") as mock_open:
+            source = MagicMock()
+            source.size = (4000, 3000)
+            source.getexif.return_value = {274: 6}
+            mock_open.return_value.__enter__.return_value = source
+            image = loader._read_image(self.img2_path)
+        self.assertEqual((image.width, image.height), (3000, 4000))
+        self.assertFalse(source.transpose.called)
+
     def test_gallery_controller_operations(self):
         with patch("PIL.Image.open") as mock_open:
             mock_img = MagicMock()
