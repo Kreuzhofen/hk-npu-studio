@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from config import MODELS_DIR
 from engine.backends.qnn_product_backend_adapter import QnnProductBackendAdapter
 
 
@@ -13,11 +14,21 @@ class ControlNetCannyQnnBackendAdapter(QnnProductBackendAdapter):
     )
 
     def is_available(self) -> bool:
-        from pathlib import Path
-        model_dir = Path(r"C:\SnapdragonAI\temp\controlnet_canny_gate\controlnet_canny-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite")
-        if not (model_dir / "controlnet.onnx").exists():
-            return False
-        return True
+        model_dir = MODELS_DIR / "controlnet_canny_qnn"
+        required = (
+            "metadata.json",
+            "text_encoder.onnx",
+            "text_encoder_qairt_context.bin",
+            "controlnet.onnx",
+            "controlnet_qairt_context.bin",
+            "unet.onnx",
+            "unet_qairt_context.bin",
+            "vae.onnx",
+            "vae_qairt_context.bin",
+            "tokenizer/vocab.json",
+            "tokenizer/merges.txt",
+        )
+        return all((model_dir / relative).is_file() for relative in required)
 
     def get_backend_name(self) -> str:
         return "Qualcomm ControlNet Canny (HTP V73)"

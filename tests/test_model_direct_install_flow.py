@@ -83,8 +83,9 @@ class DirectModelInstallTests(unittest.TestCase):
         })
         install_service = MagicMock()
 
-        def stage(_model_id, _url, callback, hf_token=None):
+        def stage(_model_id, _url, callback, hf_token=None, force_redownload=False):
             self.assertIsNone(hf_token)
+            self.assertFalse(force_redownload)
             callback(42.0)
             repository.model["path"] = r"C:\temp\model.zip"
             return True
@@ -103,7 +104,7 @@ class DirectModelInstallTests(unittest.TestCase):
             self.assertTrue(controller.download_and_install_package("direct_model", source_url, updates.append))
         self.assertEqual(
             [update["phase"] for update in updates],
-            ["downloading", "download_complete", "checking", "installing", "activating", "ready"],
+            ["download_preparing", "downloading", "download_complete", "checking", "installing", "validating", "activating", "ready"],
         )
         install_service.install_package.assert_called_once_with(
             "direct_model", r"C:\temp\model.zip", replace_existing=False
@@ -570,6 +571,42 @@ class DirectModelInstallTests(unittest.TestCase):
                     (data["home_start_setup"], data["home_create_first_image"]), actions
                 )
                 self.assertTrue(all(value and "{" not in value and "}" not in value for value in values))
+
+    def test_sd35_routing_opens_guided_qualcomm_flow(self) -> None:
+        model = {
+            "id": "stable_diffusion_v3_5_qai",
+            "display_name": "Stable Diffusion 3.5 Medium",
+            "installed": False,
+            "source_type": "local_only",
+            "package_format": "smp_or_zip",
+            "requires_hf_token": False,
+        }
+        repository = _Repository(model)
+        controller = SimpleNamespace(
+            model=SimpleNamespace(repository=repository),
+            install_and_activate_sd35_qualcomm_folder=MagicMock(),
+        )
+        view = SimpleNamespace(
+            selected_model_id=model["id"],
+            controller=controller,
+            winfo_toplevel=lambda: SimpleNamespace(brand=None),
+            _display_title=lambda item: item["display_name"],
+            _requires_hf_auth=lambda *args: False,
+        )
+        with patch("widgets.phoenix.views.model_manager_view.filedialog.askdirectory") as askdir, \
+             patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename") as askfile, \
+             patch("dialogs.model_direct_download_dialog.ModelDirectDownloadDialog") as direct_dialog, \
+             patch("dialogs.model_source_dialog.ModelSourceDialog") as source_dialog:
+
+             # Setup ModelSourceDialog mock to return choice="install_sd35_auto" (which triggers the auto flow)
+             source_dialog.return_value = SimpleNamespace(choice="install_sd35_auto")
+
+             # Run routing
+             PhoenixModelManagerView._on_install_selected(view)
+
+        # It must open the direct download dialog for the special Qualcomm flow, NOT the file picker or generic error
+        direct_dialog.assert_called_once()
+        askfile.assert_not_called()
 
 
 if __name__ == "__main__":

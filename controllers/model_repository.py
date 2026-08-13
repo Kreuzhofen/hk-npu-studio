@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from config import MODELS_DIR, PREFERENCES_PATH
+from config import MODELS_DIR, PREFERENCES_PATH, TEMP_DIR
 from app.configuration_manager import ConfigurationManager
 from engine.logging_config import get_logger
 from engine.model_registry import ModelHealthStatus, ModelRegistry
@@ -193,17 +193,26 @@ class ModelRepository:
             resolved = candidate.resolve(strict=False)
             exists = resolved.exists()
             is_directory = resolved.is_dir() if exists else False
+            productive = self._is_productive_installation_path(resolved)
             logger.info(
                 "[MODEL PATH] Candidate %s/%s | model=%s | source=%s | path=%s | "
-                "exists=%s | directory=%s",
+                "exists=%s | directory=%s | productive=%s",
                 index, len(candidates), model_id, source, resolved, exists, is_directory,
+                productive,
             )
-            if exists and is_directory:
+            if exists and is_directory and productive:
                 model["path"] = str(resolved)
                 model["installed"] = True
+                validation = self.registry.validate_installation(model)
+                if validation.valid:
+                    model["downloaded"] = True
+                    model["status"] = "Ready"
+                else:
+                    model["installed"] = False
+                    model["status"] = "Invalid"
                 logger.info(
-                    "[MODEL PATH] First match | model=%s | source=%s | path=%s",
-                    model_id, source, resolved,
+                    "[MODEL PATH] First match | model=%s | source=%s | path=%s | status=%s",
+                    model_id, source, resolved, model["status"],
                 )
                 return resolved
 
@@ -212,7 +221,23 @@ class ModelRepository:
             model_id,
             [str(path.resolve(strict=False)) for _, path in candidates],
         )
+        model["installed"] = False
+        model["downloaded"] = False
+        model["path"] = ""
+        model["status"] = "Not Installed"
         return None
+
+    def _is_productive_installation_path(self, candidate: Path) -> bool:
+        """Accept only persistent configured model roots, never Phoenix temp."""
+        resolved = candidate.resolve(strict=False)
+        temp_root = Path(TEMP_DIR).resolve(strict=False)
+        if resolved == temp_root or temp_root in resolved.parents:
+            return False
+        return any(
+            resolved == root.resolve(strict=False)
+            or root.resolve(strict=False) in resolved.parents
+            for root in self.installation_roots
+        )
 
     def _validate_model_data(self, data: dict[str, Any]) -> bool:
         """

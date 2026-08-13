@@ -323,7 +323,15 @@ class ModelRegistry:
                 issues.extend(manifest_issues)
             else:
                 required_files = model.get("required_files", [])
-                if isinstance(required_files, list):
+                if not isinstance(required_files, list) or not required_files:
+                    issues.append(
+                        ModelValidationIssue(
+                            "installation_contract_missing",
+                            "Ohne package.json oder deklarierte Pflichtdateien kann die Installation nicht validiert werden.",
+                            path=str(base),
+                        )
+                    )
+                else:
                     for relative in required_files:
                         target = self._safe_child(base, relative)
                         if target is None or not target.exists():

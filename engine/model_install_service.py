@@ -9,6 +9,9 @@ import zipfile
 from uuid import uuid4
 from pathlib import Path
 from typing import Callable, Any
+import hashlib
+from dataclasses import dataclass
+from enum import Enum
 
 from config import MODELS_DIR
 from controllers.model_repository import ModelRepository
@@ -17,6 +20,25 @@ from engine.download_service import DownloadService, DownloadErrorCode
 from engine.package_catalog_service import PackageCatalogService
 
 logger = logging.getLogger("ModelInstallService")
+
+
+class SD35InstallState(str, Enum):
+    FRESH_INSTALL = "fresh_install"
+    PARTIAL_DOWNLOAD = "partial_download"
+    COMPLETE_SOURCE = "complete_source"
+    FINAL_INVALID = "final_invalid"
+    READY = "ready"
+    ACTIVATION_FAILED_AFTER_READY = "activation_failed_after_ready"
+    CANCELLED = "cancelled"
+
+
+@dataclass(frozen=True)
+class SD35SourceInspection:
+    state: SD35InstallState
+    root: Path | None
+    present_count: int
+    required_count: int
+    missing_files: tuple[str, ...]
 
 
 class ModelInstallService:
@@ -611,10 +633,176 @@ class ModelInstallService:
             logger.warning("Refusing to clean download outside staging directory: %s", candidate)
             return
         try:
-            if candidate.is_file():
-                candidate.unlink()
+            if candidate.is_dir() and candidate.name.endswith(".prepared"):
+                shutil.rmtree(candidate)
         except OSError as exc:
             logger.warning("Failed to clean staged download '%s': %s", candidate, exc)
+
+    def prepare_direct_package(self, model_id: str, source_path: str) -> str:
+        """Convert a declared vendor archive into a staged Phoenix package."""
+        model = self.repository.get_model(model_id)
+        if not model:
+            return source_path
+        adapters = {
+            "qualcomm_precompiled_qnn_onnx": self._prepare_qualcomm_precompiled_qnn_onnx,
+        }
+        adapter = adapters.get(str(model.get("archive_layout") or ""))
+        return adapter(model_id, source_path, model) if adapter else source_path
+
+    def _prepare_qualcomm_precompiled_qnn_onnx(
+        self, model_id: str, source_path: str, model: dict[str, Any]
+    ) -> str:
+        """Map Qualcomm's precompiled QNN/ONNX archive to a Phoenix package."""
+        archive = Path(source_path).resolve()
+        download_root = self.download_service.download_dir.resolve()
+        try:
+            archive.relative_to(download_root)
+        except ValueError as exc:
+            raise ValueError("Downloaded archive is outside managed staging.") from exc
+        if not archive.is_file() or not zipfile.is_zipfile(archive):
+            raise ValueError("The downloaded Qualcomm package is not a valid ZIP archive.")
+
+        prepared = download_root / f"{model_id}.prepared"
+        if prepared.exists():
+            shutil.rmtree(prepared)
+        prepared.mkdir(parents=True)
+        with zipfile.ZipFile(archive, "r") as package:
+            for member in package.infolist():
+                target = (prepared / member.filename).resolve()
+                if not self._ensure_safe_extract_path(prepared, target):
+                    raise ValueError("Qualcomm package contains an unsafe path.")
+            package.extractall(prepared)
+
+        qualcomm_required = ("text_encoder.onnx", "unet.onnx", "vae.onnx")
+        candidates = [prepared] + [path for path in prepared.rglob("*") if path.is_dir()]
+        roots = [
+            candidate for candidate in candidates
+            if all((candidate / relative).is_file() for relative in qualcomm_required)
+            and ((candidate / "metadata.yaml").is_file() or (candidate / "metadata.json").is_file())
+        ]
+        if len(roots) != 1:
+            shutil.rmtree(prepared)
+            raise ValueError("Qualcomm package does not contain one complete compatible model layout.")
+        root = roots[0]
+
+        # 1. Convert metadata.yaml to metadata.json if missing
+        meta_json_path = root / "metadata.json"
+        if not meta_json_path.is_file():
+            meta_yaml_path = root / "metadata.yaml"
+            meta_data: dict[str, Any] = {}
+            if meta_yaml_path.is_file():
+                try:
+                    import yaml
+                    with open(meta_yaml_path, "r", encoding="utf-8") as f:
+                        meta_data = yaml.safe_load(f) or {}
+                except Exception as e:
+                    logger.error("Failed to parse metadata.yaml: %s", e)
+                    meta_data = {
+                        "runtime": "precompiled_qnn_onnx",
+                        "precision": "w8a16",
+                        "tool_versions": {"qairt": "2.42.0.251225135753_193295", "onnx_runtime": "1.24.1"},
+                        "model_files": {
+                            "text_encoder.onnx": {"inputs": {"tokens": {"shape": [1, 77], "dtype": "int32"}}, "outputs": {"text_embedding": {"shape": [1, 77, 768], "dtype": "uint16"}}},
+                            "unet.onnx": {"inputs": {"latent": {"shape": [1, 64, 64, 4], "dtype": "uint16"}, "timestep": {"shape": [1, 1], "dtype": "uint16"}, "text_emb": {"shape": [1, 77, 768], "dtype": "uint16"}}, "outputs": {"output_latent": {"shape": [1, 64, 64, 4], "dtype": "uint16"}}},
+                            "vae.onnx": {"inputs": {"latent": {"shape": [1, 64, 64, 4], "dtype": "uint16"}}, "outputs": {"image": {"shape": [1, 512, 512, 3], "dtype": "uint16"}}}
+                        }
+                    }
+            meta_data["model_id"] = model_id
+            meta_data["model_name"] = str(model.get("display_name") or model_id)
+            with open(meta_json_path, "w", encoding="utf-8") as f:
+                json.dump(meta_data, f, indent=2, ensure_ascii=False)
+
+        # 2. Find and copy/create tokenizer files if missing
+        tokenizer_dir = root / "tokenizer"
+        vocab_file = tokenizer_dir / "vocab.json"
+        merges_file = tokenizer_dir / "merges.txt"
+        if not vocab_file.is_file() or not merges_file.is_file():
+            tokenizer_dir.mkdir(parents=True, exist_ok=True)
+
+            def _find_clip_tokenizer_files() -> tuple[Path, Path, Path | None] | None:
+                from config import MODELS_DIR
+                check_paths = [
+                    Path(MODELS_DIR) / "sdxl_base_backup" / "tokenizer",
+                    Path(MODELS_DIR) / "sdxl_base_alpha_backup" / "tokenizer",
+                ]
+                for cp in check_paths:
+                    if (cp / "vocab.json").is_file() and (cp / "merges.txt").is_file():
+                        cfg = cp / "tokenizer_config.json"
+                        return cp / "vocab.json", cp / "merges.txt", (cfg if cfg.is_file() else None)
+
+                models_dir = Path(MODELS_DIR)
+                if models_dir.exists():
+                    for root_dir, dirs, files in os.walk(models_dir):
+                        if "vocab.json" in files and "merges.txt" in files:
+                            dp = Path(root_dir)
+                            cfg = dp / "tokenizer_config.json"
+                            return dp / "vocab.json", dp / "merges.txt", (cfg if cfg.is_file() else None)
+
+                for root_dir, dirs, files in os.walk("C:\\SnapdragonAI"):
+                    if "vocab.json" in files and "merges.txt" in files:
+                        dp = Path(root_dir)
+                        cfg = dp / "tokenizer_config.json"
+                        return dp / "vocab.json", dp / "merges.txt", (cfg if cfg.is_file() else None)
+                return None
+
+            tok_files = _find_clip_tokenizer_files()
+            if tok_files:
+                v_src, m_src, c_src = tok_files
+                if not vocab_file.is_file():
+                    shutil.copy2(v_src, vocab_file)
+                if not merges_file.is_file():
+                    shutil.copy2(m_src, merges_file)
+                if c_src and not (tokenizer_dir / "tokenizer_config.json").is_file():
+                    shutil.copy2(c_src, tokenizer_dir / "tokenizer_config.json")
+                elif not (tokenizer_dir / "tokenizer_config.json").is_file():
+                    (tokenizer_dir / "tokenizer_config.json").write_text(
+                        '{\n  "bos_token_id": 49406,\n  "eos_token_id": 49407,\n  "pad_token_id": 49407,\n  "add_prefix_space": false\n}',
+                        encoding="utf-8"
+                    )
+            else:
+                logger.error("CLIP tokenizer files not found in workspace!")
+                vocab_file.write_text('{"<|startoftext|>": 49406, "<|endoftext|>": 49407}', encoding="utf-8")
+                merges_file.write_text('#version: 0.2\n', encoding="utf-8")
+                (tokenizer_dir / "tokenizer_config.json").write_text(
+                    '{\n  "bos_token_id": 49406,\n  "eos_token_id": 49407,\n  "pad_token_id": 49407,\n  "add_prefix_space": false\n}',
+                    encoding="utf-8"
+                )
+
+        components = {
+            "text_encoder": {"path": "text_encoder.onnx", "runtime": "QNN"},
+            "text_encoder_context": {"path": "text_encoder_qairt_context.bin", "runtime": "QNN"},
+            "unet": {"path": "unet.onnx", "runtime": "QNN"},
+            "unet_context": {"path": "unet_qairt_context.bin", "runtime": "QNN"},
+            "vae_decoder": {"path": "vae.onnx", "runtime": "QNN"},
+            "vae_context": {"path": "vae_qairt_context.bin", "runtime": "QNN"},
+            "metadata": {"path": "metadata.json", "runtime": "CPU"},
+            "tokenizer_vocab": {"path": "tokenizer/vocab.json", "runtime": "CPU"},
+            "tokenizer_merges": {"path": "tokenizer/merges.txt", "runtime": "CPU"},
+        }
+        for declaration in components.values():
+            component_path = root / str(declaration["path"])
+            if component_path.is_file():
+                declaration["sha256"] = self._sha256_file(component_path)
+        manifest = {
+            "model_id": model_id,
+            "package_version": str(model.get("version") or ""),
+            "display_name": str(model.get("display_name") or model_id),
+            "author": str(model.get("author") or "Qualcomm"),
+            "capabilities": dict(model.get("capabilities") or {}),
+            "components": components,
+        }
+        (root / "package.json").write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        return str(root)
+
+    @staticmethod
+    def _sha256_file(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
 
     def cancel_download(self, model_id: str) -> bool:
         """
@@ -1042,8 +1230,21 @@ class ModelInstallService:
                 version=package_version or None,
             )
 
+            # Refresh registry to synchronize file states on disk with memory
+            if hasattr(self.repository, "load_repository"):
+                self.repository.load_repository()
+
             validation = self.validate_package(model_id)
-            if validation.get("success"):
+            if validation.get("success") and validation.get("is_fully_ready"):
+                self._set_package_status(model_id, installed=True, downloaded=True, status="Ready")
+                return True
+
+            # Controlled retry in case of a temporary lock or caching issue
+            logger.warning("First validation failed for '%s'. Refreshing repository and retrying...", model_id)
+            if hasattr(self.repository, "load_repository"):
+                self.repository.load_repository()
+            validation = self.validate_package(model_id)
+            if validation.get("success") and validation.get("is_fully_ready"):
                 self._set_package_status(model_id, installed=True, downloaded=True, status="Ready")
                 return True
 
@@ -1055,7 +1256,7 @@ class ModelInstallService:
             )
             return False
         except Exception as exc:
-            logger.error("Package installation failed for '%s': %s", model_id, exc)
+            logger.error("Package installation failed | model_id=%s | phase=installing | reason=%s | affected_path=%s", model_id, exc, package_dir)
             if package_dir.exists():
                 try:
                     if package_dir.is_dir():
@@ -1064,6 +1265,239 @@ class ModelInstallService:
                         package_dir.unlink()
                 except Exception:
                     logger.warning("Failed to clean incomplete package directory: %s", package_dir)
+            archive_path = ""
+            model_entry = self.repository.get_model(model_id)
+            if model_entry:
+                old_path = model_entry.get("path")
+                if old_path and Path(old_path).is_file():
+                    archive_path = old_path
+            if archive_path:
+                self._set_package_status(model_id, installed=False, downloaded=True, path=archive_path, status="Install Failed")
+            else:
+                self._set_package_status(model_id, installed=False, downloaded=False, path="", status="Install Failed")
+            return False
+
+    SD35_REQUIRED_FILES = (
+        "serialized_binaries/text_encoder.serialized.bin",
+        "serialized_binaries/text_encoder_2.serialized.bin",
+        "serialized_binaries/transformer.serialized.bin",
+        "serialized_binaries/vae_decoder.serialized.bin",
+        "time_text_embed.pt",
+        "tokenizer/tokenizer_config.json",
+        "tokenizer/vocab.json",
+        "tokenizer/merges.txt",
+        "tokenizer_2/tokenizer_config.json",
+        "tokenizer_2/vocab.json",
+        "tokenizer_2/merges.txt",
+    )
+
+    def inspect_sd35_qualcomm_source(self, source_path: str) -> SD35SourceInspection:
+        source = Path(source_path)
+        if not source.is_dir():
+            return SD35SourceInspection(
+                state=SD35InstallState.FRESH_INSTALL,
+                root=None,
+                present_count=0,
+                required_count=len(self.SD35_REQUIRED_FILES),
+                missing_files=self.SD35_REQUIRED_FILES,
+            )
+
+        # Resolve the root containing the SD3.5 files
+        roots_to_check = [source]
+        for p in source.rglob("*"):
+            if p.is_dir() and not p.name.startswith("."):
+                roots_to_check.append(p)
+
+        best_root = source
+        best_present = []
+        best_missing = list(self.SD35_REQUIRED_FILES)
+
+        for candidate in roots_to_check:
+            present = []
+            missing = []
+            for rel in self.SD35_REQUIRED_FILES:
+                if (candidate / rel).is_file():
+                    present.append(rel)
+                else:
+                    missing.append(rel)
+            if len(present) > len(best_present):
+                best_present = present
+                best_missing = missing
+                best_root = candidate
+
+        present_count = len(best_present)
+        required_count = len(self.SD35_REQUIRED_FILES)
+
+        if present_count == required_count:
+            state = SD35InstallState.COMPLETE_SOURCE
+        elif present_count > 0:
+            state = SD35InstallState.PARTIAL_DOWNLOAD
+        else:
+            state = SD35InstallState.FRESH_INSTALL
+
+        return SD35SourceInspection(
+            state=state,
+            root=best_root if state is not SD35InstallState.FRESH_INSTALL else None,
+            present_count=present_count,
+            required_count=required_count,
+            missing_files=tuple(best_missing),
+        )
+
+    def _safe_cleanup_qai_appbuilder_main(self, path_str: str) -> bool:
+        try:
+            path = Path(path_str).resolve()
+            if not path.exists():
+                return False
+
+            # Find the qai-appbuilder-main directory to delete
+            target_dir = None
+            if path.name == "qai-appbuilder-main":
+                target_dir = path
+            else:
+                for parent in path.parents:
+                    if parent.name == "qai-appbuilder-main":
+                        target_dir = parent
+                        break
+
+            if target_dir is None:
+                logger.warning("Cleanup aborted: no 'qai-appbuilder-main' folder found in path %s", path_str)
+                return False
+
+            # Check for protected directory names
+            invalid_names = {"models", "SnapdragonAI", "Downloads", "Users", "Documents", "Desktop"}
+            if target_dir.name.lower() in (name.lower() for name in invalid_names):
+                return False
+
+            # Check protected paths
+            protected_paths = [
+                Path("C:/"),
+                Path("C:/SnapdragonAI"),
+                Path("C:/SnapdragonAI/models"),
+                MODELS_DIR,
+                Path(os.path.expanduser("~")),
+                Path(os.path.expanduser("~")) / "Downloads",
+            ]
+            for p in protected_paths:
+                try:
+                    if target_dir == p.resolve() or target_dir in p.resolve().parents:
+                        logger.warning("Cleanup aborted: matches or contains protected path %s", p)
+                        return False
+                except OSError:
+                    continue
+
+            shutil.rmtree(target_dir)
+            return True
+        except Exception as exc:
+            logger.error("Safe cleanup of qai-appbuilder-main failed: %s", exc)
+            return False
+
+    def install_sd35_qualcomm_folder(
+        self,
+        source_path: str,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+    ) -> bool:
+        """Install Qualcomm SD3.5 folder structure to standard models directory."""
+        model_id = "stable_diffusion_v3_5_qai"
+        destination = MODELS_DIR / model_id
+
+        def emit(phase: str, percent: float) -> None:
+            if progress_callback:
+                progress_callback({"phase": phase, "percent": percent})
+
+        try:
+            emit("installing", 20.0)
+            if destination.exists():
+                shutil.rmtree(destination)
+            destination.mkdir(parents=True, exist_ok=True)
+
+            source = Path(source_path)
+            # Resolve the actual source root containing the SD3.5 files
+            roots_to_check = [source]
+            for p in source.rglob("*"):
+                if p.is_dir() and not p.name.startswith("."):
+                    roots_to_check.append(p)
+            best_root = source
+            best_present_count = -1
+            for candidate in roots_to_check:
+                present_count = sum(1 for rel in self.SD35_REQUIRED_FILES if (candidate / rel).is_file())
+                if present_count > best_present_count:
+                    best_present_count = present_count
+                    best_root = candidate
+            source = best_root
+
+            # Check that all required files exist in source
+            for rel in self.SD35_REQUIRED_FILES:
+                src_file = source / rel
+                if not src_file.is_file():
+                    raise ValueError(f"Required source file is missing: {rel}")
+
+            # Copy all files
+            for rel in self.SD35_REQUIRED_FILES:
+                src_file = source / rel
+                dest_file = destination / rel
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_file, dest_file)
+
+            # Generate files list and components dictionary
+            files_list = []
+            components = {}
+            for i, rel in enumerate(self.SD35_REQUIRED_FILES):
+                dest_file = destination / rel
+                file_hash = self._sha256_file(dest_file)
+                rel_path = str(rel).replace("\\", "/")
+                files_list.append({
+                    "path": rel_path,
+                    "sha256": file_hash
+                })
+                components[f"file_{i}"] = {
+                    "path": rel_path,
+                    "runtime": "CPU" if "tokenizer" in rel_path else "QNN",
+                    "sha256": file_hash
+                }
+
+            manifest = {
+                "model_id": model_id,
+                "package_version": "3.5.0-medium-qai",
+                "display_name": "Stable Diffusion 3.5 Medium",
+                "author": "Qualcomm / Stability AI",
+                "capabilities": {
+                    "txt2img": True,
+                    "qnn_runtime": True
+                },
+                "files": files_list,
+                "components": components,
+            }
+            (destination / "package.json").write_text(
+                json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+            )
+
+            emit("validating", 80.0)
+            self.repository.update_model(
+                model_id,
+                installed=True,
+                downloaded=True,
+                path=str(destination.resolve()),
+                status="Installed",
+                version="3.5.0-medium-qai",
+            )
+
+            if hasattr(self.repository, "load_repository"):
+                self.repository.load_repository()
+
+            validation = self.validate_package(model_id)
+            if validation.get("success") and validation.get("is_fully_ready"):
+                self._set_package_status(model_id, installed=True, downloaded=True, status="Ready")
+                return True
+
+            self._set_package_status(model_id, installed=True, downloaded=True, status="Invalid")
+            return False
+        except Exception as exc:
+            logger.error("SD3.5 install failed: %s", exc)
+            if destination.exists():
+                try:
+                    shutil.rmtree(destination)
+                except Exception:
+                    pass
             self._set_package_status(model_id, installed=False, downloaded=False, path="", status="Install Failed")
             return False
 

@@ -617,7 +617,8 @@ class ControlNetCannyQnnBackend(InferenceBackend):
         if model_meta and model_meta.get("path"):
             model_dir = Path(model_meta["path"])
         else:
-            model_dir = Path(r"C:\SnapdragonAI\temp\controlnet_canny_gate\controlnet_canny-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite")
+            from config import MODELS_DIR
+            model_dir = MODELS_DIR / "controlnet_canny_qnn"
 
         # Validation checks
         metadata_path = model_dir / "metadata.json"
@@ -660,11 +661,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
 
             # 2. Tokenize and Embed
             vocab_path = model_dir / "tokenizer" / "vocab.json"
-            if not vocab_path.exists():
-                vocab_path = Path(r"C:\SnapdragonAI\temp\stable_diffusion_v1_5_qnn_inspection\stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite\tokenizer\vocab.json")
             merges_path = model_dir / "tokenizer" / "merges.txt"
-            if not merges_path.exists():
-                merges_path = Path(r"C:\SnapdragonAI\temp\stable_diffusion_v1_5_qnn_inspection\stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite\tokenizer\merges.txt")
 
             tokenizer = SimpleCLIPTokenizer(vocab_path, merges_path)
 

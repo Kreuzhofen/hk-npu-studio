@@ -649,16 +649,116 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if source_type != "direct":
             from dialogs.model_source_dialog import ModelSourceDialog
             brand = getattr(self.winfo_toplevel(), "brand", None)
+
+            # Hardcoded fallback for reference_url to ensure SD3.5 guided routing works
+            # without modifying catalog files/contracts.
+            ref_url = (selected_model or {}).get("reference_url")
+            if self.selected_model_id == "stable_diffusion_v3_5_qai" and not ref_url:
+                ref_url = "https://github.com/qualcomm/qai-appbuilder/tree/main/samples/GenerativeAI/Image_Generation/stable_diffusion_v3_5"
+
             dialog = ModelSourceDialog(
                 self.winfo_toplevel(),
                 model_name=self._display_title(selected_model or {}),
                 source_type=source_type or "local_only",
                 source_url=source_url if source_type == "official_external" else None,
+                reference_url=ref_url,
                 package_format=str((selected_model or {}).get("package_format") or "smp_or_zip"),
                 required_variant=(selected_model or {}).get("required_variant"),
+                requires_hf_token=PhoenixModelManagerView._requires_hf_auth(selected_model or {}),
                 brand=brand,
             )
+
+            if dialog.choice == "install_sd35_auto":
+                import os
+                from tools.sd35_setup_helper import SD35SetupHelper
+
+                zip_path = SD35SetupHelper.locate_zip()
+                if not zip_path:
+                    messagebox.showinfo(
+                        tr("sd35_zip_not_found_title", "ZIP nicht gefunden"),
+                        tr("sd35_zip_not_found_text", "Die Datei qai-appbuilder-main.zip wurde in Ihrem Downloads-Ordner nicht automatisch gefunden. Bitte wählen Sie die Datei manuell aus.")
+                    )
+                    downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+                    zip_path = filedialog.askopenfilename(
+                        parent=self.winfo_toplevel(),
+                        title=tr("sd35_select_zip", "Qualcomm ZIP-Archiv auswählen"),
+                        filetypes=[("ZIP Files", "*.zip")],
+                        initialdir=downloads if os.path.exists(downloads) else None
+                    )
+                    if not zip_path:
+                        return
+
+                from controllers.workflow_controller import WorkflowController
+                from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
+
+                def _installed() -> None:
+                    self._last_rendered_signature = None
+                    self.refresh()
+
+                ModelDirectDownloadDialog(
+                    self.winfo_toplevel(),
+                    model_name=self._display_title(selected_model or {}),
+                    download_size=None,
+                    start_install=lambda callback: SD35SetupHelper.run_setup(
+                        zip_path,
+                        self.controller.install_and_activate_sd35_qualcomm_folder,
+                        callback,
+                    ),
+                    start_redownload=lambda callback: SD35SetupHelper.run_setup(
+                        zip_path,
+                        self.controller.install_and_activate_sd35_qualcomm_folder,
+                        callback,
+                        allow_redownload=True,
+                    ),
+                    on_installed=_installed,
+                    on_open_generate=WorkflowController.get_instance().open_generate,
+                    operation="sd35_auto",
+                    auto_start=True,
+                    brand=brand,
+                )
+                return
+
             if dialog.choice != "install":
+                if dialog.choice != "install_folder":
+                    return
+                import os
+                downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+                initial_dir = os.path.join(downloads, "qai-appbuilder-main", "samples", "GenerativeAI", "Image_Generation", "stable_diffusion_v3_5", "models")
+                if not os.path.exists(initial_dir):
+                    if os.path.exists(os.path.join(downloads, "qai-appbuilder-main")):
+                        initial_dir = os.path.join(downloads, "qai-appbuilder-main")
+                    elif os.path.exists(downloads):
+                        initial_dir = downloads
+                    else:
+                        initial_dir = None
+                source_folder = filedialog.askdirectory(
+                    parent=self.winfo_toplevel(),
+                    title=tr("model_src_sd35_select_folder", "Qualcomm model folder auswählen"),
+                    initialdir=initial_dir,
+                )
+                if not source_folder:
+                    return
+                import_folder = getattr(self.controller, "install_and_activate_sd35_qualcomm_folder", None)
+                if not callable(import_folder):
+                    return
+                from controllers.workflow_controller import WorkflowController
+                from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
+
+                def _installed() -> None:
+                    self._last_rendered_signature = None
+                    self.refresh()
+
+                ModelDirectDownloadDialog(
+                    self.winfo_toplevel(),
+                    model_name=self._display_title(selected_model or {}),
+                    download_size=None,
+                    start_install=lambda callback: import_folder(source_folder, callback),
+                    on_installed=_installed,
+                    on_open_generate=WorkflowController.get_instance().open_generate,
+                    operation="sd35_folder",
+                    auto_start=True,
+                    brand=brand,
+                )
                 return
 
         source_path = filedialog.askopenfilename(

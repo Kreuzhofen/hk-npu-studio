@@ -15,10 +15,9 @@ class StableDiffusion15QnnBackendAdapter(QnnProductBackendAdapter):
     def is_available(self) -> bool:
         # Verify model files and QNN runtime are present
         from pathlib import Path
-        model_dir = Path(r"C:\SnapdragonAI\temp\stable_diffusion_v1_5_qnn_inspection\stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite")
-        if not (model_dir / "text_encoder.onnx").exists():
-            return False
-        return True
+        import config
+        model_dir = Path(config.MODELS_DIR) / "stable_diffusion_v1_5_qnn"
+        return (model_dir / "text_encoder.onnx").exists()
 
     def get_backend_name(self) -> str:
         return "Qualcomm Stable Diffusion 1.5 (HTP V73)"
