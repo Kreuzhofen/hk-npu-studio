@@ -37,35 +37,11 @@ build/
 # AI Model Files
 # ==========================================================
 
-# Ignore all ONNX model weights
-models/**/*.onnx
-models/**/*.onnx_data
+# Installed/downloaded AI models are local runtime data.
+models/*/
 
-# Keep manifests and metadata
-!models/**/package.json
-!models/**/model_index.json
-!models/**/config.json
-!models/**/scheduler_config.json
-!models/**/.gitattributes
-!models/**/README.md
-
-# Keep tokenizer files
-!models/**/tokenizer/**
-!models/**/tokenizer_2/**
-
-# Keep empty directories if required
-!models/**/.gitkeep
-# Local model backups
-models/*_backup/
+# Keep product-bundled ESRGAN model tracked.
+!models/real_esrgan_x4plus.bin
 
 # Diagnostics and local test models
 diagnostics/
-models/qnn_mobilenet_v2/
-
-# Qualcomm QNN context binaries
-models/**/*.bin
-
-# Keep SD2.1 EPContext ONNX wrappers
-!models/stable_diffusion_v2_1/text_encoder.onnx
-!models/stable_diffusion_v2_1/unet.onnx
-!models/stable_diffusion_v2_1/vae.onnx
