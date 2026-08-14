@@ -1,5 +1,6 @@
 {
   "id": "wan22",
+  "release_status": "experimental",
   "display_name": "Wan 2.1 Video",
   "beginner_variant_label": "Local package",
   "source_type": "local_only",

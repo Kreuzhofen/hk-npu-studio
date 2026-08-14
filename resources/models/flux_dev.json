@@ -1,5 +1,6 @@
 {
   "id": "flux_dev",
+  "release_status": "experimental",
   "display_name": "Flux.1 Dev",
   "beginner_variant_label": "Local package",
   "source_type": "local_only",

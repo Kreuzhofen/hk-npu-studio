@@ -1,5 +1,6 @@
 {
   "id": "stable_diffusion_v2_1_qnn",
+  "release_status": "available",
   "display_name": "Stable Diffusion 2.1",
   "beginner_variant_label": "Standard package",
   "source_type": "direct",

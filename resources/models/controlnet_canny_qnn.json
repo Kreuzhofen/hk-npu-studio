@@ -1,5 +1,6 @@
 {
   "id": "controlnet_canny_qnn",
+  "release_status": "available",
   "display_name": "ControlNet Canny",
   "beginner_variant_label": "",
   "source_type": "direct",

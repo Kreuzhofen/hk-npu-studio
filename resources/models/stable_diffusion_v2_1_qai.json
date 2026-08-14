@@ -1,5 +1,6 @@
 {
   "id": "stable_diffusion_v2_1_qai",
+  "release_status": "experimental",
   "display_name": "Stable Diffusion 2.1",
   "beginner_variant_label": "External package",
   "source_type": "official_external",

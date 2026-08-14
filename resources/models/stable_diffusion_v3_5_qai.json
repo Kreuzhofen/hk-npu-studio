@@ -1,5 +1,6 @@
 {
   "id": "stable_diffusion_v3_5_qai",
+  "release_status": "available",
   "display_name": "Stable Diffusion 3.5 Medium",
   "beginner_variant_label": "Local package",
   "source_type": "local_only",
@@ -16,24 +17,61 @@
   "recommended_backend": "Qualcomm SD3.5 Medium QAI AppBuilder (HTP)",
   "minimum_ram_gb": 16,
   "recommended_ram_gb": 32,
-  "supports": ["txt2img"],
-  "installed": false,
-  "downloaded": false,
-  "path": "",
-  "status": "Not Installed",
+  "supports": [
+    "txt2img"
+  ],
+  "installed": true,
+  "downloaded": true,
+  "path": "C:\\SnapdragonAI\\models\\stable_diffusion_v3_5_qai",
+  "status": "Ready",
   "catalog_status": "LOCAL PACKAGE REQUIRED",
   "product_available": true,
   "official_qualcomm_package": true,
   "availability_message": "Install a local Qualcomm SD3.5 Medium QAI package through Model Manager.",
   "generation_parameters": {
     "resolution_locked": true,
-    "width": {"default": 1024, "values": [1024], "editable": false},
-    "height": {"default": 1024, "values": [1024], "editable": false},
-    "steps": {"default": 8, "min": 1, "max": 50},
-    "cfg": {"default": 3.5, "min": 1.0, "max": 10.0, "resolution": 0.5},
-    "seed": {"default": -1},
-    "sampler": {"default": "FlowMatch Euler", "values": ["FlowMatch Euler"], "editable": false},
-    "scheduler": {"default": "Shift 3.0", "values": ["Shift 3.0"], "editable": false}
+    "width": {
+      "default": 1024,
+      "values": [
+        1024
+      ],
+      "editable": false
+    },
+    "height": {
+      "default": 1024,
+      "values": [
+        1024
+      ],
+      "editable": false
+    },
+    "steps": {
+      "default": 8,
+      "min": 1,
+      "max": 50
+    },
+    "cfg": {
+      "default": 3.5,
+      "min": 1.0,
+      "max": 10.0,
+      "resolution": 0.5
+    },
+    "seed": {
+      "default": -1
+    },
+    "sampler": {
+      "default": "FlowMatch Euler",
+      "values": [
+        "FlowMatch Euler"
+      ],
+      "editable": false
+    },
+    "scheduler": {
+      "default": "Shift 3.0",
+      "values": [
+        "Shift 3.0"
+      ],
+      "editable": false
+    }
   },
   "capabilities": {
     "txt2img": true,
@@ -46,5 +84,6 @@
     "batch_generation": false,
     "onnx_runtime": false,
     "qnn_runtime": true
-  }
+  },
+  "schema_version": 1
 }

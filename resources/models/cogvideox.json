@@ -1,5 +1,6 @@
 {
   "id": "cogvideox",
+  "release_status": "experimental",
   "display_name": "CogVideoX 5B",
   "beginner_variant_label": "Local package",
   "source_type": "local_only",

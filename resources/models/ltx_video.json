@@ -1,5 +1,6 @@
 {
   "id": "ltx_video",
+  "release_status": "experimental",
   "display_name": "LTX Video",
   "beginner_variant_label": "Local package",
   "source_type": "local_only",

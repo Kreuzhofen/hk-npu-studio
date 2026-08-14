@@ -1,5 +1,6 @@
 {
   "id": "sdxl_refiner",
+  "release_status": "experimental",
   "display_name": "Stable Diffusion XL Refiner",
   "beginner_variant_label": "Local package",
   "source_type": "local_only",

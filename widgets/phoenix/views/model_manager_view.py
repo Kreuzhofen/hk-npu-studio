@@ -20,6 +20,25 @@ class PhoenixModelManagerView(WorkspaceFrame):
     Displays available Snapdragon AI models, package statuses, and installation options.
     """
     BEGINNER_RECOMMENDED_MODEL_ID = "stable_diffusion_v1_5_qnn"
+    AVAILABLE_MODEL_ORDER = (
+        "stable_diffusion_v3_5_qai",
+        "stable_diffusion_v2_1_qnn",
+        "stable_diffusion_v1_5_qnn",
+        "controlnet_canny_qnn",
+    )
+    EXPERIMENTAL_MODEL_ORDER = (
+        "sdxl_base",
+        "sdxl_refiner",
+        "sd35_large",
+        "flux_dev",
+        "cogvideox",
+        "ltx_video",
+        "wan22",
+    )
+    HIDDEN_TECHNICAL_VARIANTS = (
+        "stable_diffusion_v1_5_qai",
+        "stable_diffusion_v2_1_qai",
+    )
 
     def __init__(self, master: tk.Misc, controller: Any | None = None) -> None:
         super().__init__(
@@ -73,7 +92,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         tk.Label(
             header_frame,
-            text=tr("available_models_header", "VERFÜGBARE QUALCOMM SNAPDRAGON MODELLE"),
+            text=tr("model_section_available", "Verfügbare Modelle"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_card_title,
@@ -87,6 +106,16 @@ class PhoenixModelManagerView(WorkspaceFrame):
             font=PHOENIX_THEME.font_body, anchor="w", justify="left", wraplength=680,
         )
         self.beginner_guide_label.grid(row=1, column=0, sticky="ew", pady=(4, 2))
+
+        tk.Label(
+            header_frame,
+            text=tr(
+                "model_phoenix_rating_note",
+                "Phoenix-Bewertung: Orientierung für Bildqualität und Nutzung in Snapdragon AI Studio. Kein standardisierter Benchmark.",
+            ),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption, anchor="w", justify="left", wraplength=680,
+        ).grid(row=2, column=0, sticky="ew", pady=(4, 2))
 
         self.canvas = tk.Canvas(
             self.list_card,
@@ -285,6 +314,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             models = [
                 {
                     "id": "stable_diffusion_v1_5_qnn",
+                    "release_status": "available",
                     "name": "Stable Diffusion 1.5 (Qualcomm NPU)",
                     "description": tr("model_description_stable_diffusion_v1_5_qnn", "Qualcomm-vorkompiliertes Stable-Diffusion-1.5-W8A16-Modell für die Hexagon NPU (HTP V73)."),
                     "backend": "Qualcomm SD 1.5 (HTP V73)",
@@ -293,6 +323,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 },
                 {
                     "id": "stable_diffusion_v2_1_qnn",
+                    "release_status": "available",
                     "name": "Stable Diffusion 2.1 (Qualcomm NPU)",
                     "description": tr("model_description_stable_diffusion_v2_1_qnn", "Optimiertes SD-2.1-Modell für höhere Auflösungen auf Snapdragon X Elite."),
                     "backend": "Qualcomm SD 2.1 (HTP V73)",
@@ -301,6 +332,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 },
                 {
                     "id": "sdxl_base",
+                    "release_status": "experimental",
                     "name": "SDXL Base 1.0 (NPU Package)",
                     "description": tr("model_description_sdxl_base", "Snapdragon-NPU-Paket für die SDXL-Base-Generierung."),
                     "backend": "Qualcomm QNN HTP",
@@ -312,7 +344,13 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 active_id = "stable_diffusion_v1_5_qnn"
 
         if not self.selected_model_id and models:
-            first_item = models[0]
+            first_item = next(
+                (
+                    model for model_id in self.AVAILABLE_MODEL_ORDER for model in models
+                    if isinstance(model, dict) and model.get("id") == model_id
+                ),
+                models[0],
+            )
             if isinstance(first_item, dict):
                 self.selected_model_id = first_item.get("id")
             else:
@@ -333,19 +371,44 @@ class PhoenixModelManagerView(WorkspaceFrame):
         for child in self.cards_container.winfo_children():
             child.destroy()
 
-        for idx, model in enumerate(models):
-            if isinstance(model, str):
-                model_dict = {
-                    "id": model,
-                    "name": model,
-                    "description": tr("model_package_description", "Modellpaket"),
-                    "installed": True,
-                }
-            else:
-                model_dict = model
+        model_dicts = [
+            model if isinstance(model, dict) else {
+                "id": str(model), "name": str(model),
+                "description": tr("model_package_description", "Modellpaket"),
+                "installed": True, "release_status": "experimental",
+            }
+            for model in models
+        ]
+        available, experimental = self._partition_models(model_dicts)
+        for idx, model_dict in enumerate(available):
             self._render_model_card(idx, model_dict, active_id)
+        if experimental:
+            self._render_section_header(tr("model_section_experimental", "Experimentell / In Entwicklung"))
+            for idx, model_dict in enumerate(experimental, start=len(available)):
+                self._render_model_card(idx, model_dict, active_id)
 
         self._update_inspector(models, active_id)
+
+    @classmethod
+    def _partition_models(cls, models: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        available = [model for model in models if model.get("release_status") == "available"]
+        hidden = set(cls.HIDDEN_TECHNICAL_VARIANTS)
+        experimental = [
+            model for model in models
+            if model.get("release_status") != "available" and str(model.get("id")) not in hidden
+        ]
+        available_rank = {model_id: index for index, model_id in enumerate(cls.AVAILABLE_MODEL_ORDER)}
+        experimental_rank = {model_id: index for index, model_id in enumerate(cls.EXPERIMENTAL_MODEL_ORDER)}
+        available.sort(key=lambda model: available_rank.get(str(model.get("id")), len(available_rank)))
+        experimental.sort(key=lambda model: experimental_rank.get(str(model.get("id")), len(experimental_rank)))
+        return available, experimental
+
+    def _render_section_header(self, text: str) -> None:
+        tk.Label(
+            self.cards_container, text=text,
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        ).pack(fill="x", padx=16, pady=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_sm))
 
     def _render_model_card(self, index: int, model: dict, active_id: str | None) -> None:
         model_id = model.get("id", f"model_{index}")
@@ -394,6 +457,10 @@ class PhoenixModelManagerView(WorkspaceFrame):
             badge_text = f"  {tr('status_installed', 'INSTALLIERT')}  "
             badge_bg = PHOENIX_THEME.elevated_bg
             badge_fg = PHOENIX_THEME.success
+        elif model.get("release_status") == "experimental":
+            badge_text = f"  {tr('model_status_in_development', 'In Entwicklung')}  "
+            badge_bg = PHOENIX_THEME.elevated_bg
+            badge_fg = PHOENIX_THEME.warning
         else:
             badge_text = f"  {tr('not_installed', 'Nicht installiert')}  "
             badge_bg = PHOENIX_THEME.elevated_bg
@@ -462,7 +529,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
     def _display_title(cls, model: dict[str, Any]) -> str:
         """Add a short, localized variant only when equal model names need it."""
         name = cls._display_name(model)
-        variant = str(model.get("beginner_variant_label") or "").strip()
+        variant = "" if model.get("release_status") == "available" else str(model.get("beginner_variant_label") or "").strip()
         localized = {
             "Standard package": tr("model_variant_standard", "Standard package"),
             "External package": tr("model_variant_external", "External package"),
@@ -477,32 +544,32 @@ class PhoenixModelManagerView(WorkspaceFrame):
         return "use" if installed else "install"
 
     @staticmethod
+    def _offers_normal_install(model: dict[str, Any]) -> bool:
+        return model.get("release_status") == "available"
+
+    @staticmethod
     def _requires_hf_auth(model: dict[str, Any]) -> bool:
         return bool(model.get("requires_hf_auth") is True or model.get("requires_hf_token") is True)
 
     @staticmethod
     def _beginner_model_summary(model: dict[str, Any], active: bool) -> str:
         model_id = str(model.get("id", ""))
-        if model_id == "stable_diffusion_v1_5_qnn":
-            quality = tr("model_quality_entry", "Bildqualität: gut für erste Bilder")
-            speed = tr("model_speed_fast", "Geschwindigkeit: schnell")
-        elif model_id in {"stable_diffusion_v3_5_qai", "sdxl_base"}:
-            quality = tr("model_quality_high", "Bildqualität: sehr hoch")
-            speed = tr("model_speed_patient", "Geschwindigkeit: benötigt mehr Zeit")
-        else:
-            quality = tr("model_quality_good", "Bildqualität: gut")
-            speed = tr("model_speed_balanced", "Geschwindigkeit: ausgewogen")
-        size = float(model.get("estimated_size_gb") or 0.0)
-        storage = (
-            tr("model_storage_approx", "Speicherbedarf: ungefähr {size:g} GB", size=size)
-            if size > 0 else tr("model_storage_package", "Speicherbedarf: abhängig vom Modellpaket")
-        )
+        ratings = {
+            "stable_diffusion_v3_5_qai": ("★★★★★", tr("model_image_quality_very_high", "Bildqualität: Sehr hoch"), tr("model_summary_sd35", "Beste Bildqualität und Prompt-Treue")),
+            "stable_diffusion_v2_1_qnn": ("★★★★☆", tr("model_image_quality_high", "Bildqualität: Hoch"), tr("model_summary_sd21", "Hohe Qualität bei guter NPU-Performance")),
+            "stable_diffusion_v1_5_qnn": ("★★★☆☆", tr("model_image_quality_good", "Bildqualität: Gut"), tr("model_summary_sd15", "Schnell, ressourcenschonend und bewährt")),
+            "controlnet_canny_qnn": ("★★★★★", tr("model_structure_control_very_high", "Strukturkontrolle: Sehr hoch"), tr("model_summary_controlnet", "Präzise strukturgeführte Bilder")),
+        }
         status = {
             "active": tr("model_status_active_ready", "Status: aktiv und bereit"),
             "use": tr("model_status_installed", "Status: installiert"),
             "install": tr("model_status_not_installed", "Status: nicht installiert"),
         }[PhoenixModelManagerView._model_action_state(bool(model.get("installed", True)), active)]
-        return f"{quality} · {speed}\n{storage} · {status}"
+        if model_id in ratings:
+            stars, rating, summary = ratings[model_id]
+            return f"{stars}  {rating}\n{summary}\n{status}"
+        experimental = tr("model_experimental_summary", "Experimentell / In Entwicklung")
+        return f"{experimental}\n{status}"
 
     def _update_inspector(self, models: list[Any], active_id: str | None) -> None:
         selected_model = None
@@ -551,7 +618,13 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         is_installed = bool(selected_model.get("installed", True))
         action_state = self._model_action_state(is_installed, is_active)
-        if action_state == "install":
+        if action_state == "install" and not self._offers_normal_install(selected_model):
+            self.btn_activate.grid_remove()
+            self.btn_install.grid(row=0, column=0, sticky="ew")
+            self.btn_install.configure(
+                state="disabled", text=tr("model_status_in_development", "In Entwicklung"), button_type="neutral"
+            )
+        elif action_state == "install":
             self.btn_activate.grid_remove()
             self.btn_install.grid(row=0, column=0, sticky="ew")
             self.btn_install.configure(state="normal", text=tr("model_install_action", "Modell installieren"), button_type="primary")
@@ -601,6 +674,9 @@ class PhoenixModelManagerView(WorkspaceFrame):
         selected_model = None
         if repository is not None:
             selected_model = repository.get_model(self.selected_model_id)
+
+        if selected_model and not self._offers_normal_install(selected_model) and not selected_model.get("installed"):
+            return
 
         source_type = str((selected_model or {}).get("source_type") or "")
         source_url = selected_model.get("source_url") if selected_model else None
