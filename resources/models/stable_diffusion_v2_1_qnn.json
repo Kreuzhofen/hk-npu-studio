@@ -3,43 +3,88 @@
   "display_name": "Stable Diffusion 2.1",
   "beginner_variant_label": "Standard package",
   "source_type": "direct",
-  "source_url": "https://huggingface.co/qualcomm/stable-diffusion-v2-1-qnn/resolve/main/stable_diffusion_v2_1_qnn.zip",
+  "source_url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/stable_diffusion_v2_1/releases/v0.58.0/stable_diffusion_v2_1-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite.zip",
+  "archive_layout": "qualcomm_precompiled_qnn_onnx",
   "package_format": "zip",
   "download_size": null,
   "requires_hf_token": false,
   "author": "Qualcomm / Stability AI",
   "version": "2.1.0-qnn",
   "license": "CreativeML Open RAIL++-M",
-  "description": "Stable Diffusion 2.1 W8A16 über Qualcomm Hexagon HTP V73. Empfohlen für fotorealistische Porträts, detailreiche Tieraufnahmen und präzise Architekturzeichnungen.",
+  "description": "Stable Diffusion 2.1 W8A16 \u00fcber Qualcomm Hexagon HTP V73. Empfohlen f\u00fcr fotorealistische Portr\u00e4ts, detailreiche Tieraufnahmen und pr\u00e4zise Architekturzeichnungen.",
   "category": "Text-to-Image",
   "backend": "Qualcomm Stable Diffusion 2.1 (HTP V73)",
   "recommended_backend": "Qualcomm Stable Diffusion 2.1 (HTP V73)",
   "minimum_ram_gb": 8,
   "recommended_ram_gb": 16,
-  "supports": ["txt2img"],
+  "supports": [
+    "txt2img"
+  ],
   "installed": true,
   "downloaded": true,
-  "path": "C:\\SnapdragonAI\\models\\stable_diffusion_v2_1",
-  "status": "Running on Qualcomm Hexagon HTP",
+  "path": "C:\\SnapdragonAI\\models\\stable_diffusion_v2_1_qnn",
+  "status": "Ready",
   "catalog_status": "READY",
   "product_available": true,
   "official_qualcomm_package": true,
   "availability_message": "Qualcomm NPU package ready.",
   "generation_parameters": {
     "resolution_locked": true,
-    "width": {"default": 512, "values": [512], "editable": false},
-    "height": {"default": 512, "values": [512], "editable": false},
-    "steps": {"default": 30, "min": 1, "max": 100},
-    "cfg": {"default": 7.5, "min": 1.0, "max": 20.0, "resolution": 0.5},
-    "seed": {"default": -1},
-    "sampler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
-    "scheduler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
+    "width": {
+      "default": 512,
+      "values": [
+        512
+      ],
+      "editable": false
+    },
+    "height": {
+      "default": 512,
+      "values": [
+        512
+      ],
+      "editable": false
+    },
+    "steps": {
+      "default": 30,
+      "min": 1,
+      "max": 100
+    },
+    "cfg": {
+      "default": 7.5,
+      "min": 1.0,
+      "max": 20.0,
+      "resolution": 0.5
+    },
+    "seed": {
+      "default": -1
+    },
+    "sampler": {
+      "default": "DDIM",
+      "values": [
+        "DDIM"
+      ],
+      "editable": false
+    },
+    "scheduler": {
+      "default": "DDIM",
+      "values": [
+        "DDIM"
+      ],
+      "editable": false
+    },
     "prediction_type": "v_prediction"
   },
   "capabilities": {
-    "txt2img": true, "img2img": false, "inpainting": false,
-    "outpainting": false, "lora": false, "controlnet": false,
-    "image_to_video": false, "batch_generation": false,
-    "onnx_runtime": true, "qnn_runtime": true
-  }
+    "txt2img": true,
+    "img2img": false,
+    "inpainting": false,
+    "outpainting": false,
+    "lora": false,
+    "controlnet": false,
+    "image_to_video": false,
+    "batch_generation": false,
+    "onnx_runtime": true,
+    "qnn_runtime": true
+  },
+  "schema_version": 1
 }

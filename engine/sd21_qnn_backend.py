@@ -12,7 +12,9 @@ import json
 import logging
 import os
 import platform
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 import time
 from typing import Any
@@ -299,6 +301,31 @@ class StableDiffusion21QnnBackend(InferenceBackend):
 
         return text_encoder_session, unet_session, vae_session, provider_diagnostics
 
+    @staticmethod
+    def _prepare_ep_context_runtime_layout(model_dir: Path) -> tuple[Path, Path | None]:
+        """Expose Phoenix context names under the filenames embedded by Qualcomm ONNX wrappers."""
+        mappings = {
+            "text_encoder": "text_encoder_qairt_context.bin",
+            "unet": "unet_qairt_context.bin",
+            "vae": "vae_qairt_context.bin",
+        }
+        if all((model_dir / vendor_name).is_file() for vendor_name in mappings.values()):
+            return model_dir, None
+
+        missing = [f"{stem}.bin" for stem in mappings if not (model_dir / f"{stem}.bin").is_file()]
+        if missing:
+            raise FileNotFoundError(f"Missing Phoenix QNN context files: {', '.join(missing)}")
+
+        runtime_dir = Path(tempfile.mkdtemp(prefix=".sd21_qnn_runtime_", dir=model_dir.parent))
+        try:
+            for stem, vendor_name in mappings.items():
+                shutil.copy2(model_dir / f"{stem}.onnx", runtime_dir / f"{stem}.onnx")
+                os.link(model_dir / f"{stem}.bin", runtime_dir / vendor_name)
+        except Exception:
+            shutil.rmtree(runtime_dir, ignore_errors=True)
+            raise
+        return runtime_dir, runtime_dir
+
     def generate(self, job: GenerationJob) -> GenerationResponse:
         params = job.parameters
         # Main Process Mode: Spawn worker subprocess to isolate QAIRT 2.45
@@ -515,9 +542,11 @@ class StableDiffusion21QnnBackend(InferenceBackend):
 
         t_pipeline_start = time.time()
         sessions_to_close: list[Any] = []
+        runtime_layout: Path | None = None
         try:
             # 1. Setup Sessions
-            text_encoder_session, unet_session, vae_session, provider_diagnostics = self._setup_sessions(model_dir)
+            session_model_dir, runtime_layout = self._prepare_ep_context_runtime_layout(model_dir)
+            text_encoder_session, unet_session, vae_session, provider_diagnostics = self._setup_sessions(session_model_dir)
             sessions_to_close = [text_encoder_session, unet_session, vae_session]
 
             # 2. Tokenize and Embed
@@ -726,6 +755,8 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 except Exception:
                     logger.exception("Failed to finalize QNN session after pipeline error")
             sessions_to_close.clear()
+            if runtime_layout is not None:
+                shutil.rmtree(runtime_layout, ignore_errors=True)
 
 
 if __name__ == "__main__":

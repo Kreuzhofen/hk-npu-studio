@@ -389,7 +389,7 @@ class ModelDirectDownloadDialog(StudioDialog):
             "downloading": tr("direct_model_downloading_percent", "Model is being downloaded … {percent:.0f}%", percent=value),
             "download_complete": tr("direct_model_download_complete", "Download completed."),
             "checking": tr("direct_model_checking", "Model package is being checked …"),
-            "preparing": tr("sd35_model_preparing", "Model is being prepared …"),
+            "preparing": tr("sd35_model_preparing", "Model is being prepared …") if guided_sd35 else tr("direct_model_preparing", "Model is being prepared …"),
             "installing": tr("direct_model_installing", "Model is being installed …"),
             "validating": tr("direct_model_validating", "Model is being validated …"),
             "activating": tr("direct_model_activating", "Model is being activated …"),
@@ -433,7 +433,7 @@ class ModelDirectDownloadDialog(StudioDialog):
                 "download_preparing": (tr("direct_model_preparing_download", "Download is being prepared …"), "info"),
                 "downloading": (tr("direct_model_downloading", "Model is being downloaded …"), "info"),
                 "download_complete": (tr("direct_model_download_complete", "Download completed."), "success"),
-                "preparing": (tr("sd35_model_preparing", "Model is being prepared …"), "info"),
+                "preparing": ((tr("sd35_model_preparing", "Model is being prepared …") if guided_sd35 else tr("direct_model_preparing", "Model is being prepared …")), "info"),
                 "validating": (tr("direct_model_validating", "Model is being validated …"), "info"),
                 "validation_failed": (tr("direct_model_validation_failed", "The downloaded model package could not be verified."), "error"),
                 "final_validation_failed": (tr("direct_model_final_validation_failed", "The installed model could not be validated."), "error"),
@@ -494,16 +494,22 @@ class ModelDirectDownloadDialog(StudioDialog):
                 percent_val = max(0.0, min(100.0, download_percent))
                 remaining_percent = max(0.0, 100.0 - percent_val)
 
-                percent_str = tr("sd35_metric_percent", "{percent:.0f}% downloaded\n{remaining:.0f}% remaining", percent=percent_val, remaining=remaining_percent)
-                bytes_str = tr("sd35_metric_bytes", "{downloaded} of {total} downloaded\n{remaining} remaining", downloaded=downloaded_str, total=total_str, remaining=remaining_str)
+                percent_key = "sd35_metric_percent" if guided_sd35 else "direct_model_metric_percent"
+                bytes_key = "sd35_metric_bytes" if guided_sd35 else "direct_model_metric_bytes"
+                percent_str = tr(percent_key, "{percent:.0f}% downloaded\n{remaining:.0f}% remaining", percent=percent_val, remaining=remaining_percent)
+                bytes_str = tr(bytes_key, "{downloaded} of {total} downloaded\n{remaining} remaining", downloaded=downloaded_str, total=total_str, remaining=remaining_str)
             else:
-                percent_str = tr("sd35_downloaded_only", "{downloaded} downloaded", downloaded=downloaded_str)
-                bytes_str = tr("sd35_total_size_unknown", "Total size is being determined …")
+                downloaded_key = "sd35_downloaded_only" if guided_sd35 else "direct_model_downloaded_only"
+                total_key = "sd35_total_size_unknown" if guided_sd35 else "direct_model_total_size_unknown"
+                percent_str = tr(downloaded_key, "{downloaded} downloaded", downloaded=downloaded_str)
+                bytes_str = tr(total_key, "Total size is being determined …")
 
             if speed is not None and speed > 0:
-                raw_str = tr("sd35_metric_speed", "{raw_kb} KB received • {speed:.1f} MB/s", raw_kb=raw_kb_str, speed=speed)
+                speed_key = "sd35_metric_speed" if guided_sd35 else "direct_model_metric_speed"
+                raw_str = tr(speed_key, "{raw_kb} KB received • {speed:.1f} MB/s", raw_kb=raw_kb_str, speed=speed)
             else:
-                raw_str = tr("sd35_metric_raw_kb", "{raw_kb} KB received", raw_kb=raw_kb_str)
+                raw_key = "sd35_metric_raw_kb" if guided_sd35 else "direct_model_metric_raw_kb"
+                raw_str = tr(raw_key, "{raw_kb} KB received", raw_kb=raw_kb_str)
 
             metrics_text = f"{percent_str}\n\n{bytes_str}\n\n{raw_str}"
             if hasattr(self, "download_metrics_label"):
@@ -518,13 +524,16 @@ class ModelDirectDownloadDialog(StudioDialog):
 
                 if hasattr(self, "download_desc_label"):
                     self.download_desc_label.configure(
-                        text=tr("sd35_download_desc", "Stable Diffusion 3.5 Medium wird heruntergeladen")
+                        text=tr("sd35_download_desc", "Stable Diffusion 3.5 Medium is being downloaded …")
+                        if guided_sd35 else tr("direct_model_downloading", "Model is being downloaded …")
                     )
 
-                current_step_text = messages.get(phase, tr("sd35_preparing_download", "Preparing setup …"))
+                fallback_key = "sd35_preparing_download" if guided_sd35 else "direct_model_preparing_download"
+                current_step_text = messages.get(phase, tr(fallback_key, "Preparing setup …"))
                 if hasattr(self, "download_metrics_label"):
+                    total_key = "sd35_total_size_unknown" if guided_sd35 else "direct_model_total_size_unknown"
                     self.download_metrics_label.configure(
-                        text=f"{current_step_text}\n\n{tr('sd35_total_size_unknown', 'Total size is being determined …')}"
+                        text=f"{current_step_text}\n\n{tr(total_key, 'Total size is being determined …')}"
                     )
                     if not self.download_metrics_label.winfo_manager():
                         self.download_metrics_label.pack(fill="x", pady=(PHOENIX_THEME.space_sm, 0))

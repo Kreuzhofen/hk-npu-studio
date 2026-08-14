@@ -31,7 +31,7 @@ class ModelDownloader:
     MODEL_URLS = {
         "stable_diffusion_v1_5_qnn": "https://huggingface.co/qualcomm/stable-diffusion-v1-5-qnn/resolve/main/stable_diffusion_v1_5_qnn.zip",
         "controlnet_canny_qnn": "https://huggingface.co/qualcomm/controlnet-canny-qnn/resolve/main/controlnet_canny_qnn.zip",
-        "stable_diffusion_v2_1_qnn": "https://huggingface.co/qualcomm/stable-diffusion-v2-1-qnn/resolve/main/stable_diffusion_v2_1_qnn.zip",
+        "stable_diffusion_v2_1_qnn": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/stable_diffusion_v2_1/releases/v0.58.0/stable_diffusion_v2_1-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite.zip",
         "sdxl_base": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors",
     }
 

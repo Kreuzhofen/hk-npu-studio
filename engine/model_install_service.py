@@ -643,10 +643,13 @@ class ModelInstallService:
         model = self.repository.get_model(model_id)
         if not model:
             return source_path
+        archive_layout = str(model.get("archive_layout") or "")
+        if model_id == "stable_diffusion_v2_1_qnn":
+            archive_layout = "qualcomm_precompiled_qnn_onnx"
         adapters = {
             "qualcomm_precompiled_qnn_onnx": self._prepare_qualcomm_precompiled_qnn_onnx,
         }
-        adapter = adapters.get(str(model.get("archive_layout") or ""))
+        adapter = adapters.get(archive_layout)
         return adapter(model_id, source_path, model) if adapter else source_path
 
     def _prepare_qualcomm_precompiled_qnn_onnx(
@@ -673,7 +676,19 @@ class ModelInstallService:
                     raise ValueError("Qualcomm package contains an unsafe path.")
             package.extractall(prepared)
 
-        qualcomm_required = ("text_encoder.onnx", "unet.onnx", "vae.onnx")
+        context_names = {
+            "text_encoder": "text_encoder_qairt_context.bin",
+            "unet": "unet_qairt_context.bin",
+            "vae": "vae_qairt_context.bin",
+        }
+        qualcomm_required = (
+            "text_encoder.onnx",
+            context_names["text_encoder"],
+            "unet.onnx",
+            context_names["unet"],
+            "vae.onnx",
+            context_names["vae"],
+        )
         candidates = [prepared] + [path for path in prepared.rglob("*") if path.is_dir()]
         roots = [
             candidate for candidate in candidates
@@ -684,6 +699,14 @@ class ModelInstallService:
             shutil.rmtree(prepared)
             raise ValueError("Qualcomm package does not contain one complete compatible model layout.")
         root = roots[0]
+
+        if model_id == "stable_diffusion_v2_1_qnn":
+            for component, vendor_name in context_names.items():
+                source = root / vendor_name
+                destination = root / f"{component}.bin"
+                if destination.exists():
+                    destination.unlink()
+                source.replace(destination)
 
         # 1. Convert metadata.yaml to metadata.json if missing
         meta_json_path = root / "metadata.json"
@@ -720,8 +743,10 @@ class ModelInstallService:
             tokenizer_dir.mkdir(parents=True, exist_ok=True)
 
             def _find_clip_tokenizer_files() -> tuple[Path, Path, Path | None] | None:
-                from config import MODELS_DIR
                 check_paths = [
+                    Path(MODELS_DIR) / "stable_diffusion_v2_1_qnn" / "tokenizer",
+                    Path(MODELS_DIR) / "stable_diffusion_v1_5_qnn" / "tokenizer",
+                    Path(MODELS_DIR) / "sdxl_base" / "tokenizer",
                     Path(MODELS_DIR) / "sdxl_base_backup" / "tokenizer",
                     Path(MODELS_DIR) / "sdxl_base_alpha_backup" / "tokenizer",
                 ]
@@ -729,20 +754,6 @@ class ModelInstallService:
                     if (cp / "vocab.json").is_file() and (cp / "merges.txt").is_file():
                         cfg = cp / "tokenizer_config.json"
                         return cp / "vocab.json", cp / "merges.txt", (cfg if cfg.is_file() else None)
-
-                models_dir = Path(MODELS_DIR)
-                if models_dir.exists():
-                    for root_dir, dirs, files in os.walk(models_dir):
-                        if "vocab.json" in files and "merges.txt" in files:
-                            dp = Path(root_dir)
-                            cfg = dp / "tokenizer_config.json"
-                            return dp / "vocab.json", dp / "merges.txt", (cfg if cfg.is_file() else None)
-
-                for root_dir, dirs, files in os.walk("C:\\SnapdragonAI"):
-                    if "vocab.json" in files and "merges.txt" in files:
-                        dp = Path(root_dir)
-                        cfg = dp / "tokenizer_config.json"
-                        return dp / "vocab.json", dp / "merges.txt", (cfg if cfg.is_file() else None)
                 return None
 
             tok_files = _find_clip_tokenizer_files()
@@ -760,21 +771,18 @@ class ModelInstallService:
                         encoding="utf-8"
                     )
             else:
-                logger.error("CLIP tokenizer files not found in workspace!")
-                vocab_file.write_text('{"<|startoftext|>": 49406, "<|endoftext|>": 49407}', encoding="utf-8")
-                merges_file.write_text('#version: 0.2\n', encoding="utf-8")
-                (tokenizer_dir / "tokenizer_config.json").write_text(
-                    '{\n  "bos_token_id": 49406,\n  "eos_token_id": 49407,\n  "pad_token_id": 49407,\n  "add_prefix_space": false\n}',
-                    encoding="utf-8"
-                )
+                shutil.rmtree(prepared)
+                raise ValueError("A verified local CLIP tokenizer is required to prepare this package.")
+
+        context_suffix = ".bin" if model_id == "stable_diffusion_v2_1_qnn" else "_qairt_context.bin"
 
         components = {
             "text_encoder": {"path": "text_encoder.onnx", "runtime": "QNN"},
-            "text_encoder_context": {"path": "text_encoder_qairt_context.bin", "runtime": "QNN"},
+            "text_encoder_context": {"path": f"text_encoder{context_suffix}", "runtime": "QNN"},
             "unet": {"path": "unet.onnx", "runtime": "QNN"},
-            "unet_context": {"path": "unet_qairt_context.bin", "runtime": "QNN"},
+            "unet_context": {"path": f"unet{context_suffix}", "runtime": "QNN"},
             "vae_decoder": {"path": "vae.onnx", "runtime": "QNN"},
-            "vae_context": {"path": "vae_qairt_context.bin", "runtime": "QNN"},
+            "vae_context": {"path": f"vae{context_suffix}", "runtime": "QNN"},
             "metadata": {"path": "metadata.json", "runtime": "CPU"},
             "tokenizer_vocab": {"path": "tokenizer/vocab.json", "runtime": "CPU"},
             "tokenizer_merges": {"path": "tokenizer/merges.txt", "runtime": "CPU"},
