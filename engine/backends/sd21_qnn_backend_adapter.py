@@ -8,7 +8,7 @@ from engine.backends.qnn_product_backend_adapter import QnnProductBackendAdapter
 class StableDiffusion21QnnBackendAdapter(QnnProductBackendAdapter):
     """Product routing adapter for the dedicated SD2.1 QNN backend."""
 
-    MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v2_1")
+    MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v2_1_qnn")
 
     INITIALIZE_MESSAGE = (
         "[StableDiffusion21QnnBackendAdapter] Running on Qualcomm Hexagon HTP"
