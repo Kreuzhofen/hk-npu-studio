@@ -3,14 +3,15 @@
   "display_name": "ControlNet Canny",
   "beginner_variant_label": "",
   "source_type": "direct",
-  "source_url": "https://huggingface.co/qualcomm/controlnet-canny-qnn/resolve/main/controlnet_canny_qnn.zip",
+  "source_url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/controlnet_canny/releases/v0.58.0/controlnet_canny-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite.zip",
   "package_format": "zip",
+  "archive_layout": "qualcomm_controlnet_precompiled_qnn_onnx",
   "download_size": null,
   "requires_hf_token": false,
   "author": "Qualcomm",
   "version": "0.58.0-qnn",
   "license": "CreativeML Open RAIL-M",
-  "description": "Qualcomm precompiled ControlNet-Canny w8a16 model running on Hexagon NPU (HTP V73). Ermöglicht bildbasierte Generierung unter Beibehaltung der Canny-Kantenstruktur.",
+  "description": "Qualcomm precompiled ControlNet-Canny w8a16 model running on Hexagon NPU (HTP V73). Erm\u00f6glicht bildbasierte Generierung unter Beibehaltung der Canny-Kantenstruktur.",
   "category": "Image-to-Image",
   "backend": "Qualcomm ControlNet Canny (HTP V73)",
   "recommended_backend": "Qualcomm ControlNet Canny (HTP V73)",
@@ -23,21 +24,56 @@
   ],
   "installed": true,
   "downloaded": true,
-  "path": "C:\\SnapdragonAI\\temp\\controlnet_canny_gate\\controlnet_canny-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite",
-  "status": "Running on Qualcomm Hexagon HTP",
+  "path": "C:\\SnapdragonAI\\models\\controlnet_canny_qnn",
+  "status": "Ready",
   "catalog_status": "READY",
   "product_available": true,
   "official_qualcomm_package": true,
   "availability_message": "Qualcomm NPU package ready.",
   "generation_parameters": {
     "resolution_locked": true,
-    "width": {"default": 512, "values": [512], "editable": false},
-    "height": {"default": 512, "values": [512], "editable": false},
-    "steps": {"default": 20, "min": 1, "max": 100},
-    "cfg": {"default": 7.5, "min": 1.0, "max": 20.0, "resolution": 0.5},
-    "seed": {"default": -1},
-    "sampler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
-    "scheduler": {"default": "DDIM", "values": ["DDIM"], "editable": false},
+    "width": {
+      "default": 512,
+      "values": [
+        512
+      ],
+      "editable": false
+    },
+    "height": {
+      "default": 512,
+      "values": [
+        512
+      ],
+      "editable": false
+    },
+    "steps": {
+      "default": 20,
+      "min": 1,
+      "max": 100
+    },
+    "cfg": {
+      "default": 7.5,
+      "min": 1.0,
+      "max": 20.0,
+      "resolution": 0.5
+    },
+    "seed": {
+      "default": -1
+    },
+    "sampler": {
+      "default": "DDIM",
+      "values": [
+        "DDIM"
+      ],
+      "editable": false
+    },
+    "scheduler": {
+      "default": "DDIM",
+      "values": [
+        "DDIM"
+      ],
+      "editable": false
+    },
     "prediction_type": "epsilon"
   },
   "capabilities": {
@@ -51,5 +87,6 @@
     "batch_generation": false,
     "onnx_runtime": true,
     "qnn_runtime": true
-  }
+  },
+  "schema_version": 1
 }

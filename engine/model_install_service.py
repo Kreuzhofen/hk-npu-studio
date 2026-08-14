@@ -648,6 +648,7 @@ class ModelInstallService:
             archive_layout = "qualcomm_precompiled_qnn_onnx"
         adapters = {
             "qualcomm_precompiled_qnn_onnx": self._prepare_qualcomm_precompiled_qnn_onnx,
+            "qualcomm_controlnet_precompiled_qnn_onnx": self._prepare_qualcomm_controlnet_precompiled_qnn_onnx,
         }
         adapter = adapters.get(archive_layout)
         return adapter(model_id, source_path, model) if adapter else source_path
@@ -796,6 +797,110 @@ class ModelInstallService:
             "package_version": str(model.get("version") or ""),
             "display_name": str(model.get("display_name") or model_id),
             "author": str(model.get("author") or "Qualcomm"),
+            "capabilities": dict(model.get("capabilities") or {}),
+            "components": components,
+        }
+        (root / "package.json").write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        return str(root)
+
+    def _prepare_qualcomm_controlnet_precompiled_qnn_onnx(
+        self, model_id: str, source_path: str, model: dict[str, Any]
+    ) -> str:
+        """Convert Qualcomm's ControlNet Canny archive into a Phoenix package."""
+        archive = Path(source_path).resolve()
+        download_root = self.download_service.download_dir.resolve()
+        try:
+            archive.relative_to(download_root)
+        except ValueError as exc:
+            raise ValueError("Downloaded archive is outside managed staging.") from exc
+        if not archive.is_file() or not zipfile.is_zipfile(archive):
+            raise ValueError("The downloaded Qualcomm ControlNet package is not a valid ZIP archive.")
+
+        prepared = download_root / f"{model_id}.prepared"
+        if prepared.exists():
+            shutil.rmtree(prepared)
+        prepared.mkdir(parents=True)
+        with zipfile.ZipFile(archive, "r") as package:
+            for member in package.infolist():
+                target = (prepared / member.filename).resolve()
+                if not self._ensure_safe_extract_path(prepared, target):
+                    shutil.rmtree(prepared)
+                    raise ValueError("Qualcomm ControlNet package contains an unsafe path.")
+            package.extractall(prepared)
+
+        vendor_files = (
+            "text_encoder.onnx",
+            "text_encoder_qairt_context.bin",
+            "controlnet.onnx",
+            "controlnet_qairt_context.bin",
+            "unet.onnx",
+            "unet_qairt_context.bin",
+            "vae.onnx",
+            "vae_qairt_context.bin",
+            "metadata.json",
+        )
+        candidates = [prepared] + [path for path in prepared.rglob("*") if path.is_dir()]
+        roots = [
+            candidate
+            for candidate in candidates
+            if all((candidate / relative).is_file() for relative in vendor_files)
+        ]
+        if len(roots) != 1:
+            shutil.rmtree(prepared)
+            raise ValueError("Qualcomm ControlNet package does not contain one complete compatible model layout.")
+        root = roots[0]
+
+        tokenizer_source = next(
+            (
+                candidate
+                for candidate in (
+                    Path(MODELS_DIR) / "stable_diffusion_v1_5_qnn" / "tokenizer",
+                    Path(MODELS_DIR) / "stable_diffusion_v2_1_qnn" / "tokenizer",
+                    Path(MODELS_DIR) / "sdxl_base" / "tokenizer",
+                    Path(MODELS_DIR) / "sdxl_base_backup" / "tokenizer",
+                    Path(MODELS_DIR) / "sdxl_base_alpha_backup" / "tokenizer",
+                )
+                if (candidate / "vocab.json").is_file() and (candidate / "merges.txt").is_file()
+            ),
+            None,
+        )
+        if tokenizer_source is None:
+            shutil.rmtree(prepared)
+            raise ValueError("A verified local CLIP tokenizer is required to prepare this package.")
+        tokenizer_dir = root / "tokenizer"
+        tokenizer_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(tokenizer_source / "vocab.json", tokenizer_dir / "vocab.json")
+        shutil.copy2(tokenizer_source / "merges.txt", tokenizer_dir / "merges.txt")
+
+        component_paths = {
+            "text_encoder": ("text_encoder.onnx", "QNN"),
+            "text_encoder_context": ("text_encoder_qairt_context.bin", "QNN"),
+            "controlnet": ("controlnet.onnx", "QNN"),
+            "controlnet_context": ("controlnet_qairt_context.bin", "QNN"),
+            "unet": ("unet.onnx", "QNN"),
+            "unet_context": ("unet_qairt_context.bin", "QNN"),
+            "vae_decoder": ("vae.onnx", "QNN"),
+            "vae_context": ("vae_qairt_context.bin", "QNN"),
+            "metadata": ("metadata.json", "CPU"),
+            "tokenizer_vocab": ("tokenizer/vocab.json", "CPU"),
+            "tokenizer_merges": ("tokenizer/merges.txt", "CPU"),
+        }
+        components = {
+            name: {
+                "path": relative,
+                "runtime": runtime,
+                "sha256": self._sha256_file(root / relative),
+            }
+            for name, (relative, runtime) in component_paths.items()
+        }
+        manifest = {
+            "model_id": model_id,
+            "package_version": str(model.get("version") or ""),
+            "display_name": str(model.get("display_name") or model_id),
+            "author": str(model.get("author") or "Qualcomm"),
+            "runtime": "QNN",
             "capabilities": dict(model.get("capabilities") or {}),
             "components": components,
         }

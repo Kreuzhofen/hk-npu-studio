@@ -458,7 +458,10 @@ class ModelDirectDownloadDialog(StudioDialog):
             fg=PHOENIX_THEME.danger if failed else PHOENIX_THEME.success,
         )
         if failed and isinstance(update, dict) and update.get("error"):
-            self._log_message(f"{phase}: {update['error']}", "error")
+            self._log_message(
+                tr("direct_model_error_detail", "Technical detail: {error}", error=update["error"]),
+                "error",
+            )
 
         # Handle live download metrics in UI
         if phase in ("downloading", "sd35_downloading_weights") and isinstance(update, dict):
@@ -482,7 +485,7 @@ class ModelDirectDownloadDialog(StudioDialog):
 
             if hasattr(self, "download_desc_label"):
                 self.download_desc_label.configure(
-                    text=tr("sd35_download_desc", "Stable Diffusion 3.5 Medium wird heruntergeladen")
+                    text=tr("sd35_download_desc", "Stable Diffusion 3.5 Medium is being downloaded …")
                     if guided_sd35 else tr("direct_model_downloading", "Model is being downloaded …")
                 )
 
