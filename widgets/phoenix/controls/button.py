@@ -269,7 +269,10 @@ class PhoenixButton(tk.Canvas):
         self._is_pressed = True
         # Immediate pressed state (no transition delay for press)
         if self._anim_id:
-            self.after_cancel(self._anim_id)
+            try:
+                self.after_cancel(self._anim_id)
+            except Exception:
+                pass
             self._anim_id = None
         self.current_bg = self.active_bg
         self._redraw()
@@ -299,11 +302,16 @@ class PhoenixButton(tk.Canvas):
 
     def _animate_hover(self, target_color: str) -> None:
         if self._anim_id:
-            self.after_cancel(self._anim_id)
+            try:
+                self.after_cancel(self._anim_id)
+            except Exception:
+                pass
             self._anim_id = None
         self._animate_step(self.current_bg, target_color, 0)
 
     def _animate_step(self, start_color: str, target_color: str, step: int) -> None:
+        if not self.winfo_exists():
+            return
         total_steps = 10
         if step > total_steps:
             self.current_bg = target_color
@@ -317,6 +325,8 @@ class PhoenixButton(tk.Canvas):
         self._anim_id = self.after(12, lambda: self._animate_step(start_color, target_color, step + 1))
 
     def _redraw(self) -> None:
+        if not self.winfo_exists():
+            return
         self.delete("all")
 
         # 1. Calculate text and icon sizes first to know content width
@@ -431,3 +441,12 @@ class PhoenixButton(tk.Canvas):
                 anchor="w",
                 tags="text"
             )
+
+    def destroy(self) -> None:
+        if getattr(self, "_anim_id", None):
+            try:
+                self.after_cancel(self._anim_id)
+            except Exception:
+                pass
+            self._anim_id = None
+        super().destroy()

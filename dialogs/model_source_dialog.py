@@ -73,54 +73,18 @@ class ModelSourceDialog(StudioDialog):
 
         self.reference_url = "https://github.com/qualcomm/qai-appbuilder/archive/refs/heads/main.zip"
 
-        lang = get_current_language()
-        if lang not in ("de_DE", "en_US", "es_ES"):
-            lang = "en_US"
-
-        steps_de = {
-            1: {
-                self.STEP_TITLE: tr("model_src_sd35_step1_title", "Step 1 of 2 – Download Qualcomm QAI AppBuilder"),
-                self.STEP_TEXT: tr("model_src_sd35_guided_description", "The official Qualcomm files are required to install Stable Diffusion 3.5 Medium."),
-                self.STEP_BTN_TEXT: tr("model_src_sd35_open_official", "Download Qualcomm QAI AppBuilder"),
-            },
-            2: {
-                self.STEP_TITLE: "Schritt 2 von 2 – SD3.5 automatisch einrichten",
-                self.STEP_TEXT: "Snapdragon AI Studio kann das Modell nun vollautomatisch für Sie vorbereiten und einrichten.\n\nPhoenix sucht nach der heruntergeladenen ZIP-Datei in Ihrem Downloads-Ordner, entpackt diese in ein temporäres Verzeichnis, installiert alle benötigten Python-Komponenten und startet das Qualcomm-Skript zum automatischen Beziehen und Konvertieren der Modelldateien.\n\nKlicken Sie auf den Button „SD3.5 automatisch einrichten“ und warten Sie, bis der Vorgang abgeschlossen ist. Dies kann einige Minuten dauern.",
-                self.STEP_BTN_TEXT: "SD3.5 automatisch einrichten",
-            },
-        }
-
-        steps_en = {
-            1: {
-                self.STEP_TITLE: tr("model_src_sd35_step1_title", "Step 1 of 2 – Download Qualcomm QAI AppBuilder"),
-                self.STEP_TEXT: tr("model_src_sd35_guided_description", "The official Qualcomm files are required to install Stable Diffusion 3.5 Medium."),
-                self.STEP_BTN_TEXT: tr("model_src_sd35_open_official", "Download Qualcomm QAI AppBuilder"),
-            },
-            2: {
-                self.STEP_TITLE: "Step 2 of 2 – Set up SD3.5 automatically",
-                self.STEP_TEXT: "Snapdragon AI Studio can now prepare and set up the model fully automatically for you.\n\nPhoenix will locate the downloaded ZIP file in your Downloads folder, extract it to a temporary directory, install all required Python components, and run the Qualcomm script to automatically retrieve and convert the model files.\n\nClick the 'Set up SD3.5 automatically' button and wait for the process to complete. This may take several minutes.",
-                self.STEP_BTN_TEXT: "Set up SD3.5 automatically",
-            },
-        }
-
-        steps_es = {
-            1: {
-                self.STEP_TITLE: tr("model_src_sd35_step1_title", "Step 1 of 2 – Download Qualcomm QAI AppBuilder"),
-                self.STEP_TEXT: tr("model_src_sd35_guided_description", "The official Qualcomm files are required to install Stable Diffusion 3.5 Medium."),
-                self.STEP_BTN_TEXT: tr("model_src_sd35_open_official", "Download Qualcomm QAI AppBuilder"),
-            },
-            2: {
-                self.STEP_TITLE: "Paso 2 de 2 – Configurar SD3.5 automáticamente",
-                self.STEP_TEXT: "Snapdragon AI Studio ahora puede preparar y configurar el modelo de forma totalmente automática.\n\nPhoenix buscará el archivo ZIP descargado en su carpeta de Descargas, lo extraerá a un directorio temporal, instalará todos los componentes de Python requeridos y ejecutará el script de Qualcomm para obtener y convertir los archivos del modelo automáticamente.\n\nHaga clic en el botón 'Configurar SD3.5 automáticamente' y espere a que finalice el proceso. Esto puede tardar varios minutos.",
-                self.STEP_BTN_TEXT: "Configurar SD3.5 automáticamente",
-            },
-        }
-
         self.step_data = {
-            "de_DE": steps_de,
-            "en_US": steps_en,
-            "es_ES": steps_es,
-        }.get(lang, steps_en)
+            1: {
+                self.STEP_TITLE: tr("model_src_sd35_step1_title", "Step 1 of 2 – Download Qualcomm QAI AppBuilder"),
+                self.STEP_TEXT: tr("model_src_sd35_guided_description", "The official Qualcomm files are required to install Stable Diffusion 3.5 Medium."),
+                self.STEP_BTN_TEXT: tr("model_src_sd35_open_official", "Download Qualcomm QAI AppBuilder"),
+            },
+            2: {
+                self.STEP_TITLE: tr("model_src_sd35_step2_title", "Step 2 of 2 – Set up SD3.5 automatically"),
+                self.STEP_TEXT: tr("model_src_sd35_step2_text", "Snapdragon AI Studio can now prepare and set up the model fully automatically for you.\n\nPhoenix will locate the downloaded ZIP file in your Downloads folder, extract it to a temporary directory, install all required Python components, and run the Qualcomm script to automatically retrieve and convert the model files.\n\nClick the 'Set up SD3.5 automatically' button and wait for the process to complete. This may take several minutes."),
+                self.STEP_BTN_TEXT: tr("model_src_sd35_step2_btn_text", "Set up SD3.5 automatically"),
+            },
+        }
 
         self.add_title(self.model_name, tr("model_src_subtitle", "Guided model installation"))
         self.step_card = self.add_card()
@@ -133,9 +97,9 @@ class ModelSourceDialog(StudioDialog):
             pady=PHOENIX_THEME.card_pad_y,
         )
 
-        lbl_prev = {"de_DE": "< Zurück", "en_US": "< Back", "es_ES": "< Anterior"}.get(lang, "< Back")
-        lbl_next = {"de_DE": "Weiter >", "en_US": "Next >", "es_ES": "Siguiente >"}.get(lang, "Next >")
-        lbl_cancel = {"de_DE": "Abbrechen", "en_US": "Cancel", "es_ES": "Cancelar"}.get(lang, "Cancel")
+        lbl_prev = tr("model_src_back", "< Back")
+        lbl_next = tr("model_src_next", "Next >")
+        lbl_cancel = tr("cancel", "Cancel")
 
         self.prev_button = PhoenixButton(
             self.footer,
@@ -465,7 +429,7 @@ class ModelSourceDialog(StudioDialog):
         elif referenced_local:
             self.download_button = PhoenixButton(
                 self.body,
-                text=tr("model_src_sd35_open_official", "Open Qualcomm instructions"),
+                text=tr("model_src_sd35_open_official_instr", "Open Qualcomm instructions"),
                 command=self._on_reference,
                 button_type="primary",
                 width=460,
