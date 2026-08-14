@@ -207,7 +207,7 @@
       "display_name": "Stable Diffusion 1.5",
       "beginner_variant_label": "Standard package",
       "source_type": "direct",
-      "source_url": "https://huggingface.co/qualcomm/stable-diffusion-v1-5-qnn/resolve/main/stable_diffusion_v1_5_qnn.zip",
+      "source_url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/stable_diffusion_v1_5/releases/v0.50.0/stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite.zip",
       "package_format": "zip",
       "download_size": null,
       "requires_hf_token": false,
@@ -228,7 +228,7 @@
       },
       "recommended_runtime": "Qualcomm Stable Diffusion 1.5 (HTP V73)",
       "estimated_size_gb": 0.0,
-      "download_url": "https://huggingface.co/qualcomm/stable-diffusion-v1-5-qnn/resolve/main/stable_diffusion_v1_5_qnn.zip",
+      "download_url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/stable_diffusion_v1_5/releases/v0.50.0/stable_diffusion_v1_5-precompiled_qnn_onnx-w8a16-qualcomm_snapdragon_x_elite.zip",
       "status": "Installed"
     },
     {
