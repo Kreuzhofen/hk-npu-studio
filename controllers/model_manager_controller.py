@@ -226,7 +226,6 @@ class ModelManagerController:
                     source_url,
                     on_download_progress,
                     hf_token=hf_token,
-                    force_redownload=force_redownload,
                 ):
                     emit("download_failed", 0.0)
                     self.model.repository.update_model(model_id, **original_state)

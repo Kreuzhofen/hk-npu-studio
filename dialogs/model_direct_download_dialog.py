@@ -423,7 +423,7 @@ class ModelDirectDownloadDialog(StudioDialog):
                 "sd35_importing": (tr("sd35_log_import", "Importing model files into Snapdragon AI Studio …"), "info"),
                 "installing": (tr("direct_model_installing", "Model is being installed …"), "info"),
                 "activating": (tr("direct_model_activating", "Model is being activated …"), "info"),
-                "ready": (tr("sd35_log_ready", "✓ Stable Diffusion 3.5 Medium successfully set up!"), "success"),
+                "ready": ((tr("sd35_log_ready", "Stable Diffusion 3.5 Medium successfully set up!") if guided_sd35 else tr("home_studio_ready", "Snapdragon AI Studio is ready")), "success"),
                 "cleanup_warning": (tr("sd35_log_cleanup_warn", "⚠ Temporary setup files could not be automatically deleted."), "warning"),
                 "install_failed": (tr("sd35_log_failed", "❌ Setup failed."), "error"),
                 "activation_failed": (tr("direct_model_activation_failed", "The model was installed but could not be activated."), "error"),
@@ -441,7 +441,7 @@ class ModelDirectDownloadDialog(StudioDialog):
             if phase in log_messages:
                 msg, tag = log_messages[phase]
                 self._log_message(msg, tag)
-                if phase in ("ready", "cleanup_warning"):
+                if guided_sd35 and phase in ("ready", "cleanup_warning"):
                     self._log_message(tr("sd35_log_path_info", "The model is now permanently located under: C:\\SnapdragonAI\\models\\stable_diffusion_v3_5_qai"), "success")
 
         failed = phase.endswith("_failed") or phase == "redownload_required"
