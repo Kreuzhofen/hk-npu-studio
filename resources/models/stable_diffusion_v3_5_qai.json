@@ -20,10 +20,10 @@
   "supports": [
     "txt2img"
   ],
-  "installed": true,
-  "downloaded": true,
-  "path": "C:\\SnapdragonAI\\models\\stable_diffusion_v3_5_qai",
-  "status": "Ready",
+  "installed": false,
+  "downloaded": false,
+  "path": "",
+  "status": "Not Installed",
   "catalog_status": "LOCAL PACKAGE REQUIRED",
   "product_available": true,
   "official_qualcomm_package": true,
