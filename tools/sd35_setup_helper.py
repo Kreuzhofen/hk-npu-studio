@@ -170,9 +170,29 @@ class SD35SetupHelper:
             # Install python requirements
             pip_cmd = [
                 python_executable, "-m", "pip", "install",
-                "transformers", "diffusers", "torch", "qai-appbuilder", "qai-hub", "py3-wget"
+                "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
             ]
             logger.info("Running: %s", " ".join(pip_cmd))
+
+            # Set up environment variables with PYTHONPATH pointing to the bundled torch
+            env = os.environ.copy()
+            bundled_torch_path = None
+            if getattr(sys, "frozen", False):
+                candidate = Path(sys.executable).parent
+                if (candidate / "torch").is_dir():
+                    bundled_torch_path = candidate
+            else:
+                dev_candidate = Path(__file__).resolve().parent.parent / "dist" / "SnapdragonAIStudio"
+                if (dev_candidate / "torch").is_dir():
+                    bundled_torch_path = dev_candidate
+
+            if bundled_torch_path:
+                logger.info("Using bundled torch from: %s", bundled_torch_path)
+                existing_pythonpath = env.get("PYTHONPATH", "")
+                if existing_pythonpath:
+                    env["PYTHONPATH"] = f"{bundled_torch_path}{os.pathsep}{existing_pythonpath}"
+                else:
+                    env["PYTHONPATH"] = str(bundled_torch_path)
 
             startupinfo = None
             creationflags = 0
@@ -190,7 +210,8 @@ class SD35SetupHelper:
                 startupinfo=startupinfo,
                 creationflags=creationflags,
                 encoding="utf-8",
-                errors="replace"
+                errors="replace",
+                env=env
             )
 
             # Read stdout line by line
@@ -217,7 +238,8 @@ class SD35SetupHelper:
                 startupinfo=startupinfo,
                 creationflags=creationflags,
                 encoding="utf-8",
-                errors="replace"
+                errors="replace",
+                env=env
             )
 
             import re
