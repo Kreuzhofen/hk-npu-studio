@@ -41,7 +41,12 @@ def resolve_python_executable() -> str:
         if resolved:
             candidates.append(Path(resolved))
     for candidate in candidates:
-        if candidate.name.lower() in python_names and candidate.is_file():
+        if (
+            candidate.name.lower() in python_names
+            and candidate.is_file()
+            and "windowsapps" not in str(candidate).lower()
+            and candidate.stat().st_size > 0
+        ):
             return str(candidate.resolve())
     raise RuntimeError("A real Python 3.11 interpreter is required for SD3.5 setup.")
 
@@ -153,7 +158,15 @@ class SD35SetupHelper:
             )
 
             emit("sd35_installing_deps", 30.0)
-            python_executable = resolve_python_executable()
+            try:
+                python_executable = resolve_python_executable()
+            except RuntimeError:
+                return fail(
+                    "dependency_failed",
+                    "python_311_required",
+                    40.0,
+                    1,
+                )
             # Install python requirements
             pip_cmd = [
                 python_executable, "-m", "pip", "install",

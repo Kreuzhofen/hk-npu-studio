@@ -458,10 +458,20 @@ class ModelDirectDownloadDialog(StudioDialog):
             fg=PHOENIX_THEME.danger if failed else PHOENIX_THEME.success,
         )
         if failed and isinstance(update, dict) and update.get("error"):
-            self._log_message(
-                tr("direct_model_error_detail", "Technical detail: {error}", error=update["error"]),
-                "error",
-            )
+            error = update["error"]
+            if error == "python_311_required":
+                self._log_message(
+                    tr(
+                        "sd35_python_311_required",
+                        "Python 3.11 is required for the automatic SD3.5 setup. No usable Python installation was found on this system. Please install Python 3.11 and then restart the SD3.5 setup.",
+                    ),
+                    "error",
+                )
+            else:
+                self._log_message(
+                    tr("direct_model_error_detail", "Technical detail: {error}", error=error),
+                    "error",
+                )
 
         # Handle live download metrics in UI
         if phase in ("downloading", "sd35_downloading_weights") and isinstance(update, dict):

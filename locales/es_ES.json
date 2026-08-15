@@ -965,6 +965,7 @@
   "sd35_redownload_required": "Los archivos del modelo existentes están incompletos o dañados.",
   "sd35_source_validation_failed": "Los archivos del modelo de Qualcomm requeridos están incompletos.",
   "sd35_dependency_failed": "No se pudieron preparar los componentes requeridos.",
+  "sd35_python_311_required": "Se requiere Python 3.11 para la configuración automática de SD3.5. No se encontró ninguna instalación de Python utilizable en este sistema. Instale Python 3.11 y vuelva a iniciar la configuración de SD3.5.",
   "sd35_log_find": "Buscando el archivo ZIP qai-appbuilder-main.zip …",
   "sd35_log_extracting": "Archivo ZIP encontrado. Extracción iniciada …",
   "sd35_log_deps": "Instalando dependencias de Python …",
