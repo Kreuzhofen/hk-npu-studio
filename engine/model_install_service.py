@@ -13,7 +13,7 @@ import hashlib
 from dataclasses import dataclass
 from enum import Enum
 
-from config import MODELS_DIR
+from config import BASE, MODELS_DIR
 from controllers.model_repository import ModelRepository
 from controllers.package_status import PackageStatus
 from engine.download_service import DownloadService, DownloadErrorCode
@@ -745,6 +745,7 @@ class ModelInstallService:
 
             def _find_clip_tokenizer_files() -> tuple[Path, Path, Path | None] | None:
                 check_paths = [
+                    Path(BASE) / "resources" / "tokenizers" / "clip",
                     Path(MODELS_DIR) / "stable_diffusion_v2_1_qnn" / "tokenizer",
                     Path(MODELS_DIR) / "stable_diffusion_v1_5_qnn" / "tokenizer",
                     Path(MODELS_DIR) / "sdxl_base" / "tokenizer",

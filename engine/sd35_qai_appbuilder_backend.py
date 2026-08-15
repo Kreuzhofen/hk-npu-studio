@@ -280,7 +280,9 @@ def _worker_main() -> int:
                 guidance = float(job.get("cfg_scale", 3.5))
                 seed = int(job.get("seed", -1))
                 if seed < 0:
-                    seed = int(np.random.randint(0, 9_999_999_999, dtype=np.int64))
+                    seed = int(np.random.randint(0, 4294967296, dtype=np.int64))
+                elif seed > 4294967295:
+                    seed = int(seed % 4294967296)
                 start = time.perf_counter()
                 prompt, negative = str(job.get("prompt", "")), str(job.get("negative_prompt", ""))
                 

@@ -17,6 +17,35 @@ from engine.model_install_service import SD35InstallState, SD35SourceInspection
 
 logger = logging.getLogger("SD35SetupHelper")
 
+
+def resolve_python_executable() -> str:
+    """Return a real Python interpreter, never the frozen Studio executable."""
+    current = Path(sys.executable)
+    python_names = {"python.exe", "pythonw.exe", "python", "python3"}
+    if not getattr(sys, "frozen", False) and current.name.lower() in python_names:
+        return str(current)
+
+    candidates: list[Path] = []
+    override = os.environ.get("SNAPDRAGON_AI_PYTHON", "").strip()
+    if override:
+        candidates.append(Path(override))
+    program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", ""))
+    candidates.extend((
+        program_files / "Python311-arm64" / "python.exe",
+        local_app_data / "Programs" / "Python" / "Python311-arm64" / "python.exe",
+        local_app_data / "Programs" / "Python" / "Python311" / "python.exe",
+    ))
+    for command in ("python3.11", "python"):
+        resolved = shutil.which(command)
+        if resolved:
+            candidates.append(Path(resolved))
+    for candidate in candidates:
+        if candidate.name.lower() in python_names and candidate.is_file():
+            return str(candidate.resolve())
+    raise RuntimeError("A real Python 3.11 interpreter is required for SD3.5 setup.")
+
+
 class SD35SetupHelper:
     """Automates finding, extracting, installing deps, and running Qualcomm sample for SD3.5."""
 
@@ -124,9 +153,10 @@ class SD35SetupHelper:
             )
 
             emit("sd35_installing_deps", 30.0)
+            python_executable = resolve_python_executable()
             # Install python requirements
             pip_cmd = [
-                sys.executable, "-m", "pip", "install",
+                python_executable, "-m", "pip", "install",
                 "transformers", "diffusers", "torch", "qai-appbuilder", "qai-hub", "py3-wget"
             ]
             logger.info("Running: %s", " ".join(pip_cmd))
@@ -162,7 +192,7 @@ class SD35SetupHelper:
                 return fail("dependency_failed", f"pip exited with code {process.returncode}", 40.0, 1)
 
             emit("sd35_downloading_weights", 50.0)
-            run_cmd = [sys.executable, "stable_diffusion_v3_5.py"]
+            run_cmd = [python_executable, "stable_diffusion_v3_5.py"]
             logger.info("Running Qualcomm sample script: %s", " ".join(run_cmd))
 
             process = subprocess.Popen(

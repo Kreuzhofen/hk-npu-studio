@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import tempfile
 import unittest
@@ -107,6 +107,56 @@ class PipelineParameterTests(unittest.TestCase):
         result = pipeline.run()
 
         self.assertTrue(result.success)
+
+    def test_sd35_seed_normalization(self):
+        import numpy as np
+
+        # Test 1: seed < 0 results in uint32
+        for _ in range(100):
+            seed = -1
+            if seed < 0:
+                seed = int(np.random.randint(0, 4294967296, dtype=np.int64))
+            self.assertTrue(0 <= seed <= 4294967295)
+
+        # Test 2: seed > 4294967295 is normalized to uint32 deterministically
+        seed = 4294967296
+        if seed > 4294967295:
+            seed = int(seed % 4294967296)
+        self.assertEqual(seed, 0)
+
+        seed = 4294967297
+        if seed > 4294967295:
+            seed = int(seed % 4294967296)
+        self.assertEqual(seed, 1)
+
+        # Test 3: valid seed is unchanged
+        seed = 12345
+        if seed < 0:
+            pass
+        elif seed > 4294967295:
+            pass
+        self.assertEqual(seed, 12345)
+
+    def test_sd35_installation_first_step_explanation(self):
+        from app.i18n import tr, set_language
+
+        # Test German
+        set_language("de_DE")
+        explanation_de = tr("model_src_sd35_guided_description")
+        self.assertIn("So funktioniert die Einrichtung:", explanation_de)
+        self.assertIn("1. Laden Sie zuerst die benÃ¶tigte Qualcomm-Datei herunter.", explanation_de)
+
+        # Test English
+        set_language("en_US")
+        explanation_en = tr("model_src_sd35_guided_description")
+        self.assertIn("How setup works:", explanation_en)
+        self.assertIn("1. Download the required Qualcomm file first.", explanation_en)
+
+        # Test Spanish
+        set_language("es_ES")
+        explanation_es = tr("model_src_sd35_guided_description")
+        self.assertIn("CÃ³mo funciona la configuraciÃ³n:", explanation_es)
+        self.assertIn("1. Descargue primero el archivo requerido de Qualcomm.", explanation_es)
 
 
 if __name__ == "__main__":

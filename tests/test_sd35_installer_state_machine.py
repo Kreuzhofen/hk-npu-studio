@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from controllers.model_repository import ModelRepository
 from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
 from engine.model_install_service import ModelInstallService, SD35InstallState
-from tools.sd35_setup_helper import SD35SetupHelper
+from tools.sd35_setup_helper import SD35SetupHelper, resolve_python_executable
 
 
 class _Installer:
@@ -246,6 +246,49 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         self.assertTrue(result)
         self.assertEqual(events[-1]["phase"], "ready")
+
+    def test_19_python_resolver_and_subprocess_commands_never_use_studio_exe(self) -> None:
+        import sys
+
+        self.assertEqual(resolve_python_executable(), sys.executable)
+
+        program_files = self.root / "Program Files"
+        interpreter = program_files / "Python311-arm64" / "python.exe"
+        interpreter.parent.mkdir(parents=True)
+        interpreter.write_bytes(b"python")
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys, "executable", str(self.root / "SnapdragonAIStudio.exe")
+        ), patch.dict("os.environ", {"ProgramFiles": str(program_files)}, clear=False):
+            self.assertEqual(resolve_python_executable(), str(interpreter.resolve()))
+
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+        process = MagicMock(returncode=1)
+        process.stdout.readline.return_value = ""
+        process.stdout.read.return_value = ""
+        commands = []
+
+        def record_popen(command, *args, **kwargs):
+            commands.append(command)
+            if "pip" in command:
+                pip_process = MagicMock(returncode=0)
+                pip_process.stdout.readline.return_value = ""
+                return pip_process
+            return process
+
+        with patch(
+            "tools.sd35_setup_helper.resolve_python_executable",
+            return_value=str(interpreter),
+        ), patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=record_popen):
+            self._run_helper(_Installer(self.service), archive, allow_redownload=True)
+
+        self.assertEqual(commands[0][:3], [str(interpreter), "-m", "pip"])
+        self.assertEqual(commands[1], [str(interpreter), "stable_diffusion_v3_5.py"])
 
 
 if __name__ == "__main__":

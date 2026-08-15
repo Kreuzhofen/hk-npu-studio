@@ -48,6 +48,10 @@ class HomeSnapshot:
 
 
 class PhoenixHomeView(tk.Frame):
+    _ENERGY_DOT_INTERVAL_MS = 225
+    _ENERGY_DOT_REST_MS = 600
+    _ENERGY_DOT_COUNT = 4
+
     """Real-data control center for the Phoenix workspace."""
 
     REFRESH_INTERVAL_SECONDS = 5.0
@@ -77,11 +81,16 @@ class PhoenixHomeView(tk.Frame):
         self._project_branch = self._read_project_branch()
         self._last_refresh_at = 0.0
         self._cached_photos: list[ImageTk.PhotoImage] = []
+        self._energy_flow_after_id: str | None = None
+        self._energy_flow_step = 0
+        self._energy_flow_active = False
 
         self._system_values: dict[str, tk.Label] = {}
         self._project_values: dict[str, tk.Label] = {}
 
         self._build()
+        self.bind("<Map>", self._on_readiness_map, add="+")
+        self.bind("<Unmap>", self._on_readiness_unmap, add="+")
         self.refresh(force=True)
 
     def _build(self) -> None:
@@ -182,17 +191,35 @@ class PhoenixHomeView(tk.Frame):
             row=1, column=0, sticky="ew",
             padx=PHOENIX_THEME.card_pad_x, pady=(2, 4),
         )
+        self._readiness_energy_dots = tk.Canvas(
+            readiness_card,
+            bg=PHOENIX_THEME.card_bg,
+            width=50,
+            height=28,
+            highlightthickness=0,
+            bd=0,
+        )
+        self._readiness_energy_dots.grid(
+            row=0, column=1, rowspan=2, sticky="e",
+            padx=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_md),
+            pady=PHOENIX_THEME.card_pad_y,
+        )
+        self._readiness_energy_dots.grid_remove()
         self._readiness_button = tk.Button(
             readiness_card, text="", command=self._on_readiness_action,
             bg=PHOENIX_THEME.accent, fg=PHOENIX_THEME.text_on_accent,
             activebackground=PHOENIX_THEME.accent_dark,
             activeforeground=PHOENIX_THEME.text_on_accent,
-            relief="flat", bd=0, font=PHOENIX_THEME.font_button,
+            relief="flat", bd=0, highlightthickness=2,
+            highlightbackground=PHOENIX_THEME.accent,
+            highlightcolor=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_button,
             cursor="hand2", padx=PHOENIX_THEME.button_pad_x, pady=8,
         )
         self._readiness_button.grid(
-            row=0, column=1, rowspan=2, sticky="e",
-            padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y,
+            row=0, column=2, rowspan=2, sticky="e",
+            padx=(0, PHOENIX_THEME.card_pad_x),
+            pady=PHOENIX_THEME.card_pad_y,
         )
         self._model_ready = False
 
@@ -716,6 +743,8 @@ class PhoenixHomeView(tk.Frame):
             else "→ " + tr("home_system_not_ready", "Systemprüfung erforderlich")
         )
         if model_ready:
+            self._stop_energy_flow()
+            self._readiness_energy_dots.grid_remove()
             self._readiness_title.configure(
                 text=tr(
                     "home_studio_ready",
@@ -728,21 +757,153 @@ class PhoenixHomeView(tk.Frame):
                 fg=PHOENIX_THEME.text_primary,
             )
             self._readiness_button.configure(
-                text=tr("home_create_first_image", "Erstes Bild erstellen")
+                text=tr("home_create_first_image", "Erstes Bild erstellen"),
+                bg=PHOENIX_THEME.accent,
+                activebackground=PHOENIX_THEME.accent_dark,
+                fg=PHOENIX_THEME.text_on_accent,
+                activeforeground=PHOENIX_THEME.text_on_accent,
+                highlightbackground=PHOENIX_THEME.accent,
+                highlightcolor=PHOENIX_THEME.accent,
+                padx=PHOENIX_THEME.button_pad_x,
+                pady=PHOENIX_THEME.button_pad_y,
             )
         else:
+            self._readiness_energy_dots.grid()
+            self._draw_energy_dots()
             self._readiness_title.configure(
                 text=tr("home_setup_required", "Einrichtung erforderlich"),
                 fg=PHOENIX_THEME.warning,
             )
             self._readiness_status.configure(
                 text=(f"{folder_status}\n{system_status}\n→ "
-                      + tr("home_select_install_next", "Modell auswählen und installieren")),
+                      + tr("home_select_install_next", "Noch kein KI-Modell installiert")),
                 fg=PHOENIX_THEME.text_primary,
             )
             self._readiness_button.configure(
-                text=tr("home_start_setup", "Einrichtung starten")
+                text=tr("home_start_setup", "Jetzt einrichten"),
+                bg=PHOENIX_THEME.accent,
+                activebackground=PHOENIX_THEME.accent_dark,
+                fg=PHOENIX_THEME.text_on_accent,
+                activeforeground=PHOENIX_THEME.text_on_accent,
+                highlightbackground=PHOENIX_THEME.accent,
+                highlightcolor=PHOENIX_THEME.accent,
+                padx=PHOENIX_THEME.button_pad_x + PHOENIX_THEME.space_sm,
+                pady=PHOENIX_THEME.button_pad_y + 2,
             )
+            self._start_energy_flow()
+
+    @staticmethod
+    def _blend_hex(start: str, end: str, fraction: float) -> str:
+        start_rgb = tuple(int(start[index:index + 2], 16) for index in (1, 3, 5))
+        end_rgb = tuple(int(end[index:index + 2], 16) for index in (1, 3, 5))
+        values = tuple(
+            round(first + (last - first) * fraction)
+            for first, last in zip(start_rgb, end_rgb)
+        )
+        return "#{:02x}{:02x}{:02x}".format(*values)
+
+    @staticmethod
+    def _energy_dot_colors_for(
+        background: str,
+        text_muted: str,
+        accent: str,
+    ) -> tuple[str, str]:
+        inactive = PhoenixHomeView._blend_hex(background, text_muted, 0.68)
+        return inactive, accent
+
+    def _energy_dot_colors(self) -> tuple[str, str]:
+        return self._energy_dot_colors_for(
+            PHOENIX_THEME.card_bg,
+            PHOENIX_THEME.text_muted,
+            PHOENIX_THEME.accent,
+        )
+
+    def _draw_energy_dots(self, active_dot: int | None = None) -> None:
+        canvas = self._readiness_energy_dots
+        canvas.delete("all")
+        inactive, active = self._energy_dot_colors()
+        for index in range(self._ENERGY_DOT_COUNT):
+            color = inactive
+            if index == active_dot:
+                color = active
+            elif active_dot is not None and index == active_dot - 1:
+                color = self._blend_hex(inactive, active, 0.35)
+            center_x = 4 + index * 14
+            canvas.create_oval(
+                center_x - 2,
+                12,
+                center_x + 2,
+                16,
+                fill=color,
+                outline="",
+            )
+
+    def _start_energy_flow(self) -> None:
+        if self._energy_flow_active or self._model_ready:
+            return
+        self._energy_flow_active = True
+        self._animate_energy_flow()
+
+    def _animate_energy_flow(self) -> None:
+        if not self._energy_flow_active or self._model_ready:
+            self._energy_flow_after_id = None
+            return
+        try:
+            if (
+                not self.winfo_exists()
+                or not self._readiness_energy_dots.winfo_exists()
+            ):
+                self._energy_flow_active = False
+                self._energy_flow_after_id = None
+                return
+            active_dot = (
+                self._energy_flow_step
+                if self._energy_flow_step < self._ENERGY_DOT_COUNT
+                else None
+            )
+            self._draw_energy_dots(active_dot)
+            delay = (
+                self._ENERGY_DOT_REST_MS
+                if active_dot is None
+                else self._ENERGY_DOT_INTERVAL_MS
+            )
+            self._energy_flow_step = (
+                self._energy_flow_step + 1
+            ) % (self._ENERGY_DOT_COUNT + 1)
+            self._energy_flow_after_id = self.after(
+                delay,
+                self._animate_energy_flow,
+            )
+        except tk.TclError:
+            self._energy_flow_active = False
+            self._energy_flow_after_id = None
+
+    def _stop_energy_flow(self, *, reset_dots: bool = True) -> None:
+        self._energy_flow_active = False
+        callback_id = self._energy_flow_after_id
+        self._energy_flow_after_id = None
+        if callback_id is not None:
+            try:
+                self.after_cancel(callback_id)
+            except tk.TclError:
+                pass
+        if reset_dots:
+            try:
+                if self._readiness_energy_dots.winfo_exists():
+                    self._draw_energy_dots()
+            except (AttributeError, tk.TclError):
+                pass
+
+    def _on_readiness_map(self, _event: tk.Event) -> None:
+        if not self._model_ready:
+            self._start_energy_flow()
+
+    def _on_readiness_unmap(self, _event: tk.Event) -> None:
+        self._stop_energy_flow()
+
+    def destroy(self) -> None:
+        self._stop_energy_flow(reset_dots=False)
+        super().destroy()
 
     def _show_generation_menu(self, event: tk.Event, path: Path) -> None:
         menu = tk.Menu(
