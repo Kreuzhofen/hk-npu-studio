@@ -45,3 +45,18 @@ models/*/
 
 # Diagnostics and local test models
 diagnostics/
+
+# Local runtime/user data
+data/prompt_history.json
+input/image.raw
+logs/
+
+# Local development backups / recovery
+backup/
+backup_exclude.txt
+before_antigravity_recovery.patch
+recovery_*/
+
+# Local downloaded model packages
+model_downloads/
+
