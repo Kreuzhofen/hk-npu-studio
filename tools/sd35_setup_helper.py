@@ -357,38 +357,39 @@ class SD35SetupHelper:
                         )
 
                     torch_components = ["torch", "torchgen", "functorch", dist_info_dir.name]
+                    import stat
                     for name in torch_components:
                         src = Path(bundled_torch_path) / name
                         dst = site_packages_dir / name
-                        if dst.exists() or dst.is_symlink():
-                            try:
-                                os.rmdir(dst)
-                            except Exception as e:
-                                logger.warning("Could not rmdir existing target %s: %s. Trying to force remove.", dst, e)
-                                try:
-                                    if dst.is_dir() and not dst.is_symlink():
-                                        shutil.rmtree(dst)
-                                    else:
-                                        dst.unlink()
-                                except Exception as ex:
-                                    logger.error("Failed to force remove existing target %s: %s", dst, ex)
                         try:
-                            if _winapi:
-                                _winapi.CreateJunction(str(src), str(dst))
+                            # Safely clean up dst if it exists (junction, file, or directory)
+                            try:
+                                st = dst.lstat()
+                                is_junction = bool(getattr(st, "st_file_attributes", 0) & 0x400)
+                                if is_junction or stat.S_ISLNK(st.st_mode):
+                                    os.rmdir(dst)
+                                elif stat.S_ISDIR(st.st_mode):
+                                    shutil.rmtree(dst)
+                                else:
+                                    dst.unlink()
+                            except FileNotFoundError:
+                                pass
+                            except Exception as cleanup_err:
+                                logger.warning("Could not remove existing target %s: %s", dst, cleanup_err)
+                            
+                            logger.info("Staging %s physically...", name)
+                            if src.is_dir():
+                                shutil.copytree(src, dst)
                             else:
-                                subprocess.run(
-                                    ["cmd", "/c", "mklink", "/j", str(dst), str(src)],
-                                    capture_output=True,
-                                    check=True
-                                )
-                            logger.info("Junction created for %s", name)
+                                shutil.copy2(src, dst)
+                            logger.info("Staged %s physically successfully", name)
                             if not dst.exists():
-                                raise RuntimeError(f"Junction {dst} was not created successfully")
+                                raise RuntimeError(f"Physical copy of {name} to {dst} was not created successfully")
                         except Exception as ex:
-                            logger.error("Failed to create junction for %s: %s", name, ex)
+                            logger.error("Failed to stage %s physically: %s", name, ex)
                             return fail(
                                 "dependency_failed",
-                                f"Failed to create junction for {name}: {ex}",
+                                f"Failed to stage {name} physically: {ex}",
                                 40.0,
                                 1
                             )
@@ -664,6 +665,7 @@ class SD35SetupHelper:
     def safe_remove_venv(venv_dir: Path) -> None:
         if not venv_dir.exists():
             return
+        import stat
         site_packages = venv_dir / "Lib" / "site-packages"
         if site_packages.is_dir():
             junctions_to_remove = []
@@ -671,15 +673,24 @@ class SD35SetupHelper:
             # 1. Identify all target junctions (standard names)
             for name in ("torch", "torchgen", "functorch"):
                 item = site_packages / name
-                if os.path.lexists(item):
-                    junctions_to_remove.append(item)
+                try:
+                    st = item.lstat()
+                    if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
+                        junctions_to_remove.append(item)
+                except Exception:
+                    pass
 
             # 2. Identify torch-*.dist-info junctions
             try:
                 for item in site_packages.iterdir():
                     if item.name.startswith("torch-") and item.name.endswith(".dist-info"):
-                        if item not in junctions_to_remove:
-                            junctions_to_remove.append(item)
+                        try:
+                            st = item.lstat()
+                            if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
+                                if item not in junctions_to_remove:
+                                    junctions_to_remove.append(item)
+                        except Exception:
+                            pass
             except Exception as e:
                 logger.warning("Failed to scan site-packages for dist-info junctions during removal: %s", e)
 
@@ -690,18 +701,16 @@ class SD35SetupHelper:
                 try:
                     os.rmdir(dst)
                 except Exception as rmdir_err:
-                    # Try os.unlink / path.unlink as a fallback
                     try:
                         dst.unlink()
                     except Exception as unlink_err:
                         error_msg = f"Failed to remove junction {dst}. rmdir error: {rmdir_err}; unlink error: {unlink_err}"
-                        logger.error("SAFETY ALERT: %s. Aborting venv cleanup to protect source directories.", error_msg)
+                        logger.error("SAFETY ALERT: %s", error_msg)
                         raise RuntimeError(error_msg)
-
-                # Double-check it is actually gone
-                if os.path.lexists(dst):
+                
+                if dst.exists():
                     error_msg = f"Junction {dst} still exists after removal attempt"
-                    logger.error("SAFETY ALERT: %s. Aborting venv cleanup to protect source directories.", error_msg)
+                    logger.error("SAFETY ALERT: %s", error_msg)
                     raise RuntimeError(error_msg)
 
         # 4. Now that all junctions are confirmed absent, safely delete the venv
@@ -744,13 +753,18 @@ class SD35SetupHelper:
             isolated_deps = path / "isolated_deps"
             if isolated_deps.is_dir():
                 failed_junctions = []
-                for item in isolated_deps.iterdir():
-                    if item.is_dir():
+                import stat
+                try:
+                    for item in isolated_deps.iterdir():
                         try:
-                            os.rmdir(item)
+                            st = item.lstat()
+                            if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
+                                os.rmdir(item)
                         except Exception as e:
                             logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
                             failed_junctions.append(item)
+                except Exception as iter_exc:
+                    logger.warning("Failed to iterate isolated_deps for cleanup: %s", iter_exc)
                 if failed_junctions:
                     logger.warning("Junction cleanup failed for: %s. Aborting clean up of workspace %s to protect source folders.", failed_junctions, path)
                     return
@@ -763,23 +777,27 @@ class SD35SetupHelper:
             site_packages = path / "venv" / "Lib" / "site-packages"
             if site_packages.is_dir():
                 failed_junctions = []
+                import stat
                 # Check for standard names
                 for name in ("torch", "torchgen", "functorch"):
                     item = site_packages / name
-                    if item.is_dir():
-                        try:
+                    try:
+                        st = item.lstat()
+                        if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
                             os.rmdir(item)
                             logger.info("Safely removed junction %s", item)
-                        except Exception as e:
-                            logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
-                            failed_junctions.append(item)
+                    except Exception as e:
+                        logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
+                        failed_junctions.append(item)
                 # Check for dist-info
                 try:
                     for item in site_packages.iterdir():
-                        if item.is_dir() and item.name.startswith("torch-") and item.name.endswith(".dist-info"):
+                        if item.name.startswith("torch-") and item.name.endswith(".dist-info"):
                             try:
-                                os.rmdir(item)
-                                logger.info("Safely removed junction %s", item)
+                                st = item.lstat()
+                                if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
+                                    os.rmdir(item)
+                                    logger.info("Safely removed junction %s", item)
                             except Exception as e:
                                 logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
                                 failed_junctions.append(item)
