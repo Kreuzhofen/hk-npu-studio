@@ -190,10 +190,12 @@ class SD35SetupHelper:
             ]
             logger.info("Running: %s", " ".join(pip_cmd))
 
-            # Set up environment variables with PYTHONPATH pointing to the bundled torch
+            # Set up environment variables with PYTHONPATH pointing to the isolated dependencies
             env = os.environ.copy()
             bundled_torch_path = None
-            if getattr(sys, "frozen", False):
+            is_frozen = getattr(sys, "frozen", False)
+
+            if is_frozen:
                 candidate = Path(sys.executable).parent
                 if (candidate / "torch").is_dir():
                     bundled_torch_path = candidate
@@ -203,12 +205,61 @@ class SD35SetupHelper:
                     bundled_torch_path = dev_candidate
 
             if bundled_torch_path:
-                logger.info("Using bundled torch from: %s", bundled_torch_path)
-                existing_pythonpath = env.get("PYTHONPATH", "")
-                if existing_pythonpath:
-                    env["PYTHONPATH"] = f"{bundled_torch_path}{os.pathsep}{existing_pythonpath}"
+                if is_frozen:
+                    logger.info("Using bundled torch in frozen environment from: %s", bundled_torch_path)
+                    isolated_deps_dir = workspace / "isolated_deps"
+                    # Safe cleanup of any existing junctions
+                    if isolated_deps_dir.exists():
+                        failed_junctions = []
+                        for item in isolated_deps_dir.iterdir():
+                            if item.is_dir():
+                                try:
+                                    os.rmdir(item)
+                                except Exception as e:
+                                    logger.error("SAFETY ALERT: Could not rmdir junction %s during initialization: %s. Aborting recursive cleanup of this path to protect source directories.", item, e)
+                                    failed_junctions.append(item)
+                        if failed_junctions:
+                            logger.warning("Junction cleanup failed for: %s. Skipping rmtree of isolated_deps to prevent accidental deletion of source files.", failed_junctions)
+                        else:
+                            try:
+                                shutil.rmtree(isolated_deps_dir)
+                            except Exception as e:
+                                logger.warning("Could not rmtree isolated_deps_dir %s during initialization: %s", isolated_deps_dir, e)
+
+                    isolated_deps_dir.mkdir(parents=True, exist_ok=True)
+
+                    try:
+                        import _winapi
+                    except ImportError:
+                        _winapi = None
+
+                    for name in ("torch", "torchgen", "functorch"):
+                        src = Path(bundled_torch_path) / name
+                        dst = isolated_deps_dir / name
+                        if src.is_dir():
+                            try:
+                                if _winapi:
+                                    _winapi.CreateJunction(str(src), str(dst))
+                                else:
+                                    subprocess.run(
+                                        ["cmd", "/c", "mklink", "/j", str(dst), str(src)],
+                                        capture_output=True,
+                                        check=True
+                                    )
+                                logger.info("Junction created for %s", name)
+                            except Exception as ex:
+                                logger.error("Failed to create junction for %s: %s", name, ex)
+
+                    env["PYTHONPATH"] = str(isolated_deps_dir)
+                    logger.info("Isolated PYTHONPATH configured (exclusive): %s", env["PYTHONPATH"])
                 else:
-                    env["PYTHONPATH"] = str(bundled_torch_path)
+                    # Keep dev/non-frozen behavior compatible and minimally changed
+                    logger.info("Using bundled torch in dev/non-frozen environment from: %s", bundled_torch_path)
+                    existing_pythonpath = env.get("PYTHONPATH", "")
+                    if existing_pythonpath:
+                        env["PYTHONPATH"] = f"{bundled_torch_path}{os.pathsep}{existing_pythonpath}"
+                    else:
+                        env["PYTHONPATH"] = str(bundled_torch_path)
 
             startupinfo = None
             creationflags = 0
@@ -273,6 +324,57 @@ class SD35SetupHelper:
                     error_msg = f"pip exited with code {process.returncode}"
 
                 return fail("dependency_failed", error_msg, 40.0, 1)
+
+            # Runtime preflight check immediately before launching stable_diffusion_v3_5.py
+            if bundled_torch_path and is_frozen:
+                logger.info("Running runtime preflight check...")
+                preflight_code = (
+                    "import sys\n"
+                    "import numpy\n"
+                    "import torch\n"
+                    "import torchgen\n"
+                    "import functorch\n"
+                    "import requests\n"
+                    "import yaml\n"
+                    "import diffusers\n"
+                    "import transformers\n"
+                    "import qai_appbuilder\n"
+                    "assert hasattr(numpy, 'ndarray'), 'numpy.ndarray is missing'\n"
+                    "print('PREFLIGHT_OK')\n"
+                )
+                try:
+                    preflight_process = subprocess.run(
+                        [python_executable, "-c", preflight_code],
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        startupinfo=startupinfo,
+                        creationflags=creationflags,
+                        timeout=30.0
+                    )
+                    if preflight_process.returncode != 0:
+                        err_lines = []
+                        for line in preflight_process.stderr.splitlines():
+                            line = line.strip()
+                            if line:
+                                err_lines.append(sanitize_pip_line(line))
+                        preflight_error = "; ".join(err_lines[-3:]) or preflight_process.stdout.strip()
+                        logger.error("Preflight check failed: %s", preflight_error)
+                        return fail(
+                            "preflight_failed",
+                            f"Preflight check failed: {preflight_error or 'Unknown import error'}",
+                            50.0,
+                            3
+                        )
+                    logger.info("Preflight check passed.")
+                except Exception as preflight_exc:
+                    logger.exception("Preflight check exception: %s", preflight_exc)
+                    return fail(
+                        "preflight_failed",
+                        f"Preflight check exception: {preflight_exc}",
+                        50.0,
+                        3
+                    )
 
             emit("sd35_downloading_weights", 50.0)
             run_cmd = [python_executable, "stable_diffusion_v3_5.py"]
@@ -478,6 +580,25 @@ class SD35SetupHelper:
                         return
                 except OSError:
                     continue
+
+            # Remove any isolated_deps junctions safely before workspace cleanup
+            isolated_deps = path / "isolated_deps"
+            if isolated_deps.is_dir():
+                failed_junctions = []
+                for item in isolated_deps.iterdir():
+                    if item.is_dir():
+                        try:
+                            os.rmdir(item)
+                        except Exception as e:
+                            logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
+                            failed_junctions.append(item)
+                if failed_junctions:
+                    logger.warning("Junction cleanup failed for: %s. Aborting clean up of workspace %s to protect source folders.", failed_junctions, path)
+                    return
+                try:
+                    shutil.rmtree(isolated_deps)
+                except Exception as e:
+                    logger.warning("Failed to remove isolated_deps dir %s: %s", isolated_deps, e)
 
             shutil.rmtree(path)
         except Exception as exc:

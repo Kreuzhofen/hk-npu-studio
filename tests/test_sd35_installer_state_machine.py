@@ -398,6 +398,154 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertNotIn("secret-token-xyz", error_msg)
         self.assertIn("Could not connect to QAI Hub", error_msg)
 
+    def test_22_isolated_pythonpath_created_correctly(self) -> None:
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+
+        commands_run = []
+        preflight_run = []
+
+        class MockProcess:
+            def __init__(self):
+                self.returncode = 0
+                self.stdout = MagicMock()
+                self.stdout.readline.return_value = ""
+                self.stdout.read.return_value = ""
+                self.stderr = MagicMock()
+                self.stderr.splitlines.return_value = []
+            def wait(self):
+                return self.returncode
+
+        def mock_popen(cmd, *args, **kwargs):
+            commands_run.append((cmd, kwargs.get("env", {})))
+            return MockProcess()
+
+        def mock_run(cmd, *args, **kwargs):
+            preflight_run.append((cmd, kwargs.get("env", {})))
+            return MagicMock(returncode=0, stdout="PREFLIGHT_OK", stderr="")
+
+        exe_parent = self.root / "app_bin"
+        exe_parent.mkdir(parents=True, exist_ok=True)
+        (exe_parent / "torch").mkdir(exist_ok=True)
+        (exe_parent / "torchgen").mkdir(exist_ok=True)
+        (exe_parent / "functorch").mkdir(exist_ok=True)
+        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+
+        with patch("sys.frozen", True, create=True), \
+             patch("sys.executable", mock_executable), \
+             patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen), \
+             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+            result, events = self._run_helper(
+                _Installer(self.service), archive, allow_redownload=True
+            )
+
+        self.assertTrue(len(preflight_run) > 0)
+        self.assertTrue(len(commands_run) > 0)
+
+        preflight_env = preflight_run[0][1]
+        pythonpath = preflight_env.get("PYTHONPATH", "")
+
+        isolated_deps = self.root / SD35SetupHelper.WORKSPACE_NAME / "isolated_deps"
+        self.assertEqual(pythonpath, str(isolated_deps))
+        self.assertNotIn(str(exe_parent), pythonpath)
+
+        self.assertTrue((isolated_deps / "torch").is_dir())
+        self.assertTrue((isolated_deps / "torchgen").is_dir())
+        self.assertTrue((isolated_deps / "functorch").is_dir())
+
+    def test_23_preflight_failure_aborts_qualcomm_sample(self) -> None:
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+
+        pip_run = False
+        qualcomm_run = False
+
+        def mock_popen(cmd, *args, **kwargs):
+            nonlocal pip_run, qualcomm_run
+            if "pip" in cmd:
+                pip_run = True
+                p = MagicMock(returncode=0)
+                p.stdout.readline.return_value = ""
+                return p
+            else:
+                qualcomm_run = True
+                p = MagicMock(returncode=0)
+                p.stdout.read.return_value = ""
+                return p
+
+        def mock_run(cmd, *args, **kwargs):
+            return MagicMock(
+                returncode=1,
+                stdout="",
+                stderr="ModuleNotFoundError: No module named 'yaml'\n"
+            )
+
+        exe_parent = self.root / "app_bin"
+        exe_parent.mkdir(parents=True, exist_ok=True)
+        (exe_parent / "torch").mkdir(exist_ok=True)
+        (exe_parent / "torchgen").mkdir(exist_ok=True)
+        (exe_parent / "functorch").mkdir(exist_ok=True)
+        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+
+        with patch("sys.frozen", True, create=True), \
+             patch("sys.executable", mock_executable), \
+             patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen), \
+             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+            result, events = self._run_helper(
+                _Installer(self.service), archive, allow_redownload=True
+            )
+
+        self.assertTrue(pip_run)
+        self.assertFalse(qualcomm_run)
+        self.assertFalse(result)
+
+        failed_event = next(e for e in events if e.get("phase") == "preflight_failed")
+        self.assertIn("Preflight check failed", failed_event["error"])
+        self.assertIn("ModuleNotFoundError: No module named 'yaml'", failed_event["error"])
+
+    def test_24_junction_cleanup_safety(self) -> None:
+        workspace_path = self.root / "fake_workspace"
+        isolated_deps = workspace_path / "isolated_deps"
+        isolated_deps.mkdir(parents=True, exist_ok=True)
+
+        # Create a fake junction directory and a file in it
+        fake_junction = isolated_deps / "torch"
+        fake_junction.mkdir()
+        fake_file = fake_junction / "do_not_delete.txt"
+        fake_file.write_text("critical source file")
+
+        # Mock os.rmdir to raise an OSError when trying to delete the fake junction
+        def mock_rmdir(path):
+            if Path(path) == fake_junction:
+                raise OSError("Access Denied - Simulated fail-safe lock")
+            os.rmdir(path)
+
+        with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir):
+            SD35SetupHelper.safe_cleanup_temp_dir(str(workspace_path))
+
+        # The clean up should have aborted, leaving isolated_deps and the critical source file intact!
+        self.assertTrue(workspace_path.exists())
+        self.assertTrue(isolated_deps.exists())
+        self.assertTrue(fake_junction.exists())
+        self.assertTrue(fake_file.exists())
+        self.assertEqual(fake_file.read_text(), "critical source file")
+
+        # Clean up for real
+        fake_file.unlink()
+        fake_junction.rmdir()
+        isolated_deps.rmdir()
+        workspace_path.rmdir()
+
 
 if __name__ == "__main__":
     unittest.main()
