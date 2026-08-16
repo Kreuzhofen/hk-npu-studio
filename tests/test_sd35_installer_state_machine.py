@@ -160,12 +160,26 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
     def test_09_complete_final_folder_reconciles_to_ready(self):
         final = self.root / "ready-final"
         final.mkdir()
-        (final / "model.bin").write_bytes(b"ready")
+        # Write the 11 required files
+        self._write_required(final)
+        
+        # Write the mock venv python executable
+        venv_python = self.root / "sd35_venv" / "Scripts" / "python.exe"
+        venv_python.parent.mkdir(parents=True, exist_ok=True)
+        venv_python.write_bytes(b"python")
+        
+        # Create a package.json declaring all 11 components
+        components = {}
+        for idx, relative in enumerate(self.service.SD35_REQUIRED_FILES):
+            components[f"file_{idx}"] = {"path": relative}
         (final / "package.json").write_text(
-            json.dumps({"model_id": "stable_diffusion_v3_5_qai", "components": {"model": {"path": "model.bin"}}}),
+            json.dumps({"model_id": "stable_diffusion_v3_5_qai", "components": components}),
             encoding="utf-8",
         )
-        model = self._repository(final, installation_roots=[final.parent]).get_model("stable_diffusion_v3_5_qai")
+        
+        with patch("config.USER_BASE", self.root):
+            model = self._repository(final, installation_roots=[final.parent]).get_model("stable_diffusion_v3_5_qai")
+            
         self.assertTrue(model["installed"])
         self.assertEqual(model["status"], "Ready")
 

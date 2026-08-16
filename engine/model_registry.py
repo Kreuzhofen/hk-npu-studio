@@ -315,6 +315,49 @@ class ModelRegistry:
                 )
             )
         else:
+            if model_id == "stable_diffusion_v3_5_qai":
+                from config import USER_BASE
+                venv_python = USER_BASE / "sd35_venv" / "Scripts" / "python.exe"
+                if not venv_python.exists() or venv_python.stat().st_size == 0:
+                    issues.append(
+                        ModelValidationIssue(
+                            "sd35_venv_missing",
+                            "Die virtuelle Umgebung für SD3.5 (sd35_venv) fehlt oder ist unvollständig.",
+                            field="path",
+                        )
+                    )
+                sd35_required = (
+                    "serialized_binaries/text_encoder.serialized.bin",
+                    "serialized_binaries/text_encoder_2.serialized.bin",
+                    "serialized_binaries/transformer.serialized.bin",
+                    "serialized_binaries/vae_decoder.serialized.bin",
+                    "time_text_embed.pt",
+                    "tokenizer/tokenizer_config.json",
+                    "tokenizer/vocab.json",
+                    "tokenizer/merges.txt",
+                    "tokenizer_2/tokenizer_config.json",
+                    "tokenizer_2/vocab.json",
+                    "tokenizer_2/merges.txt",
+                )
+                for rel in sd35_required:
+                    target = self._safe_child(base, rel)
+                    if target is None or not target.exists():
+                        issues.append(
+                            ModelValidationIssue(
+                                "required_file_missing",
+                                f"Erforderliche Modelldatei fehlt: {rel}",
+                                path=str(rel),
+                            )
+                        )
+                    elif target.stat().st_size <= 0:
+                        issues.append(
+                            ModelValidationIssue(
+                                "required_file_empty",
+                                f"Erforderliche Modelldatei ist leer (0 Bytes): {rel}",
+                                path=str(rel),
+                            )
+                        )
+
             manifest_path = base / "package.json"
             if manifest_path.exists():
                 manifest_issues, checked_hashes = self._validate_manifest(
@@ -453,8 +496,12 @@ class ModelRegistry:
                 issues.append(ModelValidationIssue("unsafe_component_path", f"Komponente '{name}' hat einen ungültigen Pfad.", field=str(name)))
                 continue
             optional = declaration.get("optional") is True
-            if not target.exists() and not optional:
-                issues.append(ModelValidationIssue("component_missing", f"Komponente '{name}' fehlt.", field=str(name), path=str(target)))
+            if not target.exists():
+                if not optional:
+                    issues.append(ModelValidationIssue("component_missing", f"Komponente '{name}' fehlt.", field=str(name), path=str(target)))
+                continue
+            if target.is_file() and target.stat().st_size <= 0:
+                issues.append(ModelValidationIssue("component_empty", f"Komponente '{name}' ist leer (0 Bytes).", field=str(name), path=str(target)))
                 continue
             expected_hash = declaration.get("sha256") or declaration.get("checksum")
             if verify_hashes and target.is_file() and expected_hash:

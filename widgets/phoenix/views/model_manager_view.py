@@ -497,6 +497,8 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 self._last_rendered_signature = None
                 self.refresh()
 
+
+
         clickable_widgets = (card, title_lbl, badge, desc_lbl)
         if recommended_lbl is not None:
             clickable_widgets += (recommended_lbl,)
@@ -539,14 +541,15 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
     @staticmethod
     def _model_action_state(installed: bool, active: bool) -> str:
-        if active:
+        if installed and active:
             return "active"
-        return "use" if installed else "install"
+        if installed:
+            return "use"
+        return "install"
 
     @staticmethod
     def _offers_normal_install(model: dict[str, Any]) -> bool:
-        return model.get("release_status") == "available"
-
+        return model.get("release_status", "available") == "available"
     @staticmethod
     def _requires_hf_auth(model: dict[str, Any]) -> bool:
         return bool(model.get("requires_hf_auth") is True or model.get("requires_hf_token") is True)
@@ -618,7 +621,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         is_installed = bool(selected_model.get("installed", True))
         action_state = self._model_action_state(is_installed, is_active)
-        if action_state == "install" and not self._offers_normal_install(selected_model):
+        if action_state == "install" and not PhoenixModelManagerView._offers_normal_install(selected_model):
             self.btn_activate.grid_remove()
             self.btn_install.grid(row=0, column=0, sticky="ew")
             self.btn_install.configure(
@@ -675,7 +678,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if repository is not None:
             selected_model = repository.get_model(self.selected_model_id)
 
-        if selected_model and not self._offers_normal_install(selected_model) and not selected_model.get("installed"):
+        if selected_model and not PhoenixModelManagerView._offers_normal_install(selected_model) and not selected_model.get("installed"):
             return
 
         source_type = str((selected_model or {}).get("source_type") or "")

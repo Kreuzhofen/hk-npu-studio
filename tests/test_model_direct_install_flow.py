@@ -546,9 +546,9 @@ class DirectModelInstallTests(unittest.TestCase):
 
     def test_first_run_visible_copy_is_resolved_in_each_language(self) -> None:
         expected = {
-            "de_DE": ("Einrichtung starten", "Erstes Bild erstellen"),
-            "en_US": ("Start setup", "Create your first image"),
-            "es_ES": ("Iniciar configuración", "Crear la primera imagen"),
+            "de_DE": ("Jetzt einrichten", "Erstes Bild erstellen"),
+            "en_US": ("Set up now", "Create your first image"),
+            "es_ES": ("Configurar ahora", "Crear la primera imagen"),
         }
         static_keys = (
             "home_setup_required", "home_studio_ready", "home_start_setup",
@@ -607,6 +607,16 @@ class DirectModelInstallTests(unittest.TestCase):
         # It must open the direct download dialog for the special Qualcomm flow, NOT the file picker or generic error
         direct_dialog.assert_called_once()
         askfile.assert_not_called()
+
+    def test_model_action_states(self) -> None:
+        # test: installed=True, active=True -> "active"
+        self.assertEqual(PhoenixModelManagerView._model_action_state(installed=True, active=True), "active")
+        # test: installed=True, active=False -> "use"
+        self.assertEqual(PhoenixModelManagerView._model_action_state(installed=True, active=False), "use")
+        # test: installed=False, active=True -> "install"
+        self.assertEqual(PhoenixModelManagerView._model_action_state(installed=False, active=True), "install")
+        # test: installed=False, active=False -> "install"
+        self.assertEqual(PhoenixModelManagerView._model_action_state(installed=False, active=False), "install")
 
 
 if __name__ == "__main__":

@@ -222,7 +222,7 @@ class ModelRegistryTests(unittest.TestCase):
 
             repository = ModelRepository(
                 str(definitions),
-                installation_roots=[configured],
+                installation_roots=[configured, declared.parent],
             )
 
             self.assertEqual(
@@ -254,6 +254,126 @@ class ModelRegistryTests(unittest.TestCase):
                 "engine.sd35_qai_appbuilder_backend.MODELS_DIR", missing_canonical
             ):
                 self.assertEqual(_model_dir(), legacy)
+
+    def _write_sd35_files(self, base_dir: Path, size: int, skip_file: str | None = None):
+        sd35_required = (
+            "serialized_binaries/text_encoder.serialized.bin",
+            "serialized_binaries/text_encoder_2.serialized.bin",
+            "serialized_binaries/transformer.serialized.bin",
+            "serialized_binaries/vae_decoder.serialized.bin",
+            "time_text_embed.pt",
+            "tokenizer/tokenizer_config.json",
+            "tokenizer/vocab.json",
+            "tokenizer/merges.txt",
+            "tokenizer_2/tokenizer_config.json",
+            "tokenizer_2/vocab.json",
+            "tokenizer_2/merges.txt",
+        )
+        for rel in sd35_required:
+            if skip_file and rel == skip_file:
+                continue
+            path = base_dir / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"x" * size)
+
+    def _write_package_json(self, base_dir: Path):
+        sd35_required = (
+            "serialized_binaries/text_encoder.serialized.bin",
+            "serialized_binaries/text_encoder_2.serialized.bin",
+            "serialized_binaries/transformer.serialized.bin",
+            "serialized_binaries/vae_decoder.serialized.bin",
+            "time_text_embed.pt",
+            "tokenizer/tokenizer_config.json",
+            "tokenizer/vocab.json",
+            "tokenizer/merges.txt",
+            "tokenizer_2/tokenizer_config.json",
+            "tokenizer_2/vocab.json",
+            "tokenizer_2/merges.txt",
+        )
+        components = {}
+        for idx, rel in enumerate(sd35_required):
+            components[f"file_{idx}"] = {"path": rel}
+        package_json = base_dir / "package.json"
+        package_json.write_text(
+            json.dumps({"model_id": "stable_diffusion_v3_5_qai", "components": components}),
+            encoding="utf-8",
+        )
+
+    def test_sd35_strict_validation_venv_and_files(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            model = {
+                "id": "stable_diffusion_v3_5_qai",
+                "installed": True,
+                "path": str(base)
+            }
+            # Write mock venv python (non-empty)
+            venv_python = base / "sd35_venv" / "Scripts" / "python.exe"
+            venv_python.parent.mkdir(parents=True, exist_ok=True)
+            venv_python.write_bytes(b"python")
+            
+            # Write empty component files
+            self._write_sd35_files(base, size=0)
+            self._write_package_json(base)
+            
+            with patch("config.USER_BASE", base):
+                result = ModelRegistry().validate_installation(model)
+            
+            self.assertFalse(result.valid)
+            self.assertEqual(result.status, ModelHealthStatus.INVALID)
+            codes = {issue.code for issue in result.issues}
+            self.assertIn("required_file_empty", codes)
+
+    def test_sd35_strict_validation_missing_venv_only(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            model = {
+                "id": "stable_diffusion_v3_5_qai",
+                "installed": True,
+                "path": str(base)
+            }
+            # Do NOT write venv python
+            
+            # Write non-empty component files
+            self._write_sd35_files(base, size=10)
+            self._write_package_json(base)
+            
+            with patch("config.USER_BASE", base):
+                result = ModelRegistry().validate_installation(model)
+            
+            self.assertFalse(result.valid)
+            self.assertEqual(result.status, ModelHealthStatus.INVALID)
+            codes = {issue.code for issue in result.issues}
+            self.assertIn("sd35_venv_missing", codes)
+            self.assertNotIn("required_file_missing", codes)
+            self.assertNotIn("required_file_empty", codes)
+
+    def test_sd35_strict_validation_missing_component_only(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            model = {
+                "id": "stable_diffusion_v3_5_qai",
+                "installed": True,
+                "path": str(base)
+            }
+            # Write mock venv python (non-empty)
+            venv_python = base / "sd35_venv" / "Scripts" / "python.exe"
+            venv_python.parent.mkdir(parents=True, exist_ok=True)
+            venv_python.write_bytes(b"python")
+            
+            # Write non-empty component files, skipping one
+            self._write_sd35_files(base, size=10, skip_file="serialized_binaries/transformer.serialized.bin")
+            self._write_package_json(base)
+            
+            with patch("config.USER_BASE", base):
+                result = ModelRegistry().validate_installation(model)
+            
+            self.assertFalse(result.valid)
+            self.assertEqual(result.status, ModelHealthStatus.INVALID)
+            codes = {issue.code for issue in result.issues}
+            self.assertNotIn("sd35_venv_missing", codes)
+            self.assertIn("required_file_missing", codes)
+            self.assertNotIn("required_file_empty", codes)
 
 
 if __name__ == "__main__":
