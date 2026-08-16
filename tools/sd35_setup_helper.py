@@ -156,7 +156,7 @@ class SD35SetupHelper:
 
             emit("sd35_extracting", 10.0)
             if extracted_root.exists() and allow_redownload:
-                shutil.rmtree(extracted_root)
+                SD35SetupHelper._safe_purge_reparse_and_dir(extracted_root)
             if not extracted_root.exists():
                 logger.info("Extracting %s to persistent workspace %s", zip_path, workspace)
                 with zipfile.ZipFile(zip_path, "r") as ref:
@@ -369,7 +369,7 @@ class SD35SetupHelper:
                                 if is_junction or stat.S_ISLNK(st.st_mode):
                                     os.rmdir(dst)
                                 elif stat.S_ISDIR(st.st_mode):
-                                    shutil.rmtree(dst)
+                                    SD35SetupHelper._safe_purge_reparse_and_dir(dst)
                                 else:
                                     dst.unlink()
                             except FileNotFoundError:
@@ -662,69 +662,149 @@ class SD35SetupHelper:
         return True
 
     @staticmethod
-    def safe_remove_venv(venv_dir: Path) -> None:
-        if not venv_dir.exists():
-            return
-        import stat
-        site_packages = venv_dir / "Lib" / "site-packages"
-        if site_packages.is_dir():
-            junctions_to_remove = []
-
-            # 1. Identify all target junctions (standard names)
-            for name in ("torch", "torchgen", "functorch"):
-                item = site_packages / name
-                try:
-                    st = item.lstat()
-                    if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
-                        junctions_to_remove.append(item)
-                except Exception:
-                    pass
-
-            # 2. Identify torch-*.dist-info junctions
-            try:
-                for item in site_packages.iterdir():
-                    if item.name.startswith("torch-") and item.name.endswith(".dist-info"):
-                        try:
-                            st = item.lstat()
-                            if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
-                                if item not in junctions_to_remove:
-                                    junctions_to_remove.append(item)
-                        except Exception:
-                            pass
-            except Exception as e:
-                logger.warning("Failed to scan site-packages for dist-info junctions during removal: %s", e)
-
-            # 3. Positively remove all junctions without recursive traversal
-            for dst in junctions_to_remove:
-                logger.info("Removing junction: %s", dst)
-                # Try os.rmdir first (standard way to remove junctions on Windows)
-                try:
-                    os.rmdir(dst)
-                except Exception as rmdir_err:
-                    try:
-                        dst.unlink()
-                    except Exception as unlink_err:
-                        error_msg = f"Failed to remove junction {dst}. rmdir error: {rmdir_err}; unlink error: {unlink_err}"
-                        logger.error("SAFETY ALERT: %s", error_msg)
-                        raise RuntimeError(error_msg)
-                
-                if dst.exists():
-                    error_msg = f"Junction {dst} still exists after removal attempt"
-                    logger.error("SAFETY ALERT: %s", error_msg)
-                    raise RuntimeError(error_msg)
-
-        # 4. Now that all junctions are confirmed absent, safely delete the venv
+    def _safe_purge_reparse_and_dir(target: Path) -> bool:
+        """Safely removes a directory or reparse point without traversing untrusted junctions.
+        Returns True if successfully removed or didn't exist, False if failed/aborted.
+        """
         try:
-            shutil.rmtree(venv_dir)
+            import stat
+            try:
+                st = target.lstat()
+            except FileNotFoundError:
+                return True
+            except Exception as e:
+                # If we cannot inspect, abort to be safe
+                logger.error("Cannot inspect path %s: %s. Aborting cleanup for safety.", target, e)
+                return False
+
+            is_dir = stat.S_ISDIR(st.st_mode)
+            is_reparse = bool(getattr(st, "st_file_attributes", 0) & 0x400)
+
+            if is_reparse:
+                logger.info("Removing reparse point/junction: %s", target)
+                try:
+                    os.rmdir(target)
+                except Exception:
+                    try:
+                        target.unlink()
+                    except Exception as e:
+                        logger.error("Failed to remove reparse point %s: %s", target, e)
+                        return False
+                return True
+
+            if is_dir:
+                # It is a normal directory. We can iterate its children safely.
+                try:
+                    for item in target.iterdir():
+                        if not SD35SetupHelper._safe_purge_reparse_and_dir(item):
+                            logger.warning("Aborting cleanup of %s due to child failure on %s", target, item)
+                            return False
+                except Exception as e:
+                    logger.error("Failed to iterate children of normal directory %s: %s", target, e)
+                    return False
+
+                # Now that all children are gone, we can remove the empty dir
+                try:
+                    os.rmdir(target)
+                except Exception as e:
+                    logger.error("Failed to remove directory %s: %s", target, e)
+                    return False
+                return True
+
+            # Normal file
+            try:
+                target.unlink()
+            except Exception as e:
+                logger.error("Failed to delete file %s: %s", target, e)
+                return False
+            return True
+        except Exception as exc:
+            logger.error("Unexpected error in safe purge of %s: %s", target, exc)
+            return False
+
+    @staticmethod
+    def safe_remove_venv(venv_dir: Path) -> None:
+        try:
+            st = venv_dir.lstat()
+        except FileNotFoundError:
+            return
         except Exception as e:
-            logger.warning("Failed to remove venv directory %s: %s", venv_dir, e)
+            logger.error("Cannot inspect venv_dir %s: %s. Aborting venv cleanup.", venv_dir, e)
+            return
+
+        import stat
+        is_dir = stat.S_ISDIR(st.st_mode)
+        is_reparse = bool(getattr(st, "st_file_attributes", 0) & 0x400)
+
+        if is_reparse:
+            SD35SetupHelper._safe_purge_reparse_and_dir(venv_dir)
+            return
+
+        if is_dir:
+            site_packages = venv_dir / "Lib" / "site-packages"
+            try:
+                sp_st = site_packages.lstat()
+                sp_is_dir = stat.S_ISDIR(sp_st.st_mode)
+                sp_is_reparse = bool(getattr(sp_st, "st_file_attributes", 0) & 0x400)
+            except FileNotFoundError:
+                sp_is_dir = False
+                sp_is_reparse = False
+            except Exception as e:
+                logger.error("Cannot inspect site-packages %s: %s. Aborting venv cleanup.", site_packages, e)
+                return
+
+            if sp_is_reparse:
+                if not SD35SetupHelper._safe_purge_reparse_and_dir(site_packages):
+                    raise RuntimeError(f"Failed to remove site-packages reparse point: {site_packages}")
+            elif sp_is_dir:
+                # 1. Identify and purge standard target junctions
+                for name in ("torch", "torchgen", "functorch"):
+                    item = site_packages / name
+                    if not SD35SetupHelper._safe_purge_reparse_and_dir(item):
+                        raise RuntimeError(f"Failed to remove junction: {item}")
+
+                # 2. Identify and purge dist-info junctions
+                try:
+                    for item in site_packages.iterdir():
+                        if item.name.startswith("torch-") and item.name.endswith(".dist-info"):
+                            if not SD35SetupHelper._safe_purge_reparse_and_dir(item):
+                                raise RuntimeError(f"Failed to remove junction: {item}")
+                except Exception as e:
+                    logger.warning("Failed to scan site-packages for dist-info junctions: %s", e)
+
+        # Now that all junctions are confirmed absent, safely delete the venv
+        if not SD35SetupHelper._safe_purge_reparse_and_dir(venv_dir):
+            logger.warning("Failed to safely remove venv directory %s", venv_dir)
 
     @staticmethod
     def safe_cleanup_temp_dir(path_str: str) -> None:
         try:
-            path = Path(path_str).resolve()
-            if not path.exists() or not path.is_dir():
+            path = Path(path_str)
+            try:
+                st = path.lstat()
+            except FileNotFoundError:
                 return
+            except Exception as e:
+                logger.error("Cannot inspect path %s during temp dir cleanup: %s. Aborting.", path_str, e)
+                return
+
+            import stat
+            is_dir = stat.S_ISDIR(st.st_mode)
+            is_reparse = bool(getattr(st, "st_file_attributes", 0) & 0x400)
+
+            if is_reparse:
+                SD35SetupHelper._safe_purge_reparse_and_dir(path)
+                return
+
+            if not is_dir:
+                try:
+                    path.unlink()
+                except Exception:
+                    pass
+                return
+
+            # Resolve only after we confirm it is a normal directory
+            path = path.resolve()
 
             if path.name != SD35SetupHelper.WORKSPACE_NAME and not path.name.startswith("qai-appbuilder-setup-"):
                 logger.warning("Aborting cleanup: directory name %s does not match expected temporary pattern.", path.name)
@@ -751,63 +831,45 @@ class SD35SetupHelper:
 
             # Remove any isolated_deps junctions safely before workspace cleanup
             isolated_deps = path / "isolated_deps"
-            if isolated_deps.is_dir():
-                failed_junctions = []
-                import stat
-                try:
-                    for item in isolated_deps.iterdir():
-                        try:
-                            st = item.lstat()
-                            if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
-                                os.rmdir(item)
-                        except Exception as e:
-                            logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
-                            failed_junctions.append(item)
-                except Exception as iter_exc:
-                    logger.warning("Failed to iterate isolated_deps for cleanup: %s", iter_exc)
-                if failed_junctions:
-                    logger.warning("Junction cleanup failed for: %s. Aborting clean up of workspace %s to protect source folders.", failed_junctions, path)
-                    return
-                try:
-                    shutil.rmtree(isolated_deps)
-                except Exception as e:
-                    logger.warning("Failed to remove isolated_deps dir %s: %s", isolated_deps, e)
+            if not SD35SetupHelper._safe_purge_reparse_and_dir(isolated_deps):
+                logger.warning("Junction cleanup failed for isolated_deps. Aborting clean up of workspace %s to protect source folders.", path)
+                return
 
             # Remove any venv site-packages junctions safely before workspace cleanup
             site_packages = path / "venv" / "Lib" / "site-packages"
-            if site_packages.is_dir():
-                failed_junctions = []
-                import stat
-                # Check for standard names
+            try:
+                sp_st = site_packages.lstat()
+                sp_is_dir = stat.S_ISDIR(sp_st.st_mode)
+                sp_is_reparse = bool(getattr(sp_st, "st_file_attributes", 0) & 0x400)
+            except FileNotFoundError:
+                sp_is_dir = False
+                sp_is_reparse = False
+            except Exception as e:
+                logger.error("Cannot inspect site-packages %s during temp dir cleanup: %s. Aborting.", site_packages, e)
+                return
+
+            if sp_is_reparse:
+                if not SD35SetupHelper._safe_purge_reparse_and_dir(site_packages):
+                    logger.warning("Junction cleanup failed for site-packages. Aborting clean up of workspace %s.", path)
+                    return
+            elif sp_is_dir:
+                # 1. Identify and purge standard junctions
                 for name in ("torch", "torchgen", "functorch"):
                     item = site_packages / name
-                    try:
-                        st = item.lstat()
-                        if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
-                            os.rmdir(item)
-                            logger.info("Safely removed junction %s", item)
-                    except Exception as e:
-                        logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
-                        failed_junctions.append(item)
-                # Check for dist-info
+                    if not SD35SetupHelper._safe_purge_reparse_and_dir(item):
+                        logger.warning("Junction cleanup failed for %s. Aborting clean up of workspace %s.", item, path)
+                        return
+                # 2. Identify and purge dist-info junctions
                 try:
                     for item in site_packages.iterdir():
                         if item.name.startswith("torch-") and item.name.endswith(".dist-info"):
-                            try:
-                                st = item.lstat()
-                                if stat.S_ISDIR(st.st_mode) and bool(getattr(st, "st_file_attributes", 0) & 0x400):
-                                    os.rmdir(item)
-                                    logger.info("Safely removed junction %s", item)
-                            except Exception as e:
-                                logger.error("SAFETY ALERT: Failed to safely rmdir junction %s: %s. Skipping recursive cleanup of %s to protect source directories.", item, e, path)
-                                failed_junctions.append(item)
+                            if not SD35SetupHelper._safe_purge_reparse_and_dir(item):
+                                logger.warning("Junction cleanup failed for %s. Aborting clean up of workspace %s.", item, path)
+                                return
                 except Exception as iter_exc:
                     logger.warning("Failed to iterate site-packages for dist-info cleanup: %s", iter_exc)
 
-                if failed_junctions:
-                    logger.warning("Junction cleanup failed for site-packages: %s. Aborting clean up of workspace %s to protect source folders.", failed_junctions, path)
-                    return
-
-            shutil.rmtree(path)
+            if not SD35SetupHelper._safe_purge_reparse_and_dir(path):
+                logger.error("Failed to safely clean up temp dir %s", path)
         except Exception as exc:
             logger.error("Failed to clean up temp dir %s: %s", path_str, exc)

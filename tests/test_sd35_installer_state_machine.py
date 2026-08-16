@@ -750,13 +750,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         # Mock Path.lstat to make standard folders appear as junctions
         orig_lstat = Path.lstat
-        def mock_lstat(*args, **kwargs):
-            if not args:
-                mock_st = MagicMock()
-                mock_st.st_file_attributes = 0x400
-                mock_st.st_mode = 16895  # Directory
-                return mock_st
-            self_path = args[0]
+        def mock_lstat(self_path):
             self_path_str = str(self_path).lower().replace("\\", "/")
             venv_dir_str = str(venv_dir).lower().replace("\\", "/")
             venv_dir_fail_str = str(venv_dir_fail).lower().replace("\\", "/")
@@ -768,44 +762,46 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
                     return mock_st
             return orig_lstat(self_path)
 
-        with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir), \
-             patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree), \
-             patch("pathlib.Path.lstat", side_effect=mock_lstat):
-            SD35SetupHelper.safe_remove_venv(venv_dir)
+        Path.lstat = mock_lstat
+        try:
+            with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir), \
+                 patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree):
+                SD35SetupHelper.safe_remove_venv(venv_dir)
 
-        self.assertIn(site_packages / "torch", rmdir_calls)
-        self.assertIn(site_packages / "torchgen", rmdir_calls)
-        self.assertIn(site_packages / "functorch", rmdir_calls)
-        self.assertIn(venv_dir, rmtree_calls)
+            self.assertIn(site_packages / "torch", rmdir_calls)
+            self.assertIn(site_packages / "torchgen", rmdir_calls)
+            self.assertIn(site_packages / "functorch", rmdir_calls)
+            self.assertIn(venv_dir, rmdir_calls)
 
-        # Failure path: simulate failing to remove the junction "torchgen"
-        venv_dir_fail = self.root / "fake_venv_fail"
-        site_packages_fail = venv_dir_fail / "Lib" / "site-packages"
-        site_packages_fail.mkdir(parents=True, exist_ok=True)
-        (site_packages_fail / "torch").mkdir(exist_ok=True)
-        (site_packages_fail / "torchgen").mkdir(exist_ok=True)
-        (site_packages_fail / "functorch").mkdir(exist_ok=True)
+            # Failure path: simulate failing to remove the junction "torchgen"
+            venv_dir_fail = self.root / "fake_venv_fail"
+            site_packages_fail = venv_dir_fail / "Lib" / "site-packages"
+            site_packages_fail.mkdir(parents=True, exist_ok=True)
+            (site_packages_fail / "torch").mkdir(exist_ok=True)
+            (site_packages_fail / "torchgen").mkdir(exist_ok=True)
+            (site_packages_fail / "functorch").mkdir(exist_ok=True)
 
-        rmdir_calls.clear()
-        rmtree_calls.clear()
+            rmdir_calls.clear()
+            rmtree_calls.clear()
 
-        def mock_rmdir_fail(path):
-            p = Path(path)
-            if p.name == "torchgen":
-                raise OSError("Access Denied")
-            rmdir_calls.append(p)
-            if p.exists():
-                original_rmdir(p)
+            def mock_rmdir_fail(path):
+                p = Path(path)
+                if p.name == "torchgen":
+                    raise OSError("Access Denied")
+                rmdir_calls.append(p)
+                if p.exists():
+                    original_rmdir(p)
 
-        with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir_fail), \
-             patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree), \
-             patch("pathlib.Path.lstat", side_effect=mock_lstat):
-            with self.assertRaises(RuntimeError) as ctx:
-                SD35SetupHelper.safe_remove_venv(venv_dir_fail)
-            self.assertIn("Failed to remove junction", str(ctx.exception))
+            with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir_fail), \
+                 patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree):
+                with self.assertRaises(RuntimeError) as ctx:
+                    SD35SetupHelper.safe_remove_venv(venv_dir_fail)
+                self.assertIn("Failed to remove junction", str(ctx.exception))
 
-        # Check that shutil.rmtree was NEVER called on the venv
-        self.assertNotIn(venv_dir_fail, rmtree_calls)
+            # Check that shutil.rmtree was NEVER called on the venv
+            self.assertNotIn(venv_dir_fail, rmtree_calls)
+        finally:
+            Path.lstat = orig_lstat
 
     def test_29_no_junctions_created_during_setup(self) -> None:
         workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
@@ -885,10 +881,78 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
                  st = path.lstat()
                  is_junction = bool(getattr(st, "st_file_attributes", 0) & 0x400)
                  self.assertFalse(is_junction)
-                 
+
              # Verify no isolated_deps junction path is created
              isolated_deps = self.root / "isolated_deps"
              self.assertFalse(isolated_deps.exists())
+
+    def test_30_untrusted_mount_point_cleanup_protection(self) -> None:
+        import shutil
+        workspace_dir = self.root / "qai-appbuilder-setup-fake"
+        workspace_dir.mkdir(parents=True, exist_ok=True)
+
+        isolated_deps = workspace_dir / "isolated_deps"
+        isolated_deps.mkdir(exist_ok=True)
+
+        functorch_dir = isolated_deps / "functorch"
+        functorch_dir.mkdir(exist_ok=True)
+
+        rmdir_calls = []
+        rmtree_calls = []
+        lstat_calls = []
+
+        original_rmdir = os.rmdir
+        original_rmtree = shutil.rmtree
+        orig_lstat = Path.lstat
+        orig_is_dir = Path.is_dir
+
+        def mock_rmdir(path):
+            p = Path(path)
+            rmdir_calls.append(p)
+            if p.exists():
+                original_rmdir(p)
+
+        def mock_rmtree(path, *args, **kwargs):
+            p = Path(path)
+            rmtree_calls.append(p)
+            original_rmtree(path, *args, **kwargs)
+
+        def mock_lstat(self_path):
+            lstat_calls.append(self_path)
+            p_str = str(self_path).lower().replace("\\", "/")
+            # Mock functorch as a Windows junction
+            if "isolated_deps/functorch" in p_str:
+                mock_st = MagicMock()
+                mock_st.st_file_attributes = 0x400
+                mock_st.st_mode = 16895  # Directory mode
+                return mock_st
+            return orig_lstat(self_path)
+
+        # Mock is_dir() to throw WinError 448 if called on functorch (since it's a junction)
+        def mock_is_dir(self_path):
+            p_str = str(self_path).lower().replace("\\", "/")
+            if "isolated_deps/functorch" in p_str:
+                raise OSError(448, "The path cannot be traversed because it contains an untrusted mount point")
+            return orig_is_dir(self_path)
+
+        Path.lstat = mock_lstat
+        Path.is_dir = mock_is_dir
+        try:
+            with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir), \
+                 patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree):
+
+                SD35SetupHelper.safe_cleanup_temp_dir(str(workspace_dir))
+        finally:
+            Path.lstat = orig_lstat
+            Path.is_dir = orig_is_dir
+
+        # Assertions:
+        # 1. functorch (the junction) must be cleaned up via os.rmdir without traversing it
+        self.assertIn(functorch_dir, rmdir_calls)
+        # 2. lstat MUST be called on functorch BEFORE any other operation
+        self.assertIn(functorch_dir, lstat_calls)
+        # 3. shutil.rmtree must NOT have been called on functorch
+        self.assertNotIn(functorch_dir, rmtree_calls)
 
 
 if __name__ == "__main__":
