@@ -42,12 +42,11 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             path.write_bytes(b"test")
 
     def _create_bundled_deps(self, parent_dir):
-        for name in ("torch", "torchgen", "functorch", "yaml", "numpy", "numpy.libs"):
+        for name in ("torch", "torchgen", "functorch", "yaml"):
             (parent_dir / name).mkdir(parents=True, exist_ok=True)
             (parent_dir / name / "__init__.py").write_text("", encoding="utf-8")
         (parent_dir / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
         (parent_dir / "pyyaml-6.0.3.dist-info").mkdir(exist_ok=True)
-        (parent_dir / "numpy-2.4.4.dist-info").mkdir(exist_ok=True)
 
     def _run_helper(self, installer, archive, **kwargs):
         events = []
@@ -508,8 +507,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         venv_site_packages = self.root / "sd35_venv" / "Lib" / "site-packages"
         for name in ("torch", "torchgen", "functorch", "torch-2.14.0.dev20260808+cpu.dist-info",
-                     "yaml", "pyyaml-6.0.3.dist-info",
-                     "numpy", "numpy.libs", "numpy-2.4.4.dist-info"):
+                     "yaml", "pyyaml-6.0.3.dist-info"):
             self.assertTrue((venv_site_packages / name).exists())
 
     def test_23_preflight_failure_aborts_qualcomm_sample(self) -> None:
@@ -867,8 +865,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
              # Verify dependencies are copied physically (no junctions/reparse points)
              site_packages = venv_dir / "Lib" / "site-packages"
              for name in ("torch", "torchgen", "functorch", "torch-2.14.0.dev20260808+cpu.dist-info",
-                          "yaml", "pyyaml-6.0.3.dist-info",
-                          "numpy", "numpy.libs", "numpy-2.4.4.dist-info"):
+                          "yaml", "pyyaml-6.0.3.dist-info"):
                  path = site_packages / name
                  self.assertTrue(path.exists())
                  # Verify it is NOT a junction/reparse point
@@ -956,14 +953,13 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         workspace.mkdir(parents=True, exist_ok=True)
 
         # Create bundled folders in self.root (acting as frozen bundle path)
-        for name in ("torch", "torchgen", "functorch", "yaml", "numpy", "numpy.libs"):
+        for name in ("torch", "torchgen", "functorch", "yaml"):
             (self.root / name).mkdir(parents=True, exist_ok=True)
             (self.root / name / "__init__.py").write_text("", encoding="utf-8")
 
         # Create mock dist-info dirs
         (self.root / "torch-2.0.0.dist-info").mkdir(parents=True, exist_ok=True)
         (self.root / "pyyaml-6.0.3.dist-info").mkdir(parents=True, exist_ok=True)
-        (self.root / "numpy-2.4.4.dist-info").mkdir(parents=True, exist_ok=True)
 
         # Create a sample archive containing the script
         archive = self.root / "sample.zip"
@@ -1023,8 +1019,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         # Verify that all physical staging dirs exist in the virtual environment
         site_packages = self.root / "sd35_venv" / "Lib" / "site-packages"
         for name in ("torch", "torchgen", "functorch", "torch-2.0.0.dist-info",
-                     "yaml", "pyyaml-6.0.3.dist-info",
-                     "numpy", "numpy.libs", "numpy-2.4.4.dist-info"):
+                     "yaml", "pyyaml-6.0.3.dist-info"):
             path = site_packages / name
             self.assertTrue(path.exists(), f"Staged component {name} not found in site-packages")
 
@@ -1040,6 +1035,8 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
                 # Make sure pyyaml is never installed via pip
                 self.assertNotIn("PyYAML", cmd_str, f"PyYAML was installed via pip command '{cmd_str}'")
                 self.assertNotIn("pyyaml", cmd_str, f"pyyaml was installed via pip command '{cmd_str}'")
+                if "transformers" in cmd_str:
+                    self.assertIn("numpy==2.4.4", cmd, f"numpy==2.4.4 is missing from dependency pip install command '{cmd_str}'")
 
         self.assertGreater(pip_installs, 0, "No pip install commands were recorded")
 

@@ -217,6 +217,8 @@ class SD35SetupHelper:
                     "import qai_appbuilder\n"
                     "import py3_wget\n"
                     "assert hasattr(numpy, 'ndarray'), 'numpy.ndarray is missing'\n"
+                    "assert getattr(numpy, '__file__', None) is not None, 'numpy.__file__ is missing/None'\n"
+                    "assert hasattr(numpy, '__version__'), 'numpy.__version__ is missing'\n"
                     "assert hasattr(torch, '__version__') and torch.__version__, 'torch version cannot be read'\n"
                     "print('numpy_file:', getattr(numpy, '__file__', 'unknown'))\n"
                     "print('yaml_file:', getattr(yaml, '__file__', 'unknown'))\n"
@@ -333,7 +335,6 @@ class SD35SetupHelper:
                     # Find the dist-info folders
                     torch_dist_info = None
                     pyyaml_dist_info = None
-                    numpy_dist_info = None
                     try:
                         for item in Path(bundled_libs_path).iterdir():
                             if item.is_dir():
@@ -341,8 +342,6 @@ class SD35SetupHelper:
                                     torch_dist_info = item
                                 elif item.name.startswith("pyyaml-") and item.name.endswith(".dist-info"):
                                     pyyaml_dist_info = item
-                                elif item.name.startswith("numpy-") and item.name.endswith(".dist-info"):
-                                    numpy_dist_info = item
                     except Exception as e:
                         logger.error("Failed to list bundled directory: %s", e)
 
@@ -360,12 +359,6 @@ class SD35SetupHelper:
                     if not pyyaml_dist_info:
                         missing_components.append("pyyaml-*.dist-info")
 
-                    for name in ["numpy", "numpy.libs"]:
-                        if not (Path(bundled_libs_path) / name).is_dir():
-                            missing_components.append(name)
-                    if not numpy_dist_info:
-                        missing_components.append("numpy-*.dist-info")
-
                     if missing_components:
                         return fail(
                             "dependency_failed",
@@ -376,8 +369,7 @@ class SD35SetupHelper:
 
                     components_to_copy = [
                         "torch", "torchgen", "functorch", torch_dist_info.name,
-                        "yaml", pyyaml_dist_info.name,
-                        "numpy", "numpy.libs", numpy_dist_info.name
+                        "yaml", pyyaml_dist_info.name
                     ]
                     import stat
                     for name in components_to_copy:
@@ -487,7 +479,7 @@ class SD35SetupHelper:
                     str(venv_python), "-m", "pip", "install",
                     "--prefer-binary",
                     "--only-binary=:all:",
-                    "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
+                    "numpy==2.4.4", "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
                 ]
                 if not run_pip(pip_cmd_1):
                     return False
