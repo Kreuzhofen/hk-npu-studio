@@ -42,12 +42,32 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
     def _run_helper(self, installer, archive, **kwargs):
         events = []
-        with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), patch(
-            "tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)
-        ):
-            result = SD35SetupHelper.run_setup(
-                str(archive), installer, events.append, **kwargs
-            )
+        from unittest.mock import Mock
+        import tools.sd35_setup_helper
+
+        if not isinstance(tools.sd35_setup_helper.subprocess.run, Mock):
+            def default_mock_run(cmd, *args, **kwargs):
+                if "venv" in cmd:
+                    workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+                    venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                    venv_python.parent.mkdir(parents=True, exist_ok=True)
+                    venv_python.write_bytes(b"")
+                    (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                    return MagicMock(returncode=0, stdout="", stderr="")
+                return MagicMock(returncode=0, stdout="PREFLIGHT_OK", stderr="")
+
+            with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
+                 patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
+                 patch("tools.sd35_setup_helper.subprocess.run", side_effect=default_mock_run):
+                result = SD35SetupHelper.run_setup(
+                    str(archive), installer, events.append, **kwargs
+                )
+        else:
+            with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
+                 patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)):
+                result = SD35SetupHelper.run_setup(
+                    str(archive), installer, events.append, **kwargs
+                )
         return result, events
 
     def _repository(self, installation, installation_roots=None):
@@ -287,8 +307,10 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         ), patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=record_popen):
             self._run_helper(_Installer(self.service), archive, allow_redownload=True)
 
-        self.assertEqual(commands[0][:3], [str(interpreter), "-m", "pip"])
-        self.assertEqual(commands[1], [str(interpreter), "stable_diffusion_v3_5.py"])
+        expected_venv_python = str(self.root / SD35SetupHelper.WORKSPACE_NAME / "venv" / "Scripts" / "python.exe")
+        self.assertEqual(commands[0][:3], [expected_venv_python, "-m", "pip"])
+        self.assertEqual(commands[1][:3], [expected_venv_python, "-m", "pip"])
+        self.assertEqual(commands[2], [expected_venv_python, "stable_diffusion_v3_5.py"])
 
     def test_20_pip_failure_self_diagnostics(self) -> None:
         archive = self.root / "sample.zip"
@@ -426,6 +448,13 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             return MockProcess()
 
         def mock_run(cmd, *args, **kwargs):
+            if "venv" in cmd:
+                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                venv_python.parent.mkdir(parents=True, exist_ok=True)
+                venv_python.write_bytes(b"")
+                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                return MagicMock(returncode=0, stdout="", stderr="")
             preflight_run.append((cmd, kwargs.get("env", {})))
             return MagicMock(returncode=0, stdout="PREFLIGHT_OK", stderr="")
 
@@ -434,6 +463,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         (exe_parent / "torch").mkdir(exist_ok=True)
         (exe_parent / "torchgen").mkdir(exist_ok=True)
         (exe_parent / "functorch").mkdir(exist_ok=True)
+        (exe_parent / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
         mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
 
         with patch("sys.frozen", True, create=True), \
@@ -450,13 +480,13 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         preflight_env = preflight_run[0][1]
         pythonpath = preflight_env.get("PYTHONPATH", "")
 
-        isolated_deps = self.root / SD35SetupHelper.WORKSPACE_NAME / "isolated_deps"
-        self.assertEqual(pythonpath, str(isolated_deps))
         self.assertNotIn(str(exe_parent), pythonpath)
 
-        self.assertTrue((isolated_deps / "torch").is_dir())
-        self.assertTrue((isolated_deps / "torchgen").is_dir())
-        self.assertTrue((isolated_deps / "functorch").is_dir())
+        venv_site_packages = self.root / SD35SetupHelper.WORKSPACE_NAME / "venv" / "Lib" / "site-packages"
+        self.assertTrue((venv_site_packages / "torch").is_dir())
+        self.assertTrue((venv_site_packages / "torchgen").is_dir())
+        self.assertTrue((venv_site_packages / "functorch").is_dir())
+        self.assertTrue((venv_site_packages / "torch-2.14.0.dev20260808+cpu.dist-info").is_dir())
 
     def test_23_preflight_failure_aborts_qualcomm_sample(self) -> None:
         archive = self.root / "sample.zip"
@@ -484,6 +514,13 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
                 return p
 
         def mock_run(cmd, *args, **kwargs):
+            if "venv" in cmd:
+                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                venv_python.parent.mkdir(parents=True, exist_ok=True)
+                venv_python.write_bytes(b"")
+                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                return MagicMock(returncode=0, stdout="", stderr="")
             return MagicMock(
                 returncode=1,
                 stdout="",
@@ -495,6 +532,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         (exe_parent / "torch").mkdir(exist_ok=True)
         (exe_parent / "torchgen").mkdir(exist_ok=True)
         (exe_parent / "functorch").mkdir(exist_ok=True)
+        (exe_parent / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
         mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
 
         with patch("sys.frozen", True, create=True), \
@@ -545,6 +583,106 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         fake_junction.rmdir()
         isolated_deps.rmdir()
         workspace_path.rmdir()
+
+    def test_25_missing_venv_executable_fails(self) -> None:
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+
+        def mock_run(cmd, *args, **kwargs):
+            return MagicMock(returncode=0)
+
+        with patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+            result, events = self._run_helper(
+                _Installer(self.service), archive, allow_redownload=True
+            )
+
+        self.assertFalse(result)
+        failed_event = next(e for e in events if e.get("phase") == "dependency_failed")
+        self.assertIn("Failed to create virtual environment", failed_event["error"])
+
+    def test_26_missing_torch_component_fails(self) -> None:
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+
+        exe_parent = self.root / "app_bin"
+        exe_parent.mkdir(parents=True, exist_ok=True)
+        (exe_parent / "torch").mkdir(exist_ok=True)
+        # missing torchgen and others
+        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+
+        def mock_run(cmd, *args, **kwargs):
+            if "venv" in cmd:
+                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                venv_python.parent.mkdir(parents=True, exist_ok=True)
+                venv_python.write_bytes(b"")
+                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                return MagicMock(returncode=0, stdout="", stderr="")
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        import tools.sd35_setup_helper
+        with patch("sys.frozen", True, create=True), \
+             patch("sys.executable", mock_executable), \
+             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+            result, events = self._run_helper(
+                _Installer(self.service), archive, allow_redownload=True
+            )
+
+        self.assertFalse(result)
+        failed_event = next(e for e in events if e.get("phase") == "dependency_failed")
+        self.assertIn("Required bundled Torch component(s) missing", failed_event["error"])
+
+    def test_27_failed_junction_creation_fails(self) -> None:
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+
+        exe_parent = self.root / "app_bin"
+        exe_parent.mkdir(parents=True, exist_ok=True)
+        (exe_parent / "torch").mkdir(exist_ok=True)
+        (exe_parent / "torchgen").mkdir(exist_ok=True)
+        (exe_parent / "functorch").mkdir(exist_ok=True)
+        (exe_parent / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
+        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+
+        def mock_run(cmd, *args, **kwargs):
+            if "venv" in cmd:
+                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                venv_python.parent.mkdir(parents=True, exist_ok=True)
+                venv_python.write_bytes(b"")
+                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                return MagicMock(returncode=0, stdout="", stderr="")
+            elif "mklink" in cmd or "cmd" in cmd:
+                raise subprocess.CalledProcessError(1, cmd, stderr="Access Denied")
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        import tools.sd35_setup_helper
+        with patch("sys.frozen", True, create=True), \
+             patch("sys.executable", mock_executable), \
+             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run), \
+             patch.dict("sys.modules", {"_winapi": None}):
+            result, events = self._run_helper(
+                _Installer(self.service), archive, allow_redownload=True
+            )
+
+        self.assertFalse(result)
+        failed_event = next(e for e in events if e.get("phase") == "dependency_failed")
+        self.assertIn("Failed to create junction", failed_event["error"])
 
 
 if __name__ == "__main__":
