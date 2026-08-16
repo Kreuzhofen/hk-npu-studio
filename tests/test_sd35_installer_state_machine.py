@@ -344,6 +344,60 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertIn("api_key=***", error_msg)
         self.assertIn("https://***@private-repo.com", error_msg)
 
+    def test_21_qualcomm_failure_diagnostics(self) -> None:
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+
+        qc_lines = [
+            "ImportError: libQnnHtp.dll not found",
+            "Exception: Token=secret-token-xyz",
+            "Could not connect to QAI Hub"
+        ]
+        full_output = "\n".join(qc_lines)
+        output_iter = iter(full_output)
+
+        class MockProcess:
+            def __init__(self):
+                self.returncode = 1
+                self.stdout = MagicMock()
+                self.stdout.read.side_effect = self._read
+
+            def wait(self):
+                return self.returncode
+
+            def _read(self, size):
+                try:
+                    return next(output_iter)
+                except StopIteration:
+                    return ""
+
+        def mock_popen(cmd, *args, **kwargs):
+            if "pip" in cmd:
+                pip_process = MagicMock(returncode=0)
+                pip_process.stdout.readline.return_value = ""
+                return pip_process
+            return MockProcess()
+
+        with patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen):
+            result, events = self._run_helper(
+                _Installer(self.service), archive, allow_redownload=True
+            )
+
+        self.assertFalse(result)
+        failed_event = next(e for e in events if e.get("phase") == "download_failed")
+        error_msg = failed_event["error"]
+
+        self.assertIn("Qualcomm sample exited with code 1", error_msg)
+        self.assertIn("ImportError: libQnnHtp.dll not found", error_msg)
+        self.assertIn("Exception: Token=***", error_msg)
+        self.assertNotIn("secret-token-xyz", error_msg)
+        self.assertIn("Could not connect to QAI Hub", error_msg)
+
 
 if __name__ == "__main__":
     unittest.main()

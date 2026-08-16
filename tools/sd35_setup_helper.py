@@ -296,6 +296,52 @@ class SD35SetupHelper:
                 r"Download progress:\s*(\d+)%\s*\((\d+)/(\d+)\s*MB\)(?:\s*([\d.]+)\s*MB/s)?"
             )
 
+            qualcomm_output_buffer = []
+            qualcomm_error_lines = []
+            qc_keywords = ["traceback", "error", "exception", "modulenotfounderror", "importerror", "failed", "could not", "no module", "requirement"]
+
+            def process_qc_line(line_str: str) -> None:
+                striped = line_str.strip()
+                if not striped:
+                    return
+                logger.info("[Qualcomm] %s", striped)
+
+                # Keep last 15 lines of general output
+                qualcomm_output_buffer.append(striped)
+                if len(qualcomm_output_buffer) > 15:
+                    qualcomm_output_buffer.pop(0)
+
+                # Check for keywords to collect specific error lines (case-insensitive)
+                lowered = striped.lower()
+                if any(kw in lowered for kw in qc_keywords):
+                    sanitized = sanitize_pip_line(striped)
+                    if sanitized and sanitized not in qualcomm_error_lines:
+                        qualcomm_error_lines.append(sanitized)
+                        if len(qualcomm_error_lines) > 5:
+                            qualcomm_error_lines.pop(0)
+
+                # Match progress
+                match = progress_pattern.search(striped)
+                if match:
+                    percent = float(match.group(1))
+                    downloaded_mb = float(match.group(2))
+                    total_mb = float(match.group(3))
+                    speed_mbs = match.group(4)
+                    speed = float(speed_mbs) if speed_mbs else None
+
+                    downloaded_bytes = downloaded_mb * 1024 * 1024
+                    total_bytes = total_mb * 1024 * 1024
+                    scaled_percent = 50.0 + (percent * 0.30)
+
+                    emit({
+                        "phase": "sd35_downloading_weights",
+                        "percent": scaled_percent,
+                        "download_percent": percent,
+                        "downloaded_bytes": downloaded_bytes,
+                        "total_bytes": total_bytes,
+                        "speed": speed,
+                    })
+
             buffer_chars = []
             while True:
                 char = process.stdout.read(1)
@@ -304,31 +350,13 @@ class SD35SetupHelper:
                 if char in ("\r", "\n"):
                     line = "".join(buffer_chars)
                     buffer_chars = []
-                    striped = line.strip()
-                    if striped:
-                        logger.info("[Qualcomm] %s", striped)
-                        match = progress_pattern.search(striped)
-                        if match:
-                            percent = float(match.group(1))
-                            downloaded_mb = float(match.group(2))
-                            total_mb = float(match.group(3))
-                            speed_mbs = match.group(4)
-                            speed = float(speed_mbs) if speed_mbs else None
-
-                            downloaded_bytes = downloaded_mb * 1024 * 1024
-                            total_bytes = total_mb * 1024 * 1024
-                            scaled_percent = 50.0 + (percent * 0.30)
-
-                            emit({
-                                "phase": "sd35_downloading_weights",
-                                "percent": scaled_percent,
-                                "download_percent": percent,
-                                "downloaded_bytes": downloaded_bytes,
-                                "total_bytes": total_bytes,
-                                "speed": speed,
-                            })
+                    process_qc_line(line)
                 else:
                     buffer_chars.append(char)
+
+            if buffer_chars:
+                line = "".join(buffer_chars)
+                process_qc_line(line)
 
             process.wait()
             logger.info("Qualcomm sample process finished with code: %d", process.returncode)
@@ -342,9 +370,23 @@ class SD35SetupHelper:
                 if source.state is SD35InstallState.COMPLETE_SOURCE:
                     logger.info("Qualcomm sample exited with code %d, but complete 11/11 source was found. Proceeding with installation.", process.returncode)
                 else:
+                    if not qualcomm_error_lines and qualcomm_output_buffer:
+                        fallback_lines = []
+                        for line in qualcomm_output_buffer[-3:]:
+                            sanitized = sanitize_pip_line(line)
+                            if sanitized and sanitized not in fallback_lines:
+                                fallback_lines.append(sanitized)
+                        qualcomm_error_lines = fallback_lines
+
+                    if qualcomm_error_lines:
+                        error_cause = "; ".join(qualcomm_error_lines)
+                        error_msg = f"Qualcomm sample exited with code {process.returncode}: {error_cause}"
+                    else:
+                        error_msg = f"Qualcomm sample exited with code {process.returncode}"
+
                     return fail(
                         "download_failed",
-                        f"Qualcomm sample exited with code {process.returncode}",
+                        error_msg,
                         70.0,
                         3,
                     )
