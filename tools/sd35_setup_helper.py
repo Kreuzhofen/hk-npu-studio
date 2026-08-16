@@ -14,7 +14,7 @@ from typing import Callable, Any
 
 import re
 
-from config import TEMP_DIR
+from config import TEMP_DIR, USER_BASE
 from engine.model_install_service import SD35InstallState, SD35SourceInspection
 
 logger = logging.getLogger("SD35SetupHelper")
@@ -184,8 +184,8 @@ class SD35SetupHelper:
                     1,
                 )
 
-            # A. Create isolated virtual environment inside setup workspace
-            venv_dir = workspace / "venv"
+            # 1. Dedicated venv under USER_BASE (AppData area)
+            venv_dir = USER_BASE / "sd35_venv"
             venv_python = venv_dir / "Scripts" / "python.exe"
             site_packages_dir = venv_dir / "Lib" / "site-packages"
 
@@ -196,14 +196,83 @@ class SD35SetupHelper:
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                 creationflags = subprocess.CREATE_NO_WINDOW
 
-            if venv_dir.exists() and not venv_python.exists():
-                logger.info("Cleaning up incomplete virtual environment at %s", venv_dir)
-                try:
-                    shutil.rmtree(venv_dir)
-                except Exception as e:
-                    logger.warning("Failed to clean up incomplete venv directory: %s", e)
+            # Set up environment variables with PYTHONPATH cleared to prevent leakage
+            env = os.environ.copy()
+            env.pop("PYTHONPATH", None)
 
-            if not venv_python.exists():
+            def run_preflight_check() -> tuple[bool, str]:
+                logger.info("Running runtime preflight check...")
+                preflight_code = (
+                    "import sys\n"
+                    "import numpy\n"
+                    "import yaml\n"
+                    "import requests\n"
+                    "import torch\n"
+                    "import torchgen\n"
+                    "import functorch\n"
+                    "import diffusers\n"
+                    "import transformers\n"
+                    "import huggingface_hub\n"
+                    "import qai_hub\n"
+                    "import qai_appbuilder\n"
+                    "import py3_wget\n"
+                    "assert hasattr(numpy, 'ndarray'), 'numpy.ndarray is missing'\n"
+                    "assert hasattr(torch, '__version__') and torch.__version__, 'torch version cannot be read'\n"
+                    "print('numpy_file:', getattr(numpy, '__file__', 'unknown'))\n"
+                    "print('yaml_file:', getattr(yaml, '__file__', 'unknown'))\n"
+                    "print('requests_file:', getattr(requests, '__file__', 'unknown'))\n"
+                    "print('torch_file:', getattr(torch, '__file__', 'unknown'))\n"
+                    "print('diffusers_file:', getattr(diffusers, '__file__', 'unknown'))\n"
+                    "print('transformers_file:', getattr(transformers, '__file__', 'unknown'))\n"
+                    "print('qai_hub_file:', getattr(qai_hub, '__file__', 'unknown'))\n"
+                    "print('PREFLIGHT_OK')\n"
+                )
+                try:
+                    preflight_process = subprocess.run(
+                        [str(venv_python), "-c", preflight_code],
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        startupinfo=startupinfo,
+                        creationflags=creationflags,
+                        timeout=30.0
+                    )
+                    if preflight_process.returncode != 0:
+                        err_lines = []
+                        for line in preflight_process.stderr.splitlines():
+                            line = line.strip()
+                            if line:
+                                err_lines.append(sanitize_pip_line(line))
+                        preflight_error = "; ".join(err_lines[-3:]) or preflight_process.stdout.strip()
+                        return False, preflight_error
+                    logger.info("Preflight check passed. Output:\n%s", preflight_process.stdout)
+                    return True, ""
+                except Exception as preflight_exc:
+                    logger.exception("Preflight check exception: %s", preflight_exc)
+                    return False, str(preflight_exc)
+
+            env_ready = False
+            if venv_python.exists():
+                logger.info("Existing venv python found. Running preflight verification...")
+                passed, _ = run_preflight_check()
+                if passed:
+                    logger.info("Reuse existing validated isolated environment.")
+                    env_ready = True
+
+            if not env_ready:
+                # 8. Retry/recovery: if the venv exists but is incomplete/broken, recreate it safely
+                if venv_dir.exists():
+                    logger.info("Cleaning up incomplete/broken virtual environment at %s", venv_dir)
+                    try:
+                        SD35SetupHelper.safe_remove_venv(venv_dir)
+                    except Exception as clean_err:
+                        return fail(
+                            "dependency_failed",
+                            f"Virtual environment cleanup failed: {clean_err}",
+                            35.0,
+                            1
+                        )
+
                 logger.info("Creating isolated virtual environment at %s", venv_dir)
                 try:
                     subprocess.run(
@@ -222,239 +291,199 @@ class SD35SetupHelper:
                         35.0,
                         1
                     )
-            if not venv_python.exists():
-                logger.error("Virtual environment Python executable not found at %s", venv_python)
-                return fail(
-                    "dependency_failed",
-                    f"Failed to create virtual environment: Python executable not found at {venv_python}",
-                    35.0,
-                    1
-                )
 
-            # Set up environment variables with PYTHONPATH cleared to prevent leakage
-            env = os.environ.copy()
-            env.pop("PYTHONPATH", None)
-
-            # E. Make only the bundled Torch components available using junctions in venv site-packages
-            bundled_torch_path = None
-            is_frozen = getattr(sys, "frozen", False)
-
-            if is_frozen:
-                candidate = Path(sys.executable).parent
-                if (candidate / "torch").is_dir():
-                    bundled_torch_path = candidate
-            else:
-                dev_candidate = Path(__file__).resolve().parent.parent / "dist" / "SnapdragonAIStudio"
-                if (dev_candidate / "torch").is_dir():
-                    bundled_torch_path = dev_candidate
-
-            if is_frozen and not bundled_torch_path:
-                return fail(
-                    "dependency_failed",
-                    "Required bundled Torch components are missing in frozen installation folder",
-                    40.0,
-                    1
-                )
-
-            if bundled_torch_path:
-                logger.info("Using bundled torch from: %s", bundled_torch_path)
-                try:
-                    import _winapi
-                except ImportError:
-                    _winapi = None
-
-                # Find the dist-info folder
-                dist_info_dir = None
-                try:
-                    for item in Path(bundled_torch_path).iterdir():
-                        if item.is_dir() and item.name.startswith("torch-") and item.name.endswith(".dist-info"):
-                            dist_info_dir = item
-                            break
-                except Exception as e:
-                    logger.error("Failed to list bundled torch directory: %s", e)
-
-                # Validate all required components exist in bundled_torch_path
-                required_names = ["torch", "torchgen", "functorch"]
-                missing_components = []
-                for name in required_names:
-                    if not (Path(bundled_torch_path) / name).is_dir():
-                        missing_components.append(name)
-                if not dist_info_dir:
-                    missing_components.append("torch-*.dist-info")
-
-                if missing_components:
+                if not venv_python.exists():
+                    logger.error("Virtual environment Python executable not found at %s", venv_python)
                     return fail(
                         "dependency_failed",
-                        f"Required bundled Torch component(s) missing: {', '.join(missing_components)}",
+                        f"Failed to create virtual environment: Python executable not found at {venv_python}",
+                        35.0,
+                        1
+                    )
+
+                # E. Make only the bundled Torch components available using junctions in venv site-packages
+                bundled_torch_path = None
+                is_frozen = getattr(sys, "frozen", False)
+
+                if is_frozen:
+                    candidate = Path(sys.executable).parent
+                    if (candidate / "torch").is_dir():
+                        bundled_torch_path = candidate
+                else:
+                    dev_candidate = Path(__file__).resolve().parent.parent / "dist" / "SnapdragonAIStudio"
+                    if (dev_candidate / "torch").is_dir():
+                        bundled_torch_path = dev_candidate
+
+                if is_frozen and not bundled_torch_path:
+                    return fail(
+                        "dependency_failed",
+                        "Required bundled Torch components are missing in frozen installation folder",
                         40.0,
                         1
                     )
 
-                torch_components = ["torch", "torchgen", "functorch", dist_info_dir.name]
-                for name in torch_components:
-                    src = Path(bundled_torch_path) / name
-                    dst = site_packages_dir / name
-                    if dst.exists() or dst.is_symlink():
-                        try:
-                            os.rmdir(dst)
-                        except Exception as e:
-                            logger.warning("Could not rmdir existing target %s: %s. Trying to force remove.", dst, e)
-                            try:
-                                if dst.is_dir() and not dst.is_symlink():
-                                    shutil.rmtree(dst)
-                                else:
-                                    dst.unlink()
-                            except Exception as ex:
-                                logger.error("Failed to force remove existing target %s: %s", dst, ex)
+                if bundled_torch_path:
+                    logger.info("Using bundled torch from: %s", bundled_torch_path)
                     try:
-                        if _winapi:
-                            _winapi.CreateJunction(str(src), str(dst))
-                        else:
-                            subprocess.run(
-                                ["cmd", "/c", "mklink", "/j", str(dst), str(src)],
-                                capture_output=True,
-                                check=True
-                            )
-                        logger.info("Junction created for %s", name)
-                        if not dst.exists():
-                            raise RuntimeError(f"Junction {dst} was not created successfully")
-                    except Exception as ex:
-                        logger.error("Failed to create junction for %s: %s", name, ex)
+                        import _winapi
+                    except ImportError:
+                        _winapi = None
+
+                    # Find the dist-info folder
+                    dist_info_dir = None
+                    try:
+                        for item in Path(bundled_torch_path).iterdir():
+                            if item.is_dir() and item.name.startswith("torch-") and item.name.endswith(".dist-info"):
+                                dist_info_dir = item
+                                break
+                    except Exception as e:
+                        logger.error("Failed to list bundled torch directory: %s", e)
+
+                    # Validate all required components exist in bundled_torch_path
+                    required_names = ["torch", "torchgen", "functorch"]
+                    missing_components = []
+                    for name in required_names:
+                        if not (Path(bundled_torch_path) / name).is_dir():
+                            missing_components.append(name)
+                    if not dist_info_dir:
+                        missing_components.append("torch-*.dist-info")
+
+                    if missing_components:
                         return fail(
                             "dependency_failed",
-                            f"Failed to create junction for {name}: {ex}",
+                            f"Required bundled Torch component(s) missing: {', '.join(missing_components)}",
                             40.0,
                             1
                         )
 
-            # Nested helper to run pip and capture errors
-            def run_pip(pip_cmd: list[str]) -> bool:
-                logger.info("Running: %s", " ".join(pip_cmd))
-                process = subprocess.Popen(
-                    pip_cmd,
-                    cwd=str(working_dir),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    startupinfo=startupinfo,
-                    creationflags=creationflags,
-                    encoding="utf-8",
-                    errors="replace",
-                    env=env
-                )
+                    torch_components = ["torch", "torchgen", "functorch", dist_info_dir.name]
+                    for name in torch_components:
+                        src = Path(bundled_torch_path) / name
+                        dst = site_packages_dir / name
+                        if dst.exists() or dst.is_symlink():
+                            try:
+                                os.rmdir(dst)
+                            except Exception as e:
+                                logger.warning("Could not rmdir existing target %s: %s. Trying to force remove.", dst, e)
+                                try:
+                                    if dst.is_dir() and not dst.is_symlink():
+                                        shutil.rmtree(dst)
+                                    else:
+                                        dst.unlink()
+                                except Exception as ex:
+                                    logger.error("Failed to force remove existing target %s: %s", dst, ex)
+                        try:
+                            if _winapi:
+                                _winapi.CreateJunction(str(src), str(dst))
+                            else:
+                                subprocess.run(
+                                    ["cmd", "/c", "mklink", "/j", str(dst), str(src)],
+                                    capture_output=True,
+                                    check=True
+                                )
+                            logger.info("Junction created for %s", name)
+                            if not dst.exists():
+                                raise RuntimeError(f"Junction {dst} was not created successfully")
+                        except Exception as ex:
+                            logger.error("Failed to create junction for %s: %s", name, ex)
+                            return fail(
+                                "dependency_failed",
+                                f"Failed to create junction for {name}: {ex}",
+                                40.0,
+                                1
+                            )
 
-                pip_output_buffer = []
-                pip_error_lines = []
-                keywords = ["error", "failed", "no matching distribution", "could not", "requirement", "traceback"]
+                # Nested helper to run pip and capture errors
+                def run_pip(pip_cmd: list[str]) -> bool:
+                    logger.info("Running: %s", " ".join(pip_cmd))
+                    process = subprocess.Popen(
+                        pip_cmd,
+                        cwd=str(working_dir),
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        startupinfo=startupinfo,
+                        creationflags=creationflags,
+                        encoding="utf-8",
+                        errors="replace",
+                        env=env
+                    )
 
-                while True:
-                    line = process.stdout.readline()
-                    if not line:
-                        break
-                    striped = line.strip()
-                    logger.info("[pip] %s", striped)
+                    pip_output_buffer = []
+                    pip_error_lines = []
+                    keywords = ["error", "failed", "no matching distribution", "could not", "requirement", "traceback"]
 
-                    pip_output_buffer.append(striped)
-                    if len(pip_output_buffer) > 15:
-                        pip_output_buffer.pop(0)
+                    while True:
+                        line = process.stdout.readline()
+                        if not line:
+                            break
+                        striped = line.strip()
+                        logger.info("[pip] %s", striped)
 
-                    lowered = striped.lower()
-                    if any(kw in lowered for kw in keywords):
-                        sanitized = sanitize_pip_line(striped)
-                        if sanitized and sanitized not in pip_error_lines:
-                            pip_error_lines.append(sanitized)
-                            if len(pip_error_lines) > 5:
-                                pip_error_lines.pop(0)
+                        pip_output_buffer.append(striped)
+                        if len(pip_output_buffer) > 15:
+                            pip_output_buffer.pop(0)
 
-                process.wait()
-                if process.returncode != 0:
-                    if not pip_error_lines and pip_output_buffer:
-                        fallback_lines = []
-                        for line in pip_output_buffer[-3:]:
-                            sanitized = sanitize_pip_line(line)
-                            if sanitized and sanitized not in fallback_lines:
-                                fallback_lines.append(sanitized)
-                        pip_error_lines = fallback_lines
+                        lowered = striped.lower()
+                        if any(kw in lowered for kw in keywords):
+                            sanitized = sanitize_pip_line(striped)
+                            if sanitized and sanitized not in pip_error_lines:
+                                pip_error_lines.append(sanitized)
+                                if len(pip_error_lines) > 5:
+                                    pip_error_lines.pop(0)
 
-                    if pip_error_lines:
-                        error_cause = "; ".join(pip_error_lines)
-                        error_msg = f"pip exited with code {process.returncode}: {error_cause}"
-                    else:
-                        error_msg = f"pip exited with code {process.returncode}"
+                    process.wait()
+                    if process.returncode != 0:
+                        if not pip_error_lines and pip_output_buffer:
+                            fallback_lines = []
+                            for line in pip_output_buffer[-3:]:
+                                sanitized = sanitize_pip_line(line)
+                                if sanitized and sanitized not in fallback_lines:
+                                    fallback_lines.append(sanitized)
+                            pip_error_lines = fallback_lines
 
-                    return fail("dependency_failed", error_msg, 40.0, 1)
-                return True
+                        if pip_error_lines:
+                            error_cause = "; ".join(pip_error_lines)
+                            error_msg = f"pip exited with code {process.returncode}: {error_cause}"
+                        else:
+                            error_msg = f"pip exited with code {process.returncode}"
 
-            # Phase 1: install PyYAML==6.0.3 normally
-            pip_cmd_1 = [
-                str(venv_python), "-m", "pip", "install",
-                "PyYAML==6.0.3"
-            ]
-            if not run_pip(pip_cmd_1):
-                return False
+                        return fail("dependency_failed", error_msg, 40.0, 1)
+                    return True
 
-            # Phase 2: install remaining required SD3.5 dependency set using --prefer-binary and --only-binary=:all:
-            pip_cmd_2 = [
-                str(venv_python), "-m", "pip", "install",
-                "--prefer-binary",
-                "--only-binary=:all:",
-                "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
-            ]
-            if not run_pip(pip_cmd_2):
-                return False
+                # Phase 0: upgrade pip first to ensure tag compatibility
+                pip_upgrade_cmd = [
+                    str(venv_python), "-m", "pip", "install", "--upgrade", "pip"
+                ]
+                if not run_pip(pip_upgrade_cmd):
+                    return False
 
-            # Runtime preflight check immediately before launching stable_diffusion_v3_5.py
-            logger.info("Running runtime preflight check...")
-            preflight_code = (
-                "import sys\n"
-                "import numpy\n"
-                "import yaml\n"
-                "import requests\n"
-                "import diffusers\n"
-                "import transformers\n"
-                "import qai_appbuilder\n"
-                "import qai_hub\n"
-                "import py3_wget\n"
-                "import torch\n"
-                "import torchgen\n"
-                "import functorch\n"
-                "assert hasattr(numpy, 'ndarray'), 'numpy.ndarray is missing'\n"
-                "assert hasattr(torch, '__version__') and torch.__version__, 'torch version cannot be read'\n"
-                "print('PREFLIGHT_OK')\n"
-            )
-            try:
-                preflight_process = subprocess.run(
-                    [str(venv_python), "-c", preflight_code],
-                    env=env,
-                    capture_output=True,
-                    text=True,
-                    startupinfo=startupinfo,
-                    creationflags=creationflags,
-                    timeout=30.0
-                )
-                if preflight_process.returncode != 0:
-                    err_lines = []
-                    for line in preflight_process.stderr.splitlines():
-                        line = line.strip()
-                        if line:
-                            err_lines.append(sanitize_pip_line(line))
-                    preflight_error = "; ".join(err_lines[-3:]) or preflight_process.stdout.strip()
-                    logger.error("Preflight check failed: %s", preflight_error)
+                # Phase 1: install PyYAML==6.0.3 normally
+                pip_cmd_1 = [
+                    str(venv_python), "-m", "pip", "install",
+                    "PyYAML==6.0.3"
+                ]
+                if not run_pip(pip_cmd_1):
+                    return False
+
+                # Phase 2: install remaining required SD3.5 dependency set using --prefer-binary and --only-binary=:all:
+                pip_cmd_2 = [
+                    str(venv_python), "-m", "pip", "install",
+                    "--prefer-binary",
+                    "--only-binary=:all:",
+                    "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
+                ]
+                if not run_pip(pip_cmd_2):
+                    return False
+
+                passed, error_msg = run_preflight_check()
+                if not passed:
                     return fail(
                         "preflight_failed",
-                        f"Preflight check failed: {preflight_error or 'Unknown import error'}",
+                        f"Preflight check failed: {error_msg or 'Unknown import error'}",
                         50.0,
                         3
                     )
-                logger.info("Preflight check passed.")
-            except Exception as preflight_exc:
-                logger.exception("Preflight check exception: %s", preflight_exc)
-                return fail(
-                    "preflight_failed",
-                    f"Preflight check exception: {preflight_exc}",
-                    50.0,
-                    3
-                )
 
             emit("sd35_downloading_weights", 50.0)
             run_cmd = [str(venv_python), "stable_diffusion_v3_5.py"]
@@ -630,6 +659,56 @@ class SD35SetupHelper:
         if not activation_failed:
             emit("ready", 100.0)
         return True
+
+    @staticmethod
+    def safe_remove_venv(venv_dir: Path) -> None:
+        if not venv_dir.exists():
+            return
+        site_packages = venv_dir / "Lib" / "site-packages"
+        if site_packages.is_dir():
+            junctions_to_remove = []
+
+            # 1. Identify all target junctions (standard names)
+            for name in ("torch", "torchgen", "functorch"):
+                item = site_packages / name
+                if os.path.lexists(item):
+                    junctions_to_remove.append(item)
+
+            # 2. Identify torch-*.dist-info junctions
+            try:
+                for item in site_packages.iterdir():
+                    if item.name.startswith("torch-") and item.name.endswith(".dist-info"):
+                        if item not in junctions_to_remove:
+                            junctions_to_remove.append(item)
+            except Exception as e:
+                logger.warning("Failed to scan site-packages for dist-info junctions during removal: %s", e)
+
+            # 3. Positively remove all junctions without recursive traversal
+            for dst in junctions_to_remove:
+                logger.info("Removing junction: %s", dst)
+                # Try os.rmdir first (standard way to remove junctions on Windows)
+                try:
+                    os.rmdir(dst)
+                except Exception as rmdir_err:
+                    # Try os.unlink / path.unlink as a fallback
+                    try:
+                        dst.unlink()
+                    except Exception as unlink_err:
+                        error_msg = f"Failed to remove junction {dst}. rmdir error: {rmdir_err}; unlink error: {unlink_err}"
+                        logger.error("SAFETY ALERT: %s. Aborting venv cleanup to protect source directories.", error_msg)
+                        raise RuntimeError(error_msg)
+
+                # Double-check it is actually gone
+                if os.path.lexists(dst):
+                    error_msg = f"Junction {dst} still exists after removal attempt"
+                    logger.error("SAFETY ALERT: %s. Aborting venv cleanup to protect source directories.", error_msg)
+                    raise RuntimeError(error_msg)
+
+        # 4. Now that all junctions are confirmed absent, safely delete the venv
+        try:
+            shutil.rmtree(venv_dir)
+        except Exception as e:
+            logger.warning("Failed to remove venv directory %s: %s", venv_dir, e)
 
     @staticmethod
     def safe_cleanup_temp_dir(path_str: str) -> None:

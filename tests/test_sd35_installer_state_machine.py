@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 import zipfile
@@ -48,15 +49,17 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         if not isinstance(tools.sd35_setup_helper.subprocess.run, Mock):
             def default_mock_run(cmd, *args, **kwargs):
                 if "venv" in cmd:
-                    workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
-                    venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                    workspace = self.root
+                    venv_dir = workspace / "sd35_venv"
+                    venv_python = venv_dir / "Scripts" / "python.exe"
                     venv_python.parent.mkdir(parents=True, exist_ok=True)
                     venv_python.write_bytes(b"")
-                    (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                    (venv_dir / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
                     return MagicMock(returncode=0, stdout="", stderr="")
                 return MagicMock(returncode=0, stdout="PREFLIGHT_OK", stderr="")
 
             with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
+                 patch("tools.sd35_setup_helper.USER_BASE", self.root), \
                  patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
                  patch("tools.sd35_setup_helper.subprocess.run", side_effect=default_mock_run):
                 result = SD35SetupHelper.run_setup(
@@ -64,6 +67,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
                 )
         else:
             with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
+                 patch("tools.sd35_setup_helper.USER_BASE", self.root), \
                  patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)):
                 result = SD35SetupHelper.run_setup(
                     str(archive), installer, events.append, **kwargs
@@ -307,10 +311,11 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         ), patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=record_popen):
             self._run_helper(_Installer(self.service), archive, allow_redownload=True)
 
-        expected_venv_python = str(self.root / SD35SetupHelper.WORKSPACE_NAME / "venv" / "Scripts" / "python.exe")
+        expected_venv_python = str(self.root / "sd35_venv" / "Scripts" / "python.exe")
         self.assertEqual(commands[0][:3], [expected_venv_python, "-m", "pip"])
         self.assertEqual(commands[1][:3], [expected_venv_python, "-m", "pip"])
-        self.assertEqual(commands[2], [expected_venv_python, "stable_diffusion_v3_5.py"])
+        self.assertEqual(commands[2][:3], [expected_venv_python, "-m", "pip"])
+        self.assertEqual(commands[3], [expected_venv_python, "stable_diffusion_v3_5.py"])
 
     def test_20_pip_failure_self_diagnostics(self) -> None:
         archive = self.root / "sample.zip"
@@ -449,11 +454,12 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         def mock_run(cmd, *args, **kwargs):
             if "venv" in cmd:
-                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
-                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                workspace = self.root
+                venv_dir = workspace / "sd35_venv"
+                venv_python = venv_dir / "Scripts" / "python.exe"
                 venv_python.parent.mkdir(parents=True, exist_ok=True)
                 venv_python.write_bytes(b"")
-                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                (venv_dir / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
                 return MagicMock(returncode=0, stdout="", stderr="")
             preflight_run.append((cmd, kwargs.get("env", {})))
             return MagicMock(returncode=0, stdout="PREFLIGHT_OK", stderr="")
@@ -482,7 +488,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         self.assertNotIn(str(exe_parent), pythonpath)
 
-        venv_site_packages = self.root / SD35SetupHelper.WORKSPACE_NAME / "venv" / "Lib" / "site-packages"
+        venv_site_packages = self.root / "sd35_venv" / "Lib" / "site-packages"
         self.assertTrue((venv_site_packages / "torch").is_dir())
         self.assertTrue((venv_site_packages / "torchgen").is_dir())
         self.assertTrue((venv_site_packages / "functorch").is_dir())
@@ -515,11 +521,12 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         def mock_run(cmd, *args, **kwargs):
             if "venv" in cmd:
-                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
-                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                workspace = self.root
+                venv_dir = workspace / "sd35_venv"
+                venv_python = venv_dir / "Scripts" / "python.exe"
                 venv_python.parent.mkdir(parents=True, exist_ok=True)
                 venv_python.write_bytes(b"")
-                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                (venv_dir / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
                 return MagicMock(returncode=0, stdout="", stderr="")
             return MagicMock(
                 returncode=1,
@@ -622,11 +629,12 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         def mock_run(cmd, *args, **kwargs):
             if "venv" in cmd:
-                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
-                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                workspace = self.root
+                venv_dir = workspace / "sd35_venv"
+                venv_python = venv_dir / "Scripts" / "python.exe"
                 venv_python.parent.mkdir(parents=True, exist_ok=True)
                 venv_python.write_bytes(b"")
-                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                (venv_dir / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
                 return MagicMock(returncode=0, stdout="", stderr="")
             return MagicMock(returncode=0, stdout="", stderr="")
 
@@ -661,11 +669,12 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         def mock_run(cmd, *args, **kwargs):
             if "venv" in cmd:
-                workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
-                venv_python = workspace / "venv" / "Scripts" / "python.exe"
+                workspace = self.root
+                venv_dir = workspace / "sd35_venv"
+                venv_python = venv_dir / "Scripts" / "python.exe"
                 venv_python.parent.mkdir(parents=True, exist_ok=True)
                 venv_python.write_bytes(b"")
-                (workspace / "venv" / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                (venv_dir / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
                 return MagicMock(returncode=0, stdout="", stderr="")
             elif "mklink" in cmd or "cmd" in cmd:
                 raise subprocess.CalledProcessError(1, cmd, stderr="Access Denied")
@@ -683,6 +692,65 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertFalse(result)
         failed_event = next(e for e in events if e.get("phase") == "dependency_failed")
         self.assertIn("Failed to create junction", failed_event["error"])
+
+    def test_28_safe_remove_venv_protection(self) -> None:
+        # Success path
+        venv_dir = self.root / "fake_venv"
+        site_packages = venv_dir / "Lib" / "site-packages"
+        site_packages.mkdir(parents=True, exist_ok=True)
+        (site_packages / "torch").mkdir(exist_ok=True)
+        (site_packages / "torchgen").mkdir(exist_ok=True)
+        (site_packages / "functorch").mkdir(exist_ok=True)
+
+        rmdir_calls = []
+        rmtree_calls = []
+        original_rmdir = os.rmdir
+
+        def mock_rmdir(path):
+            p = Path(path)
+            rmdir_calls.append(p)
+            if p.exists():
+                original_rmdir(p)
+
+        def mock_rmtree(path):
+            rmtree_calls.append(Path(path))
+
+        with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir), \
+             patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree):
+            SD35SetupHelper.safe_remove_venv(venv_dir)
+
+        self.assertIn(site_packages / "torch", rmdir_calls)
+        self.assertIn(site_packages / "torchgen", rmdir_calls)
+        self.assertIn(site_packages / "functorch", rmdir_calls)
+        self.assertIn(venv_dir, rmtree_calls)
+
+        # Failure path: simulate failing to remove the junction "torchgen"
+        venv_dir_fail = self.root / "fake_venv_fail"
+        site_packages_fail = venv_dir_fail / "Lib" / "site-packages"
+        site_packages_fail.mkdir(parents=True, exist_ok=True)
+        (site_packages_fail / "torch").mkdir(exist_ok=True)
+        (site_packages_fail / "torchgen").mkdir(exist_ok=True)
+        (site_packages_fail / "functorch").mkdir(exist_ok=True)
+
+        rmdir_calls.clear()
+        rmtree_calls.clear()
+
+        def mock_rmdir_fail(path):
+            p = Path(path)
+            if p.name == "torchgen":
+                raise OSError("Access Denied")
+            rmdir_calls.append(p)
+            if p.exists():
+                original_rmdir(p)
+
+        with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir_fail), \
+             patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree):
+            with self.assertRaises(RuntimeError) as ctx:
+                SD35SetupHelper.safe_remove_venv(venv_dir_fail)
+            self.assertIn("Failed to remove junction", str(ctx.exception))
+
+        # Check that shutil.rmtree was NEVER called on the venv
+        self.assertNotIn(venv_dir_fail, rmtree_calls)
 
 
 if __name__ == "__main__":
