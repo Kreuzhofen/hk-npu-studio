@@ -12,10 +12,26 @@ import inspect
 from pathlib import Path
 from typing import Callable, Any
 
+import re
+
 from config import TEMP_DIR
 from engine.model_install_service import SD35InstallState, SD35SourceInspection
 
 logger = logging.getLogger("SD35SetupHelper")
+
+
+def sanitize_pip_line(line: str) -> str:
+    """Mask URLs with credentials/tokens and clean whitespace."""
+    line = line.strip()
+    if not line:
+        return ""
+    # Mask credentials: http://user:pass@host -> http://***@host
+    line = re.sub(r'(https?://)[^:\s/]+:[^@\s/]+@', r'\1***@', line)
+    # Mask token: http://token@host -> http://***@host
+    line = re.sub(r'(https?://)[^@\s/]+@', r'\1***@', line)
+    # Mask key=value parameters: token=foo -> token=***
+    line = re.sub(r'(token|api_key|password|secret|auth|key)=[a-zA-Z0-9_\-\.]+', r'\1=***', line, flags=re.IGNORECASE)
+    return line
 
 
 def resolve_python_executable() -> str:
@@ -215,15 +231,48 @@ class SD35SetupHelper:
             )
 
             # Read stdout line by line
+            pip_output_buffer = []
+            pip_error_lines = []
+            keywords = ["error", "failed", "no matching distribution", "could not", "requirement", "traceback"]
+
             while True:
                 line = process.stdout.readline()
                 if not line:
                     break
-                logger.info("[pip] %s", line.strip())
+                striped = line.strip()
+                logger.info("[pip] %s", striped)
+
+                # Keep last 15 lines of general output
+                pip_output_buffer.append(striped)
+                if len(pip_output_buffer) > 15:
+                    pip_output_buffer.pop(0)
+
+                # Check for keywords to collect specific error lines (case-insensitive)
+                lowered = striped.lower()
+                if any(kw in lowered for kw in keywords):
+                    sanitized = sanitize_pip_line(striped)
+                    if sanitized and sanitized not in pip_error_lines:
+                        pip_error_lines.append(sanitized)
+                        if len(pip_error_lines) > 5:
+                            pip_error_lines.pop(0)
 
             process.wait()
             if process.returncode != 0:
-                return fail("dependency_failed", f"pip exited with code {process.returncode}", 40.0, 1)
+                if not pip_error_lines and pip_output_buffer:
+                    fallback_lines = []
+                    for line in pip_output_buffer[-3:]:
+                        sanitized = sanitize_pip_line(line)
+                        if sanitized and sanitized not in fallback_lines:
+                            fallback_lines.append(sanitized)
+                    pip_error_lines = fallback_lines
+
+                if pip_error_lines:
+                    error_cause = "; ".join(pip_error_lines)
+                    error_msg = f"pip exited with code {process.returncode}: {error_cause}"
+                else:
+                    error_msg = f"pip exited with code {process.returncode}"
+
+                return fail("dependency_failed", error_msg, 40.0, 1)
 
             emit("sd35_downloading_weights", 50.0)
             run_cmd = [python_executable, "stable_diffusion_v3_5.py"]

@@ -290,6 +290,60 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertEqual(commands[0][:3], [str(interpreter), "-m", "pip"])
         self.assertEqual(commands[1], [str(interpreter), "stable_diffusion_v3_5.py"])
 
+    def test_20_pip_failure_self_diagnostics(self) -> None:
+        archive = self.root / "sample.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "")
+
+        # Simulate pip output with failure and some sensitive URL token
+        pip_lines = [
+            "Collecting transformers",
+            "WARNING: Retrying after connection broken by SSLError",
+            "ERROR: Could not find a version that satisfies the requirement py3-wget (from https://user:pass123@private-repo.com/packages/)",
+            "ERROR: No matching distribution found for py3-wget; api_key=super-secret-key"
+        ]
+
+        class MockProcess:
+            def __init__(self):
+                self.returncode = 1
+                self._lines = list(pip_lines)
+                self.stdout = MagicMock()
+                self.stdout.readline.side_effect = self._readline
+
+            def wait(self):
+                return self.returncode
+
+            def _readline(self):
+                if self._lines:
+                    return self._lines.pop(0) + "\n"
+                return ""
+
+        process = MockProcess()
+        with patch("tools.sd35_setup_helper.subprocess.Popen", return_value=process):
+            result, events = self._run_helper(
+                _Installer(self.service), archive, allow_redownload=True
+            )
+
+        self.assertFalse(result)
+        # Find the dependency_failed event
+        dep_failed_event = next(e for e in events if e.get("phase") == "dependency_failed")
+        error_msg = dep_failed_event["error"]
+
+        # Verify exit code and cause
+        self.assertIn("pip exited with code 1", error_msg)
+        self.assertIn("ERROR: Could not find a version that satisfies the requirement py3-wget", error_msg)
+        self.assertIn("ERROR: No matching distribution found for py3-wget", error_msg)
+
+        # Verify sanitization
+        self.assertNotIn("pass123", error_msg)
+        self.assertNotIn("super-secret-key", error_msg)
+        self.assertIn("api_key=***", error_msg)
+        self.assertIn("https://***@private-repo.com", error_msg)
+
 
 if __name__ == "__main__":
     unittest.main()
