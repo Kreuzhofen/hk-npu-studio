@@ -41,6 +41,14 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b"test")
 
+    def _create_bundled_deps(self, parent_dir):
+        for name in ("torch", "torchgen", "functorch", "yaml", "numpy", "numpy.libs"):
+            (parent_dir / name).mkdir(parents=True, exist_ok=True)
+            (parent_dir / name / "__init__.py").write_text("", encoding="utf-8")
+        (parent_dir / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
+        (parent_dir / "pyyaml-6.0.3.dist-info").mkdir(exist_ok=True)
+        (parent_dir / "numpy-2.4.4.dist-info").mkdir(exist_ok=True)
+
     def _run_helper(self, installer, archive, **kwargs):
         events = []
         from unittest.mock import Mock
@@ -328,8 +336,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         expected_venv_python = str(self.root / "sd35_venv" / "Scripts" / "python.exe")
         self.assertEqual(commands[0][:3], [expected_venv_python, "-m", "pip"])
         self.assertEqual(commands[1][:3], [expected_venv_python, "-m", "pip"])
-        self.assertEqual(commands[2][:3], [expected_venv_python, "-m", "pip"])
-        self.assertEqual(commands[3], [expected_venv_python, "stable_diffusion_v3_5.py"])
+        self.assertEqual(commands[2], [expected_venv_python, "stable_diffusion_v3_5.py"])
 
     def test_20_pip_failure_self_diagnostics(self) -> None:
         archive = self.root / "sample.zip"
@@ -480,10 +487,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         exe_parent = self.root / "app_bin"
         exe_parent.mkdir(parents=True, exist_ok=True)
-        (exe_parent / "torch").mkdir(exist_ok=True)
-        (exe_parent / "torchgen").mkdir(exist_ok=True)
-        (exe_parent / "functorch").mkdir(exist_ok=True)
-        (exe_parent / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
+        self._create_bundled_deps(exe_parent)
         mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
 
         with patch("sys.frozen", True, create=True), \
@@ -503,10 +507,10 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertNotIn(str(exe_parent), pythonpath)
 
         venv_site_packages = self.root / "sd35_venv" / "Lib" / "site-packages"
-        self.assertTrue((venv_site_packages / "torch").is_dir())
-        self.assertTrue((venv_site_packages / "torchgen").is_dir())
-        self.assertTrue((venv_site_packages / "functorch").is_dir())
-        self.assertTrue((venv_site_packages / "torch-2.14.0.dev20260808+cpu.dist-info").is_dir())
+        for name in ("torch", "torchgen", "functorch", "torch-2.14.0.dev20260808+cpu.dist-info",
+                     "yaml", "pyyaml-6.0.3.dist-info",
+                     "numpy", "numpy.libs", "numpy-2.4.4.dist-info"):
+            self.assertTrue((venv_site_packages / name).exists())
 
     def test_23_preflight_failure_aborts_qualcomm_sample(self) -> None:
         archive = self.root / "sample.zip"
@@ -550,10 +554,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         exe_parent = self.root / "app_bin"
         exe_parent.mkdir(parents=True, exist_ok=True)
-        (exe_parent / "torch").mkdir(exist_ok=True)
-        (exe_parent / "torchgen").mkdir(exist_ok=True)
-        (exe_parent / "functorch").mkdir(exist_ok=True)
-        (exe_parent / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
+        self._create_bundled_deps(exe_parent)
         mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
 
         with patch("sys.frozen", True, create=True), \
@@ -673,7 +674,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         self.assertFalse(result)
         failed_event = next(e for e in events if e.get("phase") == "dependency_failed")
-        self.assertIn("Required bundled Torch component(s) missing", failed_event["error"])
+        self.assertIn("Required bundled dependency component(s) missing", failed_event["error"])
 
     def test_27_failed_physical_copy_fails(self) -> None:
         archive = self.root / "sample.zip"
@@ -686,10 +687,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         exe_parent = self.root / "app_bin"
         exe_parent.mkdir(parents=True, exist_ok=True)
-        (exe_parent / "torch").mkdir(exist_ok=True)
-        (exe_parent / "torchgen").mkdir(exist_ok=True)
-        (exe_parent / "functorch").mkdir(exist_ok=True)
-        (exe_parent / "torch-2.14.0.dev20260808+cpu.dist-info").mkdir(exist_ok=True)
+        self._create_bundled_deps(exe_parent)
         mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
 
         def mock_run(cmd, *args, **kwargs):
@@ -806,14 +804,8 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
     def test_29_no_junctions_created_during_setup(self) -> None:
         workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
         
-        # Write dummy torch files in our root (which acts as the PyInstaller dist / candidate)
-        for name in ("torch", "torchgen", "functorch"):
-            (self.root / name).mkdir(parents=True, exist_ok=True)
-            (self.root / name / "__init__.py").write_text("", encoding="utf-8")
-        
-        # Create a mock dist-info dir
-        dist_info = self.root / "torch-2.0.0.dist-info"
-        dist_info.mkdir(parents=True, exist_ok=True)
+        # Write dummy dependency files in our root (which acts as the PyInstaller dist / candidate)
+        self._create_bundled_deps(self.root)
         
         # Create a sample archive containing the script
         archive = self.root / "sample.zip"
@@ -872,9 +864,11 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
              venv_python = venv_dir / "Scripts" / "python.exe"
              self.assertTrue(venv_python.exists())
              
-             # Verify torch/torchgen/functorch are copied physically (no junctions/reparse points)
+             # Verify dependencies are copied physically (no junctions/reparse points)
              site_packages = venv_dir / "Lib" / "site-packages"
-             for name in ("torch", "torchgen", "functorch", dist_info.name):
+             for name in ("torch", "torchgen", "functorch", "torch-2.14.0.dev20260808+cpu.dist-info",
+                          "yaml", "pyyaml-6.0.3.dist-info",
+                          "numpy", "numpy.libs", "numpy-2.4.4.dist-info"):
                  path = site_packages / name
                  self.assertTrue(path.exists())
                  # Verify it is NOT a junction/reparse point
@@ -953,6 +947,101 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertIn(functorch_dir, lstat_calls)
         # 3. shutil.rmtree must NOT have been called on functorch
         self.assertNotIn(functorch_dir, rmtree_calls)
+
+    def test_31_pip_installation_binary_only_protection(self) -> None:
+        import zipfile
+        import json
+        import io
+        workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+        workspace.mkdir(parents=True, exist_ok=True)
+
+        # Create bundled folders in self.root (acting as frozen bundle path)
+        for name in ("torch", "torchgen", "functorch", "yaml", "numpy", "numpy.libs"):
+            (self.root / name).mkdir(parents=True, exist_ok=True)
+            (self.root / name / "__init__.py").write_text("", encoding="utf-8")
+
+        # Create mock dist-info dirs
+        (self.root / "torch-2.0.0.dist-info").mkdir(parents=True, exist_ok=True)
+        (self.root / "pyyaml-6.0.3.dist-info").mkdir(parents=True, exist_ok=True)
+        (self.root / "numpy-2.4.4.dist-info").mkdir(parents=True, exist_ok=True)
+
+        # Create a sample archive containing the script
+        archive = self.root / "sample.zip"
+        script_rel = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script_rel, "print('Hello')")
+
+        recorded_commands = []
+
+        def mock_run(cmd, *args, **kwargs):
+            if "venv" in cmd:
+                venv_dir = self.root / "sd35_venv"
+                venv_python = venv_dir / "Scripts" / "python.exe"
+                venv_python.parent.mkdir(parents=True, exist_ok=True)
+                venv_python.write_bytes(b"")
+                (venv_dir / "Lib" / "site-packages").mkdir(parents=True, exist_ok=True)
+                return MagicMock(returncode=0, stdout="", stderr="")
+            # Preflight check runs
+            recorded_commands.append(cmd)
+            return MagicMock(returncode=0, stdout="PREFLIGHT_OK", stderr="")
+
+        def mock_popen(cmd, *args, **kwargs):
+            recorded_commands.append(cmd)
+            # Write the 11 required files to the models folder next to script_dir
+            script_dir = None
+            for p in workspace.rglob("stable_diffusion_v3_5.py"):
+                script_dir = p.parent
+                break
+            if script_dir:
+                models_dir = script_dir.parent / "models"
+                models_dir.mkdir(parents=True, exist_ok=True)
+                self._write_required(models_dir)
+
+            mock_proc = MagicMock()
+            mock_proc.returncode = 0
+            mock_proc.stdout = io.StringIO("Download progress: 100% (100/100 MB)\n")
+            mock_proc.wait.return_value = 0
+            return mock_proc
+
+        with patch("sys.frozen", True, create=True), \
+             patch("sys.executable", str(self.root / "SnapdragonAIStudio.exe")), \
+             patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
+             patch("tools.sd35_setup_helper.USER_BASE", self.root), \
+             patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
+             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run), \
+             patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen):
+
+             result = SD35SetupHelper.run_setup(
+                 str(archive), _Installer(self.service), lambda *args: None, allow_redownload=True
+             )
+
+             self.assertTrue(result)
+
+        # Verify that all physical staging dirs exist in the virtual environment
+        site_packages = self.root / "sd35_venv" / "Lib" / "site-packages"
+        for name in ("torch", "torchgen", "functorch", "torch-2.0.0.dist-info",
+                     "yaml", "pyyaml-6.0.3.dist-info",
+                     "numpy", "numpy.libs", "numpy-2.4.4.dist-info"):
+            path = site_packages / name
+            self.assertTrue(path.exists(), f"Staged component {name} not found in site-packages")
+
+        # Verify that all pip install commands used binary-only options
+        pip_installs = 0
+        for cmd in recorded_commands:
+            cmd_str = " ".join(cmd)
+            if "pip" in cmd_str and "install" in cmd_str:
+                pip_installs += 1
+                self.assertTrue(any("--only-binary" in x for x in cmd), f"pip command '{cmd_str}' does not use --only-binary")
+                self.assertTrue(any("=:all:" in x for x in cmd), f"pip command '{cmd_str}' does not use =:all:")
+                self.assertTrue(any("--prefer-binary" in x for x in cmd), f"pip command '{cmd_str}' does not use --prefer-binary")
+                # Make sure pyyaml is never installed via pip
+                self.assertNotIn("PyYAML", cmd_str, f"PyYAML was installed via pip command '{cmd_str}'")
+                self.assertNotIn("pyyaml", cmd_str, f"pyyaml was installed via pip command '{cmd_str}'")
+
+        self.assertGreater(pip_installs, 0, "No pip install commands were recorded")
 
 
 if __name__ == "__main__":

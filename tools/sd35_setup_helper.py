@@ -301,65 +301,87 @@ class SD35SetupHelper:
                         1
                     )
 
-                # E. Make only the bundled Torch components available using junctions in venv site-packages
-                bundled_torch_path = None
+                # E. Make only the bundled Torch and non-pure dependencies (like PyYAML and NumPy) available
+                # by physically copying them into venv site-packages.
+                bundled_libs_path = None
                 is_frozen = getattr(sys, "frozen", False)
 
                 if is_frozen:
                     candidate = Path(sys.executable).parent
                     if (candidate / "torch").is_dir():
-                        bundled_torch_path = candidate
+                        bundled_libs_path = candidate
                 else:
                     dev_candidate = Path(__file__).resolve().parent.parent / "dist" / "SnapdragonAIStudio"
                     if (dev_candidate / "torch").is_dir():
-                        bundled_torch_path = dev_candidate
+                        bundled_libs_path = dev_candidate
 
-                if is_frozen and not bundled_torch_path:
+                if is_frozen and not bundled_libs_path:
                     return fail(
                         "dependency_failed",
-                        "Required bundled Torch components are missing in frozen installation folder",
+                        "Required bundled dependencies are missing in frozen installation folder",
                         40.0,
                         1
                     )
 
-                if bundled_torch_path:
-                    logger.info("Using bundled torch from: %s", bundled_torch_path)
+                if bundled_libs_path:
+                    logger.info("Using bundled dependencies from: %s", bundled_libs_path)
                     try:
                         import _winapi
                     except ImportError:
                         _winapi = None
 
-                    # Find the dist-info folder
-                    dist_info_dir = None
+                    # Find the dist-info folders
+                    torch_dist_info = None
+                    pyyaml_dist_info = None
+                    numpy_dist_info = None
                     try:
-                        for item in Path(bundled_torch_path).iterdir():
-                            if item.is_dir() and item.name.startswith("torch-") and item.name.endswith(".dist-info"):
-                                dist_info_dir = item
-                                break
+                        for item in Path(bundled_libs_path).iterdir():
+                            if item.is_dir():
+                                if item.name.startswith("torch-") and item.name.endswith(".dist-info"):
+                                    torch_dist_info = item
+                                elif item.name.startswith("pyyaml-") and item.name.endswith(".dist-info"):
+                                    pyyaml_dist_info = item
+                                elif item.name.startswith("numpy-") and item.name.endswith(".dist-info"):
+                                    numpy_dist_info = item
                     except Exception as e:
-                        logger.error("Failed to list bundled torch directory: %s", e)
+                        logger.error("Failed to list bundled directory: %s", e)
 
-                    # Validate all required components exist in bundled_torch_path
-                    required_names = ["torch", "torchgen", "functorch"]
+                    # Validate all required components exist in bundled_libs_path
                     missing_components = []
-                    for name in required_names:
-                        if not (Path(bundled_torch_path) / name).is_dir():
+                    for name in ["torch", "torchgen", "functorch"]:
+                        if not (Path(bundled_libs_path) / name).is_dir():
                             missing_components.append(name)
-                    if not dist_info_dir:
+                    if not torch_dist_info:
                         missing_components.append("torch-*.dist-info")
+
+                    for name in ["yaml"]:
+                        if not (Path(bundled_libs_path) / name).is_dir():
+                            missing_components.append(name)
+                    if not pyyaml_dist_info:
+                        missing_components.append("pyyaml-*.dist-info")
+
+                    for name in ["numpy", "numpy.libs"]:
+                        if not (Path(bundled_libs_path) / name).is_dir():
+                            missing_components.append(name)
+                    if not numpy_dist_info:
+                        missing_components.append("numpy-*.dist-info")
 
                     if missing_components:
                         return fail(
                             "dependency_failed",
-                            f"Required bundled Torch component(s) missing: {', '.join(missing_components)}",
+                            f"Required bundled dependency component(s) missing: {', '.join(missing_components)}",
                             40.0,
                             1
                         )
 
-                    torch_components = ["torch", "torchgen", "functorch", dist_info_dir.name]
+                    components_to_copy = [
+                        "torch", "torchgen", "functorch", torch_dist_info.name,
+                        "yaml", pyyaml_dist_info.name,
+                        "numpy", "numpy.libs", numpy_dist_info.name
+                    ]
                     import stat
-                    for name in torch_components:
-                        src = Path(bundled_torch_path) / name
+                    for name in components_to_copy:
+                        src = Path(bundled_libs_path) / name
                         dst = site_packages_dir / name
                         try:
                             # Safely clean up dst if it exists (junction, file, or directory)
@@ -454,27 +476,20 @@ class SD35SetupHelper:
 
                 # Phase 0: upgrade pip first to ensure tag compatibility
                 pip_upgrade_cmd = [
-                    str(venv_python), "-m", "pip", "install", "--upgrade", "pip"
+                    str(venv_python), "-m", "pip", "install", "--upgrade", "pip",
+                    "--only-binary=:all:", "--prefer-binary"
                 ]
                 if not run_pip(pip_upgrade_cmd):
                     return False
 
-                # Phase 1: install PyYAML==6.0.3 normally
+                # Phase 1: install remaining required SD3.5 dependency set using --prefer-binary and --only-binary=:all:
                 pip_cmd_1 = [
-                    str(venv_python), "-m", "pip", "install",
-                    "PyYAML==6.0.3"
-                ]
-                if not run_pip(pip_cmd_1):
-                    return False
-
-                # Phase 2: install remaining required SD3.5 dependency set using --prefer-binary and --only-binary=:all:
-                pip_cmd_2 = [
                     str(venv_python), "-m", "pip", "install",
                     "--prefer-binary",
                     "--only-binary=:all:",
                     "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
                 ]
-                if not run_pip(pip_cmd_2):
+                if not run_pip(pip_cmd_1):
                     return False
 
                 passed, error_msg = run_preflight_check()
