@@ -4300,9 +4300,6 @@ class PhoenixPromptView(WorkspaceFrame):
             self._boost_ai_info_lbl.pack_forget()
 
     def _open_ollama_download(self) -> None:
-        import webbrowser
-        webbrowser.open(OllamaStatusService.DOWNLOAD_URL)
-
         from dialogs.ollama_setup_dialog import OllamaSetupDialog
         OllamaSetupDialog(
             self.winfo_toplevel(),

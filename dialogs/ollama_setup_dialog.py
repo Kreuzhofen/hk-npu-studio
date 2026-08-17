@@ -29,8 +29,8 @@ class OllamaSetupDialog(StudioDialog):
             master,
             title=tr("boost_ollama_setup_title", "Ollama vorbereiten"),
             brand=brand,
-            size=(540, 320),
-            min_size=(480, 280),
+            size=(540, 340),
+            min_size=(480, 300),
             resizable=False,
         )
 
@@ -54,27 +54,22 @@ class OllamaSetupDialog(StudioDialog):
         content.pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y)
 
         # Instructions
-        tk.Label(
+        self._desc_lbl = tk.Label(
             content,
-            text=tr("boost_ollama_setup_desc", "Snapdragon AI Studio benötigt Ollama für den optionalen lokalen KI-Boost."),
+            text=tr(
+                "boost_ollama_setup_desc_new",
+                "Ollama wird für Phoenix Boost benötigt.\n\n"
+                "Klicken Sie auf „Ollama herunterladen“. Die offizielle Ollama-Seite wird in Ihrem Browser geöffnet.\n\n"
+                "Installieren Sie Ollama dort und kehren Sie anschließend zu Snapdragon AI Studio zurück."
+            ),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_body,
             anchor="w",
             justify="left",
             wraplength=440,
-        ).pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
-
-        tk.Label(
-            content,
-            text=tr("boost_ollama_setup_desc_3", "Bitte kehren Sie zu Snapdragon AI Studio zurück."),
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_small,
-            anchor="w",
-            justify="left",
-            wraplength=440,
-        ).pack(fill="x", pady=(0, PHOENIX_THEME.space_lg))
+        )
+        self._desc_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
 
         # Status Label
         self._status_lbl = tk.Label(
@@ -87,15 +82,31 @@ class OllamaSetupDialog(StudioDialog):
         )
         self._status_lbl.pack(fill="x", pady=(PHOENIX_THEME.space_sm, 0))
 
-        # Close button in footer
-        self._close_btn = PhoenixButton(
-            self.footer,
+        # Actions in footer packed side-by-side centered
+        btn_container = tk.Frame(self.footer, bg=self.footer.cget("bg"))
+        btn_container.pack(anchor="center", expand=True)
+
+        self._secondary_btn = PhoenixButton(
+            btn_container,
             text=tr("cancel", "Abbrechen"),
             command=self.close,
             button_type="secondary",
-            width=150,
+            width=120,
         )
-        self._close_btn.pack(anchor="center")
+        self._secondary_btn.pack(side="left", padx=6)
+
+        self._primary_btn = PhoenixButton(
+            btn_container,
+            text=tr("boost_ollama_download", "Ollama herunterladen"),
+            command=self._on_download_clicked,
+            button_type="primary",
+            width=180,
+        )
+        self._primary_btn.pack(side="left", padx=6)
+
+    def _on_download_clicked(self) -> None:
+        import webbrowser
+        webbrowser.open(OllamaStatusService.DOWNLOAD_URL)
 
     def _check_status_loop(self) -> None:
         if not self._is_active:
@@ -115,11 +126,16 @@ class OllamaSetupDialog(StudioDialog):
             text=tr("boost_ollama_ready", "✓ Ollama ist bereit"),
             fg=PHOENIX_THEME.success,
         )
-        self._close_btn.configure(
+        self._desc_lbl.configure(
+            text=tr("boost_ollama_detected_desc", "Die Installation wurde erkannt."),
+            fg=PHOENIX_THEME.text_primary,
+        )
+        self._primary_btn.configure(
             text=tr("continue", "Weiter"),
             command=self._finish,
             button_type="primary",
         )
+        self._secondary_btn.pack_forget()
 
     def _finish(self) -> None:
         self.close()

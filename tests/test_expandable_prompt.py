@@ -850,10 +850,12 @@ class ExpandablePromptTests(unittest.TestCase):
             dialog = OllamaSetupDialog(self.root, on_detected=on_detected)
             # Verify status label changed
             self.assertEqual(dialog._status_lbl.cget("text"), "✓ Ollama ist bereit")
+            # Verify description label changed
+            self.assertEqual(dialog._desc_lbl.cget("text"), "Die Installation wurde erkannt.")
             # Verify button changed to "Weiter"
-            self.assertEqual(dialog._close_btn.text, "Weiter")
+            self.assertEqual(dialog._primary_btn.text, "Weiter")
             # Simulate clicking "Weiter"
-            dialog._close_btn.command()
+            dialog._primary_btn.command()
 
         self.assertTrue(detected_called)
 
