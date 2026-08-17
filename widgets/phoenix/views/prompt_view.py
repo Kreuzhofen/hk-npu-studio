@@ -4177,7 +4177,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
     def _update_ollama_install_button(self, status: OllamaStatus) -> None:
         self._ollama_status = status
-        if self._boost_install_btn is None or not self._boost_install_btn.winfo_exists():
+        if not hasattr(self, "_boost_install_btn") or self._boost_install_btn is None or not self._boost_install_btn.winfo_exists():
             return
         if status.available:
             ollama_text = tr("boost_ollama_status_ready", "Ollama: bereit")
@@ -4244,22 +4244,20 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         if not confirmed:
             return
-        executable = shutil.which("ollama")
-        if not executable:
-            OllamaStatusService.invalidate_cache()
-            return
-        try:
-            subprocess.Popen(
-                [executable, "pull", OllamaStatusService.MODEL],
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-            OllamaStatusService.invalidate_cache()
-            self._boost_install_btn.configure(
-                text=tr("boost_qwen_install_started", "Download gestartet …"),
-                state="disabled",
-            )
-        except OSError:
-            OllamaStatusService.invalidate_cache()
+        self._start_qwen_install_flow()
+
+    def _start_qwen_install_flow(self) -> None:
+        from dialogs.qwen_setup_dialog import QwenSetupDialog
+        QwenSetupDialog(
+            self.winfo_toplevel(),
+            on_success=self._on_qwen_installed_success,
+            brand=getattr(self, "brand", None),
+        )
+
+    def _on_qwen_installed_success(self) -> None:
+        OllamaStatusService.invalidate_cache()
+        status = OllamaStatusService.detect(force=True)
+        self._update_ollama_install_button(status)
 
     def _apply_boost_ai_preview(
         self,
@@ -4301,11 +4299,23 @@ class PhoenixPromptView(WorkspaceFrame):
         if self._boost_ai_info_lbl is not None and self._boost_ai_info_lbl.winfo_exists():
             self._boost_ai_info_lbl.pack_forget()
 
-    @staticmethod
-    def _open_ollama_download() -> None:
+    def _open_ollama_download(self) -> None:
         import webbrowser
-
         webbrowser.open(OllamaStatusService.DOWNLOAD_URL)
+
+        from dialogs.ollama_setup_dialog import OllamaSetupDialog
+        OllamaSetupDialog(
+            self.winfo_toplevel(),
+            on_detected=self._on_ollama_detected,
+            brand=getattr(self, "brand", None),
+        )
+
+    def _on_ollama_detected(self) -> None:
+        OllamaStatusService.invalidate_cache()
+        status = OllamaStatusService.detect(force=True)
+        self._update_ollama_install_button(status)
+        if status.available and not status.model_available:
+            self._start_qwen_install_flow()
 
     def _controlnet_active(self) -> bool:
         return bool(
