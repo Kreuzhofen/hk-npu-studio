@@ -11,14 +11,14 @@ import logging
 from typing import Callable
 from pathlib import Path
 
-logger = logging.getLogger("QwenSetup")
-
 from app.i18n import tr
 from dialogs.studio_dialog import StudioDialog
 from engine.brand_manager import BrandManager
 from engine.ollama_status import OllamaStatusService
 from widgets.phoenix.theme import PHOENIX_THEME
 from widgets.phoenix.controls.button import PhoenixButton
+
+logger = logging.getLogger("QwenSetup")
 
 
 class QwenSetupDialog(StudioDialog):
@@ -40,46 +40,58 @@ class QwenSetupDialog(StudioDialog):
             master,
             title=tr("boost_ai_title", "Phoenix Boost einrichten"),
             brand=brand,
-            size=(540, 340),
-            min_size=(480, 300),
+            size=(540, 360),
+            min_size=(480, 320),
             resizable=False,
         )
 
         self._build_ui()
         self.center(master)
-
-        # Start download in background thread
-        threading.Thread(target=self._run_pull, daemon=True).start()
-
         self.wait_window(self)
 
     def _build_ui(self) -> None:
         # Title and Steps
         self._title_frame = self.add_title(
             tr("boost_ai_title", "Phoenix Boost einrichten"),
-            tr("boost_qwen_setup_subtitle", "Schritt 2/2")
+            tr("boost_qwen_setup_subtitle", "Schritt 2/2 – Qwen2.5 3B")
         )
 
         card = self.add_card()
-        content = tk.Frame(card, bg=PHOENIX_THEME.elevated_bg)
-        content.pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y)
+        self._content = tk.Frame(card, bg=PHOENIX_THEME.elevated_bg)
+        self._content.pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y)
 
         # Instruction / Progress Title
+        self._desc_lbl = tk.Label(
+            self._content,
+            text=tr(
+                "boost_qwen_setup_desc_prompt",
+                "Jetzt wird das lokale KI-Modell für Phoenix Boost eingerichtet.\n\n"
+                "Snapdragon AI Studio lädt Qwen2.5 3B automatisch herunter."
+            ),
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_body,
+            anchor="w",
+            justify="left",
+            wraplength=440,
+        )
+        self._desc_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
+
+        # Status label (initially hidden or empty)
         self._status_lbl = tk.Label(
-            content,
-            text=tr("boost_qwen_downloading", "Qwen2.5 3B wird heruntergeladen"),
+            self._content,
+            text="",
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title,
             anchor="w",
         )
-        self._status_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
 
-        # Progress bar
+        # Progress bar (hidden initially)
         style = ttk.Style(self)
         style.theme_use("default")
         style.configure(
-            "Phoenix.Horizontal.TProgressbar",
+            "Qwen.Horizontal.TProgressbar",
             thickness=12,
             troughcolor=PHOENIX_THEME.card_bg,
             background=PHOENIX_THEME.accent,
@@ -87,41 +99,49 @@ class QwenSetupDialog(StudioDialog):
             lightcolor=PHOENIX_THEME.accent,
             darkcolor=PHOENIX_THEME.accent,
         )
-        
+
         self._progress_bar = ttk.Progressbar(
-            content,
-            style="Phoenix.Horizontal.TProgressbar",
+            self._content,
+            style="Qwen.Horizontal.TProgressbar",
             orient="horizontal",
             mode="determinate",
             maximum=100,
         )
-        self._progress_bar.pack(fill="x", pady=PHOENIX_THEME.space_md)
 
-        # Detail text / speed / state
-        self._detail_lbl = tk.Label(
-            content,
-            text=tr("boost_qwen_preparing", "Vorbereiten..."),
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_small,
-            anchor="w",
-            justify="left",
-            wraplength=440,
-        )
-        self._detail_lbl.pack(fill="x")
+        # Actions in footer
+        self._btn_container = tk.Frame(self.footer, bg=self.footer.cget("bg"))
+        self._btn_container.pack(anchor="center", expand=True)
 
-        # Action button in footer
-        self._action_btn = PhoenixButton(
-            self.footer,
+        self._secondary_btn = PhoenixButton(
+            self._btn_container,
             text=tr("cancel", "Abbrechen"),
             command=self._cancel_download,
             button_type="secondary",
-            width=150,
+            width=120,
         )
-        self._action_btn.pack(anchor="center")
+        self._secondary_btn.pack(side="left", padx=6)
+
+        self._primary_btn = PhoenixButton(
+            self._btn_container,
+            text=tr("boost_qwen_install_action", "Qwen2.5 3B installieren"),
+            command=self._start_download_workflow,
+            button_type="primary",
+            width=180,
+        )
+        self._primary_btn.pack(side="left", padx=6)
+
+    def _start_download_workflow(self) -> None:
+        self._primary_btn.pack_forget()
+        self._desc_lbl.configure(text=tr("boost_qwen_downloading_msg", "Qwen2.5 3B wird heruntergeladen …"))
+        self._status_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
+        self._status_lbl.configure(text="0 % heruntergeladen", fg=PHOENIX_THEME.text_muted)
+        self._progress_bar.pack(fill="x", pady=PHOENIX_THEME.space_md)
+
+        # Start download in background thread
+        threading.Thread(target=self._run_pull, daemon=True).start()
 
     def _run_pull(self) -> None:
-        # Find executable using same fallback as detect
+        # Find executable
         executable = shutil.which("ollama")
         if not executable:
             local_app_data = os.environ.get("LOCALAPPDATA")
@@ -146,7 +166,6 @@ class QwenSetupDialog(StudioDialog):
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
 
-            # Character-by-character parser to handle carriage returns (\r)
             buffer = ""
             while not self._is_cancelled:
                 char = self._process.stdout.read(1)
@@ -168,7 +187,7 @@ class QwenSetupDialog(StudioDialog):
             if exit_code == 0:
                 self.after(0, self._on_success_state)
             else:
-                self.after(0, self._on_failed, tr("boost_qwen_pull_failed", "Herunterladen des Modells fehlgeschlagen."))
+                self.after(0, self._on_failed, f"pull process returned non-zero exit code: {exit_code}")
 
         except Exception as e:
             if not self._is_cancelled:
@@ -176,16 +195,14 @@ class QwenSetupDialog(StudioDialog):
 
     def _parse_output_line(self, line: str) -> None:
         # Parse status and percentage
-        # Format example: downloading 862a5e4d2b27... 45.2% 72 MB/1.6 GB 12 MB/s
         if "manifest" in line:
             if "writing" in line:
-                self._detail_lbl.configure(text=tr("boost_status_installing", "Installation wird abgeschlossen …"))
+                self._desc_lbl.configure(text=tr("boost_status_installing", "Installation wird abgeschlossen …"))
             else:
-                self._detail_lbl.configure(text=tr("boost_qwen_preparing", "Vorbereitung …"))
+                self._desc_lbl.configure(text=tr("boost_qwen_preparing", "Vorbereitung …"))
         elif "verifying" in line:
-            self._detail_lbl.configure(text=tr("boost_status_verifying", "Installation wird abgeschlossen …"))
+            self._desc_lbl.configure(text=tr("boost_status_verifying", "Installation wird abgeschlossen …"))
         elif "downloading" in line:
-            # Extract percentage if present
             match = re.search(r"(\d+(?:\.\d+)?)%", line)
             if match:
                 try:
@@ -193,12 +210,12 @@ class QwenSetupDialog(StudioDialog):
                 except ValueError:
                     pct = 0
                 self._progress_bar["value"] = pct
-                self._detail_lbl.configure(text=tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct))
+                self._status_lbl.configure(text=tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct))
             else:
-                self._detail_lbl.configure(text=tr("boost_qwen_downloading_start", "Qwen2.5 3B wird heruntergeladen"))
+                self._status_lbl.configure(text=tr("boost_qwen_downloading_start", "Qwen2.5 3B wird heruntergeladen"))
         elif "success" in line:
             self._progress_bar["value"] = 100
-            self._detail_lbl.configure(text=tr("boost_status_completed", "Installation wird abgeschlossen …"))
+            self._desc_lbl.configure(text=tr("boost_status_completed", "Installation wird abgeschlossen …"))
 
     def _on_success_state(self) -> None:
         self._success = True
@@ -207,7 +224,7 @@ class QwenSetupDialog(StudioDialog):
         # Update Dialog title/steps
         for child in self._title_frame.winfo_children():
             child.destroy()
-        
+
         tk.Label(
             self._title_frame,
             text=tr("boost_ai_title", "Phoenix Boost einrichten"),
@@ -216,7 +233,7 @@ class QwenSetupDialog(StudioDialog):
             font=PHOENIX_THEME.font_section,
             anchor="w",
         ).pack(fill="x")
-        
+
         tk.Label(
             self._title_frame,
             text=tr("boost_qwen_setup_subtitle_done", "Schritt 2/2"),
@@ -231,30 +248,60 @@ class QwenSetupDialog(StudioDialog):
             text=tr("boost_ai_status_ready", "✓ Phoenix Boost ist bereit"),
             fg=PHOENIX_THEME.success,
         )
-        self._detail_lbl.configure(text=tr("boost_status_success_desc", "Das Modell wurde erfolgreich installiert."))
+        self._desc_lbl.configure(text=tr("boost_status_success_desc", "Qwen2.5 3B wurde erfolgreich eingerichtet."))
         self._progress_bar["value"] = 100
 
-        self._action_btn.configure(
-            text=tr("done", "Fertigstellen"),
+        self._secondary_btn.pack_forget()
+        self._primary_btn = PhoenixButton(
+            self._btn_container,
+            text=tr("done", "Fertig"),
             command=self._finish_success,
             button_type="primary",
+            width=120,
         )
+        self._primary_btn.pack(side="left", padx=6)
 
     def _on_failed(self, error_msg: str) -> None:
         logger.error("Qwen installation failed: %s", error_msg)
+        self._progress_bar.pack_forget()
         self._status_lbl.configure(text=tr("error", "Fehler"), fg=PHOENIX_THEME.danger)
-        self._detail_lbl.configure(
+        self._desc_lbl.configure(
             text=tr(
-                "boost_qwen_install_failed_friendly",
-                "Qwen2.5 3B konnte nicht installiert werden. Bitte prüfen Sie, ob Ollama ausgeführt wird, und versuchen Sie es erneut."
+                "boost_qwen_install_failed_friendly_new",
+                "Die Einrichtung konnte nicht abgeschlossen werden.\n"
+                "Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
             ),
             fg=PHOENIX_THEME.danger
         )
         self._progress_bar["value"] = 0
-        self._action_btn.configure(
-            text=tr("close", "Schließen"),
-            command=self.close,
+
+        # Show Retry (primary) and Cancel (secondary) side-by-side
+        for child in self._btn_container.winfo_children():
+            child.pack_forget()
+
+        self._secondary_btn = PhoenixButton(
+            self._btn_container,
+            text=tr("cancel", "Abbrechen"),
+            command=self._cancel_download,
+            button_type="secondary",
+            width=120,
         )
+        self._secondary_btn.pack(side="left", padx=6)
+
+        self._primary_btn = PhoenixButton(
+            self._btn_container,
+            text=tr("retry", "Erneut versuchen"),
+            command=self._retry_download_workflow,
+            button_type="primary",
+            width=180,
+        )
+        self._primary_btn.pack(side="left", padx=6)
+
+    def _retry_download_workflow(self) -> None:
+        self._is_cancelled = False
+        self._success = False
+        self._desc_lbl.configure(fg=PHOENIX_THEME.text_primary)
+        self._start_download_workflow()
 
     def _cancel_download(self) -> None:
         self._is_cancelled = True
