@@ -1126,6 +1126,172 @@ class ExpandablePromptTests(unittest.TestCase):
             self.assertTrue(dialog._success)
 
     @patch("widgets.phoenix.views.prompt_view.OllamaStatusService.detect")
+    def test_regression_main_text_and_action_when_not_ready(self, mock_detect) -> None:
+        mock_detect.return_value = OllamaStatus(installed=False, reachable=False, model_available=False)
+        self.view._boost_install_btn = MagicMock()
+        self.view._boost_ollama_status_lbl = MagicMock()
+        self.view._boost_model_status_lbl = MagicMock()
+        self.view._boost_ai_status_lbl = MagicMock()
+        self.view._boost_ai_info_lbl = MagicMock()
+
+        self.view._update_ollama_install_button(mock_detect.return_value)
+
+        self.view._boost_ai_info_lbl.configure.assert_called_with(
+            text=tr(
+                "boost_ai_setup_prompt",
+                "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
+                "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung."
+            )
+        )
+        self.view._boost_install_btn.configure.assert_called_with(
+            text=tr("boost_setup_action", "Phoenix Boost einrichten"),
+            command=self.view._open_ollama_download,
+            button_type="primary",
+            state="normal"
+        )
+
+    @patch("dialogs.ollama_setup_dialog.OllamaSetupDialog.__init__", return_value=None)
+    @patch("widgets.phoenix.views.prompt_view.OllamaStatusService.detect")
+    def test_regression_missing_ollama_opens_step1(self, mock_detect, mock_dialog) -> None:
+        mock_detect.return_value = OllamaStatus(installed=False, reachable=False, model_available=False)
+        self.view._update_ollama_install_button(mock_detect.return_value)
+        self.view._open_ollama_download()
+        mock_dialog.assert_called_once()
+
+    def test_regression_ollama_progress_updates_correctly(self) -> None:
+        from dialogs.ollama_setup_dialog import OllamaSetupDialog
+        with patch.object(OllamaSetupDialog, "wait_window"):
+            dialog = OllamaSetupDialog(self.root, on_detected=lambda: None)
+            dialog._update_download_progress(45, "45.0 MB von 100.0 MB")
+            self.assertEqual(dialog._progress_bar["value"], 45)
+            self.assertIn("45 % heruntergeladen", dialog._status_lbl.cget("text"))
+            self.assertIn("45.0 MB von 100.0 MB", dialog._desc_lbl.cget("text"))
+    @patch("dialogs.ollama_setup_dialog.subprocess.run")
+    @patch("dialogs.ollama_setup_dialog.subprocess.Popen")
+    @patch("urllib.request.urlopen")
+    @patch("dialogs.ollama_setup_dialog.OllamaStatusService.detect")
+    @patch("dialogs.ollama_setup_dialog.threading.Thread")
+    def test_regression_ollama_gui_suppression(self, mock_thread, mock_detect, mock_urlopen, mock_popen, mock_run) -> None:
+        import subprocess
+        from dialogs.ollama_setup_dialog import OllamaSetupDialog
+        from unittest.mock import mock_open, ANY
+        mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+        mock_detect.side_effect = [
+            OllamaStatus(installed=False, reachable=False),
+            OllamaStatus(installed=True, reachable=True)
+        ]
+        mock_response = MagicMock()
+        mock_response.getheader.return_value = "1024"
+        mock_response.read.side_effect = [b"a" * 1024, b""]
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        process = MagicMock()
+        process.wait.return_value = 0
+        mock_popen.return_value = process
+
+        def mock_after(ms, func, *args, **kwargs):
+            if "status_loop" in func.__name__ or func.__name__ == "check":
+                return
+            func(*args, **kwargs)
+
+        with patch.object(OllamaSetupDialog, "wait_window"), \
+             patch.object(OllamaSetupDialog, "after", side_effect=mock_after), \
+             patch("pathlib.Path.mkdir"), \
+             patch("pathlib.Path.unlink"), \
+             patch("pathlib.Path.is_file", return_value=True), \
+             patch("pathlib.Path.stat") as mock_stat, \
+             patch("builtins.open", new_callable=mock_open):
+            mock_stat.return_value.st_size = 1024
+            dialog = OllamaSetupDialog(self.root, on_detected=lambda: None)
+            dialog._primary_btn.command()
+
+            # Verify taskkill was run to suppress GUI
+            mock_run.assert_called_with(
+                ["taskkill", "/F", "/IM", "ollama app.exe"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=ANY
+            )
+            # Note: This mock assertion verifies the logic flow post-installation,
+            # but actual preservation of the localhost:11434 backend and survival of
+            # ollama.exe must be verified manually on a clean machine prior to RC2A release.
+            self.assertTrue(dialog._success)
+
+    def test_regression_qwen_output_parsing(self) -> None:
+        from dialogs.qwen_setup_dialog import QwenSetupDialog
+        with patch.object(QwenSetupDialog, "wait_window"):
+            dialog = QwenSetupDialog(self.root, on_success=lambda: None)
+
+            # 1. Parse real current output pulling digest
+            dialog._parse_output_line("pulling 5ee4f07cdb9b: 42% ... 806 MB/1.9 GB 6.8 MB/s ...")
+            self.assertEqual(dialog._progress_bar["value"], 42)
+            self.assertIn("42 % heruntergeladen", dialog._status_lbl.cget("text"))
+            self.assertIn("heruntergeladen", dialog._desc_lbl.cget("text"))
+
+            # 2. Parse older downloading format
+            dialog._parse_output_line("downloading layer 88%: 88%")
+            self.assertEqual(dialog._progress_bar["value"], 88)
+            self.assertIn("88 % heruntergeladen", dialog._status_lbl.cget("text"))
+
+            # 3. Parse manifest (should not failure, it is preparation state)
+            dialog._parse_output_line("pulling manifest")
+            self.assertIn("Vorbereitung", dialog._desc_lbl.cget("text"))
+
+    @patch("dialogs.qwen_setup_dialog.QwenSetupDialog.__init__", return_value=None)
+    @patch("dialogs.ollama_setup_dialog.OllamaSetupDialog.__init__", return_value=None)
+    @patch("widgets.phoenix.views.prompt_view.OllamaStatusService.detect")
+    def test_regression_ollama_available_qwen_missing_routing(self, mock_detect, mock_ollama_dlg, mock_qwen_dlg) -> None:
+        # Ollama available, Qwen missing
+        mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=False)
+        self.view._boost_install_btn = MagicMock()
+        self.view._boost_ollama_status_lbl = MagicMock()
+        self.view._boost_model_status_lbl = MagicMock()
+        self.view._boost_ai_status_lbl = MagicMock()
+        self.view._boost_ai_info_lbl = MagicMock()
+
+        self.view._update_ollama_install_button(mock_detect.return_value)
+        self.view._open_ollama_download()
+        # Should directly open Qwen dialog and skip Ollama
+        mock_qwen_dlg.assert_called_once()
+        mock_ollama_dlg.assert_not_called()
+
+    @patch("widgets.phoenix.views.prompt_view.OllamaStatusService.detect")
+    def test_regression_ollama_unreachable_state(self, mock_detect) -> None:
+        # Ollama installed but unreachable
+        mock_detect.return_value = OllamaStatus(installed=True, reachable=False, model_available=False)
+        self.view._boost_install_btn = MagicMock()
+        self.view._boost_ollama_status_lbl = MagicMock()
+        self.view._boost_model_status_lbl = MagicMock()
+        self.view._boost_ai_status_lbl = MagicMock()
+        self.view._boost_ai_info_lbl = MagicMock()
+
+        self.view._update_ollama_install_button(mock_detect.return_value)
+
+        self.view._boost_ollama_status_lbl.configure.assert_called_with(text="Ollama nicht erreichbar")
+        self.view._boost_model_status_lbl.configure.assert_called_with(text="Qwen2.5 3B: nicht verfügbar")
+        self.view._boost_ai_status_lbl.configure(text="Phoenix Boost ist noch nicht bereit")
+        self.view._boost_install_btn.configure.assert_called_with(
+            text="Ollama nicht erreichbar",
+            state="disabled"
+        )
+
+    @patch("widgets.phoenix.views.prompt_view.OllamaStatusService.detect")
+    def test_regression_fully_ready_state_wizard(self, mock_detect) -> None:
+        # Ollama ready + Qwen ready
+        mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=True)
+        self.view._boost_install_btn = MagicMock()
+        self.view._boost_ollama_status_lbl = MagicMock()
+        self.view._boost_model_status_lbl = MagicMock()
+        self.view._boost_ai_status_lbl = MagicMock()
+        self.view._boost_ai_info_lbl = MagicMock()
+
+        self.view._update_ollama_install_button(mock_detect.return_value)
+        self.view._boost_install_btn.configure.assert_called_with(
+            text=tr("boost_ai_ready_button", "Phoenix Boost AI bereit ✓"),
+            state="disabled"
+        )
+
+    @patch("widgets.phoenix.views.prompt_view.OllamaStatusService.detect")
     def test_regression_status_refresh_after_successful_installation(self, mock_detect) -> None:
         mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=False)
         self.view._update_ollama_install_button(mock_detect.return_value)

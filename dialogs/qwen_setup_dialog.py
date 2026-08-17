@@ -38,7 +38,7 @@ class QwenSetupDialog(StudioDialog):
 
         super().__init__(
             master,
-            title=tr("boost_ai_title", "Phoenix Boost einrichten"),
+            title=tr("boost_ai_title_dialog", "Phoenix Boost AI"),
             brand=brand,
             size=(540, 360),
             min_size=(480, 320),
@@ -52,7 +52,7 @@ class QwenSetupDialog(StudioDialog):
     def _build_ui(self) -> None:
         # Title and Steps
         self._title_frame = self.add_title(
-            tr("boost_ai_title", "Phoenix Boost einrichten"),
+            tr("boost_ai_title_dialog", "Phoenix Boost AI"),
             tr("boost_qwen_setup_subtitle", "Schritt 2/2 – Qwen2.5 3B")
         )
 
@@ -88,21 +88,9 @@ class QwenSetupDialog(StudioDialog):
         )
 
         # Progress bar (hidden initially)
-        style = ttk.Style(self)
-        style.theme_use("default")
-        style.configure(
-            "Qwen.Horizontal.TProgressbar",
-            thickness=12,
-            troughcolor=PHOENIX_THEME.card_bg,
-            background=PHOENIX_THEME.accent,
-            bordercolor=PHOENIX_THEME.border,
-            lightcolor=PHOENIX_THEME.accent,
-            darkcolor=PHOENIX_THEME.accent,
-        )
-
         self._progress_bar = ttk.Progressbar(
             self._content,
-            style="Qwen.Horizontal.TProgressbar",
+            style="Phoenix.Horizontal.TProgressbar",
             orient="horizontal",
             mode="determinate",
             maximum=100,
@@ -194,15 +182,20 @@ class QwenSetupDialog(StudioDialog):
                 self.after(0, self._on_failed, str(e))
 
     def _parse_output_line(self, line: str) -> None:
-        # Parse status and percentage
-        if "manifest" in line:
-            if "writing" in line:
+        # Parse status and percentage generically and safely
+        line_lower = line.lower()
+        if "manifest" in line_lower:
+            if "writing" in line_lower:
                 self._desc_lbl.configure(text=tr("boost_status_installing", "Installation wird abgeschlossen …"))
             else:
                 self._desc_lbl.configure(text=tr("boost_qwen_preparing", "Vorbereitung …"))
-        elif "verifying" in line:
+        elif "verifying" in line_lower:
             self._desc_lbl.configure(text=tr("boost_status_verifying", "Installation wird abgeschlossen …"))
-        elif "downloading" in line:
+        elif "success" in line_lower:
+            self._progress_bar["value"] = 100
+            self._desc_lbl.configure(text=tr("boost_status_completed", "Installation wird abgeschlossen …"))
+        elif "pulling" in line_lower or "downloading" in line_lower:
+            # Extract percentage from current pull or download output
             match = re.search(r"(\d+(?:\.\d+)?)%", line)
             if match:
                 try:
@@ -211,11 +204,10 @@ class QwenSetupDialog(StudioDialog):
                     pct = 0
                 self._progress_bar["value"] = pct
                 self._status_lbl.configure(text=tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct))
+                self._desc_lbl.configure(text=tr("boost_qwen_downloading_msg", "Qwen2.5 3B wird heruntergeladen …"))
             else:
                 self._status_lbl.configure(text=tr("boost_qwen_downloading_start", "Qwen2.5 3B wird heruntergeladen"))
-        elif "success" in line:
-            self._progress_bar["value"] = 100
-            self._desc_lbl.configure(text=tr("boost_status_completed", "Installation wird abgeschlossen …"))
+                self._desc_lbl.configure(text=tr("boost_qwen_downloading_msg", "Qwen2.5 3B wird heruntergeladen …"))
 
     def _on_success_state(self) -> None:
         self._success = True
@@ -227,7 +219,7 @@ class QwenSetupDialog(StudioDialog):
 
         tk.Label(
             self._title_frame,
-            text=tr("boost_ai_title", "Phoenix Boost einrichten"),
+            text=tr("boost_ai_title_dialog", "Phoenix Boost AI"),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,

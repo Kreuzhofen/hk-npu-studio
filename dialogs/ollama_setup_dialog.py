@@ -42,7 +42,7 @@ class OllamaSetupDialog(StudioDialog):
 
         super().__init__(
             master,
-            title=tr("boost_ai_title", "Phoenix Boost einrichten"),
+            title=tr("boost_ai_title_dialog", "Phoenix Boost AI"),
             brand=brand,
             size=(540, 360),
             min_size=(480, 320),
@@ -60,7 +60,7 @@ class OllamaSetupDialog(StudioDialog):
     def _build_ui(self) -> None:
         # Title and Subtitle
         self.add_title(
-            tr("boost_ai_title", "Phoenix Boost einrichten"),
+            tr("boost_ai_title_dialog", "Phoenix Boost AI"),
             tr("boost_ollama_setup_subtitle_step1", "Schritt 1/2 – Ollama")
         )
 
@@ -86,21 +86,9 @@ class OllamaSetupDialog(StudioDialog):
         self._desc_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
 
         # Progress bar (hidden initially)
-        style = ttk.Style(self)
-        style.theme_use("default")
-        style.configure(
-            "Ollama.Horizontal.TProgressbar",
-            thickness=12,
-            troughcolor=PHOENIX_THEME.card_bg,
-            background=PHOENIX_THEME.accent,
-            bordercolor=PHOENIX_THEME.border,
-            lightcolor=PHOENIX_THEME.accent,
-            darkcolor=PHOENIX_THEME.accent,
-        )
-
         self._progress_bar = ttk.Progressbar(
             content,
-            style="Ollama.Horizontal.TProgressbar",
+            style="Phoenix.Horizontal.TProgressbar",
             orient="horizontal",
             mode="determinate",
             maximum=100,
@@ -152,6 +140,7 @@ class OllamaSetupDialog(StudioDialog):
         temp_file = Path(TEMP_DIR) / "OllamaSetup.exe"
         try:
             TEMP_DIR.mkdir(parents=True, exist_ok=True)
+            self._safe_delete(temp_file)
 
             # 1. Download
             req = urllib.request.Request(
@@ -163,25 +152,34 @@ class OllamaSetupDialog(StudioDialog):
                 total_size = int(content_length) if content_length else None
 
                 downloaded = 0
-                with open(temp_file, "wb") as f:
-                    while not self._is_cancelled:
-                        chunk = response.read(65536)
-                        if not chunk:
-                            break
+                while not self._is_cancelled:
+                    chunk = response.read(65536)
+                    if not chunk:
+                        break
+                    with open(temp_file, "ab") as f:
                         f.write(chunk)
-                        downloaded += len(chunk)
+                    downloaded += len(chunk)
 
-                        if total_size:
-                            pct = int((downloaded / total_size) * 100)
-                            downloaded_mb = downloaded / (1024 * 1024)
-                            total_mb = total_size / (1024 * 1024)
-                            detail = f"{downloaded_mb:.1f} MB von {total_mb:.1f} MB"
-                        else:
-                            pct = 0
-                            downloaded_mb = downloaded / (1024 * 1024)
-                            detail = f"{downloaded_mb:.1f} MB heruntergeladen"
+                    if total_size:
+                        pct = int((downloaded / total_size) * 100)
+                        downloaded_mb = downloaded / (1024 * 1024)
+                        total_mb = total_size / (1024 * 1024)
+                        detail = tr(
+                            "boost_download_progress_mb",
+                            "{downloaded:.1f} MB von {total:.1f} MB",
+                            downloaded=downloaded_mb,
+                            total=total_mb
+                        )
+                    else:
+                        pct = 0
+                        downloaded_mb = downloaded / (1024 * 1024)
+                        detail = tr(
+                            "boost_download_progress_mb_unknown",
+                            "{downloaded:.1f} MB heruntergeladen",
+                            downloaded=downloaded_mb
+                        )
 
-                        self.after(0, self._update_download_progress, pct, detail)
+                    self.after(0, self._update_download_progress, pct, detail)
 
             if self._is_cancelled:
                 self._safe_delete(temp_file)
@@ -206,6 +204,17 @@ class OllamaSetupDialog(StudioDialog):
             if exit_code != 0:
                 self.after(0, self._on_install_failed, f"OllamaSetup.exe returned non-zero exit code: {exit_code}")
                 return
+
+            # Suppress/close the desktop GUI (ollama app.exe) if it was launched by the installer
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/IM", "ollama app.exe"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                )
+            except Exception:
+                pass
 
             # 3. Post-install verification and auto-start
             self.after(0, self._transition_to_verification)
@@ -254,7 +263,7 @@ class OllamaSetupDialog(StudioDialog):
 
     def _update_download_progress(self, pct: int, detail: str) -> None:
         self._progress_bar["value"] = pct
-        self._status_lbl.configure(text=f"{pct} % heruntergeladen")
+        self._status_lbl.configure(text=tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct))
         self._desc_lbl.configure(text=f"Ollama wird heruntergeladen …\n\n{detail}")
 
     def _transition_to_installing(self) -> None:

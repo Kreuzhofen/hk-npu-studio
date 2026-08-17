@@ -4204,34 +4204,38 @@ class PhoenixPromptView(WorkspaceFrame):
             )
         elif status.available:
             self._boost_ai_info_lbl.configure(text=tr(
-                "boost_ai_setup_qwen",
-                "Installieren Sie jetzt das benötigte Qwen-Modell. Snapdragon AI Studio startet den lokalen Download.",
+                "boost_ai_setup_prompt",
+                "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
+                "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung.",
             ))
             self._boost_install_btn.configure(
-                text=tr("boost_install_qwen", "Qwen2.5 3B installieren"),
-                command=self._confirm_qwen_install,
+                text=tr("boost_setup_action", "Phoenix Boost einrichten"),
+                command=self._open_ollama_download,
                 button_type="primary", state="normal",
             )
         else:
             if status.installed:
                 self._boost_ai_info_lbl.configure(text=tr(
-                    "boost_ollama_not_available",
-                    "Ollama nicht erreichbar",
+                    "boost_ollama_not_available_info",
+                    "Ollama ist installiert, aber nicht erreichbar. Bitte starten Sie Ollama.",
                 ))
                 self._boost_install_btn.configure(
-                    text=tr("boost_ollama_not_available", "Ollama nicht erreichbar"),
+                    text=tr("boost_ollama_not_available_btn", "Ollama nicht erreichbar"),
                     state="disabled",
                 )
             else:
                 self._boost_ai_info_lbl.configure(text=tr(
-                    "boost_ai_setup_ollama",
-                    "Installieren Sie zuerst Ollama. Die offizielle Downloadseite wird geöffnet; Ihre Bildgenerierung bleibt weiterhin verfügbar.",
+                    "boost_ai_setup_prompt",
+                    "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
+                    "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung.",
                 ))
                 self._boost_install_btn.configure(
-                    text=tr("boost_install_ollama", "Ollama installieren"),
+                    text=tr("boost_setup_action", "Phoenix Boost einrichten"),
                     command=self._open_ollama_download,
                     button_type="primary", state="normal",
                 )
+
+
 
     def _confirm_qwen_install(self) -> None:
         confirmed = messagebox.askokcancel(
@@ -4300,12 +4304,19 @@ class PhoenixPromptView(WorkspaceFrame):
             self._boost_ai_info_lbl.pack_forget()
 
     def _open_ollama_download(self) -> None:
-        from dialogs.ollama_setup_dialog import OllamaSetupDialog
-        OllamaSetupDialog(
-            self.winfo_toplevel(),
-            on_detected=self._on_ollama_detected,
-            brand=getattr(self, "brand", None),
-        )
+        OllamaStatusService.invalidate_cache()
+        status = OllamaStatusService.detect(force=True)
+        if status.available:
+            self._start_qwen_install_flow()
+        else:
+            from dialogs.ollama_setup_dialog import OllamaSetupDialog
+            OllamaSetupDialog(
+                self.winfo_toplevel(),
+                on_detected=self._on_ollama_detected,
+                brand=getattr(self, "brand", None),
+            )
+
+
 
     def _on_ollama_detected(self) -> None:
         OllamaStatusService.invalidate_cache()

@@ -4,6 +4,20 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [2.0 RC2A] – 2026-08-17
+
+### Hinzugefügt
+- **Phoenix Boost Einrichtungsassistent (Guided Setup)**: Neuer, vollständig geführter Installations- und Einrichtungsprozess für Ollama (Schritt 1/2) und das lokale Qwen2.5-3B-Modell (Schritt 2/2) im Snapdragon AI Studio.
+- **Lokalisierter Download- und Installationsfortschritt**: Visuelle Anzeige des Fortschritts (heruntergeladene MB, Gesamt-MB falls verfügbar, Prozentsatz) im einheitlichen Phoenix-Design mittels der Klasse `Phoenix.Horizontal.TProgressbar` zur Gewährleistung der Barrierefreiheit und Farbkonsistenz im Dark- und Light-Theme.
+- **Härtung und Fehlerbehandlung**: Vollständige Fehlererkennung anhand von Installations-Exit-Codes, Begrenzung von Autostart-Versuchen des Daemons auf maximal einen Versuch pro Polling-Intervall, sowie Integration einer benutzerfreundlichen Fehleranzeige mit den Aktionen "Erneut versuchen" und "Abbrechen".
+- **Unterdrückung der Ollama-Desktop-GUI**: Automatisches Schließen/Unterdrücken des Electron-Tray-Wrappers (`ollama app.exe`) nach der Installation; die tatsächliche Erhaltung des localhost:11434-Backends und des CLI-Daemons (`ollama.exe`) muss vor der Freigabe manuell auf einer sauberen Maschine verifiziert werden.
+- **Intelligente Routing-Logik**: Automatisches Überspringen von Schritt 1/2, falls Ollama bereits installiert und erreichbar ist, um den Benutzer direkt zum Qwen-Setup (Schritt 2/2) zu leiten.
+- **Modell-Download-Parser**: Robusterer, Regex-basierter Parser für den Fortschrittsausgang (`pulling <digest>: <percentage>%`), der die neuen Ausgaben der aktuellen Ollama-Versionen voll unterstützt.
+
+### Behoben
+- **Behebung des 0%-Fortschrittsfehlers**: Behebung des Fehlers beim Qwen-Modell-Download durch Anpassung des Parsers an die neue Ausgabe-Formatierung von Ollama.
+- **Beseitigung von unautorisierten Browser-Weiterleitungen**: Der Einrichtungsprozess verbleibt zu jeder Zeit innerhalb von Snapdragon AI Studio, ohne unkontrolliert Browserfenster im Vordergrund zu öffnen.
+
 ## [2.0 RC2] – 2026-08-12
 
 ### Hinzugefügt
