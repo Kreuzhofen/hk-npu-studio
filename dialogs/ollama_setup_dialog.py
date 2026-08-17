@@ -152,42 +152,76 @@ class OllamaSetupDialog(StudioDialog):
                 total_size = int(content_length) if content_length else None
 
                 downloaded = 0
-                while not self._is_cancelled:
-                    chunk = response.read(65536)
-                    if not chunk:
-                        break
-                    with open(temp_file, "ab") as f:
+                last_update_time = 0.0
+                chunk_size = 262144  # 256 KB
+
+                with open(temp_file, "wb") as f:
+                    while not self._is_cancelled:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
                         f.write(chunk)
-                    downloaded += len(chunk)
+                        downloaded += len(chunk)
 
-                    if total_size:
-                        pct = int((downloaded / total_size) * 100)
-                        downloaded_mb = downloaded / (1024 * 1024)
-                        total_mb = total_size / (1024 * 1024)
-                        detail = tr(
-                            "boost_download_progress_mb",
-                            "{downloaded:.1f} MB von {total:.1f} MB",
-                            downloaded=downloaded_mb,
-                            total=total_mb
-                        )
-                    else:
-                        pct = 0
-                        downloaded_mb = downloaded / (1024 * 1024)
-                        detail = tr(
-                            "boost_download_progress_mb_unknown",
-                            "{downloaded:.1f} MB heruntergeladen",
-                            downloaded=downloaded_mb
-                        )
-
-                    self.after(0, self._update_download_progress, pct, detail)
+                        now = time.time()
+                        # Throttle UI updates to at most 10 times per second (every 0.1s)
+                        if now - last_update_time >= 0.1 or (total_size and downloaded >= total_size):
+                            if total_size:
+                                pct = int((downloaded / total_size) * 100)
+                                downloaded_mb = downloaded / (1024 * 1024)
+                                total_mb = total_size / (1024 * 1024)
+                                detail = tr(
+                                    "boost_download_progress_mb",
+                                    "{downloaded:.1f} MB von {total:.1f} MB",
+                                    downloaded=downloaded_mb,
+                                    total=total_mb
+                                )
+                            else:
+                                pct = 0
+                                downloaded_mb = downloaded / (1024 * 1024)
+                                detail = tr(
+                                    "boost_download_progress_mb_unknown",
+                                    "{downloaded:.1f} MB heruntergeladen",
+                                    downloaded=downloaded_mb
+                                )
+                            self.after(0, self._update_download_progress, pct, detail)
+                            last_update_time = now
 
             if self._is_cancelled:
                 self._safe_delete(temp_file)
                 return
 
-            # Validate download
-            if not temp_file.is_file() or temp_file.stat().st_size == 0:
-                raise RuntimeError("Download validation failed: empty file or not created.")
+            # Validate completeness
+            if total_size is not None:
+                if downloaded < total_size:
+                    raise RuntimeError(
+                        f"Incomplete download: received {downloaded} bytes of expected {total_size} bytes."
+                    )
+            else:
+                if downloaded <= 0 or not temp_file.is_file() or temp_file.stat().st_size <= 0:
+                    raise RuntimeError(
+                        "Incomplete download: empty file or no bytes received."
+                    )
+
+            # Final 100% UI update occurs ONLY after successful validation
+            if total_size:
+                pct = 100
+                downloaded_mb = total_size / (1024 * 1024)
+                detail = tr(
+                    "boost_download_progress_mb",
+                    "{downloaded:.1f} MB von {total:.1f} MB",
+                    downloaded=downloaded_mb,
+                    total=downloaded_mb
+                )
+            else:
+                pct = 100
+                downloaded_mb = downloaded / (1024 * 1024)
+                detail = tr(
+                    "boost_download_progress_mb_unknown",
+                    "{downloaded:.1f} MB heruntergeladen",
+                    downloaded=downloaded_mb
+                )
+            self.after(0, self._update_download_progress, pct, detail)
 
             # 2. Installation
             self.after(0, self._transition_to_installing)

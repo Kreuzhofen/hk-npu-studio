@@ -1059,7 +1059,7 @@ class ExpandablePromptTests(unittest.TestCase):
                 raise Exception("HTTP 500")
             mock_res = MagicMock()
             mock_res.getheader.return_value = "1024"
-            mock_res.read.side_effect = [b"a" * 512, b""]
+            mock_res.read.side_effect = [b"a" * 1024, b""]
             mock_context = MagicMock()
             mock_context.__enter__.return_value = mock_res
             return mock_context
@@ -1300,6 +1300,97 @@ class ExpandablePromptTests(unittest.TestCase):
         mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=True)
         self.view._on_qwen_installed_success()
         self.assertTrue(self.view._ollama_status.model_available)
+
+
+    @patch("dialogs.ollama_setup_dialog.urllib.request.urlopen")
+    @patch("dialogs.ollama_setup_dialog.threading.Thread")
+    @patch("dialogs.ollama_setup_dialog.OllamaStatusService.detect")
+    def test_regression_download_completeness_success(self, mock_detect, mock_thread, mock_urlopen) -> None:
+        from dialogs.ollama_setup_dialog import OllamaSetupDialog
+        from unittest.mock import mock_open
+
+        mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+        mock_detect.side_effect = [
+            OllamaStatus(installed=False, reachable=False),
+            OllamaStatus(installed=True, reachable=True)
+        ]
+
+        mock_response = MagicMock()
+        mock_response.getheader.return_value = "1024"
+        mock_response.read.side_effect = [b"a" * 1024, b""]
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        def mock_after(ms, func, *args, **kwargs):
+            if "status_loop" in func.__name__ or func.__name__ == "check":
+                return
+            func(*args, **kwargs)
+
+        with patch.object(OllamaSetupDialog, "wait_window"),              patch.object(OllamaSetupDialog, "after", side_effect=mock_after) as mock_after_obj,              patch("pathlib.Path.mkdir"),              patch("pathlib.Path.unlink"),              patch("pathlib.Path.is_file", return_value=True),              patch("pathlib.Path.stat") as mock_stat,              patch("builtins.open", new_callable=mock_open),              patch("dialogs.ollama_setup_dialog.subprocess.Popen") as mock_popen:
+            mock_stat.return_value.st_size = 1024
+
+            process = MagicMock()
+            process.wait.return_value = 0
+            process.communicate.return_value = (b"", b"")
+            mock_popen.return_value = process
+
+            dialog = OllamaSetupDialog(self.root, on_detected=lambda: None)
+            dialog._primary_btn.command()
+
+            from unittest.mock import ANY
+            from config import TEMP_DIR
+            mock_popen.assert_any_call(
+                [str(Path(TEMP_DIR) / "OllamaSetup.exe"), "/VERYSILENT", "/SUPPRESSMSGBOXES"],
+                creationflags=ANY
+            )
+            self.assertTrue(dialog._success)
+
+            called_100 = False
+            for call in mock_after_obj.call_args_list:
+                args = call[0]
+                if len(args) >= 3 and args[1] == dialog._update_download_progress:
+                    if args[2] == 100:
+                        called_100 = True
+            self.assertTrue(called_100)
+
+    @patch("dialogs.ollama_setup_dialog.urllib.request.urlopen")
+    @patch("dialogs.ollama_setup_dialog.threading.Thread")
+    @patch("dialogs.ollama_setup_dialog.OllamaStatusService.detect")
+    def test_regression_download_completeness_premature_eof(self, mock_detect, mock_thread, mock_urlopen) -> None:
+        from dialogs.ollama_setup_dialog import OllamaSetupDialog
+        from unittest.mock import mock_open
+
+        mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+        mock_detect.side_effect = [
+            OllamaStatus(installed=False, reachable=False),
+            OllamaStatus(installed=False, reachable=False)
+        ]
+
+        mock_response = MagicMock()
+        mock_response.getheader.return_value = "1024"
+        mock_response.read.side_effect = [b"a" * 500, b""]
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        def mock_after(ms, func, *args, **kwargs):
+            if "status_loop" in func.__name__ or func.__name__ == "check":
+                return
+            func(*args, **kwargs)
+
+        with patch.object(OllamaSetupDialog, "wait_window"),              patch.object(OllamaSetupDialog, "after", side_effect=mock_after) as mock_after_obj,              patch("pathlib.Path.mkdir"),              patch("pathlib.Path.unlink") as mock_unlink,              patch("pathlib.Path.is_file", return_value=True),              patch("pathlib.Path.stat") as mock_stat,              patch("builtins.open", new_callable=mock_open),              patch("dialogs.ollama_setup_dialog.subprocess.Popen") as mock_popen:
+            mock_stat.return_value.st_size = 500
+            dialog = OllamaSetupDialog(self.root, on_detected=lambda: None)
+            dialog._primary_btn.command()
+
+            mock_popen.assert_not_called()
+            self.assertFalse(dialog._success)
+
+            called_100 = False
+            for call in mock_after_obj.call_args_list:
+                args = call[0]
+                if len(args) >= 3 and args[1] == dialog._update_download_progress:
+                    if args[2] == 100:
+                        called_100 = True
+            self.assertFalse(called_100)
+            mock_unlink.assert_called()
 
 
 if __name__ == "__main__":
