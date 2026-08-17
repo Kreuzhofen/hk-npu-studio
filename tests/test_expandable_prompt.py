@@ -635,6 +635,8 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(suggestion.analysis.style, "realistic photography")
 
     def test_controlnet_prevents_boost_resolution_change(self) -> None:
+        self.view.width_var.set("512")
+        self.view.height_var.set("512")
         self.view.prompt_text.insert("1.0", "A landscape photograph")
         self.view.canny_supported = True
         self.view.active_tab = "canny"
@@ -707,6 +709,49 @@ class ExpandablePromptTests(unittest.TestCase):
                 locale,
             )
             self.assertNotIn("{", data["boost_sampler_label"] + data["boost_scheduler_label"])
+
+    @patch("engine.ollama_status.urlopen", side_effect=OSError("not reachable"))
+    @patch("engine.ollama_status.shutil.which", return_value=None)
+    @patch("os.environ.get", return_value=None)
+    def test_regression_ollama_missing(self, mock_env, _which, open_url) -> None:
+        OllamaStatusService.invalidate_cache()
+        status = OllamaStatusService.detect(force=True)
+        self.assertFalse(status.installed)
+        self.assertFalse(status.reachable)
+        self.assertFalse(status.model_available)
+        self.assertFalse(status.ai_ready)
+
+    @patch("engine.ollama_status.urlopen", side_effect=OSError("service offline"))
+    @patch("engine.ollama_status.shutil.which", return_value="C:/Ollama/ollama.exe")
+    def test_regression_ollama_present_but_service_unavailable(self, _which, open_url) -> None:
+        OllamaStatusService.invalidate_cache()
+        status = OllamaStatusService.detect(force=True)
+        self.assertTrue(status.installed)
+        self.assertFalse(status.reachable)
+        self.assertFalse(status.model_available)
+        self.assertFalse(status.ai_ready)
+
+    @patch("engine.ollama_status.urlopen")
+    @patch("engine.ollama_status.shutil.which", return_value="C:/Ollama/ollama.exe")
+    def test_regression_ollama_available_qwen_model_missing(self, _which, open_url) -> None:
+        open_url.return_value = self._url_response({"models": [{"name": "other_model:latest"}]})
+        OllamaStatusService.invalidate_cache()
+        status = OllamaStatusService.detect(force=True)
+        self.assertTrue(status.installed)
+        self.assertTrue(status.reachable)
+        self.assertFalse(status.model_available)
+        self.assertFalse(status.ai_ready)
+
+    @patch("engine.ollama_status.urlopen")
+    @patch("engine.ollama_status.shutil.which", return_value="C:/Ollama/ollama.exe")
+    def test_regression_ollama_available_qwen_model_installed(self, _which, open_url) -> None:
+        open_url.return_value = self._url_response({"models": [{"name": "qwen2.5:3b"}]})
+        OllamaStatusService.invalidate_cache()
+        status = OllamaStatusService.detect(force=True)
+        self.assertTrue(status.installed)
+        self.assertTrue(status.reachable)
+        self.assertTrue(status.model_available)
+        self.assertTrue(status.ai_ready)
 
 
 if __name__ == "__main__":

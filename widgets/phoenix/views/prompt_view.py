@@ -4179,10 +4179,13 @@ class PhoenixPromptView(WorkspaceFrame):
         self._ollama_status = status
         if self._boost_install_btn is None or not self._boost_install_btn.winfo_exists():
             return
-        self._boost_ollama_status_lbl.configure(text=tr(
-            "boost_ollama_status_ready" if status.available else "boost_ollama_status_missing",
-            "Ollama: bereit" if status.available else "Ollama: nicht installiert",
-        ))
+        if status.available:
+            ollama_text = tr("boost_ollama_status_ready", "Ollama: bereit")
+        elif status.installed:
+            ollama_text = tr("boost_ollama_not_available", "Ollama nicht erreichbar")
+        else:
+            ollama_text = tr("boost_ollama_status_missing", "Ollama: nicht installiert")
+        self._boost_ollama_status_lbl.configure(text=ollama_text)
         self._boost_model_status_lbl.configure(text=tr(
             "boost_model_status_ready" if status.model_available else "boost_model_status_missing",
             "Qwen2.5 3B: installiert" if status.model_available else "Qwen2.5 3B: nicht installiert",
@@ -4210,15 +4213,25 @@ class PhoenixPromptView(WorkspaceFrame):
                 button_type="primary", state="normal",
             )
         else:
-            self._boost_ai_info_lbl.configure(text=tr(
-                "boost_ai_setup_ollama",
-                "Installieren Sie zuerst Ollama. Die offizielle Downloadseite wird geöffnet; Ihre Bildgenerierung bleibt weiterhin verfügbar.",
-            ))
-            self._boost_install_btn.configure(
-                text=tr("boost_install_ollama", "Ollama installieren"),
-                command=self._open_ollama_download,
-                button_type="primary", state="normal",
-            )
+            if status.installed:
+                self._boost_ai_info_lbl.configure(text=tr(
+                    "boost_ollama_not_available",
+                    "Ollama nicht erreichbar",
+                ))
+                self._boost_install_btn.configure(
+                    text=tr("boost_ollama_not_available", "Ollama nicht erreichbar"),
+                    state="disabled",
+                )
+            else:
+                self._boost_ai_info_lbl.configure(text=tr(
+                    "boost_ai_setup_ollama",
+                    "Installieren Sie zuerst Ollama. Die offizielle Downloadseite wird geöffnet; Ihre Bildgenerierung bleibt weiterhin verfügbar.",
+                ))
+                self._boost_install_btn.configure(
+                    text=tr("boost_install_ollama", "Ollama installieren"),
+                    command=self._open_ollama_download,
+                    button_type="primary", state="normal",
+                )
 
     def _confirm_qwen_install(self) -> None:
         confirmed = messagebox.askokcancel(
