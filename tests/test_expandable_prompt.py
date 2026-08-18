@@ -36,7 +36,7 @@ ThemeManager.palette = MagicMock(return_value=dummy_palette)
 
 from controllers.prompt_workspace_controller import PromptWorkspaceController
 from engine.brand_manager import BrandManager
-from engine.boost_ai_service import BoostAIService
+from engine.boost_ai_service import BoostAIService, BoostAIRun
 from engine.boost_engine import PhoenixBoostEngine
 from engine.ollama_status import OllamaStatus, OllamaStatusService
 from widgets.phoenix.views.prompt_view import PhoenixPromptView
@@ -587,6 +587,61 @@ class ExpandablePromptTests(unittest.TestCase):
             self._url_response({"response": "not-json"}),
         ]
         self.assertIsNone(BoostAIService.optimize("one giraffe"))
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_timeout_equals_configured_limit(self, open_url) -> None:
+        open_url.side_effect = [
+            self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
+            self._url_response({"response": "{}"}),
+        ]
+        BoostAIService.optimize_with_status("test prompt")
+        model_call, generate_call = open_url.call_args_list
+        timeout_kw = generate_call[1].get("timeout")
+        self.assertEqual(timeout_kw, BoostAIService.REQUEST_TIMEOUT_SECONDS)
+        self.assertEqual(BoostAIService.REQUEST_TIMEOUT_SECONDS, 120.0)
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_accepts_response_between_60s_and_120s(self, open_url) -> None:
+        structured = {
+            "main_object": "giraffe", "count": 1, "action": "holding",
+            "relationships": ["holding a balloon string in its mouth"],
+            "environment": "savanna", "style": "realistic photography",
+            "optimized_prompt": "one giraffe holding a red balloon",
+            "negative_prompt": "extra animals",
+        }
+        open_url.side_effect = [
+            self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
+            self._url_response({"response": json.dumps(structured)}),
+        ]
+        counter_values = [0.0, 90.0]
+        def mock_perf_counter():
+            if counter_values:
+                return counter_values.pop(0)
+            return 90.0
+        with patch("time.perf_counter", side_effect=mock_perf_counter):
+            run_result = BoostAIService.optimize_with_status("Eine Giraffe")
+            self.assertIsNotNone(run_result.result)
+            self.assertEqual(run_result.outcome, "success")
+            self.assertEqual(run_result.result.optimized_prompt, "one giraffe holding a red balloon")
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_timeout_graceful_fallback(self, open_url) -> None:
+        from urllib.error import URLError
+        open_url.side_effect = [
+            self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
+            URLError("timeout"),
+        ]
+        run_result = BoostAIService.optimize_with_status("test prompt")
+        self.assertIsNone(run_result.result)
+        self.assertEqual(run_result.outcome, "failed")
+
+    def test_boost_ai_gui_countdown_uses_same_timeout(self) -> None:
+        self.view.prompt_text.insert("1.0", "A mountain landscape")
+        with patch.object(BoostAIService, "optimize_with_status", return_value=BoostAIRun(None, "unavailable", 0.0)):
+            self.view._open_boost_preview()
+            self.assertEqual(float(self.view._boost_countdown_bar.cget("maximum")), BoostAIService.REQUEST_TIMEOUT_SECONDS)
+            self.assertEqual(float(self.view._boost_countdown_bar.cget("value")), BoostAIService.REQUEST_TIMEOUT_SECONDS)
+            self.view._boost_popup.destroy()
 
     def test_boost_cancel_changes_nothing(self) -> None:
         self.view.prompt_text.insert("1.0", "A mountain landscape")

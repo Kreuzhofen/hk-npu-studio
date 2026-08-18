@@ -56,7 +56,7 @@ class BoostAIRun:
 class BoostAIService:
     BASE_URL = "http://127.0.0.1:11434"
     MODEL = "qwen2.5:3b"
-    REQUEST_TIMEOUT_SECONDS = 60.0
+    REQUEST_TIMEOUT_SECONDS = 120.0
     MAX_OUTPUT_TOKENS = 320
     RESPONSE_SCHEMA = {
         "type": "object",
