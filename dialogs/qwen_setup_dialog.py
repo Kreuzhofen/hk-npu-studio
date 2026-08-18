@@ -35,13 +35,14 @@ class QwenSetupDialog(StudioDialog):
         self._process: subprocess.Popen | None = None
         self._is_cancelled = False
         self._success = False
+        self._is_active = True
 
         super().__init__(
             master,
             title=tr("boost_ai_title_dialog", "Phoenix Boost AI"),
             brand=brand,
-            size=(540, 360),
-            min_size=(480, 320),
+            size=(540, 380),
+            min_size=(480, 340),
             resizable=False,
         )
 
@@ -60,6 +61,29 @@ class QwenSetupDialog(StudioDialog):
         self._content = tk.Frame(card, bg=PHOENIX_THEME.elevated_bg)
         self._content.pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y)
 
+        # Component Header Frame
+        comp_frame = tk.Frame(self._content, bg=PHOENIX_THEME.elevated_bg)
+        comp_frame.pack(fill="x", pady=(0, PHOENIX_THEME.space_xs))
+
+        # Try to load icon
+        project_root = Path(__file__).resolve().parent.parent
+        icon_path = project_root / "assets" / "integrations" / "qwen.jpg"
+        self._icon_photo = self._load_icon_asset(icon_path, target_height=24)
+        if self._icon_photo:
+            self._icon_lbl = tk.Label(comp_frame, image=self._icon_photo, bg=PHOENIX_THEME.elevated_bg)
+            self._icon_lbl.pack(side="left", padx=(0, PHOENIX_THEME.space_sm))
+            self._icon_image_ref = self._icon_photo
+
+        self._comp_lbl = tk.Label(
+            comp_frame,
+            text="Qwen2.5 3B",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        )
+        self._comp_lbl.pack(side="left")
+
         # Instruction / Progress Title
         self._desc_lbl = tk.Label(
             self._content,
@@ -69,23 +93,13 @@ class QwenSetupDialog(StudioDialog):
                 "Snapdragon AI Studio lädt Qwen2.5 3B automatisch herunter."
             ),
             bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
+            fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
             anchor="w",
             justify="left",
             wraplength=440,
         )
         self._desc_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
-
-        # Status label (initially hidden or empty)
-        self._status_lbl = tk.Label(
-            self._content,
-            text="",
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_card_title,
-            anchor="w",
-        )
 
         # Progress bar (hidden initially)
         self._progress_bar = ttk.Progressbar(
@@ -94,6 +108,17 @@ class QwenSetupDialog(StudioDialog):
             orient="horizontal",
             mode="determinate",
             maximum=100,
+        )
+
+        # Status label (hidden initially, packed after progress bar)
+        self._status_lbl = tk.Label(
+            self._content,
+            text="",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+            justify="left",
         )
 
         # Actions in footer
@@ -121,9 +146,9 @@ class QwenSetupDialog(StudioDialog):
     def _start_download_workflow(self) -> None:
         self._primary_btn.pack_forget()
         self._desc_lbl.configure(text=tr("boost_qwen_downloading_msg", "Qwen2.5 3B wird heruntergeladen …"))
+        self._progress_bar.pack(fill="x", pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_xs))
         self._status_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
         self._status_lbl.configure(text="0 % heruntergeladen", fg=PHOENIX_THEME.text_muted)
-        self._progress_bar.pack(fill="x", pady=PHOENIX_THEME.space_md)
 
         # Start download in background thread
         threading.Thread(target=self._run_pull, daemon=True).start()
@@ -138,7 +163,7 @@ class QwenSetupDialog(StudioDialog):
                 if default_path.is_file():
                     executable = str(default_path)
         if not executable:
-            self.after(
+            self._safe_after(
                 0,
                 self._on_failed,
                 tr("boost_ollama_not_found", "Ollama-Programm wurde nicht gefunden.")
@@ -165,7 +190,7 @@ class QwenSetupDialog(StudioDialog):
                     except Exception:
                         line = ""
                     if line:
-                        self.after(0, self._parse_output_line, line)
+                        self._safe_after(0, self._parse_output_line, line)
                     buffer = b""
                 else:
                     buffer += char_bytes
@@ -179,25 +204,32 @@ class QwenSetupDialog(StudioDialog):
             OllamaStatusService.invalidate_cache()
             status = OllamaStatusService.detect(force=True)
             if status.model_available:
-                self.after(0, self._on_success_state)
+                self._safe_after(0, self._on_success_state)
             else:
-                self.after(0, self._on_failed, f"Qwen model not found after pull. Exit code: {exit_code}")
+                self._safe_after(0, self._on_failed, f"Qwen model not found after pull. Exit code: {exit_code}")
         except Exception as e:
             if not self._is_cancelled:
-                self.after(0, self._on_failed, str(e))
+                self._safe_after(0, self._on_failed, str(e))
 
     def _parse_output_line(self, line: str) -> None:
         line_lower = line.lower()
         if "manifest" in line_lower:
             if "writing" in line_lower:
+                self._update_progressbar("indeterminate")
                 self._desc_lbl.configure(text=tr("boost_status_installing", "Installation wird abgeschlossen …"))
+                self._status_lbl.configure(text=tr("boost_status_installing", "Installation wird abgeschlossen …"), fg=PHOENIX_THEME.warning)
             else:
+                self._update_progressbar("indeterminate")
                 self._desc_lbl.configure(text=tr("boost_qwen_preparing", "Vorbereitung …"))
+                self._status_lbl.configure(text=tr("boost_qwen_preparing", "Vorbereitung …"), fg=PHOENIX_THEME.warning)
         elif "verifying" in line_lower:
+            self._update_progressbar("indeterminate")
             self._desc_lbl.configure(text=tr("boost_status_verifying", "Installation wird abgeschlossen …"))
+            self._status_lbl.configure(text=tr("boost_status_verifying", "Installation wird abgeschlossen …"), fg=PHOENIX_THEME.warning)
         elif "success" in line_lower:
-            self._progress_bar["value"] = 100
+            self._update_progressbar("determinate", 100)
             self._desc_lbl.configure(text=tr("boost_status_completed", "Installation wird abgeschlossen …"))
+            self._status_lbl.configure(text=tr("boost_status_completed", "Installation wird abgeschlossen …"), fg=PHOENIX_THEME.success)
         elif "pulling" in line_lower or "downloading" in line_lower:
             # Extract percentage from current pull or download output
             match = re.search(r"(\d+(?:\.\d+)?)%", line)
@@ -206,16 +238,17 @@ class QwenSetupDialog(StudioDialog):
                     pct = int(float(match.group(1)))
                 except ValueError:
                     pct = 0
-                self._progress_bar["value"] = pct
-                self._status_lbl.configure(text=tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct))
+                self._update_progressbar("determinate", pct)
+                self._status_lbl.configure(text=tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct), fg=PHOENIX_THEME.text_secondary)
                 self._desc_lbl.configure(text=tr("boost_qwen_downloading_msg", "Qwen2.5 3B wird heruntergeladen …"))
             else:
-                self._status_lbl.configure(text=tr("boost_qwen_downloading_start", "Qwen2.5 3B wird heruntergeladen"))
+                self._status_lbl.configure(text=tr("boost_qwen_downloading_start", "Qwen2.5 3B wird heruntergeladen"), fg=PHOENIX_THEME.text_secondary)
                 self._desc_lbl.configure(text=tr("boost_qwen_downloading_msg", "Qwen2.5 3B wird heruntergeladen …"))
 
     def _on_success_state(self) -> None:
         self._success = True
         OllamaStatusService.invalidate_cache()
+        self._update_progressbar("determinate", 100)
 
         # Update Dialog title/steps
         for child in self._title_frame.winfo_children():
@@ -245,7 +278,6 @@ class QwenSetupDialog(StudioDialog):
             fg=PHOENIX_THEME.success,
         )
         self._desc_lbl.configure(text=tr("boost_status_success_desc", "Qwen2.5 3B wurde erfolgreich eingerichtet."))
-        self._progress_bar["value"] = 100
 
         self._secondary_btn.pack_forget()
         self._primary_btn = PhoenixButton(
@@ -259,6 +291,7 @@ class QwenSetupDialog(StudioDialog):
 
     def _on_failed(self, error_msg: str) -> None:
         logger.error("Qwen installation failed: %s", error_msg)
+        self._update_progressbar("determinate", 0)
         self._progress_bar.pack_forget()
         self._status_lbl.configure(text=tr("error", "Fehler"), fg=PHOENIX_THEME.danger)
         self._desc_lbl.configure(
@@ -313,5 +346,52 @@ class QwenSetupDialog(StudioDialog):
         self._on_success()
 
     def close(self) -> None:
+        self._is_active = False
         self._is_cancelled = True
         super().close()
+
+    def _safe_after(self, ms: int, func: Callable, *args) -> None:
+        try:
+            if self._is_active and self.winfo_exists():
+                self.after(ms, func, *args)
+        except (tk.TclError, RuntimeError):
+            pass
+
+    def _load_icon_asset(self, path_str: str, target_height: int = 24) -> ImageTk.PhotoImage | None:
+        try:
+            path = Path(path_str)
+            if not path.is_file():
+                return None
+            from PIL import Image, ImageTk
+            with Image.open(path) as img:
+                w, h = img.size
+                if w <= 0 or h <= 0:
+                    return None
+                aspect = w / h
+                target_width = int(target_height * aspect)
+                try:
+                    resample = Image.Resampling.LANCZOS
+                except AttributeError:
+                    try:
+                        resample = Image.LANCZOS
+                    except AttributeError:
+                        resample = Image.ANTIALIAS
+                resized_img = img.resize((target_width, target_height), resample)
+                photo = ImageTk.PhotoImage(resized_img)
+                return photo
+        except Exception as e:
+            logger.debug(f"Failed to load icon from {path_str}: {e}")
+            return None
+
+    def _update_progressbar(self, mode: str, value: int | None = None) -> None:
+        try:
+            current_mode = str(self._progress_bar.cget("mode"))
+            if current_mode != mode:
+                self._progress_bar.stop()
+                self._progress_bar.configure(mode=mode)
+                if mode == "indeterminate":
+                    self._progress_bar.start(10)
+            if mode == "determinate" and value is not None:
+                self._progress_bar["value"] = value
+        except Exception:
+            pass

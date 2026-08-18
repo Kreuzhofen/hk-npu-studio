@@ -44,8 +44,8 @@ class OllamaSetupDialog(StudioDialog):
             master,
             title=tr("boost_ai_title_dialog", "Phoenix Boost AI"),
             brand=brand,
-            size=(540, 360),
-            min_size=(480, 320),
+            size=(540, 380),
+            min_size=(480, 340),
             resizable=False,
         )
 
@@ -68,6 +68,29 @@ class OllamaSetupDialog(StudioDialog):
         content = tk.Frame(card, bg=PHOENIX_THEME.elevated_bg)
         content.pack(fill="both", expand=True, padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y)
 
+        # Component Header Frame
+        comp_frame = tk.Frame(content, bg=PHOENIX_THEME.elevated_bg)
+        comp_frame.pack(fill="x", pady=(0, PHOENIX_THEME.space_xs))
+
+        # Try to load icon
+        project_root = Path(__file__).resolve().parent.parent
+        icon_path = project_root / "assets" / "integrations" / "ollama.png"
+        self._icon_photo = self._load_icon_asset(icon_path, target_height=24)
+        if self._icon_photo:
+            self._icon_lbl = tk.Label(comp_frame, image=self._icon_photo, bg=PHOENIX_THEME.elevated_bg)
+            self._icon_lbl.pack(side="left", padx=(0, PHOENIX_THEME.space_sm))
+            self._icon_image_ref = self._icon_photo
+
+        self._comp_lbl = tk.Label(
+            comp_frame,
+            text="Ollama",
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.accent,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+        )
+        self._comp_lbl.pack(side="left")
+
         # Instructions
         self._desc_lbl = tk.Label(
             content,
@@ -77,7 +100,7 @@ class OllamaSetupDialog(StudioDialog):
                 "Snapdragon AI Studio lädt die benötigte Ollama-Installation herunter und führt Sie anschließend automatisch weiter."
             ),
             bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
+            fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
             anchor="w",
             justify="left",
@@ -94,16 +117,16 @@ class OllamaSetupDialog(StudioDialog):
             maximum=100,
         )
 
-        # Status Label
+        # Status Label (hidden initially, packed after progress bar)
         self._status_lbl = tk.Label(
             content,
             text="",
             bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.warning,
-            font=PHOENIX_THEME.font_card_title,
-            anchor="center",
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+            justify="left",
         )
-        self._status_lbl.pack(fill="x", pady=(PHOENIX_THEME.space_sm, 0))
 
         # Actions in footer packed side-by-side centered
         self._btn_container = tk.Frame(self.footer, bg=self.footer.cget("bg"))
@@ -130,7 +153,8 @@ class OllamaSetupDialog(StudioDialog):
     def _start_install_workflow(self) -> None:
         self._primary_btn.pack_forget()
         self._desc_lbl.configure(text=tr("boost_ollama_downloading_msg", "Ollama wird heruntergeladen …"))
-        self._progress_bar.pack(fill="x", pady=PHOENIX_THEME.space_md)
+        self._progress_bar.pack(fill="x", pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_xs))
+        self._status_lbl.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
         self._status_lbl.configure(text="0 % heruntergeladen", fg=PHOENIX_THEME.text_muted)
 
         self._download_thread = threading.Thread(target=self._run_download_and_install, daemon=True)
@@ -184,7 +208,7 @@ class OllamaSetupDialog(StudioDialog):
                                     "{downloaded:.1f} MB heruntergeladen",
                                     downloaded=downloaded_mb
                                 )
-                            self.after(0, self._update_download_progress, pct, detail)
+                            self._safe_after(0, self._update_download_progress, pct, detail)
                             last_update_time = now
 
             if self._is_cancelled:
@@ -221,10 +245,11 @@ class OllamaSetupDialog(StudioDialog):
                     "{downloaded:.1f} MB heruntergeladen",
                     downloaded=downloaded_mb
                 )
-            self.after(0, self._update_download_progress, pct, detail)
+            self._safe_after(0, self._update_download_progress, pct, detail)
+            time.sleep(1.0)
 
             # 2. Installation
-            self.after(0, self._transition_to_installing)
+            self._safe_after(0, self._transition_to_installing)
             self._process = subprocess.Popen(
                 [str(temp_file), "/VERYSILENT", "/SUPPRESSMSGBOXES"],
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
@@ -236,7 +261,7 @@ class OllamaSetupDialog(StudioDialog):
                 return
 
             if exit_code != 0:
-                self.after(0, self._on_install_failed, f"OllamaSetup.exe returned non-zero exit code: {exit_code}")
+                self._safe_after(0, self._on_install_failed, f"OllamaSetup.exe returned non-zero exit code: {exit_code}")
                 return
 
             # Suppress/close the desktop GUI (ollama app.exe) if it was launched by the installer
@@ -251,7 +276,7 @@ class OllamaSetupDialog(StudioDialog):
                 pass
 
             # 3. Post-install verification and auto-start
-            self.after(0, self._transition_to_verification)
+            self._safe_after(0, self._transition_to_verification)
 
             # Start service if it doesn't automatically start
             executable = shutil.which("ollama")
@@ -286,42 +311,48 @@ class OllamaSetupDialog(StudioDialog):
                 return
 
             if verified:
-                self.after(0, self._on_install_success)
+                self._safe_after(0, self._on_install_success)
             else:
-                self.after(0, self._on_install_failed, "Ollama API konnte nach der Installation nicht erreicht werden.")
+                self._safe_after(0, self._on_install_failed, "Ollama API konnte nach der Installation nicht erreicht werden.")
 
         except Exception as e:
             self._safe_delete(temp_file)
             if not self._is_cancelled:
-                self.after(0, self._on_install_failed, str(e))
+                self._safe_after(0, self._on_install_failed, str(e))
 
     def _update_download_progress(self, pct: int, detail: str) -> None:
-        self._progress_bar["value"] = pct
-        self._status_lbl.configure(text=tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct))
+        self._update_progressbar("determinate", pct)
+        status_text = tr("boost_pct_downloaded", "{pct} % heruntergeladen", pct=pct) + f" ({detail})"
+        self._status_lbl.configure(text=status_text, fg=PHOENIX_THEME.text_secondary)
         self._desc_lbl.configure(text=f"Ollama wird heruntergeladen …\n\n{detail}")
 
     def _transition_to_installing(self) -> None:
-        self._progress_bar.pack_forget()
-        self._status_lbl.configure(text="", fg=PHOENIX_THEME.warning)
+        self._update_progressbar("indeterminate")
         self._desc_lbl.configure(text=tr("boost_ollama_installing_msg", "Ollama wird installiert …"))
+        self._status_lbl.configure(text="Installation läuft …", fg=PHOENIX_THEME.warning)
 
     def _transition_to_verification(self) -> None:
+        self._update_progressbar("indeterminate")
         self._desc_lbl.configure(text=tr("boost_ollama_verifying_msg", "Installation wird überprüft …"))
+        self._status_lbl.configure(text="Bitte einen Moment …", fg=PHOENIX_THEME.warning)
 
     def _check_status_loop(self) -> None:
-        if not self._is_active:
+        if not self._is_active or self._download_thread is not None or self._success:
             return
 
         def check():
             status = OllamaStatusService.detect(force=True)
-            if status.available:
-                self.after(0, self._on_detected_success)
-            else:
-                self.after(1000, self._check_status_loop)
+            if self._is_active and not self._success and self._download_thread is None:
+                if status.available:
+                    self._safe_after(0, self._on_detected_success)
+                else:
+                    self._safe_after(1000, self._check_status_loop)
 
         threading.Thread(target=check, daemon=True).start()
 
     def _on_detected_success(self) -> None:
+        self._success = True
+        self._update_progressbar("determinate", 100)
         self._status_lbl.configure(
             text=tr("boost_ollama_ready", "✓ Ollama ist bereit"),
             fg=PHOENIX_THEME.success,
@@ -336,9 +367,11 @@ class OllamaSetupDialog(StudioDialog):
             command=self._finish,
             button_type="primary",
         )
+        self._primary_btn.pack(side="left", padx=6)
 
     def _on_install_success(self) -> None:
         self._success = True
+        self._update_progressbar("determinate", 100)
         self._desc_lbl.configure(
             text=tr("boost_ollama_success_desc", "Die Installation wurde erfolgreich erkannt."),
             fg=PHOENIX_THEME.text_primary,
@@ -357,6 +390,7 @@ class OllamaSetupDialog(StudioDialog):
 
     def _on_install_failed(self, error_msg: str) -> None:
         logger.error("Ollama installation failed: %s", error_msg)
+        self._update_progressbar("determinate", 0)
         self._progress_bar.pack_forget()
         self._status_lbl.configure(
             text=tr("error", "Fehler"),
@@ -423,3 +457,49 @@ class OllamaSetupDialog(StudioDialog):
         self._is_active = False
         self._is_cancelled = True
         super().close()
+
+    def _safe_after(self, ms: int, func: Callable, *args) -> None:
+        try:
+            if self._is_active and self.winfo_exists():
+                self.after(ms, func, *args)
+        except (tk.TclError, RuntimeError):
+            pass
+
+    def _load_icon_asset(self, path_str: str, target_height: int = 24) -> ImageTk.PhotoImage | None:
+        try:
+            path = Path(path_str)
+            if not path.is_file():
+                return None
+            from PIL import Image, ImageTk
+            with Image.open(path) as img:
+                w, h = img.size
+                if w <= 0 or h <= 0:
+                    return None
+                aspect = w / h
+                target_width = int(target_height * aspect)
+                try:
+                    resample = Image.Resampling.LANCZOS
+                except AttributeError:
+                    try:
+                        resample = Image.LANCZOS
+                    except AttributeError:
+                        resample = Image.ANTIALIAS
+                resized_img = img.resize((target_width, target_height), resample)
+                photo = ImageTk.PhotoImage(resized_img)
+                return photo
+        except Exception as e:
+            logger.debug(f"Failed to load icon from {path_str}: {e}")
+            return None
+
+    def _update_progressbar(self, mode: str, value: int | None = None) -> None:
+        try:
+            current_mode = str(self._progress_bar.cget("mode"))
+            if current_mode != mode:
+                self._progress_bar.stop()
+                self._progress_bar.configure(mode=mode)
+                if mode == "indeterminate":
+                    self._progress_bar.start(10)
+            if mode == "determinate" and value is not None:
+                self._progress_bar["value"] = value
+        except Exception:
+            pass

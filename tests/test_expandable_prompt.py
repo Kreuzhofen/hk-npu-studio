@@ -464,13 +464,13 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(self.view._boost_ai_optional_lbl.pack_info()["pady"], (7, 6))
         self.assertNotEqual(self.view.gen_btn.cget("state"), "disabled")
         self.assertIn("Ollama: nicht installiert", texts)
-        self.assertIn("Ollama installieren", texts)
+        self.assertIn("Phoenix Boost einrichten", texts)
         self.assertIn("Sampler:", texts)
         self.assertIn("Scheduler:", texts)
         self.assertFalse(any("{sampler}" in text or "{scheduler}" in text for text in texts))
         self.assertIn(
-            "Installieren Sie zuerst Ollama. Die offizielle Downloadseite wird geöffnet; "
-            "Ihre Bildgenerierung bleibt weiterhin verfügbar.",
+            "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
+            "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung.",
             texts,
         )
         self.assertTrue(self.view._boost_suggestion.optimized_prompt)
@@ -503,9 +503,9 @@ class ExpandablePromptTests(unittest.TestCase):
             self.view._open_boost_preview()
         self.view._update_ollama_install_button(OllamaStatus(True, True, False))
         self.assertEqual(self.view._boost_install_btn.cget("state"), "normal")
-        self.assertEqual(self.view._boost_install_btn.cget("text"), "Qwen2.5 3B installieren")
+        self.assertEqual(self.view._boost_install_btn.cget("text"), "Phoenix Boost einrichten")
         self.assertEqual(self.view._boost_model_status_lbl.cget("text"), "Qwen2.5 3B: nicht installiert")
-        self.assertIn("benötigte Qwen-Modell", self.view._boost_ai_info_lbl.cget("text"))
+        self.assertIn("Phoenix Boost in zwei einfachen Schritten", self.view._boost_ai_info_lbl.cget("text"))
 
     def test_boost_ready_cached_state_is_visible_on_second_open(self) -> None:
         self.view.prompt_text.delete("1.0", "end")
