@@ -209,7 +209,16 @@ class ModelRepository:
                     model["status"] = "Ready"
                 else:
                     model["installed"] = False
-                    model["status"] = "Invalid"
+                    is_empty = True
+                    try:
+                        if resolved.exists() and resolved.is_dir():
+                            is_empty = not any(resolved.iterdir())
+                    except Exception:
+                        pass
+                    if model_id == "stable_diffusion_v3_5_qai" and is_empty:
+                        model["status"] = "Not Installed"
+                    else:
+                        model["status"] = "Invalid"
                 logger.info(
                     "[MODEL PATH] First match | model=%s | source=%s | path=%s | status=%s",
                     model_id, source, resolved, model["status"],
@@ -526,6 +535,26 @@ class ModelRepository:
         model = self.get_model(model_id)
         if not model:
             return PackageStatus.NOT_INSTALLED
+
+        if model_id == "stable_diffusion_v3_5_qai":
+            from config import MODELS_DIR
+            model_dir = MODELS_DIR / "stable_diffusion_v3_5_qai"
+            is_absent = True
+            if model_dir.exists() and model_dir.is_dir():
+                try:
+                    if any(model_dir.iterdir()):
+                        is_absent = False
+                except Exception:
+                    pass
+            if is_absent:
+                return PackageStatus.NOT_INSTALLED
+
+            temp_model = dict(model)
+            temp_model["installed"] = True
+            temp_model["path"] = str(model_dir)
+            validation = self.registry.validate_installation(temp_model)
+            if not validation.valid:
+                return PackageStatus.INVALID
 
         validation = self.registry.validate_installation(model)
         if validation.status == ModelHealthStatus.NOT_INSTALLED:

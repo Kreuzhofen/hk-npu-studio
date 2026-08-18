@@ -453,7 +453,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             badge_text = f"  {tr('status_active', 'AKTIV')}  "
             badge_bg = PHOENIX_THEME.accent
             badge_fg = PHOENIX_THEME.text_on_accent
-        elif model.get("installed", True):
+        elif model.get("installed", False):
             badge_text = f"  {tr('status_installed', 'INSTALLIERT')}  "
             badge_bg = PHOENIX_THEME.elevated_bg
             badge_fg = PHOENIX_THEME.success
@@ -567,7 +567,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             "active": tr("model_status_active_ready", "Status: aktiv und bereit"),
             "use": tr("model_status_installed", "Status: installiert"),
             "install": tr("model_status_not_installed", "Status: nicht installiert"),
-        }[PhoenixModelManagerView._model_action_state(bool(model.get("installed", True)), active)]
+        }[PhoenixModelManagerView._model_action_state(bool(model.get("installed", False)), active)]
         if model_id in ratings:
             stars, rating, summary = ratings[model_id]
             return f"{stars}  {rating}\n{summary}\n{status}"
@@ -581,7 +581,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 selected_model = miss
                 break
             elif isinstance(miss, str) and miss == self.selected_model_id:
-                selected_model = {"id": miss, "name": miss, "description": "", "installed": True}
+                selected_model = {"id": miss, "name": miss, "description": "", "installed": False}
 
         if not selected_model:
             return
@@ -603,13 +603,13 @@ class PhoenixModelManagerView(WorkspaceFrame):
             if is_active
             else (
                 tr("status_installed_title", "Installiert")
-                if selected_model.get("installed", True)
+                if selected_model.get("installed", False)
                 else tr("not_installed", "Nicht installiert")
             )
         )
         self.det_status.configure(text=status_str)
         description = self._localized_description(selected_model)
-        if not selected_model.get("installed", True):
+        if not selected_model.get("installed", False):
             availability_message = str(selected_model.get("availability_message") or "").strip()
             if availability_message:
                 availability_message = tr(
@@ -619,7 +619,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 description = f"{description}\n\n{availability_message}"
         self.det_desc.configure(text=description)
 
-        is_installed = bool(selected_model.get("installed", True))
+        is_installed = bool(selected_model.get("installed", False))
         action_state = self._model_action_state(is_installed, is_active)
         if action_state == "install" and not PhoenixModelManagerView._offers_normal_install(selected_model):
             self.btn_activate.grid_remove()

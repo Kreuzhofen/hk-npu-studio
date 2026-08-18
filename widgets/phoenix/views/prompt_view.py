@@ -4262,6 +4262,13 @@ class PhoenixPromptView(WorkspaceFrame):
         OllamaStatusService.invalidate_cache()
         status = OllamaStatusService.detect(force=True)
         self._update_ollama_install_button(status)
+        if hasattr(self, "_boost_popup") and self._boost_popup is not None:
+            try:
+                if self._boost_popup.winfo_exists():
+                    self._boost_popup.destroy()
+            except Exception:
+                pass
+            self._boost_popup = None
 
     def _apply_boost_ai_preview(
         self,
