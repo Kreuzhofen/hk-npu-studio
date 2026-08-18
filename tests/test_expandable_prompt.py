@@ -756,13 +756,15 @@ class ExpandablePromptTests(unittest.TestCase):
     @patch("dialogs.qwen_setup_dialog.threading.Thread")
     @patch("dialogs.qwen_setup_dialog.subprocess.Popen")
     @patch("dialogs.qwen_setup_dialog.shutil.which", return_value="C:/Ollama/ollama.exe")
-    def test_regression_qwen_pull_success(self, mock_which, mock_popen, mock_thread) -> None:
+    @patch("dialogs.qwen_setup_dialog.OllamaStatusService.detect")
+    def test_regression_qwen_pull_success(self, mock_detect, mock_which, mock_popen, mock_thread) -> None:
         from dialogs.qwen_setup_dialog import QwenSetupDialog
         mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+        mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=True)
 
         process = MagicMock()
         process.wait.return_value = 0
-        process.stdout.read.side_effect = [c for c in "pulling manifest\rdownloading 50%\rsuccess\r"] + [""]
+        process.stdout.read.side_effect = [c.encode("utf-8") for c in "pulling manifest\rpulling 5ee4f07cdb9b: 42%\rsuccess\r"] + [b""]
         mock_popen.return_value = process
 
         success_called = False
@@ -790,13 +792,15 @@ class ExpandablePromptTests(unittest.TestCase):
     @patch("dialogs.qwen_setup_dialog.threading.Thread")
     @patch("dialogs.qwen_setup_dialog.subprocess.Popen")
     @patch("dialogs.qwen_setup_dialog.shutil.which", return_value="C:/Ollama/ollama.exe")
-    def test_regression_qwen_pull_failure(self, mock_which, mock_popen, mock_thread) -> None:
+    @patch("dialogs.qwen_setup_dialog.OllamaStatusService.detect")
+    def test_regression_qwen_pull_failure(self, mock_detect, mock_which, mock_popen, mock_thread) -> None:
         from dialogs.qwen_setup_dialog import QwenSetupDialog
         mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+        mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=False)
 
         process = MagicMock()
         process.wait.return_value = 1
-        process.stdout.read.side_effect = [c for c in "pulling manifest\rerror: model not found\r"] + [""]
+        process.stdout.read.side_effect = [c.encode("utf-8") for c in "pulling manifest\rerror: model not found\r"] + [b""]
         mock_popen.return_value = process
 
         success_called = False
@@ -1094,19 +1098,24 @@ class ExpandablePromptTests(unittest.TestCase):
     @patch("dialogs.qwen_setup_dialog.threading.Thread")
     @patch("dialogs.qwen_setup_dialog.subprocess.Popen")
     @patch("dialogs.qwen_setup_dialog.shutil.which", return_value="C:/Ollama/ollama.exe")
-    def test_regression_qwen_retry(self, mock_which, mock_popen, mock_thread) -> None:
+    @patch("dialogs.qwen_setup_dialog.OllamaStatusService.detect")
+    def test_regression_qwen_retry(self, mock_detect, mock_which, mock_popen, mock_thread) -> None:
         from dialogs.qwen_setup_dialog import QwenSetupDialog
         mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+        mock_detect.side_effect = [
+            OllamaStatus(installed=True, reachable=True, model_available=False),
+            OllamaStatus(installed=True, reachable=True, model_available=True)
+        ]
 
         # First fails with non-zero exit code
         process1 = MagicMock()
         process1.wait.return_value = 1
-        process1.stdout.read.return_value = ""
+        process1.stdout.read.return_value = b""
 
         # Second succeeds
         process2 = MagicMock()
         process2.wait.return_value = 0
-        process2.stdout.read.return_value = ""
+        process2.stdout.read.return_value = b""
 
         mock_popen.side_effect = [process1, process2]
 
@@ -1391,6 +1400,86 @@ class ExpandablePromptTests(unittest.TestCase):
                         called_100 = True
             self.assertFalse(called_100)
             mock_unlink.assert_called()
+
+
+    @patch("dialogs.qwen_setup_dialog.threading.Thread")
+    @patch("dialogs.qwen_setup_dialog.subprocess.Popen")
+    @patch("dialogs.qwen_setup_dialog.shutil.which", return_value="C:/Ollama/ollama.exe")
+    @patch("dialogs.qwen_setup_dialog.OllamaStatusService.detect")
+    def test_regression_qwen_pull_fallback_success(self, mock_detect, mock_which, mock_popen, mock_thread) -> None:
+        from dialogs.qwen_setup_dialog import QwenSetupDialog
+        mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+
+        mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=True)
+
+        process = MagicMock()
+        process.wait.return_value = 1
+        process.stdout.read.return_value = b""
+        mock_popen.return_value = process
+
+        success_called = False
+        def on_success():
+            nonlocal success_called
+            success_called = True
+
+        def mock_after(ms, func, *args, **kwargs):
+            func(*args, **kwargs)
+
+        with patch.object(QwenSetupDialog, "wait_window"), patch.object(QwenSetupDialog, "after", side_effect=mock_after):
+            dialog = QwenSetupDialog(self.root, on_success=on_success)
+            dialog._primary_btn.command()
+            dialog._finish_success()
+
+        self.assertTrue(dialog._success)
+        self.assertTrue(success_called)
+
+
+    @patch("dialogs.qwen_setup_dialog.threading.Thread")
+    @patch("dialogs.qwen_setup_dialog.subprocess.Popen")
+    @patch("dialogs.qwen_setup_dialog.shutil.which", return_value=None)
+    @patch("dialogs.qwen_setup_dialog.OllamaStatusService.detect")
+    def test_regression_qwen_missing_executable(self, mock_detect, mock_which, mock_popen, mock_thread) -> None:
+        from dialogs.qwen_setup_dialog import QwenSetupDialog
+        mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+        mock_detect.return_value = OllamaStatus(installed=False, reachable=False, model_available=False)
+
+        def mock_after(ms, func, *args, **kwargs):
+            func(*args, **kwargs)
+
+        with patch.object(QwenSetupDialog, "wait_window"),              patch.object(QwenSetupDialog, "after", side_effect=mock_after),              patch("pathlib.Path.is_file", return_value=False):
+            dialog = QwenSetupDialog(self.root, on_success=lambda: None)
+            dialog._primary_btn.command()
+
+            # Confirm it correctly transitions to failure (not silent hang)
+            self.assertFalse(dialog._success)
+            self.assertEqual(dialog._status_lbl.cget("text"), "Fehler")
+
+    @patch("dialogs.qwen_setup_dialog.threading.Thread")
+    @patch("dialogs.qwen_setup_dialog.subprocess.Popen")
+    @patch("dialogs.qwen_setup_dialog.shutil.which", return_value="C:/Ollama/ollama.exe")
+    @patch("dialogs.qwen_setup_dialog.OllamaStatusService.detect")
+    def test_regression_qwen_pull_exit_zero_model_absent(self, mock_detect, mock_which, mock_popen, mock_thread) -> None:
+        from dialogs.qwen_setup_dialog import QwenSetupDialog
+        mock_thread.side_effect = lambda target, *args, **kwargs: MagicMock(start=lambda: target())
+
+        # Exit code is 0, but model_available is False!
+        mock_detect.return_value = OllamaStatus(installed=True, reachable=True, model_available=False)
+
+        process = MagicMock()
+        process.wait.return_value = 0
+        process.stdout.read.return_value = b""
+        mock_popen.return_value = process
+
+        def mock_after(ms, func, *args, **kwargs):
+            func(*args, **kwargs)
+
+        with patch.object(QwenSetupDialog, "wait_window"), patch.object(QwenSetupDialog, "after", side_effect=mock_after):
+            dialog = QwenSetupDialog(self.root, on_success=lambda: None)
+            dialog._primary_btn.command()
+
+            # Should NOT succeed
+            self.assertFalse(dialog._success)
+            self.assertEqual(dialog._status_lbl.cget("text"), "Fehler")
 
 
 if __name__ == "__main__":

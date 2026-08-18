@@ -137,52 +137,56 @@ class QwenSetupDialog(StudioDialog):
                 default_path = Path(local_app_data) / "Programs" / "Ollama" / "ollama.exe"
                 if default_path.is_file():
                     executable = str(default_path)
-
         if not executable:
-            self.after(0, self._on_failed, tr("boost_ollama_not_found", "Ollama-Programm wurde nicht gefunden."))
+            self.after(
+                0,
+                self._on_failed,
+                tr("boost_ollama_not_found", "Ollama-Programm wurde nicht gefunden.")
+            )
             return
-
         try:
             self._process = subprocess.Popen(
                 [executable, "pull", OllamaStatusService.MODEL],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-                encoding="utf-8",
-                errors="replace",
+                text=False,
+                bufsize=0,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
 
-            buffer = ""
+            buffer = b""
             while not self._is_cancelled:
-                char = self._process.stdout.read(1)
-                if not char:
+                char_bytes = self._process.stdout.read(1)
+                if not char_bytes:
                     break
-                if char in ("\r", "\n"):
-                    line = buffer.strip()
+                if char_bytes in (b"\r", b"\n"):
+                    try:
+                        line = buffer.decode("utf-8", errors="ignore").strip()
+                    except Exception:
+                        line = ""
                     if line:
                         self.after(0, self._parse_output_line, line)
-                    buffer = ""
+                    buffer = b""
                 else:
-                    buffer += char
+                    buffer += char_bytes
 
             # Wait for exit status
             exit_code = self._process.wait()
             if self._is_cancelled:
                 return
 
-            if exit_code == 0:
+            # Invalidate cache and force a fresh model check
+            OllamaStatusService.invalidate_cache()
+            status = OllamaStatusService.detect(force=True)
+            if status.model_available:
                 self.after(0, self._on_success_state)
             else:
-                self.after(0, self._on_failed, f"pull process returned non-zero exit code: {exit_code}")
-
+                self.after(0, self._on_failed, f"Qwen model not found after pull. Exit code: {exit_code}")
         except Exception as e:
             if not self._is_cancelled:
                 self.after(0, self._on_failed, str(e))
 
     def _parse_output_line(self, line: str) -> None:
-        # Parse status and percentage generically and safely
         line_lower = line.lower()
         if "manifest" in line_lower:
             if "writing" in line_lower:
