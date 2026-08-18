@@ -465,6 +465,51 @@ class OllamaSetupDialog(StudioDialog):
         except (tk.TclError, RuntimeError):
             pass
 
+    def _process_image_for_theme(self, img: Image.Image, path: Path) -> Image.Image:
+        try:
+            from PIL import Image
+            from engine.theme_manager import ThemeManager
+            is_light_theme = (ThemeManager.active_theme() == ThemeManager.PROFESSIONAL_LIGHT)
+            name_lower = path.name.lower()
+            if "ollama" in name_lower:
+                if is_light_theme:
+                    img = img.convert("RGBA")
+                    pixels = img.load()
+                    w, h = img.size
+                    for y in range(h):
+                        for x in range(w):
+                            r, g, b, a = pixels[x, y]
+                            pixels[x, y] = (24, 33, 44, a)
+            elif "qwen" in name_lower:
+                img = img.convert("RGBA")
+                w, h = img.size
+                thresh = Image.new("L", (w, h), 0)
+                pixels = img.load()
+                thresh_pixels = thresh.load()
+                for y in range(h):
+                    for x in range(w):
+                        r, g, b, a = pixels[x, y]
+                        if r > 240 and g > 240 and b > 240:
+                            thresh_pixels[x, y] = 255
+
+                from PIL import ImageDraw
+                for start_pt in [(0, 0), (w-1, 0), (0, h-1), (w-1, h-1)]:
+                    if thresh_pixels[start_pt[0], start_pt[1]] == 255:
+                        ImageDraw.floodfill(thresh, start_pt, 128)
+
+                mask = Image.new("L", (w, h), 255)
+                mask_pixels = mask.load()
+                thresh_pixels = thresh.load()
+                for y in range(h):
+                    for x in range(w):
+                        if thresh_pixels[x, y] == 128:
+                            mask_pixels[x, y] = 0
+
+                img.putalpha(mask)
+        except Exception as e:
+            logger.debug(f"Failed to process image for theme: {e}")
+        return img
+
     def _load_icon_asset(self, path_str: str, target_height: int = 24) -> ImageTk.PhotoImage | None:
         try:
             path = Path(path_str)
@@ -475,6 +520,7 @@ class OllamaSetupDialog(StudioDialog):
                 w, h = img.size
                 if w <= 0 or h <= 0:
                     return None
+                img = self._process_image_for_theme(img, path)
                 aspect = w / h
                 target_width = int(target_height * aspect)
                 try:
