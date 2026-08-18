@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import json
-import logging
 import re
 import time
 from urllib.request import Request, urlopen
 
 
-logger = logging.getLogger(__name__)
+from engine.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -145,17 +146,29 @@ class BoostAIService:
                 "options": {
                     "temperature": 0,
                     "num_predict": cls.MAX_OUTPUT_TOKENS,
+                    "repeat_penalty": 1.2,
                 },
             }).encode("utf-8")
             request = Request(
                 f"{cls.BASE_URL}/api/generate", data=payload,
                 headers={"Content-Type": "application/json"}, method="POST",
             )
+            endpoint = f"{cls.BASE_URL}/api/generate"
+            logger.info(
+                "Phoenix Boost AI request started | model=%s endpoint=%s timeout=%s",
+                cls.MODEL, endpoint, timeout,
+            )
             with urlopen(request, timeout=timeout) as response:
+                http_status = getattr(response, "status", response.getcode())
+                logger.info(
+                    "Phoenix Boost AI HTTP response received | status=%s",
+                    http_status,
+                )
                 envelope = json.loads(response.read().decode("utf-8"))
             content = envelope.get("response", "")
             data = json.loads(content) if isinstance(content, str) else content
             result = cls._parse_result(data)
+            elapsed = time.perf_counter() - started
             if not cls._preserves_prompt(prompt, result.optimized_prompt):
                 logger.info(
                     "Phoenix Boost AI response normalized: source details appended after hierarchy"
@@ -168,21 +181,29 @@ class BoostAIService:
                     ),
                 )
             if not cls._preserves_prompt(prompt, result.optimized_prompt):
-                logger.warning("Phoenix Boost AI validation failed after normalization")
-                return BoostAIRun(None, "failed", time.perf_counter() - started)
+                logger.warning(
+                    "Phoenix Boost AI validation failed after normalization | elapsed=%.2fs",
+                    elapsed,
+                )
+                return BoostAIRun(None, "failed", elapsed)
+            logger.info(
+                "Phoenix Boost AI request parse success | elapsed=%.2fs",
+                elapsed,
+            )
             return BoostAIRun(
-                result, "success", time.perf_counter() - started,
+                result, "success", elapsed,
                 cls._change_summary(prompt, result.optimized_prompt, result.subject),
             )
         except (OSError, TimeoutError, ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
             from engine.ollama_status import OllamaStatusService
-
+            elapsed = time.perf_counter() - started
+            http_status = getattr(error, "code", "N/A")
             logger.warning(
-                "Phoenix Boost AI request/validation failed | model=%s endpoint=%s: %s: %s",
-                cls.MODEL, f"{cls.BASE_URL}/api/generate", type(error).__name__, error,
+                "Phoenix Boost AI request/validation failed | model=%s endpoint=%s timeout=%s status=%s elapsed=%.2fs | exception=%s: %s",
+                cls.MODEL, f"{cls.BASE_URL}/api/generate", timeout, http_status, elapsed, type(error).__name__, error,
             )
             OllamaStatusService.invalidate_cache()
-            return BoostAIRun(None, "failed", time.perf_counter() - started)
+            return BoostAIRun(None, "failed", elapsed)
 
     @classmethod
     def _model_available(cls, timeout: float) -> bool:
