@@ -413,6 +413,11 @@ def main():
         )
         return 0 if report.safe_to_start else 1
     run_startup_diagnostics()
+    try:
+        from app.migration import migrate_legacy_generations
+        migrate_legacy_generations()
+    except Exception as e:
+        print(f"Error during legacy migration: {e}", file=sys.stderr)
     app = SnapdragonAIStudioV2()
     app.mainloop()
     return 0
