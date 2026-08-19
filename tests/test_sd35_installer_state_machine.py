@@ -1040,6 +1040,54 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         self.assertGreater(pip_installs, 0, "No pip install commands were recorded")
 
+    def test_stale_extracted_root_replaces_and_extracts_correct_zip(self):
+        # 1. Setup a valid ZIP containing the unique script
+        archive = self.root / "current_valid.zip"
+        script = (
+            "qai-appbuilder-main/samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        with zipfile.ZipFile(archive, "w") as package:
+            package.writestr(script, "print('valid')")
+
+        # 2. Setup a stale extracted_root with a missing or different script, or wrong metadata
+        workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+        extracted_root = workspace / "qai-appbuilder-main"
+        extracted_root.mkdir(parents=True, exist_ok=True)
+        stale_script = (
+            extracted_root / "samples/models/generative_ai/image_generation/"
+            "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
+        )
+        stale_script.parent.mkdir(parents=True, exist_ok=True)
+        stale_script.write_text("print('stale')", encoding="utf-8")
+
+        # Write setup_state.json with mismatched zip path or mtime/size
+        state_path = workspace / SD35SetupHelper.STATE_FILE
+        state_path.write_text(
+            json.dumps({
+                "attempted": True,
+                "script": str(stale_script),
+                "zip_path": str(self.root / "nonexistent.zip"),
+                "zip_mtime": 0.0,
+                "zip_size": 0
+            }), encoding="utf-8"
+        )
+
+        # 3. Run setup, mocking subprocess so it doesn't try to install pip deps
+        process = MagicMock(returncode=0)
+        process.stdout.read.return_value = ""
+        process.stdout.readline.return_value = ""
+        process.wait.return_value = 0
+        with patch("tools.sd35_setup_helper.subprocess.Popen", return_value=process):
+            result, events = self._run_helper(
+                _Installer(self.service), archive
+            )
+
+        # 4. Verify that stale_script was replaced (and now matches the ZIP content)
+        self.assertTrue(stale_script.exists())
+        self.assertEqual(stale_script.read_text(encoding="utf-8"), "print('valid')")
+        self.assertTrue(archive.exists())  # ZIP remains untouched
+
 
 if __name__ == "__main__":
     unittest.main()

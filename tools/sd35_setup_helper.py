@@ -154,9 +154,37 @@ class SD35SetupHelper:
                     3,
                 )
 
+            # Check if extracted_root corresponds to currently selected ZIP
+            is_stale = False
+            if extracted_root.exists():
+                try:
+                    current_mtime = os.path.getmtime(zip_path)
+                    current_size = os.path.getsize(zip_path)
+                    current_resolved = str(Path(zip_path).resolve())
+                    if state_path.is_file():
+                        state_data = json.loads(state_path.read_text(encoding="utf-8"))
+                        if (state_data.get("zip_path") != current_resolved or
+                            state_data.get("zip_mtime") != current_mtime or
+                            state_data.get("zip_size") != current_size):
+                            is_stale = True
+                            logger.info("Workspace ZIP mismatch. Marking extracted_root as stale.")
+                    else:
+                        is_stale = True
+                except Exception as e:
+                    is_stale = True
+                    logger.warning("Error checking workspace ZIP correspondence: %s", e)
+
+            # Also check if find_script finds a valid unique script in the existing extracted_root
+            if not is_stale and extracted_root.exists():
+                if not find_script():
+                    is_stale = True
+                    logger.info("Unique stable_diffusion_v3_5.py not found in existing root. Marking as stale.")
+
             emit("sd35_extracting", 10.0)
-            if extracted_root.exists() and allow_redownload:
+            if extracted_root.exists() and (allow_redownload or is_stale):
+                logger.info("Removing stale or requested extracted_root: %s", extracted_root)
                 SD35SetupHelper._safe_purge_reparse_and_dir(extracted_root)
+
             if not extracted_root.exists():
                 logger.info("Extracting %s to persistent workspace %s", zip_path, workspace)
                 with zipfile.ZipFile(zip_path, "r") as ref:
@@ -169,9 +197,22 @@ class SD35SetupHelper:
 
             working_dir = script_path.parent
             logger.info("Found Qualcomm sample directory: %s", working_dir)
-            state_path.write_text(
-                json.dumps({"attempted": True, "script": str(script_path)}), encoding="utf-8"
-            )
+
+            try:
+                current_mtime = os.path.getmtime(zip_path)
+                current_size = os.path.getsize(zip_path)
+                current_resolved = str(Path(zip_path).resolve())
+                state_path.write_text(
+                    json.dumps({
+                        "attempted": True,
+                        "script": str(script_path),
+                        "zip_path": current_resolved,
+                        "zip_mtime": current_mtime,
+                        "zip_size": current_size
+                    }), encoding="utf-8"
+                )
+            except Exception as e:
+                logger.warning("Failed to write setup state: %s", e)
 
             emit("sd35_installing_deps", 30.0)
             try:

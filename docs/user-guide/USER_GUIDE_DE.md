@@ -1,0 +1,459 @@
+# Snapdragon AI Studio – Phoenix Engine
+## Benutzerhandbuch – Version 2.0 RC2A
+
+> **Unabhängiges Open-Source-Projekt für Windows auf Snapdragon.**  
+> Snapdragon AI Studio ist kein offizielles Produkt von Qualcomm Technologies, Inc. und wird nicht von Qualcomm gesponsert oder unterstützt.
+
+---
+
+## 1. Willkommen
+
+Snapdragon AI Studio ist eine Desktop-Anwendung für die lokale KI-Bildgenerierung auf Windows-11-ARM64-PCs mit Snapdragon-Prozessoren. Die **Phoenix Engine** übernimmt dabei Modellverwaltung, Vorbereitung und Ausführung der unterstützten KI-Pipelines.
+
+RC2A legt besonderen Wert auf einen geführten Ablauf: **Installieren → Modell auswählen → Bild erzeugen.** Technische Details sollen für die normale Nutzung möglichst im Hintergrund bleiben.
+
+Die Bildgenerierung selbst läuft lokal auf dem PC. Nach der erforderlichen Einrichtung eines Modells ist für die eigentliche Generierung grundsätzlich keine Cloud-Bildgenerierung erforderlich.
+
+---
+
+## 2. Systemvoraussetzungen
+
+### Unterstützte Plattform
+
+- Windows 11 ARM64
+- Qualcomm Snapdragon X Plus oder Snapdragon X Elite als primäre Zielplattform
+- Aktuelle Windows- und Qualcomm-Treiber empfohlen
+- Ausreichend freier SSD-Speicher für die gewünschten Modelle
+
+### Arbeitsspeicher und Speicherplatz
+
+Der tatsächliche Bedarf hängt vom verwendeten Modell ab. Größere Modelle benötigen deutlich mehr Speicherplatz als die Anwendung selbst. Für Stable Diffusion 3.5 Medium werden während der Einrichtung mehrere Gigabyte heruntergeladen; der Qualcomm-Modell-Download liegt derzeit bei ungefähr **3,24 GB**, zusätzlich entstehen Installations- und Arbeitsdateien.
+
+### Internetverbindung
+
+Eine Internetverbindung wird benötigt, wenn erforderliche Komponenten oder Modelle erstmals heruntergeladen werden. Nach erfolgreicher Installation werden die unterstützten Bildgenerierungen lokal ausgeführt.
+
+---
+
+## 3. RC2A installieren
+
+1. Lade den aktuellen ARM64-Installer aus dem offiziellen GitHub-Release von Snapdragon AI Studio herunter.
+2. Starte `SnapdragonAIStudio-2.0.0-rc.2a-ARM64-Setup.exe`.
+3. Folge dem Windows-Installationsassistenten.
+4. Starte anschließend **Snapdragon AI Studio** über das Startmenü oder die angelegte Verknüpfung.
+
+> **Windows SmartScreen:** Bei einem nicht allgemein bekannten bzw. nicht kommerziell signierten Release kann Windows eine Warnung anzeigen. Verwende ausschließlich Installer aus dem offiziellen Projekt-Repository.
+
+Für die normale Installation über den veröffentlichten Installer muss Python nicht separat vom Benutzer eingerichtet werden.
+
+---
+
+## 4. Der erste Start
+
+RC2A führt neue Benutzer wesentlich stärker durch die Ersteinrichtung als frühere Release Candidates.
+
+Auf der Startseite zeigt Snapdragon AI Studio den aktuellen Einrichtungszustand an. Ist noch kein verwendbares Modell eingerichtet, führt die Anwendung zum Modell-Manager. Nach erfolgreicher Einrichtung wird der Bereitschaftsstatus aktualisiert und der Benutzer kann direkt zur ersten Bildgenerierung wechseln.
+
+### Grundprinzip
+
+1. Snapdragon AI Studio starten.
+2. Modell-Manager öffnen.
+3. Gewünschtes unterstütztes Modell auswählen.
+4. Den angebotenen Installationsablauf starten.
+5. Installation und Prüfung vollständig abschließen lassen.
+6. Modell aktivieren bzw. die automatische Aktivierung abwarten.
+7. Zur Bildgenerierung wechseln.
+
+Du musst für den normalen geführten Ablauf keine internen ONNX-, QNN- oder Modellkomponenten einzeln auswählen.
+
+---
+
+## 5. Modell-Manager
+
+Der Modell-Manager zeigt die in Snapdragon AI Studio bekannten Modelle und ihren Zustand an.
+
+Je nach Modell und Entwicklungsstand kann ein Modell beispielsweise als installiert, nicht installiert, verfügbar oder experimentell gekennzeichnet sein.
+
+### Installiert
+
+Das benötigte Modellpaket wurde gefunden und erfolgreich geprüft.
+
+### Aktiv
+
+Das Modell ist aktuell für die Bildgenerierung ausgewählt.
+
+### Nicht installiert
+
+Die erforderlichen Modelldateien wurden noch nicht vollständig eingerichtet.
+
+### Experimentell / In Entwicklung
+
+Diese Modelle gehören nicht zum gleichen stabilen Benutzerpfad wie die freigegebenen Modelle. Experimentelle Einträge können zusätzliche Voraussetzungen besitzen oder noch nicht für den normalen Alltagsbetrieb vorgesehen sein.
+
+> **Empfehlung:** Verwende für den Einstieg ein Modell, das im Modell-Manager ausdrücklich als verfügbar und unterstützt dargestellt wird.
+
+---
+
+## 6. Modelle installieren
+
+RC2A verwendet je nach Modell unterschiedliche Quellen und Installationswege. Der Modell-Manager versucht, diese Unterschiede vor dem Benutzer zu verbergen und einen geführten Ablauf anzubieten.
+
+### Stable Diffusion 1.5
+
+Stable Diffusion 1.5 ist ein kompakter Einstieg in die lokale Bildgenerierung und eignet sich besonders für schnelle 512×512-Workflows. Bei einer unterstützten NPU-Variante übernimmt Phoenix die erforderliche Paketprüfung und Aktivierung.
+
+### Stable Diffusion 2.1
+
+Stable Diffusion 2.1 steht ebenfalls als Snapdragon-/Qualcomm-orientierter Bildgenerierungsweg zur Verfügung. Installation und Aktivierung erfolgen über den Modell-Manager entsprechend der für das Modell hinterlegten Quelle.
+
+### Stable Diffusion 3.5 Medium
+
+RC2A enthält einen deutlich stärker automatisierten Einrichtungsweg für **Stable Diffusion 3.5 Medium über Qualcomm QAI AppBuilder**. Dieser Ablauf wird im nächsten Kapitel gesondert beschrieben.
+
+---
+
+## 7. Stable Diffusion 3.5 Medium einrichten
+
+Die SD3.5-Einrichtung ist umfangreicher als bei kleineren Modellpaketen. Phoenix automatisiert deshalb möglichst viele Schritte.
+
+### Was Phoenix automatisch erledigt
+
+Der geführte Ablauf kann:
+
+1. das benötigte Qualcomm-QAI-AppBuilder-ZIP erkennen,
+2. das Archiv vorbereiten und entpacken,
+3. benötigte Python-Komponenten für die Einrichtung vorbereiten,
+4. das Qualcomm-SD3.5-Skript ausführen,
+5. die erforderlichen Modelldateien herunterladen,
+6. die erzeugten Dateien in Snapdragon AI Studio importieren,
+7. Manifest und Prüfinformationen erstellen,
+8. die Installation validieren,
+9. das Modell anschließend aktivieren.
+
+Währenddessen zeigt das Installationsfenster den aktuellen Schritt und den Fortschritt an.
+
+### Qualcomm QAI AppBuilder
+
+Für diesen Weg wird das offizielle QAI-AppBuilder-Projekt von Qualcomm verwendet. Phoenix sucht das erwartete ZIP-Archiv im Downloadbereich. Wird es nicht automatisch gefunden, kann die Anwendung zur Auswahl des ZIP-Archivs auffordern.
+
+Die ZIP-Datei selbst wird durch den normalen Installationsvorgang nicht als Benutzerdatei gelöscht.
+
+### Modelldownload
+
+Das Qualcomm-Skript lädt während der Einrichtung die benötigten SD3.5-Dateien herunter. Der Download umfasst derzeit ungefähr **3,24 GB**. Geschwindigkeit und Dauer hängen von Internetverbindung, Datenträger und Systemzustand ab.
+
+Während dieses Vorgangs Snapdragon AI Studio nicht beenden und den Installationsprozess vollständig durchlaufen lassen.
+
+### Abschluss
+
+Nach erfolgreicher Einrichtung werden die Modelldateien geprüft und das Modell wird für Snapdragon AI Studio verfügbar gemacht. Der erfolgreiche RC2A-Anwenderflow wurde als vollständige Kette getestet:
+
+**nicht installiert → Einrichtung beim ersten Versuch → Qualcomm-Download → Import/Validierung → Aktivierung → echte Bildgenerierung.**
+
+---
+
+## 8. Ein Bild erzeugen
+
+Nach Auswahl eines installierten Modells wechselst du zur Bildgenerierung.
+
+1. Gib im Feld **Prompt** eine Beschreibung des gewünschten Bildes ein.
+2. Optional kannst du einen **Negative Prompt** angeben.
+3. Prüfe die gewünschten Generierungsparameter.
+4. Klicke auf **Generieren**.
+5. Warte, bis die Phoenix Engine die Pipeline abgeschlossen hat.
+6. Das fertige Bild wird anschließend angezeigt und in den vorgesehenen Verlauf bzw. Ausgabebereich übernommen.
+
+Die benötigte Zeit hängt stark vom Modell, der Auflösung, den Einstellungen und dem verwendeten Backend ab.
+
+---
+
+## 9. Prompt und Negative Prompt
+
+### Prompt
+
+Der Prompt beschreibt, **was im Bild erscheinen soll**.
+
+Beispiel:
+
+> Porträt einer Astronautin, filmische Beleuchtung, feine Details, realistischer Stil
+
+Konkrete Angaben zu Motiv, Umgebung, Licht, Perspektive und Stil helfen dem Modell bei der Interpretation.
+
+### Negative Prompt
+
+Der Negative Prompt beschreibt unerwünschte Eigenschaften. Seine Wirkung hängt vom jeweiligen Modell und der Pipeline ab.
+
+Beispiel:
+
+> unscharf, schlechte Anatomie, Text, Wasserzeichen
+
+---
+
+## 10. Generierungsparameter
+
+Je nach aktivem Modell stehen unterschiedliche Parameter zur Verfügung.
+
+### Seed
+
+Der Seed beeinflusst die zufällige Ausgangslage einer Generierung. Ein fester Seed erleichtert reproduzierbare Vergleiche. Ein Zufallsmodus erzeugt bei neuen Läufen unterschiedliche Ausgangszustände.
+
+### Steps
+
+Die Anzahl der Denoising-Schritte beeinflusst Rechenzeit und Ergebnis. Mehr Schritte bedeuten nicht automatisch ein besseres Bild.
+
+### CFG / Guidance
+
+Dieser Wert steuert, wie stark die Generierung dem Prompt folgen soll. Extrem hohe Werte können die Bildqualität verschlechtern.
+
+### Auflösung
+
+Die unterstützten Auflösungen hängen vom Modell und dessen Backend ab. Verwende bevorzugt die vom jeweiligen Modell vorgesehenen Einstellungen.
+
+### Sampler / Scheduler
+
+Sofern für das aktive Backend verfügbar, beeinflusst der Scheduler den Denoising-Verlauf. Nicht jede Kombination ist für jedes Modell vorgesehen.
+
+---
+
+## 11. Phoenix Boost
+
+**Phoenix Boost** ist eine Funktion von Snapdragon AI Studio zur Verbesserung bzw. Erweiterung von Prompts vor der Bildgenerierung.
+
+Es gibt zwei grundsätzlich unterschiedliche Wege.
+
+### Deterministic Boost
+
+Der lokale deterministische Boost arbeitet ohne zusätzliches Sprachmodell. Er erweitert den Prompt nach reproduzierbaren Regeln und kann direkt verwendet werden.
+
+### AI Boost
+
+Der optionale AI Boost verwendet ein lokal laufendes Sprachmodell, um den Prompt intelligenter zu überarbeiten.
+
+RC2A verwendet dafür:
+
+- **Ollama** als lokalen Modelldienst
+- **Qwen2.5 3B** als vorgesehenes lokales Sprachmodell
+
+Ist Ollama oder Qwen noch nicht vorhanden, führt Phoenix Boost durch die erforderliche Einrichtung. Der Modelldownload kann einige Zeit dauern.
+
+Nach erfolgreicher Installation arbeitet dieser Boost lokal auf dem Rechner. Der ursprüngliche Prompt wird nicht für eine externe Cloud-Promptoptimierung benötigt.
+
+### Vorschau
+
+Vor der eigentlichen Bildgenerierung kann die von Phoenix Boost erzeugte Prompt-Version geprüft werden. So bleibt nachvollziehbar, welche Beschreibung tatsächlich an die Bildpipeline übergeben wird.
+
+> Phoenix Boost ist optional. Die normale Bildgenerierung darf nicht davon abhängig sein, dass Ollama oder Qwen installiert ist.
+
+---
+
+## 12. ControlNet Canny
+
+Bei unterstützten Modell-/Backend-Kombinationen kann **ControlNet Canny** verwendet werden, um die Struktur eines vorhandenen Bildes stärker in die neue Generierung einzubeziehen.
+
+Typischer Ablauf:
+
+1. ControlNet Canny aktivieren.
+2. Ausgangsbild auswählen.
+3. Canny-Vorschau prüfen.
+4. Falls verfügbar, die Kantenschwellen anpassen.
+5. Prompt eingeben.
+6. Generierung starten.
+
+ControlNet ist nicht für jede Modellvariante verfügbar. Die Oberfläche richtet sich nach den Fähigkeiten des aktiven Modells.
+
+---
+
+## 13. Galerie, Verlauf und Vergleich
+
+Snapdragon AI Studio stellt erzeugte Bilder innerhalb seiner Bild- und Verlaufsansichten zur weiteren Betrachtung bereit.
+
+Je nach Ansicht kannst du unter anderem:
+
+- vergangene Generierungen betrachten,
+- Ergebnisse erneut öffnen,
+- Bilder miteinander vergleichen,
+- relevante Generierungsinformationen nachvollziehen.
+
+Die genaue Darstellung kann sich zwischen Release Candidates weiterentwickeln.
+
+---
+
+## 14. Sprache sowie Dark- und Light-Design
+
+Die Benutzeroberfläche unterstützt:
+
+- Deutsch
+- Englisch
+- Spanisch
+
+Außerdem stehen Dark- und Light-Darstellung zur Verfügung. Die Sprache und Darstellung können über die Anwendungseinstellungen geändert werden.
+
+---
+
+## 15. Lokale Daten und Modelle
+
+Snapdragon AI Studio speichert Anwendungseinstellungen, Arbeitsdaten und installierte Modelle lokal.
+
+Bei einer normalen Installer-Installation können produktive Modelldaten unter dem lokalen Anwendungsbereich des Windows-Benutzers liegen, beispielsweise unter:
+
+```text
+%LOCALAPPDATA%\Snapdragon AI Studio\models
+```
+
+Interne Pfade können sich zwischen Entwicklungs- und Installer-Version unterscheiden. **Verschiebe oder lösche Modelldateien nicht manuell**, solange du nicht gezielt eine Fehlerdiagnose durchführst.
+
+Die Anwendung prüft Modellinstallationen anhand der erwarteten Dateien und Metadaten. Ein manuell unvollständig gelöschtes oder verschobenes Modell kann deshalb als ungültig erkannt werden.
+
+---
+
+## 16. Datenschutz und Offline-Betrieb
+
+Das zentrale Ziel von Snapdragon AI Studio ist lokale KI-Ausführung.
+
+### Lokal
+
+- Prompts werden für die Bildgenerierung lokal verarbeitet.
+- Unterstützte Bildmodelle laufen lokal auf dem PC.
+- Generierte Bilder bleiben lokal gespeichert.
+- Phoenix Boost arbeitet nach Einrichtung von Ollama/Qwen lokal.
+
+### Internet wird trotzdem teilweise benötigt
+
+„Lokal“ bedeutet nicht, dass die komplette Einrichtung ohne Internet möglich ist. Downloads von Anwendungskomponenten, Modellen, Qualcomm-Ressourcen, Ollama oder Qwen benötigen zunächst eine Internetverbindung.
+
+Nach erfolgreicher Einrichtung können die dafür vorgesehenen lokalen Generierungsfunktionen ohne Cloud-Bildgenerierungsdienst verwendet werden.
+
+---
+
+## 17. Problemlösung
+
+### Modell wird als „Nicht installiert“ angezeigt
+
+Öffne den Modell-Manager und verwende den vorgesehenen Installationsweg. Kopiere nicht wahllos Modelldateien in interne Ordner.
+
+### Installation wurde unterbrochen
+
+Starte Snapdragon AI Studio erneut und öffne den Modell-Manager. Je nach Modell kann Phoenix vorhandene vollständige Daten wiederverwenden oder einen erneuten Download anbieten.
+
+### SD3.5 meldet unvollständige Dateien
+
+Verwende die von Phoenix angebotene erneute Einrichtung bzw. den erneuten Download. Der Installer unterscheidet zwischen vollständigen und unvollständigen Qualcomm-Ausgabedaten und soll unvollständige Quellen nicht als fertiges Modell aktivieren.
+
+### Qwen/Phoenix Boost funktioniert nach der Installation noch nicht
+
+Prüfe zunächst, ob Ollama vollständig gestartet wurde und Qwen2.5 3B installiert ist. Falls der lokale Ollama-Dienst gerade erst eingerichtet wurde, kann ein Neustart der betreffenden Anwendungskomponente erforderlich sein.
+
+### Generierung dauert lange
+
+Größere Modelle und höhere Auflösungen benötigen mehr Zeit. Auch Vorbereitung, erstmaliges Laden eines Modells und Systemauslastung beeinflussen die Dauer.
+
+### Anwendung reagiert scheinbar nicht
+
+Bei langen Installations- oder Generierungsphasen zunächst den angezeigten Fortschritt abwarten. Beende die Anwendung nicht während eines aktiven Modelldownloads, solange keine eindeutige Fehlermeldung vorliegt.
+
+### Fehler melden
+
+Bei reproduzierbaren Problemen sind folgende Angaben hilfreich:
+
+- Snapdragon-AI-Studio-Version
+- Windows-Version
+- Snapdragon-Gerät/Prozessor
+- verwendetes Modell
+- genaue Schritte bis zum Fehler
+- relevante Meldung oder Screenshot
+- falls vorhanden: passende Logdateien
+
+---
+
+## 18. Deinstallation
+
+Snapdragon AI Studio kann über die Windows-Einstellungen unter **Apps → Installierte Apps** deinstalliert werden.
+
+Beachte: Große Modelldateien und Benutzerdaten können je nach Installations- und Speicherstrategie separat gespeichert sein. Prüfe vor einer manuellen Löschung, ob du generierte Bilder oder Modelle behalten möchtest.
+
+---
+
+## 19. FAQ
+
+### Ist Snapdragon AI Studio ein offizielles Qualcomm-Produkt?
+
+Nein. Snapdragon AI Studio ist ein unabhängiges Open-Source-Projekt.
+
+### Werden meine Prompts an einen Cloud-Bilddienst gesendet?
+
+Die unterstützte Bildgenerierung ist auf lokale Ausführung ausgelegt. Für Downloads und Einrichtung einzelner Komponenten wird jedoch eine Internetverbindung benötigt.
+
+### Muss ich Python installieren?
+
+Nicht für die normale Verwendung des veröffentlichten Windows-Installers. Python 3.11 ARM64 ist vor allem für Entwicklung bzw. Ausführung aus dem Quellcode relevant. Die SD3.5-Einrichtung verwaltet ihren vorgesehenen Einrichtungsweg über Phoenix.
+
+### Muss ich Ollama installieren?
+
+Nur wenn du den optionalen **Phoenix AI Boost** verwenden möchtest. Die normale Bildgenerierung soll auch ohne Ollama funktionieren.
+
+### Welches Sprachmodell verwendet Phoenix AI Boost?
+
+RC2A verwendet **Qwen2.5 3B** über Ollama.
+
+### Muss ich für SD3.5 einzelne Qualcomm-Dateien selbst zusammensuchen?
+
+Der RC2A-Ablauf ist darauf ausgelegt, die Qualcomm-Einrichtung weitgehend automatisch durchzuführen. Der Benutzer soll keine einzelnen internen Modellkomponenten manuell auswählen müssen.
+
+### Kann ich Modelle einfach aus ihren Ordnern löschen?
+
+Davon wird im normalen Betrieb abgeraten. Verwende die vorgesehenen Verwaltungs- und Installationswege. Manuelle Änderungen können dazu führen, dass gespeicherter Zustand und tatsächliche Dateien vorübergehend voneinander abweichen.
+
+### Welche Sprachen unterstützt die Oberfläche?
+
+Deutsch, Englisch und Spanisch.
+
+### Kann ich Snapdragon AI Studio auf Intel- oder AMD-PCs verwenden?
+
+Das Projekt ist für Windows 11 ARM64 auf Snapdragon ausgelegt. Andere Plattformen gehören nicht zum offiziell vorgesehenen bzw. validierten Hauptziel.
+
+---
+
+## 20. Support und Fehlerberichte
+
+Projekt-Repository:
+
+`https://github.com/Kreuzhofen/snapdragon-ai-studio`
+
+Für reproduzierbare Fehler bitte GitHub Issues verwenden. Für allgemeine Fragen und Diskussionen kann GitHub Discussions genutzt werden, sofern für das Repository aktiviert.
+
+Bei Fehlerberichten keine Zugangsdaten, Tokens oder andere vertrauliche Informationen in Logs oder Screenshots veröffentlichen.
+
+---
+
+## 21. Open Source, Lizenzen und Marken
+
+Snapdragon AI Studio wird als unabhängiges Open-Source-Projekt entwickelt. Die Anwendung selbst steht unter der im Repository angegebenen Projektlizenz. Zusätzlich gelten für verwendete Modelle, Frameworks und externe Komponenten deren jeweilige Lizenzen und Nutzungsbedingungen.
+
+Qualcomm, Snapdragon und Hexagon sind Marken bzw. eingetragene Marken von Qualcomm Incorporated. Windows ist eine Marke von Microsoft. Weitere Marken gehören ihren jeweiligen Eigentümern.
+
+Die Verwendung dieser Namen beschreibt technische Plattformen bzw. Kompatibilität und stellt keine offizielle Partnerschaft oder Produktzugehörigkeit dar.
+
+---
+
+## 22. RC2A auf einen Blick
+
+RC2A konzentriert sich besonders auf einen zuverlässigeren und verständlicheren Anwenderflow:
+
+- geführte Ersteinrichtung,
+- einsteigerfreundlicher Modell-Manager,
+- geführte Modellquellen und Downloads,
+- automatische Aktivierung nach erfolgreicher Installation,
+- verbesserte Status- und Fortschrittsanzeigen,
+- Phoenix Boost mit optionalem lokalem AI Boost,
+- automatisierter Qualcomm-QAI-AppBuilder-Weg für Stable Diffusion 3.5 Medium,
+- lokale Bildgenerierung auf Windows 11 ARM64 / Snapdragon.
+
+Das Ziel bleibt bewusst einfach:
+
+> **Snapdragon AI Studio installieren → Modell auswählen → Bild erzeugen.**
+
+---
+
+**Snapdragon AI Studio – Phoenix Engine**  
+Holger Kreuzhofen  
+Founder & Lead Developer
