@@ -151,11 +151,28 @@ class HomeFirstRunTests(unittest.TestCase):
         PhoenixHomeView._on_readiness_action(view)
         navigate.assert_called_once_with("prompt")
 
+    def test_render_readiness_no_generations(self) -> None:
+        view = self._view_stub()
+        PhoenixHomeView._render_readiness(view, model_ready=True, has_generations=False)
+        self.assertEqual(
+            view._readiness_button.configure.call_args.kwargs["text"],
+            tr("home_create_first_image"),
+        )
+
+    def test_render_readiness_with_generations(self) -> None:
+        view = self._view_stub()
+        PhoenixHomeView._render_readiness(view, model_ready=True, has_generations=True)
+        self.assertEqual(
+            view._readiness_button.configure.call_args.kwargs["text"],
+            tr("home_create_new_image"),
+        )
+
     def test_localization_keys_complete(self) -> None:
         required = {
             "home_setup_required", "home_studio_ready", "home_model_folder_ready",
             "home_model_folder_not_ready", "home_system_ready", "home_system_not_ready",
             "home_select_install_next", "home_start_setup", "home_create_first_image",
+            "home_create_new_image",
         }
         root = Path(__file__).resolve().parents[1]
         for locale in ("de_DE", "en_US", "es_ES"):

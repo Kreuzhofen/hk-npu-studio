@@ -329,6 +329,7 @@
   "home_select_install_next": "No AI model installed yet",
   "home_start_setup": "Set up now",
   "home_create_first_image": "Create your first image",
+  "home_create_new_image": "Create New Image",
   "home_quickstart": "Quick Start",
   "home_action_generate": "New Image Generation",
   "home_action_models": "Manage Models",

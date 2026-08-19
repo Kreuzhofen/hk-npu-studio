@@ -584,6 +584,7 @@ class PhoenixHomeView(tk.Frame):
             snapshot.model_ready,
             snapshot.model_directory_ready,
             snapshot.system_ready,
+            has_generations=bool(snapshot.latest_generations),
         )
         system_values = {
             "npu": snapshot.npu_status,
@@ -730,6 +731,7 @@ class PhoenixHomeView(tk.Frame):
         model_ready: bool,
         model_directory_ready: bool = True,
         system_ready: bool = True,
+        has_generations: bool = False,
     ) -> None:
         self._model_ready = model_ready
         folder_status = (
@@ -756,8 +758,13 @@ class PhoenixHomeView(tk.Frame):
                 text=f"{folder_status}\n{system_status}",
                 fg=PHOENIX_THEME.text_primary,
             )
+            btn_text = (
+                tr("home_create_new_image", "Neues Bild erstellen")
+                if has_generations
+                else tr("home_create_first_image", "Erstes Bild erstellen")
+            )
             self._readiness_button.configure(
-                text=tr("home_create_first_image", "Erstes Bild erstellen"),
+                text=btn_text,
                 bg=PHOENIX_THEME.accent,
                 activebackground=PHOENIX_THEME.accent_dark,
                 fg=PHOENIX_THEME.text_on_accent,

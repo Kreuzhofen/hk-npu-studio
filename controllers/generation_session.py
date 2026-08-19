@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Any
+from config import OUTPUT_DIR
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,7 @@ class GenerationSessionModel:
     sampler: str = "Euler a"
     scheduler: str = "Normal"
     batch_size: int = 1
-    output_directory: str = "output"
+    output_directory: str = str(OUTPUT_DIR)
     output_prefix: str = "generate"
     input_image_path: str | None = None
     controlnet_enabled: bool = False
@@ -74,7 +75,7 @@ class GenerationSessionModel:
         self.sampler = "Euler a"
         self.scheduler = "Normal"
         self.batch_size = 1
-        self.output_directory = "output"
+        self.output_directory = str(OUTPUT_DIR)
         self.output_prefix = "generate"
         self.input_image_path = None
         self.controlnet_enabled = False

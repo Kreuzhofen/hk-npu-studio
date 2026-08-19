@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import tempfile
 import unittest
@@ -157,6 +157,22 @@ class PipelineParameterTests(unittest.TestCase):
         explanation_es = tr("model_src_sd35_guided_description")
         self.assertIn("CÃ³mo funciona la configuraciÃ³n:", explanation_es)
         self.assertIn("1. Descargue primero el archivo requerido de Qualcomm.", explanation_es)
+
+    def test_output_directory_defaults_to_config_output_dir(self):
+        from config import OUTPUT_DIR
+        session = GenerationSessionModel()
+        self.assertEqual(session.output_directory, str(OUTPUT_DIR))
+
+    def test_output_directory_reset_restores_config_output_dir(self):
+        from config import OUTPUT_DIR
+        session = GenerationSessionModel(output_directory="custom_dir")
+        self.assertEqual(session.output_directory, "custom_dir")
+        session.reset()
+        self.assertEqual(session.output_directory, str(OUTPUT_DIR))
+
+    def test_explicit_output_directory_is_preserved(self):
+        session = GenerationSessionModel(output_directory="another_custom_dir")
+        self.assertEqual(session.output_directory, "another_custom_dir")
 
 
 if __name__ == "__main__":

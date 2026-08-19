@@ -329,6 +329,7 @@
   "home_select_install_next": "Noch kein KI-Modell installiert",
   "home_start_setup": "Jetzt einrichten",
   "home_create_first_image": "Erstes Bild erstellen",
+  "home_create_new_image": "Neues Bild erstellen",
   "home_quickstart": "Schnelleinstieg",
   "home_action_generate": "Neue Bildgenerierung",
   "home_action_models": "Modelle verwalten",
