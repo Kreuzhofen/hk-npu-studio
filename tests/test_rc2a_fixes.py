@@ -62,9 +62,9 @@ class TestRC2AFixes(unittest.TestCase):
                 self.assertEqual(status, PackageStatus.INSTALLED)
 
     def test_fix2_version_unification_rc2a(self):
-        """Verify that the central release version is exactly '2.0 RC2A'."""
-        self.assertEqual(RELEASE.display_version, "2.0 RC2A")
-        self.assertEqual(RELEASE.package_version, "2.0.0-rc.2a")
+        """Verify that the central release version is exactly '2.0 RC2B'."""
+        self.assertEqual(RELEASE.display_version, "2.0 RC2B")
+        self.assertEqual(RELEASE.package_version, "2.0.0-rc.2b")
 
     def test_fix3_phoenix_boost_close_behavior(self):
         """Verify that Qwen installation success closes the active Boost preview window."""
