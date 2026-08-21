@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 import json
+import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 import tkinter as tk
@@ -12,10 +13,17 @@ from app.settings_manager import SettingsManager
 
 
 class SettingsViewTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.root = tk.Tk()
+        cls.root.withdraw()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.root.destroy()
+
     def setUp(self) -> None:
         set_language("de_DE")
-        self.root = tk.Tk()
-        self.root.withdraw()  # Withdraw to prevent rendering actual window
         
         # Patch messagebox calls to prevent blocking
         self.showinfo_patcher = patch("tkinter.messagebox.showinfo")
@@ -30,7 +38,6 @@ class SettingsViewTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.view.destroy()
         self.root.update_idletasks()
-        self.root.destroy()  # Reliably destroy the root window
         
         self.showinfo_patcher.stop()
         self.showwarning_patcher.stop()
@@ -107,11 +114,28 @@ class SettingsViewTests(unittest.TestCase):
         mock_save.assert_called_once()
         saved_data = mock_save.call_args[0][0]
         self.assertEqual(saved_data.get("hf_token"), "new_secret_token")
+        self.assertNotIn("output_dir", saved_data)
+        self.assertNotIn("models_dir", saved_data)
         status_text = self.view.status_lbl.cget("text")
         self.assertTrue(
             "erfolgreich gespeichert" in status_text or "Settings saved successfully" in status_text,
             f"Expected save success message, got: {status_text}"
         )
+
+    def test_path_fields_show_configured_runtime_paths_and_are_readonly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "configured-output"
+            models_dir = Path(temp_dir) / "configured-models"
+            with patch("widgets.phoenix.views.settings_view.OUTPUT_DIR", output_dir), \
+                 patch("widgets.phoenix.views.settings_view.MODELS_DIR", models_dir):
+                self.view._load_values()
+
+            self.assertEqual(self.view.out_dir_entry.get(), str(output_dir))
+            self.assertEqual(self.view.models_dir_entry.get(), str(models_dir))
+        self.assertEqual(str(self.view.out_dir_entry.cget("state")), "readonly")
+        self.assertEqual(str(self.view.models_dir_entry.cget("state")), "readonly")
+        self.assertEqual(str(self.view.out_dir_btn.cget("state")), "disabled")
+        self.assertEqual(str(self.view.models_dir_btn.cget("state")), "disabled")
 
     @patch("app.settings_manager.SettingsManager.test_hf_token")
     def test_test_token_successful(self, mock_test: MagicMock) -> None:

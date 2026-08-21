@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import os
 import threading
 import tkinter as tk
 import webbrowser
-from tkinter import filedialog, messagebox
+from tkinter import messagebox
 from tkinter import ttk as ttk_real
 
 class _TtkProxy:
@@ -50,6 +49,7 @@ ttk = _TtkProxy()
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
 from app.settings_manager import SettingsManager
+from config import MODELS_DIR, OUTPUT_DIR
 
 
 class PhoenixSettingsView(tk.Frame):
@@ -338,11 +338,11 @@ class PhoenixSettingsView(tk.Frame):
             font=PHOENIX_THEME.font_body,
         )
         self.out_dir_entry.grid(row=1, column=0, sticky="ew", ipady=5, pady=(0, 10))
+        self.out_dir_entry.configure(state="readonly")
 
         self.out_dir_btn = tk.Button(
             paths_form,
             text="...",
-            command=self._browse_output_dir,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.border,
@@ -354,6 +354,7 @@ class PhoenixSettingsView(tk.Frame):
             padx=10,
         )
         self.out_dir_btn.grid(row=1, column=1, sticky="ns", padx=(6, 0), pady=(0, 10))
+        self.out_dir_btn.configure(state="disabled")
         self._add_button_hover(self.out_dir_btn)
 
         # Model directory
@@ -377,11 +378,11 @@ class PhoenixSettingsView(tk.Frame):
             font=PHOENIX_THEME.font_body,
         )
         self.models_dir_entry.grid(row=3, column=0, sticky="ew", ipady=5, pady=(0, 10))
+        self.models_dir_entry.configure(state="readonly")
 
         self.models_dir_btn = tk.Button(
             paths_form,
             text="...",
-            command=self._browse_models_dir,
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.border,
@@ -393,6 +394,7 @@ class PhoenixSettingsView(tk.Frame):
             padx=10,
         )
         self.models_dir_btn.grid(row=3, column=1, sticky="ns", padx=(6, 0), pady=(0, 10))
+        self.models_dir_btn.configure(state="disabled")
         self._add_button_hover(self.models_dir_btn)
 
         # ==========================================
@@ -590,26 +592,6 @@ class PhoenixSettingsView(tk.Frame):
             self.token_entry.configure(show="*")
             self.toggle_btn.configure(text=tr("show_token", "Anzeigen"))
 
-    def _browse_output_dir(self) -> None:
-        initial = self.out_dir_entry.get().strip() or r"C:\SnapdragonAI"
-        folder = filedialog.askdirectory(
-            title=tr("settings_choose_output_dir", "Standard-Ausgabeordner wählen"),
-            initialdir=initial,
-        )
-        if folder:
-            self.out_dir_entry.delete(0, tk.END)
-            self.out_dir_entry.insert(0, os.path.normpath(folder))
-
-    def _browse_models_dir(self) -> None:
-        initial = self.models_dir_entry.get().strip() or r"C:\SnapdragonAI"
-        folder = filedialog.askdirectory(
-            title=tr("settings_choose_models_dir", "Modell-Verzeichnis wählen"),
-            initialdir=initial,
-        )
-        if folder:
-            self.models_dir_entry.delete(0, tk.END)
-            self.models_dir_entry.insert(0, os.path.normpath(folder))
-
     def _load_values(self) -> None:
         prefs = SettingsManager.load_settings()
         
@@ -619,13 +601,17 @@ class PhoenixSettingsView(tk.Frame):
         self.hw_acc_var.set(prefs.get("hardware_accel", "True") == "True")
         
         # Paths & Storage
-        out_dir = prefs.get("output_dir", r"C:\SnapdragonAI\output")
+        out_dir = str(OUTPUT_DIR)
+        self.out_dir_entry.configure(state="normal")
         self.out_dir_entry.delete(0, tk.END)
         self.out_dir_entry.insert(0, out_dir)
+        self.out_dir_entry.configure(state="readonly")
         
-        models_dir = prefs.get("models_dir", r"C:\SnapdragonAI\models")
+        models_dir = str(MODELS_DIR)
+        self.models_dir_entry.configure(state="normal")
         self.models_dir_entry.delete(0, tk.END)
         self.models_dir_entry.insert(0, models_dir)
+        self.models_dir_entry.configure(state="readonly")
         
         # UI & Language
         self.theme_var.set(self._theme_display_value(prefs.get("theme", "Dunkel")))
@@ -653,8 +639,6 @@ class PhoenixSettingsView(tk.Frame):
             "thread_count": self.thread_var.get(),
             "execution_provider": self.ep_var.get(),
             "hardware_accel": str(self.hw_acc_var.get()),
-            "output_dir": self.out_dir_entry.get().strip(),
-            "models_dir": self.models_dir_entry.get().strip(),
             "theme": new_theme,
             "language": new_lang,
             "hf_token": token,
@@ -695,11 +679,15 @@ class PhoenixSettingsView(tk.Frame):
         self.ep_var.set("QNN EP")
         self.hw_acc_var.set(True)
         
+        self.out_dir_entry.configure(state="normal")
         self.out_dir_entry.delete(0, tk.END)
-        self.out_dir_entry.insert(0, r"C:\SnapdragonAI\output")
+        self.out_dir_entry.insert(0, str(OUTPUT_DIR))
+        self.out_dir_entry.configure(state="readonly")
         
+        self.models_dir_entry.configure(state="normal")
         self.models_dir_entry.delete(0, tk.END)
-        self.models_dir_entry.insert(0, r"C:\SnapdragonAI\models")
+        self.models_dir_entry.insert(0, str(MODELS_DIR))
+        self.models_dir_entry.configure(state="readonly")
         
         self.theme_var.set(tr("theme_dark", "Dunkel"))
         self.language_var.set("Deutsch")
