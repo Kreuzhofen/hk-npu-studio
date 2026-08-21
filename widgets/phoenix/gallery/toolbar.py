@@ -4,6 +4,7 @@ import tkinter as tk
 from collections.abc import Callable
 
 from resources.icons import IconManager
+from widgets.phoenix.controls.button import PhoenixButton
 from widgets.phoenix.layout.workspace import WorkspaceToolbarBase
 from widgets.phoenix.theme import PHOENIX_THEME
 
@@ -93,18 +94,28 @@ class GalleryToolbar(WorkspaceToolbarBase):
     def _build_action_group(self) -> tk.Frame:
         from app.i18n import tr
         group = self.group_frame()
-        self.toolbar_button(
+        PhoenixButton(
             group,
-            IconManager.get_label("folder", tr("menu_open_output", "Output-Ordner öffnen")),
-            self.on_open_folder,
-            self.BUTTON_WIDTH_OPEN,
+            text=tr("menu_open_output", "Output-Ordner öffnen"),
+            command=self.on_open_folder,
+            button_type="neutral",
+            icon_name="folder",
+            icon_color=PHOENIX_THEME.warning,
+            width=self.BUTTON_WIDTH_OPEN,
+            height=30,
+            radius=6,
         ).pack(side="left")
         self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        self.toolbar_button(
+        PhoenixButton(
             group,
-            IconManager.get_label("refresh", tr("refresh", "Aktualisieren")),
-            self.on_refresh,
-            self.BUTTON_WIDTH_REFRESH,
+            text=tr("refresh", "Aktualisieren"),
+            command=self.on_refresh,
+            button_type="neutral",
+            icon_name="refresh",
+            icon_color=PHOENIX_THEME.accent,
+            width=self.BUTTON_WIDTH_REFRESH,
+            height=30,
+            radius=6,
         ).pack(side="left")
         return group
 

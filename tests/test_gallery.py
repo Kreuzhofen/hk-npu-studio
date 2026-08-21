@@ -11,6 +11,8 @@ from controllers.gallery_controller import GalleryController
 from controllers.gallery_image_loader import ImageLoader
 from widgets.phoenix.views.gallery_view import PhoenixGalleryView
 from widgets.phoenix.gallery.toolbar import GalleryToolbar
+from widgets.phoenix.theme import PHOENIX_THEME, update_phoenix_theme
+from engine.theme_manager import ThemeManager
 
 
 class TestGalleryAndAssetLibrary(unittest.TestCase):
@@ -156,6 +158,25 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
             data = json.loads((root / "locales" / f"{locale}.json").read_text(encoding="utf-8"))
             self.assertEqual(data["menu_open_output"], expected_label)
         self.assertGreaterEqual(GalleryToolbar.BUTTON_WIDTH_OPEN, 200)
+
+    def test_gallery_action_icons_use_theme_accents(self):
+        original_theme = ThemeManager.active_theme()
+        try:
+            for theme_name in ("dark", "light"):
+                update_phoenix_theme(theme_name)
+                toolbar = object.__new__(GalleryToolbar)
+                toolbar.group_frame = MagicMock(return_value=MagicMock())
+                toolbar.separator = MagicMock(return_value=MagicMock())
+                toolbar.on_open_folder = MagicMock()
+                toolbar.on_refresh = MagicMock()
+
+                with patch("widgets.phoenix.gallery.toolbar.PhoenixButton") as mock_button:
+                    toolbar._build_action_group()
+
+                self.assertEqual(mock_button.call_args_list[0].kwargs["icon_color"], PHOENIX_THEME.warning)
+                self.assertEqual(mock_button.call_args_list[1].kwargs["icon_color"], PHOENIX_THEME.accent)
+        finally:
+            update_phoenix_theme(original_theme)
 
     @patch("widgets.phoenix.gallery.thumbnail_area.ThumbnailProvider")
     def test_ui_view_initialization(self, mock_provider):
