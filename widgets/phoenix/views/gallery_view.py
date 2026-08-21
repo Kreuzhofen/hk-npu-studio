@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import tkinter as tk
+import subprocess
 
+from config import OUTPUT_DIR
 from controllers.gallery_controller import GalleryController
 from controllers.gallery_model import GalleryImage
 from widgets.phoenix.gallery.status_bar import GalleryStatusBar
@@ -74,7 +76,7 @@ class PhoenixGalleryView(WorkspaceFrame):
         # 1. Build Toolbar and place in self.header.toolbar_slot
         self.toolbar = GalleryToolbar(
             self.header.toolbar_slot,
-            on_open_folder=self._on_open_folder,
+            on_open_folder=self._open_output_directory,
             on_refresh=self._on_refresh,
             on_thumbnail_size_change=self._on_thumbnail_size_change,
             on_search_change=self._on_search_change,
@@ -161,6 +163,15 @@ class PhoenixGalleryView(WorkspaceFrame):
         if folder:
             self.controller.open_folder(folder)
             self._refresh_ui(force=True)
+
+    def _open_output_directory(self) -> None:
+        try:
+            subprocess.Popen(["explorer", str(OUTPUT_DIR.resolve())])
+        except Exception as error:
+            import logging
+            logging.getLogger("PhoenixGalleryView").error(
+                "Failed to open output directory in explorer: %s", error
+            )
 
     def _on_refresh(self) -> None:
         changed = self.controller.refresh()

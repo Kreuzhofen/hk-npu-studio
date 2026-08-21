@@ -133,6 +133,17 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
         finally:
             shutil.rmtree(empty_dir)
 
+    def test_gallery_output_action_opens_configured_output_directory(self):
+        output_dir = self.temp_dir / "output"
+        output_dir.mkdir()
+        view = object.__new__(PhoenixGalleryView)
+
+        with patch("widgets.phoenix.views.gallery_view.OUTPUT_DIR", output_dir), \
+             patch("widgets.phoenix.views.gallery_view.subprocess.Popen") as mock_popen:
+            view._open_output_directory()
+
+        mock_popen.assert_called_once_with(["explorer", str(output_dir.resolve())])
+
     @patch("widgets.phoenix.gallery.thumbnail_area.ThumbnailProvider")
     def test_ui_view_initialization(self, mock_provider):
         root = tk.Tk()

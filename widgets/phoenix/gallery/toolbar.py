@@ -95,7 +95,7 @@ class GalleryToolbar(WorkspaceToolbarBase):
         group = self.group_frame()
         self.toolbar_button(
             group,
-            IconManager.get_label("folder", tr("open_folder", "Ordner öffnen")),
+            IconManager.get_label("folder", tr("menu_open_output", "Output-Ordner öffnen")),
             self.on_open_folder,
             self.BUTTON_WIDTH_OPEN,
         ).pack(side="left")
