@@ -71,3 +71,35 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Run]
 Filename: "{app}\{#ExecutableName}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+procedure InitializeLanguagePreferences;
+var
+  PreferencesDir: String;
+  PreferencesPath: String;
+  Language: String;
+  PreferencesJson: String;
+begin
+  PreferencesDir := ExpandConstant('{localappdata}\Snapdragon AI Studio\data');
+  PreferencesPath := AddBackslash(PreferencesDir) + 'preferences.json';
+  if FileExists(PreferencesPath) then
+    Exit;
+
+  Language := 'Deutsch';
+  if ActiveLanguage = 'english' then
+    Language := 'English'
+  else if ActiveLanguage = 'spanish' then
+    Language := 'Espa\u00f1ol';
+
+  if ForceDirectories(PreferencesDir) then
+  begin
+    PreferencesJson := '{"language":"' + Language + '"}';
+    SaveStringToFile(PreferencesPath, PreferencesJson, False);
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    InitializeLanguagePreferences;
+end;
