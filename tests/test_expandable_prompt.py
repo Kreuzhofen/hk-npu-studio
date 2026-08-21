@@ -251,6 +251,35 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertFalse(self.view._prompt_popup.winfo_exists())
 
     def test_old_preset_uses_model_defaults_for_missing_fields(self) -> None:
+        model_id = "test_legacy_preset_model"
+        contract = {
+            "width": {"default": 640, "values": [640]},
+            "height": {"default": 480, "values": [480]},
+            "steps": {"default": 31, "min": 1, "max": 100},
+            "cfg": {"default": 6.5, "min": 1.0, "max": 20.0},
+            "seed": {"default": 123},
+            "sampler": {"default": "Test Sampler", "values": ["Test Sampler"]},
+            "scheduler": {"default": "Test Scheduler", "values": ["Test Scheduler"]},
+        }
+        test_model = {
+            "id": model_id,
+            "installed": True,
+            "product_available": True,
+            "generation_parameters": contract,
+            "description": "Test model",
+        }
+        repository = MagicMock()
+        repository.get_model.side_effect = (
+            lambda requested_id: test_model if requested_id == model_id else None
+        )
+        repository.get_generation_parameters.side_effect = (
+            lambda requested_id: contract if requested_id == model_id else None
+        )
+        self.controller.repository = repository
+        self.controller.generation_controller.repository = repository
+        self.controller.AVAILABLE_MODELS = [model_id]
+        self.view.model_var.set(model_id)
+
         self.view.seed_var.set("987")
         self.view.batch_var.set("8")
         self.view.neg_prompt_text.delete("1.0", "end")
@@ -258,7 +287,6 @@ class ExpandablePromptTests(unittest.TestCase):
 
         self.view.apply_generation_settings({"prompt": "Legacy prompt"})
 
-        contract = self.controller.get_generation_parameters(self.view.model_var.get())
         self.assertEqual(self.view.prompt_text.get("1.0", "end-1c"), "Legacy prompt")
         self.assertEqual(self.view.neg_prompt_text.get("1.0", "end-1c"), "")
         self.assertEqual(self.view.seed_var.get(), str(contract["seed"]["default"]))
