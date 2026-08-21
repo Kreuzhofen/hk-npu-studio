@@ -15,7 +15,7 @@ class GalleryToolbar(WorkspaceToolbarBase):
     SIZE_OPTIONS = ("Klein", "Mittel", "Groß", "Sehr groß")
     FILTER_OPTIONS = ("Alle", "JPG/JPEG", "PNG", "WEBP", "TIFF", "BMP")
     PLACEHOLDER = "Suchen…"
-    BUTTON_WIDTH_OPEN = 136
+    BUTTON_WIDTH_OPEN = 200
     BUTTON_WIDTH_REFRESH = 128
     BUTTON_WIDTH_FILTER = 104
     DROPDOWN_WIDTH_SORT = 122

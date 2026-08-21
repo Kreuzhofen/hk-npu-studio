@@ -325,11 +325,12 @@ class PhoenixSettingsView(tk.Frame):
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
             anchor="w",
-        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(4, 2))
+        ).grid(row=0, column=0, sticky="w", pady=(4, 2))
 
         self.out_dir_entry = tk.Entry(
             paths_form,
             bg=PHOENIX_THEME.elevated_bg,
+            readonlybackground=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
             insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border,
@@ -340,23 +341,6 @@ class PhoenixSettingsView(tk.Frame):
         self.out_dir_entry.grid(row=1, column=0, sticky="ew", ipady=5, pady=(0, 10))
         self.out_dir_entry.configure(state="readonly")
 
-        self.out_dir_btn = tk.Button(
-            paths_form,
-            text="...",
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.border,
-            activeforeground=PHOENIX_THEME.text_primary,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=10,
-        )
-        self.out_dir_btn.grid(row=1, column=1, sticky="ns", padx=(6, 0), pady=(0, 10))
-        self.out_dir_btn.configure(state="disabled")
-        self._add_button_hover(self.out_dir_btn)
-
         # Model directory
         tk.Label(
             paths_form,
@@ -365,11 +349,12 @@ class PhoenixSettingsView(tk.Frame):
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
             anchor="w",
-        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 2))
+        ).grid(row=2, column=0, sticky="w", pady=(4, 2))
 
         self.models_dir_entry = tk.Entry(
             paths_form,
             bg=PHOENIX_THEME.elevated_bg,
+            readonlybackground=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_primary,
             insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border,
@@ -379,23 +364,6 @@ class PhoenixSettingsView(tk.Frame):
         )
         self.models_dir_entry.grid(row=3, column=0, sticky="ew", ipady=5, pady=(0, 10))
         self.models_dir_entry.configure(state="readonly")
-
-        self.models_dir_btn = tk.Button(
-            paths_form,
-            text="...",
-            bg=PHOENIX_THEME.elevated_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.border,
-            activeforeground=PHOENIX_THEME.text_primary,
-            bd=0,
-            relief="flat",
-            font=PHOENIX_THEME.font_button,
-            cursor="hand2",
-            padx=10,
-        )
-        self.models_dir_btn.grid(row=3, column=1, sticky="ns", padx=(6, 0), pady=(0, 10))
-        self.models_dir_btn.configure(state="disabled")
-        self._add_button_hover(self.models_dir_btn)
 
         # ==========================================
         # CARD 3: UI & SPRACHE

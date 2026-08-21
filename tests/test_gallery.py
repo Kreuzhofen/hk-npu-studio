@@ -10,6 +10,7 @@ from controllers.gallery_model import GalleryImage, GalleryModel
 from controllers.gallery_controller import GalleryController
 from controllers.gallery_image_loader import ImageLoader
 from widgets.phoenix.views.gallery_view import PhoenixGalleryView
+from widgets.phoenix.gallery.toolbar import GalleryToolbar
 
 
 class TestGalleryAndAssetLibrary(unittest.TestCase):
@@ -143,6 +144,18 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
             view._open_output_directory()
 
         mock_popen.assert_called_once_with(["explorer", str(output_dir.resolve())])
+
+    def test_gallery_output_action_label_is_localized_and_sized(self):
+        root = Path(__file__).resolve().parents[1]
+        expected_labels = {
+            "de_DE": "Ausgabeordner öffnen",
+            "en_US": "Open output folder",
+            "es_ES": "Abrir carpeta de salida",
+        }
+        for locale, expected_label in expected_labels.items():
+            data = json.loads((root / "locales" / f"{locale}.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["menu_open_output"], expected_label)
+        self.assertGreaterEqual(GalleryToolbar.BUTTON_WIDTH_OPEN, 200)
 
     @patch("widgets.phoenix.gallery.thumbnail_area.ThumbnailProvider")
     def test_ui_view_initialization(self, mock_provider):

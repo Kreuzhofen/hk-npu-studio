@@ -8,6 +8,7 @@ from unittest.mock import patch, MagicMock
 import tkinter as tk
 
 from widgets.phoenix.views.settings_view import PhoenixSettingsView
+from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import set_language
 from app.settings_manager import SettingsManager
 
@@ -134,8 +135,10 @@ class SettingsViewTests(unittest.TestCase):
             self.assertEqual(self.view.models_dir_entry.get(), str(models_dir))
         self.assertEqual(str(self.view.out_dir_entry.cget("state")), "readonly")
         self.assertEqual(str(self.view.models_dir_entry.cget("state")), "readonly")
-        self.assertEqual(str(self.view.out_dir_btn.cget("state")), "disabled")
-        self.assertEqual(str(self.view.models_dir_btn.cget("state")), "disabled")
+        self.assertEqual(self.view.out_dir_entry.cget("readonlybackground"), PHOENIX_THEME.elevated_bg)
+        self.assertEqual(self.view.models_dir_entry.cget("readonlybackground"), PHOENIX_THEME.elevated_bg)
+        self.assertFalse(hasattr(self.view, "out_dir_btn"))
+        self.assertFalse(hasattr(self.view, "models_dir_btn"))
 
     @patch("app.settings_manager.SettingsManager.test_hf_token")
     def test_test_token_successful(self, mock_test: MagicMock) -> None:
