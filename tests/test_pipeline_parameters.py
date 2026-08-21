@@ -144,7 +144,7 @@ class PipelineParameterTests(unittest.TestCase):
         set_language("de_DE")
         explanation_de = tr("model_src_sd35_guided_description")
         self.assertIn("So funktioniert die Einrichtung:", explanation_de)
-        self.assertIn("1. Laden Sie zuerst die benÃ¶tigte Qualcomm-Datei herunter.", explanation_de)
+        self.assertIn("1. Laden Sie zuerst die benötigte Qualcomm-Datei herunter.", explanation_de)
 
         # Test English
         set_language("en_US")
@@ -155,7 +155,7 @@ class PipelineParameterTests(unittest.TestCase):
         # Test Spanish
         set_language("es_ES")
         explanation_es = tr("model_src_sd35_guided_description")
-        self.assertIn("CÃ³mo funciona la configuraciÃ³n:", explanation_es)
+        self.assertIn("Cómo funciona la configuración:", explanation_es)
         self.assertIn("1. Descargue primero el archivo requerido de Qualcomm.", explanation_es)
 
     def test_output_directory_defaults_to_config_output_dir(self):
