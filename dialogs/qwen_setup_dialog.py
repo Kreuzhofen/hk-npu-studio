@@ -218,11 +218,11 @@ class QwenSetupDialog(StudioDialog):
         # Ollama updates multiple lines using ANSI escape/cursor sequences. As a result,
         # a single read buffer can contain both "pulling c5396e06af29: 45%" and "pulling manifest".
         # We must prioritize percentage parsing to avoid getting stuck in indeterminate mode.
-        # We identify actual layer progress lines matching "pulling <layer/hash>: <percent>%"
-        match = re.search(r"(?:pulling|downloading)\s+([a-f0-9]{12}):\s*(\d+(?:\.\d+)?)%", line_lower)
+        # We identify actual layer progress lines matching a hash or "downloading layer <percent>%".
+        match = re.search(r"(?:(?:pulling|downloading)\s+[a-f0-9]{12}:\s*|downloading\s+layer\s+)(\d+(?:\.\d+)?)%", line_lower)
         if match:
             try:
-                pct = int(float(match.group(2)))
+                pct = int(float(match.group(1)))
             except ValueError:
                 pct = 0
 
