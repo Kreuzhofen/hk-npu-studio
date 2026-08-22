@@ -84,6 +84,45 @@ class ModelDirectDownloadDialog(StudioDialog):
             tr("sd35_install_title", "Install Stable Diffusion 3.5 Medium") if guided_sd35 else tr("direct_model_install_title", "Install model"),
             tr("sd35_folder_processing", "Snapdragon AI Studio checks and installs the Qualcomm model folder automatically.") if guided_sd35 else tr("direct_model_install_automatic", "Snapdragon AI Studio installs the model automatically."),
         )
+        scroll_area = tk.Frame(self.body, bg=PHOENIX_THEME.card_bg)
+        scroll_area.pack(fill="both", expand=True)
+        self.content_canvas = tk.Canvas(
+            scroll_area,
+            bg=PHOENIX_THEME.card_bg,
+            bd=0,
+            highlightthickness=0,
+        )
+        content_scrollbar = ttk.Scrollbar(
+            scroll_area,
+            orient="vertical",
+            command=self.content_canvas.yview,
+        )
+        content_scrollbar.pack(side="right", fill="y")
+        self.content_canvas.pack(side="left", fill="both", expand=True)
+        self.content_canvas.configure(yscrollcommand=content_scrollbar.set)
+        self.content_body = tk.Frame(self.content_canvas, bg=PHOENIX_THEME.card_bg)
+        self.content_canvas_window = self.content_canvas.create_window(
+            (0, 0), window=self.content_body, anchor="nw"
+        )
+        self.content_body.bind(
+            "<Configure>",
+            lambda _event: self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all")),
+        )
+        self.content_canvas.bind(
+            "<Configure>",
+            lambda event: self.content_canvas.itemconfigure(self.content_canvas_window, width=event.width),
+        )
+        self.content_canvas.bind(
+            "<Enter>",
+            lambda _event: self.content_canvas.bind_all(
+                "<MouseWheel>",
+                lambda event: self.content_canvas.yview_scroll(int(-event.delta / 120), "units"),
+            ),
+        )
+        self.content_canvas.bind(
+            "<Leave>",
+            lambda _event: self.content_canvas.unbind_all("<MouseWheel>"),
+        )
         if guided_sd35:
             size_text = tr("sd35_folder_selected", "Qualcomm model folder selected")
         elif download_size:
@@ -91,7 +130,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         else:
             size_text = tr("direct_model_download_size_unknown", "Download size: determined during download")
 
-        details_card = self.add_card()
+        details_card = self.add_card(master=self.content_body)
         details = tk.Frame(details_card, bg=PHOENIX_THEME.elevated_bg)
         details.pack(
             fill="x",
@@ -162,7 +201,7 @@ class ModelDirectDownloadDialog(StudioDialog):
             ))
 
         self.steps_label = tk.Label(
-            self.body,
+            self.content_body,
             text="",
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body, justify="left", anchor="w",
@@ -173,7 +212,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         self._render_step_states()
 
         self.download_desc_label = tk.Label(
-            self.body,
+            self.content_body,
             text="",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -184,12 +223,12 @@ class ModelDirectDownloadDialog(StudioDialog):
 
         self.progress_var = tk.DoubleVar(value=0.0)
         self.progress = ttk.Progressbar(
-            self.body, variable=self.progress_var, maximum=100.0,
+            self.content_body, variable=self.progress_var, maximum=100.0,
             style=self.PROGRESS_STYLE,
         )
         self.progress.pack(fill="x", ipady=3, pady=(0, PHOENIX_THEME.space_sm))
         self.status_label = tk.Label(
-            self.body,
+            self.content_body,
             text=tr("sd35_folder_ready", "Ready to check the model folder.") if guided_sd35 else tr("direct_model_ready_to_download", "Ready to download."),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -199,7 +238,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         self.status_label.pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
 
         self.download_metrics_label = tk.Label(
-            self.body,
+            self.content_body,
             text="",
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_secondary,
@@ -209,7 +248,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         )
         self.download_metrics_label.pack(fill="x", pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_md))
 
-        log_frame = tk.Frame(self.body, bg=PHOENIX_THEME.card_bg, highlightbackground=PHOENIX_THEME.border, highlightthickness=1)
+        log_frame = tk.Frame(self.content_body, bg=PHOENIX_THEME.card_bg, highlightbackground=PHOENIX_THEME.border, highlightthickness=1)
         log_frame.pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
 
         self.log_widget = tk.Text(
@@ -238,7 +277,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         self._logged_phases = set()
 
         self.warning_label = tk.Label(
-            self.body,
+            self.content_body,
             text=tr("sd35_install_warning", "This process may take some time. Please do not close Snapdragon AI Studio during setup.")
             if guided_sd35 else tr("direct_model_install_warning", "The installation may take some time. You can cancel the download at any time."),
             bg=PHOENIX_THEME.card_bg,

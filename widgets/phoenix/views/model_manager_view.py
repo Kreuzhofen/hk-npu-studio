@@ -165,8 +165,45 @@ class PhoenixModelManagerView(WorkspaceFrame):
         self.insp_panel.grid_rowconfigure(1, weight=0)
         self.insp_panel.grid_columnconfigure(0, weight=1)
 
-        self.insp_content = tk.Frame(self.insp_panel, bg=PHOENIX_THEME.card_bg)
-        self.insp_content.grid(row=0, column=0, sticky="nsew", padx=16, pady=12)
+        self.insp_canvas = tk.Canvas(
+            self.insp_panel,
+            bg=PHOENIX_THEME.card_bg,
+            bd=0,
+            highlightthickness=0,
+        )
+        self.insp_canvas.grid(row=0, column=0, sticky="nsew", padx=(16, 0), pady=12)
+        self.insp_scrollbar = ttk.Scrollbar(
+            self.insp_panel,
+            orient="vertical",
+            command=self.insp_canvas.yview,
+        )
+        self.insp_scrollbar.grid(row=0, column=1, sticky="ns", padx=(0, 8), pady=12)
+        self.insp_canvas.configure(yscrollcommand=self.insp_scrollbar.set)
+
+        self.insp_content = tk.Frame(self.insp_canvas, bg=PHOENIX_THEME.card_bg)
+        self.insp_canvas_window = self.insp_canvas.create_window(
+            (0, 0), window=self.insp_content, anchor="nw"
+        )
+        self.insp_content.bind(
+            "<Configure>",
+            lambda _event: self.insp_canvas.configure(scrollregion=self.insp_canvas.bbox("all")),
+        )
+        self.insp_canvas.bind(
+            "<Configure>",
+            lambda event: self.insp_canvas.itemconfigure(self.insp_canvas_window, width=event.width),
+        )
+
+        def _on_inspector_mousewheel(event: tk.Event) -> None:
+            self.insp_canvas.yview_scroll(int(-event.delta / 120), "units")
+
+        self.insp_panel.bind(
+            "<Enter>",
+            lambda _event: self.insp_canvas.bind_all("<MouseWheel>", _on_inspector_mousewheel),
+        )
+        self.insp_panel.bind(
+            "<Leave>",
+            lambda _event: self.insp_canvas.unbind_all("<MouseWheel>"),
+        )
         self.insp_content.columnconfigure(0, weight=0)
         self.insp_content.columnconfigure(1, weight=1)
 
@@ -256,7 +293,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             padx=16,
             pady=12
         )
-        self.action_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 16))
+        self.action_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 16))
         self.action_frame.columnconfigure(0, weight=1)
 
         self.btn_activate = PhoenixButton(

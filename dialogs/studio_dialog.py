@@ -9,6 +9,8 @@ Phoenix UI
 
 from __future__ import annotations
 
+import ctypes
+from ctypes import wintypes
 import tkinter as tk
 
 from PIL import ImageTk
@@ -22,6 +24,7 @@ class StudioDialog(tk.Toplevel):
 
     DEFAULT_SIZE = (520, 360)
     MIN_SIZE = (420, 280)
+    WORK_AREA_MARGIN = (32, 48)
 
     def __init__(
         self,
@@ -36,8 +39,12 @@ class StudioDialog(tk.Toplevel):
         super().__init__(master)
 
         self.brand = brand or getattr(master, "brand", BrandManager())
-        self.dialog_size = size or self.DEFAULT_SIZE
-        self.dialog_min_size = min_size or self.MIN_SIZE
+        self.work_area = self._get_work_area()
+        self.dialog_size, self.dialog_min_size = self._fit_to_work_area(
+            size or self.DEFAULT_SIZE,
+            min_size or self.MIN_SIZE,
+            self.work_area,
+        )
         self._dialog_images: list[ImageTk.PhotoImage] = []
 
         self.title(title)
@@ -84,6 +91,31 @@ class StudioDialog(tk.Toplevel):
 
         self.bind("<Escape>", lambda _event: self.close())
         self.protocol("WM_DELETE_WINDOW", self.close)
+
+    def _get_work_area(self) -> tuple[int, int, int, int]:
+        try:
+            rect = wintypes.RECT()
+            if ctypes.windll.user32.SystemParametersInfoW(48, 0, ctypes.byref(rect), 0):
+                return rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top
+        except (AttributeError, OSError):
+            pass
+        return 0, 0, self.winfo_screenwidth(), self.winfo_screenheight()
+
+    @classmethod
+    def _fit_to_work_area(
+        cls,
+        size: tuple[int, int],
+        min_size: tuple[int, int],
+        work_area: tuple[int, int, int, int],
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
+        _, _, work_width, work_height = work_area
+        margin_width, margin_height = cls.WORK_AREA_MARGIN
+        max_width = max(1, work_width - margin_width)
+        max_height = max(1, work_height - margin_height)
+        return (
+            (min(size[0], max_width), min(size[1], max_height)),
+            (min(min_size[0], max_width), min(min_size[1], max_height)),
+        )
 
     def add_title(self, title: str, subtitle: str | None = None) -> tk.Frame:
         title_frame = tk.Frame(self.body, bg=PHOENIX_THEME.card_bg)
@@ -164,6 +196,9 @@ class StudioDialog(tk.Toplevel):
 
         x = master_x + (master_width // 2) - (width // 2)
         y = master_y + (master_height // 2) - (height // 2)
+        work_x, work_y, work_width, work_height = self.work_area
+        x = max(work_x, min(x, work_x + work_width - width))
+        y = max(work_y, min(y, work_y + work_height - height))
 
         self.geometry(f"{width}x{height}+{x}+{y}")
 
