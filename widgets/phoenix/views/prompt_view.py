@@ -261,6 +261,12 @@ class PhoenixPromptView(WorkspaceFrame):
             bd=0, highlightthickness=0,
         )
         self.param_canvas.grid(row=0, column=0, sticky="nsew")
+        self.param_scrollbar = ttk.Scrollbar(
+            self.input_card, orient="vertical", command=self.param_canvas.yview,
+            style="Phoenix.Vertical.TScrollbar",
+        )
+        self.param_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.param_canvas.configure(yscrollcommand=self.param_scrollbar.set)
 
         self.param_content = tk.Frame(self.param_canvas, bg=PHOENIX_THEME.card_bg)
         self.param_content.grid_propagate(True)
@@ -544,10 +550,7 @@ class PhoenixPromptView(WorkspaceFrame):
             row=1, column=0, sticky="ew",
             padx=PHOENIX_THEME.space_md, pady=(6, 6),
         )
-        for column in range(4):
-            self.prompt_toolbar.grid_columnconfigure(column, weight=1)
-
-        # Zeile 1 Buttons
+        # Responsive toolbar: the full labels stay readable on narrow logical widths.
         self.presets_popup_btn = PhoenixButton(
             self.prompt_toolbar, text=tr("presets_section_header", "Presets & Vorlagen"),
             icon_name="folder", icon_color=PHOENIX_THEME.warning,
@@ -556,7 +559,6 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_small, height=32, radius=6,
             width=10,
         )
-        self.presets_popup_btn.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
 
         self.boost_btn = PhoenixButton(
             self.prompt_toolbar, text=tr("boost_button", "Phoenix Boost"),
@@ -566,7 +568,6 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_small, height=32, radius=6,
             width=10,
         )
-        self.boost_btn.grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
         _Tooltip(
             self.boost_btn,
             lambda: tr("boost_tooltip", "Prompt lokal optimieren und Einstellungen empfehlen."),
@@ -580,7 +581,6 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_small, height=32, radius=6,
             width=10,
         )
-        self.parameters_popup_btn.grid(row=0, column=2, sticky="nsew", padx=2, pady=2)
 
         self.controlnet_popup_btn = PhoenixButton(
             self.prompt_toolbar, text=tr("tab_controlnet", "ControlNet"),
@@ -590,9 +590,6 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_small, height=32, radius=6,
             width=10,
         )
-        self.controlnet_popup_btn.grid(row=0, column=3, sticky="nsew", padx=2, pady=2)
-
-        # Zeile 2 Buttons
         self.history_btn = PhoenixButton(
             self.prompt_toolbar, text=tr("history_tab", "Verlauf"),
             icon_name="back", icon_color=PHOENIX_THEME.accent,
@@ -601,7 +598,6 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_small, height=32, radius=6,
             width=10,
         )
-        self.history_btn.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=2, pady=2)
 
         self.maximize_btn = PhoenixButton(
             self.prompt_toolbar,
@@ -612,7 +608,18 @@ class PhoenixPromptView(WorkspaceFrame):
             command=self._open_expandable_prompt_popup,
             width=10,
         )
-        self.maximize_btn.grid(row=1, column=2, columnspan=2, sticky="nsew", padx=2, pady=2)
+        self._prompt_toolbar_buttons = (
+            self.presets_popup_btn,
+            self.boost_btn,
+            self.parameters_popup_btn,
+            self.controlnet_popup_btn,
+            self.history_btn,
+            self.maximize_btn,
+        )
+        self.prompt_toolbar.bind(
+            "<Configure>", lambda event: self._layout_prompt_toolbar(event.width), add="+"
+        )
+        self._layout_prompt_toolbar(0)
 
         tk.Label(
             prompt_card,
@@ -1161,6 +1168,20 @@ class PhoenixPromptView(WorkspaceFrame):
             self._ensure_controlnet_widgets(self._dummy_hidden_frame)
             self.controlnet_canny_var.set(False)
 
+    def _layout_prompt_toolbar(self, width: int) -> None:
+        """Wrap generator tools instead of clipping labels at high DPI."""
+        columns = 3 if width >= 780 else 2 if width >= 520 else 1
+        for column in range(3):
+            self.prompt_toolbar.grid_columnconfigure(column, weight=column < columns)
+        for index, button in enumerate(self._prompt_toolbar_buttons):
+            button.grid(
+                row=index // columns,
+                column=index % columns,
+                sticky="nsew",
+                padx=PHOENIX_THEME.space_xs,
+                pady=PHOENIX_THEME.space_xs,
+            )
+
     def _section_header(self, parent: tk.Frame, title: str, row: int) -> int:
         lbl = tk.Label(
             parent, text=title, bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
@@ -1192,9 +1213,31 @@ class PhoenixPromptView(WorkspaceFrame):
         self.inspector_panel.grid_rowconfigure(0, weight=1)
         self.inspector_panel.grid_rowconfigure(1, weight=0)
         self.inspector_panel.grid_columnconfigure(0, weight=1)
+        self.inspector_panel.grid_columnconfigure(1, weight=0)
+        self.inspector_panel.bind(
+            "<Configure>",
+            lambda event: self._layout_generation_inspector(event.width), add="+",
+        )
 
-        self.insp_content = tk.Frame(self.inspector_panel, bg=PHOENIX_THEME.card_bg)
-        self.insp_content.grid(row=0, column=0, sticky="nsew")
+        self.insp_canvas = tk.Canvas(
+            self.inspector_panel, bg=PHOENIX_THEME.card_bg,
+            highlightthickness=0, bd=0,
+        )
+        self.insp_scrollbar = ttk.Scrollbar(
+            self.inspector_panel, orient="vertical", command=self.insp_canvas.yview,
+        )
+        self.insp_canvas.configure(yscrollcommand=self.insp_scrollbar.set)
+        self.insp_canvas.grid(row=0, column=0, sticky="nsew")
+        self.insp_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.insp_content = tk.Frame(self.insp_canvas, bg=PHOENIX_THEME.card_bg)
+        self.insp_canvas_window = self.insp_canvas.create_window(
+            (0, 0), window=self.insp_content, anchor="nw"
+        )
+        self.insp_content.bind(
+            "<Configure>",
+            lambda _event: self.insp_canvas.configure(scrollregion=self.insp_canvas.bbox("all")),
+        )
+        self.insp_canvas.bind("<Configure>", self._resize_inspector_canvas, add="+")
         self.insp_content.columnconfigure(0, weight=0)
         self.insp_content.columnconfigure(1, weight=1)
         self.insp_content.columnconfigure(2, weight=0)
@@ -1237,15 +1280,19 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_queue.grid(row=row, column=3, sticky="w", padx=(4, 16), pady=1)
         row += 1
 
-        tk.Label(
+        self.insp_gen_status_caption = tk.Label(
             self.insp_content, text=tr("status_label_colon", "Status:"), bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w"
-        ).grid(row=row, column=0, sticky="w", padx=(16, 4), pady=1)
+        )
+        self.insp_gen_status_caption.grid(row=row, column=0, sticky="w", padx=(16, 4), pady=1)
         self.insp_gen_status = tk.Label(
             self.insp_content, text="-", bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_small, anchor="w"
         )
         self.insp_gen_status.grid(row=row, column=1, columnspan=3, sticky="w", padx=(4, 16), pady=1)
+        self.insp_gen_status.bind(
+            "<Configure>", lambda _event: self._update_inspector_status_wrap(), add="+"
+        )
         row += 1
 
         tk.Label(
@@ -1453,12 +1500,14 @@ class PhoenixPromptView(WorkspaceFrame):
         self.action_bar.grid(
             row=1,
             column=0,
+            columnspan=2,
             sticky="ew",
             padx=16,
             pady=(0, 16),
         )
         self.action_bar.grid_columnconfigure(0, weight=1, uniform="generation_actions")
         self.action_bar.grid_columnconfigure(1, weight=1, uniform="generation_actions")
+        self.action_bar.bind("<Configure>", self._resize_action_hint, add="+")
 
         tk.Label(
             self.action_bar,
@@ -1475,14 +1524,15 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=12,
             pady=(4, 0),
         )
-        tk.Label(
+        self.action_hint = tk.Label(
             self.action_bar,
             text=tr("action_bar_hint", "Bereit für deine nächste Idee – Ausführung erfolgt lokal auf der NPU."),
             bg=PHOENIX_THEME.surface,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption,
             anchor="w",
-        ).grid(
+        )
+        self.action_hint.grid(
             row=1,
             column=0,
             columnspan=2,
@@ -1538,6 +1588,117 @@ class PhoenixPromptView(WorkspaceFrame):
             pady=(0, 12),
         )
         self._layout_generation_actions(False)
+        self._capture_inspector_layout()
+
+    def _capture_inspector_layout(self) -> None:
+        """Record the stable inspector widgets for responsive grid reflow."""
+        self._inspector_base_rows = {
+            widget: int(widget.grid_info()["row"])
+            for widget in self.insp_content.grid_slaves()
+        }
+        self._inspector_pairs = tuple(
+            (
+                row,
+                tuple(
+                    self.insp_content.grid_slaves(row=row, column=column)[0]
+                    for column in range(4)
+                ),
+            )
+            for row in (2, 5, 7, 8, 9)
+        )
+        self._inspector_wrap_labels = (
+            self.insp_model,
+            self.insp_backend,
+            self.insp_queue,
+            self.insp_gen_status,
+            self.progress_stage_label,
+            self.progress_step_label,
+            self.insp_size,
+            self.insp_steps,
+            self.insp_cfg,
+            self.insp_seed,
+            self.insp_sampler,
+            self.insp_scheduler,
+        )
+        self._layout_generation_inspector(0)
+
+    def _layout_generation_inspector(self, width: int) -> None:
+        """Reflow paired inspector details before translated values can be clipped."""
+        if not hasattr(self, "_inspector_base_rows"):
+            return
+        single_column = width < 520
+        status_stacked = width < 520
+        pair_rows = dict(self._inspector_pairs)
+        status_row = self._inspector_base_rows[self.insp_gen_status]
+        for widget, base_row in self._inspector_base_rows.items():
+            shift = sum(1 for pair_row in pair_rows if single_column and pair_row < base_row)
+            shift += int(status_stacked and base_row > status_row)
+            widget.grid_configure(row=base_row + shift)
+        for base_row, pair in pair_rows.items():
+            first_label, first_value, second_label, second_value = pair
+            shift = sum(1 for pair_row in pair_rows if single_column and pair_row < base_row)
+            shift += int(status_stacked and base_row > status_row)
+            row = base_row + shift
+            first_label.grid_configure(row=row, column=0, sticky="w", padx=(16, 4))
+            first_value.grid_configure(row=row, column=1, columnspan=1, sticky="ew", padx=(4, 12))
+            if single_column:
+                second_label.grid_configure(row=row + 1, column=0, sticky="w", padx=(16, 4))
+                second_value.grid_configure(row=row + 1, column=1, columnspan=1, sticky="ew", padx=(4, 12))
+            else:
+                second_label.grid_configure(row=row, column=2, sticky="w", padx=(16, 4))
+                second_value.grid_configure(row=row, column=3, columnspan=1, sticky="ew", padx=(4, 16))
+        wraplength = max(1, width - 32) if width else 1
+        for label in self._inspector_wrap_labels:
+            label.configure(wraplength=wraplength)
+        status_shift = sum(1 for pair_row in pair_rows if single_column and pair_row < status_row)
+        if status_stacked:
+            self.insp_gen_status_caption.grid_configure(
+                row=status_row + status_shift, column=0, columnspan=4, sticky="w", padx=16
+            )
+            self.insp_gen_status.grid_configure(
+                row=status_row + status_shift + 1, column=0, columnspan=4, sticky="ew", padx=16
+            )
+        else:
+            self.insp_gen_status_caption.grid_configure(
+                row=status_row + status_shift, column=0, columnspan=1, sticky="w", padx=(16, 4)
+            )
+            self.insp_gen_status.grid_configure(
+                row=status_row + status_shift, column=1, columnspan=3, sticky="ew", padx=(4, 16)
+            )
+        self.after_idle(self._update_inspector_status_wrap)
+        self.action_hint.configure(wraplength=max(1, width - 24) if width else 1)
+
+    def _resize_inspector_canvas(self, event: tk.Event) -> None:
+        """Keep the scrolling inspector content at its assigned canvas width."""
+        self.insp_canvas.itemconfigure(self.insp_canvas_window, width=event.width)
+        self._layout_generation_inspector(event.width)
+
+    def _update_inspector_status_wrap(self) -> None:
+        """Wrap the status against its assigned, not requested, widget width."""
+        if not self.insp_gen_status.winfo_exists():
+            return
+        self.insp_gen_status.configure(
+            wraplength=self._widget_content_width(self.insp_gen_status)
+        )
+
+    @staticmethod
+    def _widget_content_width(widget: tk.Widget) -> int:
+        """Return a widget's real content width after borders and padding."""
+        return max(1, widget.winfo_width() - PhoenixPromptView._widget_horizontal_insets(widget))
+
+    @staticmethod
+    def _widget_horizontal_insets(widget: tk.Widget) -> int:
+        """Return horizontal borders, highlights, and padding for a widget."""
+        def option(option_name: str) -> int:
+            try:
+                return int(str(widget.cget(option_name)))
+            except (tk.TclError, TypeError, ValueError):
+                return 0
+
+        return 2 * (option("borderwidth") + option("highlightthickness") + option("padx"))
+
+    def _resize_action_hint(self, event: tk.Event) -> None:
+        self.action_hint.configure(wraplength=max(1, event.width - 24))
 
     def _inspector_section_header(self, title: str, row: int) -> int:
         tk.Label(
@@ -1570,42 +1731,81 @@ class PhoenixPromptView(WorkspaceFrame):
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_caption, anchor="w", padx=16, pady=6
         )
-        self.status_label.pack(side="left")
 
         self.model_status_label = tk.Label(
             self.status_bar_frame, text=tr("model_prefix", "Modell: {model}", model="-"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_caption, anchor="w", padx=16, pady=6
         )
-        self.model_status_label.pack(side="left")
 
         self.backend_status_label = tk.Label(
             self.status_bar_frame, text=tr("backend_prefix", "Backend: {backend}", backend="-"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_caption, anchor="w", padx=16, pady=6
         )
-        self.backend_status_label.pack(side="left")
 
         self.env_status_label = tk.Label(
             self.status_bar_frame, text=tr("env_status_placeholder", "Environment: -"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_caption, anchor="w", padx=16, pady=6
         )
-        self.env_status_label.pack(side="left")
 
         self.qnn_status_label = tk.Label(
             self.status_bar_frame, text=tr("qnn_status_placeholder", "QNN: -"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_caption, anchor="w", padx=16, pady=6
         )
-        self.qnn_status_label.pack(side="left")
 
         self.queue_status_label = tk.Label(
             self.status_bar_frame, text=tr("queue_status_placeholder", "Queue: 0 Job(s)"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_caption, anchor="w", padx=16, pady=6
         )
-        self.queue_status_label.pack(side="right")
+        self._status_segments = (
+            self.status_label,
+            self.model_status_label,
+            self.backend_status_label,
+            self.env_status_label,
+            self.qnn_status_label,
+            self.queue_status_label,
+        )
+        self.status_bar_frame.bind(
+            "<Configure>", lambda event: self._layout_status_bar(event.width), add="+"
+        )
+        self._layout_status_bar(0)
+
+    def _layout_status_bar(self, width: int) -> None:
+        """Keep every status segment visible by flowing them across grid rows."""
+        frame_width = width or self.status_bar_frame.winfo_width()
+        try:
+            border = int(self.status_bar_frame.cget("highlightthickness"))
+        except (tk.TclError, ValueError):
+            border = 0
+        available = max(1, frame_width - 2 * border)
+        row = column = used = 0
+        for label in self._status_segments:
+            label.configure(wraplength=0)
+            requested = label.winfo_reqwidth()
+            if column and used + requested > available:
+                row += 1
+                column = used = 0
+            if requested > available:
+                label.configure(
+                    wraplength=max(1, available - self._widget_horizontal_insets(label))
+                )
+            label.grid(row=row, column=column, sticky="w")
+            used += min(requested, available)
+            column += 1
+        self.after_idle(self._reserve_status_footer_height)
+
+    def _reserve_status_footer_height(self) -> None:
+        """Reserve the actual one- or multi-line footer height in the workspace grid."""
+        if not self.status_bar_frame.winfo_exists():
+            return
+        self.status_slot.grid_propagate(True)
+        footer_height = self.status_bar_frame.winfo_reqheight()
+        self.status_slot.grid_rowconfigure(0, weight=0, minsize=footer_height)
+        self.grid_rowconfigure(2, weight=0, minsize=footer_height + PHOENIX_THEME.space_lg)
 
     # ==================================================================
     # ACTIONS

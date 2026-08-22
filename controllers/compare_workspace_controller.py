@@ -66,7 +66,7 @@ class CompareWorkspaceController:
         self.model.set_zoom(zoom_label, self.ZOOM_LEVELS[zoom_label])
 
     def prepare_sync(self) -> None:
-        self.model.set_sync_status("Synchron")
+        self.model.set_sync_status("Aus" if self.get_state().sync_label == "Synchron" else "Synchron")
 
     def swap_images(self) -> None:
         if self.model.original_image is None and self.model.output_image is None:
@@ -115,7 +115,7 @@ class CompareWorkspaceController:
         original_name = state.original_metadata.filename if (state.original_loaded and state.original_metadata) else tr("not_loaded", "Nicht geladen")
         output_name = state.output_metadata.filename if (state.output_loaded and state.output_metadata) else tr("not_loaded", "Nicht geladen")
         
-        sync_val = tr("synchronized", "Synchron") if state.sync_label == "Synchron" else state.sync_label
+        sync_val = tr("compare_sync_on", "Synchron: Ein") if state.sync_label == "Synchron" else tr("compare_sync_off", "Synchron: Aus")
         status_val = tr("ready", "Bereit") if state.status == "Bereit" else state.status
         
         return {

@@ -150,17 +150,18 @@ class ExpandablePromptTests(unittest.TestCase):
         self.view._generation_running = False
 
     def test_generator_toolbar_uses_neutral_buttons_with_colored_icons(self) -> None:
+        self.view._layout_prompt_toolbar(480)
         buttons = (
-            (self.view.presets_popup_btn, 0, 0, "folder", PHOENIX_THEME.warning),
-            (self.view.boost_btn, 0, 1, "sparkles", PHOENIX_THEME.success),
-            (self.view.parameters_popup_btn, 0, 2, "settings", PHOENIX_THEME.danger),
-            (self.view.controlnet_popup_btn, 0, 3, "image", PHOENIX_THEME.accent),
-            (self.view.history_btn, 1, 0, "back", PHOENIX_THEME.accent),
+            (self.view.presets_popup_btn, 0, "folder", PHOENIX_THEME.warning),
+            (self.view.boost_btn, 1, "sparkles", PHOENIX_THEME.success),
+            (self.view.parameters_popup_btn, 2, "settings", PHOENIX_THEME.danger),
+            (self.view.controlnet_popup_btn, 3, "image", PHOENIX_THEME.accent),
+            (self.view.history_btn, 4, "back", PHOENIX_THEME.accent),
         )
-        for button, row, column, icon_name, icon_color in buttons:
+        for button, row, icon_name, icon_color in buttons:
             self.assertTrue(button.winfo_manager())
             self.assertEqual(int(button.grid_info()["row"]), row)
-            self.assertEqual(int(button.grid_info()["column"]), column)
+            self.assertEqual(int(button.grid_info()["column"]), 0)
             self.assertEqual(button.normal_bg, PHOENIX_THEME.elevated_bg)
             self.assertEqual(button.icon_name, icon_name)
             self.assertEqual(button.icon_color, icon_color)
@@ -170,8 +171,99 @@ class ExpandablePromptTests(unittest.TestCase):
         )
         self.assertTrue(self.view.maximize_btn.text.startswith("⛶ "))
         self.assertEqual(self.view.maximize_btn.normal_bg, PHOENIX_THEME.elevated_bg)
-        self.assertEqual(int(self.view.maximize_btn.grid_info()["row"]), 1)
-        self.assertEqual(int(self.view.maximize_btn.grid_info()["column"]), 2)
+        self.assertEqual(int(self.view.maximize_btn.grid_info()["column"]), 0)
+        self.assertEqual(int(self.view.maximize_btn.grid_info()["row"]), 5)
+        self.assertTrue(self.view.param_scrollbar.winfo_manager())
+
+    def test_generation_inspector_reflows_pairs_and_wraps_at_narrow_width(self) -> None:
+        first_row, first_pair = self.view._inspector_pairs[0]
+        self.view._layout_generation_inspector(640)
+        self.assertEqual(int(first_pair[2].grid_info()["row"]), first_row)
+        self.assertEqual(int(first_pair[2].grid_info()["column"]), 2)
+
+        self.view._layout_generation_inspector(320)
+        self.assertEqual(int(first_pair[2].grid_info()["row"]), first_row + 1)
+        self.assertEqual(int(first_pair[2].grid_info()["column"]), 0)
+        self.assertLessEqual(int(self.view.insp_queue.cget("wraplength")), 288)
+        self.assertLessEqual(int(self.view.action_hint.cget("wraplength")), 296)
+        self.assertEqual(self.view.action_bar.master, self.view.inspector_panel)
+        self.assertTrue(self.view.gen_btn.winfo_manager())
+        self.view._resize_action_hint(MagicMock(width=280))
+        self.assertEqual(int(self.view.action_hint.cget("wraplength")), 256)
+
+    def test_generation_inspector_long_status_uses_full_span_and_dynamic_wrap(self) -> None:
+        self.view.insp_gen_status.configure(
+            text="A detailed generation status that must wrap across the complete inspector value area."
+        )
+
+        self.root.geometry("420x900")
+        self.view.pack(fill="both", expand=True)
+        self.root.update_idletasks()
+        self.view._layout_generation_inspector(self.view.inspector_panel.winfo_width())
+        self.root.update_idletasks()
+        status_grid = self.view.insp_gen_status.grid_info()
+        caption_grid = self.view.insp_gen_status_caption.grid_info()
+        self.assertEqual(int(status_grid["column"]), 0)
+        self.assertEqual(int(status_grid["columnspan"]), 4)
+        self.assertGreater(int(status_grid["row"]), int(caption_grid["row"]))
+        self.assertEqual(status_grid["sticky"], "ew")
+        self.assertLessEqual(
+            int(self.view.insp_gen_status.cget("wraplength")),
+            self.view._widget_content_width(self.view.insp_gen_status),
+        )
+        self.assertGreater(
+            self.view.insp_gen_status.winfo_height(),
+            self.view.insp_gen_status_caption.winfo_height(),
+        )
+        self.assertLessEqual(
+            self.view.insp_gen_status.winfo_y() + self.view.insp_gen_status.winfo_height(),
+            self.view.progress_bar.winfo_y(),
+        )
+        self.assertIs(self.view.insp_content.master, self.view.insp_canvas)
+        self.assertIs(self.view.action_bar.master, self.view.inspector_panel)
+        self.assertEqual(int(self.view.action_bar.grid_info()["row"]), 1)
+
+        self.view._layout_generation_inspector(640)
+        self.assertEqual(
+            int(self.view.insp_gen_status.grid_info()["row"]),
+            int(self.view.insp_gen_status_caption.grid_info()["row"]),
+        )
+        self.assertEqual(self.view.action_bar.master, self.view.inspector_panel)
+        self.assertTrue(self.view.gen_btn.winfo_manager())
+        self.assertEqual(self.view.gen_btn.command, self.view._on_generate)
+
+    def test_status_bar_flows_segments_within_its_assigned_width(self) -> None:
+        self.root.geometry("420x900")
+        self.view.pack(fill="both", expand=True)
+        self.root.update_idletasks()
+        self.view._layout_status_bar(self.view.status_bar_frame.winfo_width())
+        self.root.update_idletasks()
+
+        segment_rows = {int(segment.grid_info()["row"]) for segment in self.view._status_segments}
+        self.assertGreater(len(segment_rows), 1)
+        for segment in self.view._status_segments:
+            self.assertTrue(segment.winfo_manager())
+            self.assertLessEqual(
+                segment.winfo_x() + segment.winfo_width(),
+                self.view.status_bar_frame.winfo_width(),
+            )
+            self.assertLessEqual(
+                segment.winfo_rooty() + segment.winfo_height(),
+                self.view.status_bar_frame.winfo_rooty() + self.view.status_bar_frame.winfo_height(),
+            )
+        self.assertLessEqual(
+            self.view.inspector_slot.winfo_rooty() + self.view.inspector_slot.winfo_height(),
+            self.view.status_slot.winfo_rooty(),
+        )
+        self.assertLessEqual(
+            self.view.status_bar_frame.winfo_rooty() + self.view.status_bar_frame.winfo_height(),
+            self.view.winfo_rooty() + self.view.winfo_height(),
+        )
+
+        self.view._layout_status_bar(2000)
+        self.assertEqual(
+            {int(segment.grid_info()["row"]) for segment in self.view._status_segments}, {0}
+        )
 
     def test_prompt_titles_and_toolbar_have_separate_layout_rows(self) -> None:
         self.root.update_idletasks()

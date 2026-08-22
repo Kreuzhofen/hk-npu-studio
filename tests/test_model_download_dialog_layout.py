@@ -10,12 +10,14 @@ from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
 
 
 class ModelDownloadDialogLayoutTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.root = tk.Tk()
-        self.root.withdraw()
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.root = tk.Tk()
+        cls.root.withdraw()
 
-    def tearDown(self) -> None:
-        self.root.destroy()
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.root.destroy()
 
     def test_model_inspector_scrolls_details_with_fixed_action_frame(self) -> None:
         repository = MagicMock()
@@ -33,6 +35,10 @@ class ModelDownloadDialogLayoutTests(unittest.TestCase):
         self.assertEqual(view.insp_canvas.grid_info()["row"], 0)
         self.assertEqual(view.action_frame.grid_info()["row"], 1)
         self.assertEqual(view.action_frame.winfo_manager(), "grid")
+        view._resize_inspector_content(MagicMock(width=360))
+        self.assertEqual(view.insp_canvas.itemcget(view.insp_canvas_window, "width"), "360")
+        self.assertLess(int(view.det_desc.cget("wraplength")), 360)
+        self.assertNotEqual(int(view.det_desc.cget("wraplength")), 300)
         view.destroy()
 
     def test_dialog_limits_small_work_area_and_keeps_footer_callbacks(self) -> None:

@@ -1,4 +1,5 @@
 import json
+import tkinter as tk
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -150,6 +151,20 @@ class HomeFirstRunTests(unittest.TestCase):
         view._model_ready = True
         PhoenixHomeView._on_readiness_action(view)
         navigate.assert_called_once_with("prompt")
+
+    def test_home_content_uses_its_own_scroll_container(self) -> None:
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            with patch("widgets.phoenix.views.home_view.ModelManagerController"), \
+                 patch.object(PhoenixHomeView, "refresh"):
+                view = PhoenixHomeView(root)
+            self.assertIs(view.home_content.master, view.home_canvas)
+            self.assertEqual(view.home_canvas.winfo_manager(), "grid")
+            self.assertIs(view._last_card.master, view.home_content)
+            view.destroy()
+        finally:
+            root.destroy()
 
     def test_render_readiness_no_generations(self) -> None:
         view = self._view_stub()

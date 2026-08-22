@@ -189,8 +189,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             lambda _event: self.insp_canvas.configure(scrollregion=self.insp_canvas.bbox("all")),
         )
         self.insp_canvas.bind(
-            "<Configure>",
-            lambda event: self.insp_canvas.itemconfigure(self.insp_canvas_window, width=event.width),
+            "<Configure>", self._resize_inspector_content,
         )
 
         def _on_inspector_mousewheel(event: tk.Event) -> None:
@@ -204,6 +203,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             "<Leave>",
             lambda _event: self.insp_canvas.unbind_all("<MouseWheel>"),
         )
+        self._inspector_wrapped_labels: list[tk.Label] = []
         self.insp_content.columnconfigure(0, weight=0)
         self.insp_content.columnconfigure(1, weight=1)
 
@@ -237,9 +237,10 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 font=PHOENIX_THEME.font_small,
                 anchor="w",
                 justify="left",
-                wraplength=220
+                wraplength=1,
             )
             val_lbl.grid(row=r, column=1, sticky="w", pady=3)
+            self._inspector_wrapped_labels.append(val_lbl)
             r += 1
             return val_lbl
 
@@ -280,9 +281,10 @@ class PhoenixModelManagerView(WorkspaceFrame):
             font=PHOENIX_THEME.font_body,
             anchor="w",
             justify="left",
-            wraplength=300
+            wraplength=1,
         )
         self.det_desc.grid(row=0, column=0, sticky="ew")
+        self._inspector_wrapped_labels.append(self.det_desc)
         r += 1
 
         self.action_frame = tk.Frame(
@@ -315,6 +317,14 @@ class PhoenixModelManagerView(WorkspaceFrame):
             height=34,
         )
         self.btn_install.grid(row=1, column=0, sticky="ew")
+
+    def _resize_inspector_content(self, event: tk.Event) -> None:
+        """Keep inspector text within the dynamically available canvas width."""
+        self.insp_canvas.itemconfigure(self.insp_canvas_window, width=event.width)
+        label_column_width = self.insp_content.grid_bbox(0, 0, 0, 99)[2]
+        wraplength = max(1, event.width - label_column_width - 24)
+        for label in self._inspector_wrapped_labels:
+            label.configure(wraplength=wraplength)
 
     # ==================================================================
     # DATA REFRESH & UI RENDERING (Anti-Flicker Caching)

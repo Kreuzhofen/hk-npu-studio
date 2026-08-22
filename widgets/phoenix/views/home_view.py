@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import time
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import shutil
 from typing import Callable
 
@@ -95,9 +95,33 @@ class PhoenixHomeView(tk.Frame):
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(4, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.home_canvas = tk.Canvas(
+            self, bg=PHOENIX_THEME.content_bg, bd=0, highlightthickness=0,
+        )
+        self.home_scrollbar = ttk.Scrollbar(
+            self, orient="vertical", command=self.home_canvas.yview,
+            style="Phoenix.Vertical.TScrollbar",
+        )
+        self.home_canvas.configure(yscrollcommand=self.home_scrollbar.set)
+        self.home_canvas.grid(row=0, column=0, sticky="nsew")
+        self.home_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.home_content = tk.Frame(self.home_canvas, bg=PHOENIX_THEME.content_bg)
+        self.home_content.grid_columnconfigure(0, weight=1)
+        self.home_content.grid_rowconfigure(4, weight=1)
+        self.home_canvas_window = self.home_canvas.create_window(
+            (0, 0), window=self.home_content, anchor="nw",
+        )
+        self.home_content.bind(
+            "<Configure>",
+            lambda _event: self.home_canvas.configure(scrollregion=self.home_canvas.bbox("all")),
+        )
+        self.home_canvas.bind(
+            "<Configure>",
+            lambda event: self.home_canvas.itemconfigure(self.home_canvas_window, width=event.width),
+        )
 
-        welcome = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        welcome = tk.Frame(self.home_content, bg=PHOENIX_THEME.content_bg)
         welcome.grid(
             row=0,
             column=0,
@@ -130,7 +154,7 @@ class PhoenixHomeView(tk.Frame):
             anchor="w",
         ).pack(fill="x", pady=(2, 0))
 
-        actions = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        actions = tk.Frame(self.home_content, bg=PHOENIX_THEME.content_bg)
         actions.grid(
             row=1,
             column=0,
@@ -159,7 +183,7 @@ class PhoenixHomeView(tk.Frame):
             self._create_action_card(actions, icon, title, target, column)
 
         readiness_card = tk.Frame(
-            self,
+            self.home_content,
             bg=PHOENIX_THEME.card_bg,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
@@ -223,7 +247,7 @@ class PhoenixHomeView(tk.Frame):
         )
         self._model_ready = False
 
-        status_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        status_host = tk.Frame(self.home_content, bg=PHOENIX_THEME.content_bg)
         status_host.grid(
             row=3,
             column=0,
@@ -257,7 +281,7 @@ class PhoenixHomeView(tk.Frame):
         self._project_values["branch"] = self._create_metric_row(project_card, tr("home_branch", "Branch"), 2)
         self._project_values["packages"] = self._create_metric_row(project_card, tr("home_installed_packages", "Installierte AI Packages"), 3)
 
-        self._last_card = self._create_section_card(self, tr("home_latest_generations", "Letzte Generierungen"))
+        self._last_card = self._create_section_card(self.home_content, tr("home_latest_generations", "Letzte Generierungen"))
         self._last_card.grid(
             row=4,
             column=0,

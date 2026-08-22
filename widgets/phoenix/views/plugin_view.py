@@ -33,9 +33,14 @@ class PhoenixPluginView(WorkspaceFrame):
         self.refresh()
 
     def _build(self) -> None:
+        self.content_slot.grid_rowconfigure(0, weight=0)
+        self.content_slot.grid_rowconfigure(1, weight=1)
+        self.content_slot.grid_rowconfigure(2, weight=0)
+        self.content_slot.grid_columnconfigure(0, weight=1)
+
         # Build search and filter header bar in content_slot
         self.header_bar = tk.Frame(self.content_slot, bg=PHOENIX_THEME.content_bg)
-        self.header_bar.pack(fill="x", padx=24, pady=(12, 8))
+        self.header_bar.grid(row=0, column=0, sticky="ew", padx=24, pady=(12, 8))
 
         # 1. Search Box
         search_label = tk.Label(
@@ -88,7 +93,7 @@ class PhoenixPluginView(WorkspaceFrame):
 
         # 3. Middle Slot: Scrollable Card Container for Responsive/Zero-Scroll Layout
         self.middle_frame = tk.Frame(self.content_slot, bg=PHOENIX_THEME.content_bg)
-        self.middle_frame.pack(fill="both", expand=True, padx=24, pady=8)
+        self.middle_frame.grid(row=1, column=0, sticky="nsew", padx=24, pady=8)
 
         self.canvas = tk.Canvas(
             self.middle_frame,
@@ -132,11 +137,10 @@ class PhoenixPluginView(WorkspaceFrame):
             font=PHOENIX_THEME.font_body,
         )
 
-        # Bind MouseWheel locally
+        # Bind MouseWheel locally while the pointer is in the scrollable content.
         def _on_mousewheel(event):
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all("<MouseWheel>", _on_mousewheel))
-        self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
+        self.canvas.bind("<MouseWheel>", _on_mousewheel)
 
         # 4. Bottom action panel for "Plugin installieren..."
         self.install_frame = tk.Frame(
@@ -145,7 +149,9 @@ class PhoenixPluginView(WorkspaceFrame):
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
         )
-        self.install_frame.pack(side="bottom", fill="x", padx=24, pady=(12, 24))
+        self.install_frame.grid(row=2, column=0, sticky="ew", padx=24, pady=(12, 24))
+        self.install_frame.grid_columnconfigure(0, weight=1)
+        self.install_frame.grid_columnconfigure(1, weight=1)
 
         tk.Label(
             self.install_frame,
@@ -153,7 +159,7 @@ class PhoenixPluginView(WorkspaceFrame):
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_button,
-        ).pack(side="left", padx=16, pady=16)
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=16, pady=(16, 8))
 
         self.install_path_var = tk.StringVar()
         self.install_path_entry = tk.Entry(
@@ -167,7 +173,9 @@ class PhoenixPluginView(WorkspaceFrame):
             bd=0,
             font=PHOENIX_THEME.font_body,
         )
-        self.install_path_entry.pack(side="left", fill="x", expand=True, padx=8, ipady=4)
+        self.install_path_entry.grid(
+            row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 8), ipady=4
+        )
 
         self.browse_btn = PhoenixButton(
             self.install_frame,
@@ -175,9 +183,8 @@ class PhoenixPluginView(WorkspaceFrame):
             command=self._on_browse_plugin,
             button_type="neutral",
             height=32,
-            width=140,
         )
-        self.browse_btn.pack(side="left", padx=4)
+        self.browse_btn.grid(row=2, column=0, sticky="ew", padx=(16, 4), pady=(0, 16))
 
         self.install_btn = PhoenixButton(
             self.install_frame,
@@ -185,9 +192,8 @@ class PhoenixPluginView(WorkspaceFrame):
             command=self._on_install_plugin,
             button_type="primary",
             height=32,
-            width=120,
         )
-        self.install_btn.pack(side="left", padx=(4, 16))
+        self.install_btn.grid(row=2, column=1, sticky="ew", padx=(4, 16), pady=(0, 16))
 
     def _on_tab_changed(self, tab_name: str) -> None:
         self.active_tab = tab_name

@@ -43,6 +43,7 @@ from widgets.phoenix.controls.card import PhoenixCard
 
 class ComparePanel(PhoenixCard):
     """Panel shell for compare sources, managing placeholder, image canvas slots, and metadata."""
+    MIN_IMAGE_HEIGHT = 160
 
     def __init__(
         self,
@@ -71,7 +72,7 @@ class ComparePanel(PhoenixCard):
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(2, weight=1, minsize=self.MIN_IMAGE_HEIGHT)
 
         # Style TTK Combobox for Dark Theme integration
         style = ttk.Style()

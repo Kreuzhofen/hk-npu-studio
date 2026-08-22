@@ -131,6 +131,7 @@ class PhoenixSettingsView(tk.Frame):
         # Footer Action Bar (Fixed at the bottom)
         footer_frame = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
         footer_frame.pack(side="bottom", fill="x", padx=24, pady=(8, 24))
+        self.settings_action_frame = footer_frame
         
         # Left-aligned status message
         self.status_lbl = tk.Label(
@@ -218,9 +219,38 @@ class PhoenixSettingsView(tk.Frame):
         self.option_add("*TCombobox*Listbox.borderWidth", 0)
         self.option_add("*TCombobox*Listbox.highlightThickness", 0)
 
+        # Scroll only the settings content; the footer actions remain reachable.
+        content_host = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        content_host.pack(fill="both", expand=True)
+        self.settings_canvas = tk.Canvas(
+            content_host, bg=PHOENIX_THEME.content_bg, bd=0, highlightthickness=0,
+        )
+        self.settings_scrollbar = ttk_real.Scrollbar(
+            content_host, orient="vertical", command=self.settings_canvas.yview,
+            style="Phoenix.Vertical.TScrollbar",
+        )
+        self.settings_canvas.configure(yscrollcommand=self.settings_scrollbar.set)
+        self.settings_canvas.pack(side="left", fill="both", expand=True)
+        self.settings_scrollbar.pack(side="right", fill="y")
+        self.settings_content = tk.Frame(self.settings_canvas, bg=PHOENIX_THEME.content_bg)
+        self.settings_canvas_window = self.settings_canvas.create_window(
+            (0, 0), window=self.settings_content, anchor="nw",
+        )
+        self.settings_content.bind(
+            "<Configure>",
+            lambda _event: self.settings_canvas.configure(scrollregion=self.settings_canvas.bbox("all")),
+        )
+        self.settings_canvas.bind(
+            "<Configure>",
+            lambda event: self.settings_canvas.itemconfigure(
+                self.settings_canvas_window, width=event.width,
+            ),
+        )
+
         # Main Category Cards Grid Container
-        grid_frame = tk.Frame(self, bg=PHOENIX_THEME.content_bg)
+        grid_frame = tk.Frame(self.settings_content, bg=PHOENIX_THEME.content_bg)
         grid_frame.pack(fill="both", expand=True, padx=16, pady=0)
+        self.settings_grid = grid_frame
         grid_frame.rowconfigure(0, weight=1)
         grid_frame.rowconfigure(1, weight=1)
         grid_frame.columnconfigure(0, weight=1)

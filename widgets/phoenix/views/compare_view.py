@@ -63,10 +63,37 @@ class PhoenixCompareView(WorkspaceFrame):
             on_compare_metadata=self._compare_metadata,
         )
         self.toolbar.grid(row=0, column=0, sticky="ew")
+        self.metadata_message = tk.Label(
+            self.header.toolbar_slot, text="", bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_caption,
+            anchor="w", justify="left",
+        )
+        self.metadata_message.grid(row=1, column=0, sticky="ew", pady=(PHOENIX_THEME.space_xs, 0))
+        self.header.toolbar_slot.bind("<Configure>", lambda event: self.metadata_message.configure(wraplength=max(1, event.width - 2 * PHOENIX_THEME.space_sm)), add="+")
 
     def _build_main_area(self) -> None:
-        self.split_container = tk.Frame(self.content_slot, bg=PHOENIX_THEME.content_bg)
-        self.split_container.grid(row=0, column=0, sticky="nsew")
+        self.content_slot.grid_columnconfigure(0, weight=1)
+        self.compare_canvas = tk.Canvas(
+            self.content_slot, bg=PHOENIX_THEME.content_bg, bd=0, highlightthickness=0,
+        )
+        self.compare_canvas.grid(row=0, column=0, sticky="nsew")
+        self.compare_scrollbar = ttk.Scrollbar(
+            self.content_slot, orient="vertical", command=self.compare_canvas.yview,
+            style="Phoenix.Vertical.TScrollbar",
+        )
+        self.compare_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.compare_canvas.configure(yscrollcommand=self.compare_scrollbar.set)
+        self.split_container = tk.Frame(self.compare_canvas, bg=PHOENIX_THEME.content_bg)
+        self.compare_canvas_window = self.compare_canvas.create_window(
+            (0, 0), window=self.split_container, anchor="nw",
+        )
+        self.split_container.bind(
+            "<Configure>",
+            lambda _event: self.compare_canvas.configure(scrollregion=self.compare_canvas.bbox("all")),
+        )
+        self.compare_canvas.bind(
+            "<Configure>", self._resize_compare_content,
+        )
         self.split_container.grid_columnconfigure(0, weight=1, uniform="compare_panel")
         self.split_container.grid_columnconfigure(1, weight=1, uniform="compare_panel")
         self.split_container.grid_rowconfigure(0, weight=1)
@@ -102,6 +129,18 @@ class PhoenixCompareView(WorkspaceFrame):
             sticky="nsew",
             padx=(PHOENIX_THEME.space_sm, 0),
         )
+        self.original_panel.image_canvas.on_pan = lambda x, y: self._sync_pan("original", x, y)
+        self.result_panel.image_canvas.on_pan = lambda x, y: self._sync_pan("result", x, y)
+
+    def _resize_compare_content(self, event: tk.Event) -> None:
+        """Keep both panels at the current viewport width without collapsing their image rows."""
+        self.compare_canvas.itemconfigure(self.compare_canvas_window, width=event.width)
+
+    def _sync_pan(self, source: str, x: float, y: float) -> None:
+        if self.controller.get_state().sync_label != "Synchron":
+            return
+        target = self.result_panel if source == "original" else self.original_panel
+        target.image_canvas.set_normalized_pan(x, y)
 
         # Bind double-click and right-click recursive actions
         self._bind_recursive(self.original_panel.placeholder, "<Double-Button-1>", lambda e: self._open_original())
@@ -191,6 +230,7 @@ class PhoenixCompareView(WorkspaceFrame):
         self.original_panel.update_panel(self.controller.get_original_image(), state.zoom_scale)
         self.result_panel.update_panel(self.controller.get_output_image(), state.zoom_scale)
         self.toolbar.set_zoom_mode(state.zoom_label)
+        self.toolbar.set_sync_enabled(state.sync_label == "Synchron")
         
         # Populate combobox options
         self._update_comboboxes()
@@ -232,6 +272,20 @@ class PhoenixCompareView(WorkspaceFrame):
 
     def _compare_metadata(self) -> None:
         differences = self.controller.compare_metadata()
+        state = self.controller.get_state()
+        fields = ("prompt", "seed", "sampler")
+        has_original = state.original_metadata and any(getattr(state.original_metadata, field, "-") not in ("", "-") for field in fields)
+        has_output = state.output_metadata and any(getattr(state.output_metadata, field, "-") not in ("", "-") for field in fields)
+        if not has_original and not has_output:
+            message = tr("compare_metadata_none", "Keine vergleichbaren Generierungsmetadaten gefunden.")
+        elif not has_original or not has_output:
+            message = tr("compare_metadata_one_side", "Generierungsmetadaten sind nur für eines der beiden Bilder verfügbar.")
+        elif not (differences & set(fields)):
+            message = tr("compare_metadata_equal_generation", "Keine Unterschiede in den Generierungsmetadaten gefunden.")
+        else:
+            message = tr("compare_metadata_generation_differences", "Unterschiede in den Generierungsmetadaten wurden hervorgehoben.")
+        self.metadata_message.configure(text=message)
+        self.controller.model.set_status(tr("compare_metadata_status", "Metadaten geprüft"))
         if differences:
             diff_color = PHOENIX_THEME.accent
             if "prompt" in differences:

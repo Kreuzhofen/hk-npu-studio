@@ -63,6 +63,12 @@ class SettingsViewTests(unittest.TestCase):
         # Verify initial token matches the patched get_hf_token value
         self.assertEqual(self.view.token_entry.get(), "dummy_saved_token")
 
+    def test_settings_content_scrolls_while_actions_stay_fixed(self) -> None:
+        self.assertIs(self.view.settings_content.master, self.view.settings_canvas)
+        self.assertEqual(self.view.settings_canvas.winfo_manager(), "pack")
+        self.assertIs(self.view.settings_action_frame.master, self.view)
+        self.assertEqual(self.view.settings_action_frame.winfo_manager(), "pack")
+
     def test_ui_language_save_hint_is_complete_in_all_languages(self) -> None:
         expected = {
             "de_DE": (

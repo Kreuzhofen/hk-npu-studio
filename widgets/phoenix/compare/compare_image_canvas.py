@@ -22,6 +22,8 @@ class CompareImageCanvas(tk.Frame):
         self.pan_offset_x: int = 0
         self.pan_offset_y: int = 0
         self.auto_fit: bool = True
+        self.on_pan = None
+        self._drag_origin: tuple[int, int] | None = None
 
         self._build()
 
@@ -37,6 +39,8 @@ class CompareImageCanvas(tk.Frame):
         )
         self.canvas.grid(row=0, column=0, sticky="nsew")
         self.canvas.bind("<Configure>", self._on_resize)
+        self.canvas.bind("<ButtonPress-1>", self._start_pan)
+        self.canvas.bind("<B1-Motion>", self._drag_pan)
 
     def set_image(self, image: Image.Image | None) -> None:
         """Sets the active PIL image and triggers a render."""
@@ -85,6 +89,8 @@ class CompareImageCanvas(tk.Frame):
 
         render_width = max(1, int(img_width * self.zoom_scale))
         render_height = max(1, int(img_height * self.zoom_scale))
+        self._clamp_pan(render_width, render_height, viewport_width, viewport_height)
+        self.canvas.configure(cursor="fleur" if render_width > viewport_width or render_height > viewport_height else "")
 
         # 3. Perform image scaling
         resized = self.image.resize((render_width, render_height), Image.Resampling.LANCZOS)
@@ -105,3 +111,45 @@ class CompareImageCanvas(tk.Frame):
         """Redraws the viewport when the canvas dimensions change."""
         if self.image is not None:
             self.render()
+
+    def _pan_limits(self) -> tuple[int, int]:
+        if self.image is None:
+            return 0, 0
+        width, height = self.image.size
+        return (
+            max(0, (int(width * self.zoom_scale) - self.canvas.winfo_width()) // 2),
+            max(0, (int(height * self.zoom_scale) - self.canvas.winfo_height()) // 2),
+        )
+
+    def _clamp_pan(self, render_width: int, render_height: int, viewport_width: int, viewport_height: int) -> None:
+        limit_x = max(0, (render_width - viewport_width) // 2)
+        limit_y = max(0, (render_height - viewport_height) // 2)
+        self.pan_offset_x = max(-limit_x, min(limit_x, self.pan_offset_x))
+        self.pan_offset_y = max(-limit_y, min(limit_y, self.pan_offset_y))
+
+    def _start_pan(self, event: tk.Event) -> None:
+        self._drag_origin = (event.x, event.y)
+
+    def _drag_pan(self, event: tk.Event) -> None:
+        if self._drag_origin is None:
+            return
+        origin_x, origin_y = self._drag_origin
+        self._drag_origin = (event.x, event.y)
+        self.pan_offset_x += event.x - origin_x
+        self.pan_offset_y += event.y - origin_y
+        self.render()
+        if self.on_pan is not None:
+            self.on_pan(*self.normalized_pan())
+
+    def normalized_pan(self) -> tuple[float, float]:
+        limit_x, limit_y = self._pan_limits()
+        return (
+            0.5 if not limit_x else (self.pan_offset_x + limit_x) / (2 * limit_x),
+            0.5 if not limit_y else (self.pan_offset_y + limit_y) / (2 * limit_y),
+        )
+
+    def set_normalized_pan(self, x: float, y: float) -> None:
+        limit_x, limit_y = self._pan_limits()
+        self.pan_offset_x = round((max(0.0, min(1.0, x)) * 2 - 1) * limit_x)
+        self.pan_offset_y = round((max(0.0, min(1.0, y)) * 2 - 1) * limit_y)
+        self.render()
