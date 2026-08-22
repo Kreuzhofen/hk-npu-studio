@@ -230,6 +230,8 @@
   "gallery_subtitle": "Bildkatalog durchsuchen und verwalten",
   "gallery_empty_title": "Noch keine Bilder in der Galerie",
   "gallery_empty_subtitle": "Wähle „Ordner öffnen“, um Bilder aus einem lokalen Ordner anzuzeigen.",
+  "gallery_hover_preview_on": "Hover-Vorschau: Ein",
+  "gallery_hover_preview_off": "Hover-Vorschau: Aus",
   "open_folder_btn": "Ordner öffnen",
   "refresh_btn": "Aktualisieren",
   "search_placeholder": "Suchen…",

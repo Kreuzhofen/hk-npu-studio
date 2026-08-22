@@ -230,6 +230,8 @@
   "gallery_subtitle": "Explorar y administrar la biblioteca de imágenes",
   "gallery_empty_title": "Aún no hay imágenes en la galería.",
   "gallery_empty_subtitle": "Elija \"Abrir carpeta\" para ver imágenes de una carpeta local.",
+  "gallery_hover_preview_on": "Vista previa al pasar: Activada",
+  "gallery_hover_preview_off": "Vista previa al pasar: Desactivada",
   "open_folder_btn": "Abrir carpeta",
   "refresh_btn": "Actualizar",
   "search_placeholder": "Buscar...",

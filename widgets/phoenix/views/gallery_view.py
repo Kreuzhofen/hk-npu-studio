@@ -11,6 +11,7 @@ from widgets.phoenix.gallery.thumbnail_area import GalleryThumbnailArea
 from widgets.phoenix.gallery.toolbar import GalleryToolbar
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from app.i18n import tr
+from app.settings_manager import SettingsManager
 
 
 class PhoenixGalleryView(WorkspaceFrame):
@@ -27,6 +28,7 @@ class PhoenixGalleryView(WorkspaceFrame):
             has_inspector=True,
         )
         self.controller = controller or GalleryController()
+        self.hover_preview_enabled = self._load_hover_preview_enabled()
 
         self.thumbnail_area: GalleryThumbnailArea
         self.toolbar: GalleryToolbar
@@ -82,6 +84,8 @@ class PhoenixGalleryView(WorkspaceFrame):
             on_search_change=self._on_search_change,
             on_sort_change=self._on_sort_change,
             on_filter_change=self._on_filter_change,
+            on_hover_preview_change=self._on_hover_preview_change,
+            hover_preview_enabled=self.hover_preview_enabled,
         )
         self.toolbar.grid(row=0, column=0, sticky="ew")
 
@@ -94,6 +98,7 @@ class PhoenixGalleryView(WorkspaceFrame):
             on_select=self._select_image,
             on_clear_selection=self._clear_selection,
             on_double_click=self._on_double_click,
+            hover_preview_enabled=lambda: self.hover_preview_enabled,
         )
         self.thumbnail_area.grid(row=0, column=0, sticky="nsew")
 
@@ -192,6 +197,18 @@ class PhoenixGalleryView(WorkspaceFrame):
     def _on_filter_change(self, value: str) -> None:
         self.controller.set_filter_mode(value)
         self._refresh_ui()
+
+    def _on_hover_preview_change(self, enabled: bool) -> None:
+        self.hover_preview_enabled = enabled
+        settings = SettingsManager.load_settings()
+        settings["gallery_hover_preview_enabled"] = enabled
+        SettingsManager.save_settings(settings)
+        self.thumbnail_area.set_hover_preview_enabled(enabled)
+
+    @staticmethod
+    def _load_hover_preview_enabled() -> bool:
+        value = SettingsManager.load_settings().get("gallery_hover_preview_enabled", True)
+        return value if isinstance(value, bool) else True
 
     def _select_image(self, image: GalleryImage, event: tk.Event) -> None:
         """Behandelt das Anklicken einer Karte zur visuellen Markierung."""

@@ -29,6 +29,7 @@ class ThumbnailWidget(tk.Frame):
         command: Callable[[GalleryImage, tk.Event], None],
         double_command: Callable[[GalleryImage], None],
         right_click_command: Callable[[GalleryImage, tk.Event], None] | None = None,
+        hover_preview_enabled: Callable[[], bool] | None = None,
     ) -> None:
         super().__init__(
             master,
@@ -43,6 +44,7 @@ class ThumbnailWidget(tk.Frame):
         self.right_click_command = right_click_command
         self.size = size
         self.selected = selected
+        self.hover_preview_enabled = hover_preview_enabled or (lambda: True)
         self._build()
         self._bind_events(self)
 
@@ -186,7 +188,7 @@ class ThumbnailWidget(tk.Frame):
             pass
         self._hover_preview = None
 
-        if self.thumbnail_image is None or not self.image.path.is_file():
+        if not self.hover_preview_enabled() or self.thumbnail_image is None or not self.image.path.is_file():
             return
 
         try:
@@ -244,6 +246,9 @@ class ThumbnailWidget(tk.Frame):
         except Exception:
             pass
         self._hover_preview = None
+
+    def close_hover_preview(self) -> None:
+        self._on_leave(None)
 
     def _short_filename(self, filename: str) -> str:
         if len(filename) <= self.MAX_FILENAME_DISPLAY_LENGTH:

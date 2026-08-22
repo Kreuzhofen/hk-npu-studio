@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import font as tkfont
 from collections.abc import Callable
 
 from resources.icons import IconManager
@@ -31,6 +32,8 @@ class GalleryToolbar(WorkspaceToolbarBase):
         on_search_change: Callable[[str], None],
         on_sort_change: Callable[[str], None],
         on_filter_change: Callable[[str], None],
+        on_hover_preview_change: Callable[[bool], None] = lambda _enabled: None,
+        hover_preview_enabled: bool = True,
     ) -> None:
         from app.i18n import tr
         self.SORT_OPTIONS = (
@@ -58,6 +61,8 @@ class GalleryToolbar(WorkspaceToolbarBase):
         self.on_search_change = on_search_change
         self.on_sort_change = on_sort_change
         self.on_filter_change = on_filter_change
+        self.on_hover_preview_change = on_hover_preview_change
+        self.hover_preview_enabled = hover_preview_enabled
         self.search_value = tk.StringVar(value=self.PLACEHOLDER)
         self.sort_value = tk.StringVar(value=self.SORT_OPTIONS[0])
         self.size_value = tk.StringVar(value=self.SIZE_OPTIONS[1])
@@ -67,34 +72,40 @@ class GalleryToolbar(WorkspaceToolbarBase):
         self._build()
 
     def _build(self) -> None:
-        self.grid_columnconfigure(1, weight=1)
+        from app.i18n import tr
+        self.output_group = self._build_output_group()
+        self.hover_group = self._build_hover_group()
+        self.refresh_group = self._build_refresh_group()
+        self.search_group = self._build_search_group()
+        self.sort_group, self.sort_dropdown = self._build_dropdown_group(
+            tr("sort_by", "Sortieren"), self.sort_value, self.SORT_OPTIONS,
+            self.DROPDOWN_WIDTH_SORT, self.on_sort_change,
+        )
+        self.size_group, self.size_dropdown = self._build_dropdown_group(
+            tr("size", "Größe"), self.size_value, self.SIZE_OPTIONS,
+            self.DROPDOWN_WIDTH_SIZE, self.on_thumbnail_size_change,
+        )
+        self.filter_group, self.filter_dropdown = self._build_dropdown_group(
+            tr("filter", "Filter"), self.filter_value, self.FILTER_OPTIONS,
+            self.BUTTON_WIDTH_FILTER, self.on_filter_change,
+        )
+        self.toolbar_groups = (
+            self.output_group,
+            self.hover_group,
+            self.refresh_group,
+            self.search_group,
+            self.sort_group,
+            self.size_group,
+            self.filter_group,
+        )
+        self._toolbar_layout: tuple[tuple[tk.Frame, ...], ...] = ()
+        self._apply_toolbar_layout((self.toolbar_groups,))
+        self.bind("<Configure>", self._layout_toolbar_groups, add="+")
 
-        self._build_action_group().grid(
-            row=0,
-            column=0,
-            sticky="w",
-            padx=(PHOENIX_THEME.space_md, PHOENIX_THEME.space_lg),
-            pady=PHOENIX_THEME.space_md,
-        )
-        self._build_search_group().grid(
-            row=0,
-            column=1,
-            sticky="ew",
-            padx=(0, PHOENIX_THEME.space_lg),
-            pady=PHOENIX_THEME.space_md,
-        )
-        self._build_view_group().grid(
-            row=0,
-            column=2,
-            sticky="e",
-            padx=(0, PHOENIX_THEME.space_md),
-            pady=PHOENIX_THEME.space_md,
-        )
-
-    def _build_action_group(self) -> tk.Frame:
+    def _build_output_group(self) -> tk.Frame:
         from app.i18n import tr
         group = self.group_frame()
-        PhoenixButton(
+        self.open_output_btn = PhoenixButton(
             group,
             text=tr("menu_open_output", "Output-Ordner öffnen"),
             command=self.on_open_folder,
@@ -104,9 +115,40 @@ class GalleryToolbar(WorkspaceToolbarBase):
             width=self.BUTTON_WIDTH_OPEN,
             height=30,
             radius=6,
-        ).pack(side="left")
-        self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        PhoenixButton(
+        )
+        self.open_output_btn.pack(side="left")
+        return group
+
+    def _build_hover_group(self) -> tk.Frame:
+        from app.i18n import tr
+        group = self.group_frame()
+        hover_labels = (
+            tr("gallery_hover_preview_on", "Hover-Vorschau: Ein"),
+            tr("gallery_hover_preview_off", "Hover-Vorschau: Aus"),
+        )
+        try:
+            hover_font = tkfont.Font(font=PHOENIX_THEME.font_button)
+            hover_width = max(hover_font.measure(label) for label in hover_labels) + 30
+        except RuntimeError:
+            hover_width = max(len(label) for label in hover_labels) * 8 + 30
+        self.hover_preview_btn = PhoenixButton(
+            group,
+            text=hover_labels[0] if getattr(self, "hover_preview_enabled", True) else hover_labels[1],
+            command=self._toggle_hover_preview,
+            button_type="neutral",
+            icon_name="image",
+            icon_color=PHOENIX_THEME.danger,
+            width=hover_width,
+            height=30,
+            radius=6,
+        )
+        self.hover_preview_btn.pack(side="left")
+        return group
+
+    def _build_refresh_group(self) -> tk.Frame:
+        from app.i18n import tr
+        group = self.group_frame()
+        self.refresh_btn = PhoenixButton(
             group,
             text=tr("refresh", "Aktualisieren"),
             command=self.on_refresh,
@@ -116,7 +158,8 @@ class GalleryToolbar(WorkspaceToolbarBase):
             width=self.BUTTON_WIDTH_REFRESH,
             height=30,
             radius=6,
-        ).pack(side="left")
+        )
+        self.refresh_btn.pack(side="left")
         return group
 
     def _build_search_group(self) -> tk.Frame:
@@ -164,35 +207,99 @@ class GalleryToolbar(WorkspaceToolbarBase):
         self.search_value.trace_add("write", self._on_search_changed)
         return group
 
-    def _build_view_group(self) -> tk.Frame:
-        from app.i18n import tr
+    def _build_dropdown_group(
+        self,
+        label: str,
+        variable: tk.StringVar,
+        values: tuple[str, ...],
+        width: int,
+        callback: Callable[[str], None],
+    ) -> tuple[tk.Frame, tk.Widget]:
         group = self.group_frame()
-        self.toolbar_dropdown(
+        dropdown = self.toolbar_dropdown(
             group,
-            tr("sort_by", "Sortieren"),
-            self.sort_value,
-            self.SORT_OPTIONS,
-            self.DROPDOWN_WIDTH_SORT,
-            self.on_sort_change,
-        ).pack(side="left")
-        self.toolbar_dropdown(
-            group,
-            tr("size", "Größe"),
-            self.size_value,
-            self.SIZE_OPTIONS,
-            self.DROPDOWN_WIDTH_SIZE,
-            self.on_thumbnail_size_change,
-        ).pack(side="left", padx=(PHOENIX_THEME.space_sm, 0))
-        self.separator(group).pack(side="left", fill="y", padx=PHOENIX_THEME.space_sm)
-        self.toolbar_dropdown(
-            group,
-            tr("filter", "Filter"),
-            self.filter_value,
-            self.FILTER_OPTIONS,
-            self.BUTTON_WIDTH_FILTER,
-            self.on_filter_change,
-        ).pack(side="left")
-        return group
+            label,
+            variable,
+            values,
+            width,
+            callback,
+        )
+        dropdown.pack(side="left")
+        return group, dropdown
+
+    def _layout_toolbar_groups(self, event: tk.Event) -> None:
+        available_width = max(1, event.width - 2 * PHOENIX_THEME.space_md)
+        group_widths = {group: group.winfo_reqwidth() for group in self.toolbar_groups}
+        total_width = sum(group_widths.values()) + PHOENIX_THEME.space_sm * (len(self.toolbar_groups) - 1)
+        if total_width <= available_width:
+            layout = (self.toolbar_groups,)
+        else:
+            action_rows = self._wrap_groups(self.toolbar_groups[:3], group_widths, available_width)
+            view_rows = self._wrap_groups(self.toolbar_groups[4:], group_widths, available_width)
+            layout = (*action_rows, (self.search_group,), *view_rows)
+        self._apply_toolbar_layout(layout)
+
+    @staticmethod
+    def _wrap_groups(
+        groups: tuple[tk.Frame, ...],
+        widths: dict[tk.Frame, int],
+        available_width: int,
+    ) -> tuple[tuple[tk.Frame, ...], ...]:
+        rows: list[tuple[tk.Frame, ...]] = []
+        row: list[tk.Frame] = []
+        row_width = 0
+        for group in groups:
+            width = widths[group]
+            required_width = width if not row else row_width + PHOENIX_THEME.space_sm + width
+            if row and required_width > available_width:
+                rows.append(tuple(row))
+                row = []
+                row_width = 0
+            row.append(group)
+            row_width = width if row_width == 0 else row_width + PHOENIX_THEME.space_sm + width
+        if row:
+            rows.append(tuple(row))
+        return tuple(rows)
+
+    def _apply_toolbar_layout(self, layout: tuple[tuple[tk.Frame, ...], ...]) -> None:
+        if layout == self._toolbar_layout:
+            return
+        for group in self.toolbar_groups:
+            group.grid_forget()
+        for column in range(len(self.toolbar_groups)):
+            self.grid_columnconfigure(column, weight=0)
+        for row_index, row_groups in enumerate(layout):
+            if row_groups == (self.search_group,):
+                self.grid_columnconfigure(0, weight=1)
+                self.search_group.grid(
+                    row=row_index,
+                    column=0,
+                    columnspan=len(self.toolbar_groups),
+                    sticky="ew",
+                    padx=PHOENIX_THEME.space_md,
+                    pady=(PHOENIX_THEME.space_md, 0),
+                )
+                continue
+            for column, group in enumerate(row_groups):
+                if group is self.search_group:
+                    self.grid_columnconfigure(column, weight=1)
+                group.grid(
+                    row=row_index,
+                    column=column,
+                    sticky="ew" if group is self.search_group else "w",
+                    padx=(PHOENIX_THEME.space_md if column == 0 else PHOENIX_THEME.space_sm, 0),
+                    pady=(PHOENIX_THEME.space_md, 0),
+                )
+        self._toolbar_layout = layout
+
+    def _toggle_hover_preview(self) -> None:
+        from app.i18n import tr
+        self.hover_preview_enabled = not self.hover_preview_enabled
+        self.hover_preview_btn.configure(
+            text=tr("gallery_hover_preview_on", "Hover-Vorschau: Ein") if self.hover_preview_enabled else tr("gallery_hover_preview_off", "Hover-Vorschau: Aus"),
+            icon_color=PHOENIX_THEME.danger,
+        )
+        self.on_hover_preview_change(self.hover_preview_enabled)
 
     def _clear_search_placeholder(self, _event: tk.Event) -> None:
         if self._placeholder_active:

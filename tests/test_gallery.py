@@ -164,17 +164,22 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
         try:
             for theme_name in ("dark", "light"):
                 update_phoenix_theme(theme_name)
-                toolbar = object.__new__(GalleryToolbar)
-                toolbar.group_frame = MagicMock(return_value=MagicMock())
-                toolbar.separator = MagicMock(return_value=MagicMock())
-                toolbar.on_open_folder = MagicMock()
-                toolbar.on_refresh = MagicMock()
+                for hover_preview_enabled in (True, False):
+                    toolbar = object.__new__(GalleryToolbar)
+                    toolbar.group_frame = MagicMock(return_value=MagicMock())
+                    toolbar.separator = MagicMock(return_value=MagicMock())
+                    toolbar.on_open_folder = MagicMock()
+                    toolbar.on_refresh = MagicMock()
+                    toolbar.hover_preview_enabled = hover_preview_enabled
 
-                with patch("widgets.phoenix.gallery.toolbar.PhoenixButton") as mock_button:
-                    toolbar._build_action_group()
+                    with patch("widgets.phoenix.gallery.toolbar.PhoenixButton") as mock_button:
+                        toolbar._build_output_group()
+                        toolbar._build_hover_group()
+                        toolbar._build_refresh_group()
 
-                self.assertEqual(mock_button.call_args_list[0].kwargs["icon_color"], PHOENIX_THEME.warning)
-                self.assertEqual(mock_button.call_args_list[1].kwargs["icon_color"], PHOENIX_THEME.accent)
+                    self.assertEqual(mock_button.call_args_list[0].kwargs["icon_color"], PHOENIX_THEME.warning)
+                    self.assertEqual(mock_button.call_args_list[1].kwargs["icon_color"], PHOENIX_THEME.danger)
+                    self.assertEqual(mock_button.call_args_list[2].kwargs["icon_color"], PHOENIX_THEME.accent)
         finally:
             update_phoenix_theme(original_theme)
 

@@ -24,6 +24,7 @@ class GalleryThumbnailArea(tk.Frame):
         on_select: Callable[[GalleryImage, tk.Event], None],
         on_clear_selection: Callable[[], None],
         on_double_click: Callable[[GalleryImage], None],
+        hover_preview_enabled: Callable[[], bool] | None = None,
     ) -> None:
         super().__init__(
             master,
@@ -35,6 +36,7 @@ class GalleryThumbnailArea(tk.Frame):
         self.on_select = on_select
         self.on_clear_selection = on_clear_selection
         self.on_double_click = on_double_click
+        self.hover_preview_enabled = hover_preview_enabled or (lambda: True)
         self.provider = ThumbnailProvider(self)
         self.render_generation = 0
         self.images: list[GalleryImage] = []
@@ -108,6 +110,12 @@ class GalleryThumbnailArea(tk.Frame):
 
     def get_column_count(self) -> int:
         return self.current_columns
+
+    def set_hover_preview_enabled(self, enabled: bool) -> None:
+        if not enabled:
+            for child in self.grid_frame.winfo_children():
+                if isinstance(child, ThumbnailWidget):
+                    child.close_hover_preview()
 
     def focus_gallery(self) -> None:
         self.focus_set()
@@ -201,6 +209,7 @@ class GalleryThumbnailArea(tk.Frame):
                 command=self._select_image,
                 double_command=self.on_double_click,
                 right_click_command=self._right_click_image,
+                hover_preview_enabled=self.hover_preview_enabled,
             )
             widget.grid(
                 row=row,

@@ -230,6 +230,8 @@
   "gallery_subtitle": "Browse and manage image library",
   "gallery_empty_title": "No images in the gallery yet",
   "gallery_empty_subtitle": "Choose \"Open Folder\" to view images from a local folder.",
+  "gallery_hover_preview_on": "Hover preview: On",
+  "gallery_hover_preview_off": "Hover preview: Off",
   "open_folder_btn": "Open Folder",
   "refresh_btn": "Refresh",
   "search_placeholder": "Search...",
