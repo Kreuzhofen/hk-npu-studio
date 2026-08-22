@@ -127,6 +127,7 @@ from engine.brand_manager import BrandManager
 from engine.boost_ai_service import BoostAIService
 from engine.boost_engine import BoostSuggestion, PhoenixBoostEngine, PromptAnalysis
 from engine.ollama_status import OllamaStatus, OllamaStatusService
+from dialogs.studio_dialog import StudioDialog
 from widgets.phoenix.layout.workspace import WorkspaceFrame
 from widgets.phoenix.theme import PHOENIX_THEME
 from app.i18n import tr
@@ -189,6 +190,8 @@ class PhoenixPromptView(WorkspaceFrame):
     Professional two-column layout with grouped parameters on the left
     and a unified AI Generation Inspector on the right.
     """
+    BOOST_PREVIEW_SIZE = (760, 660)
+    BOOST_PREVIEW_MIN_SIZE = (640, 520)
     COMPACT_PREVIEW_MODE = False
 
     def __init__(self, master: tk.Misc, controller: PromptWorkspaceController | None = None) -> None:
@@ -3340,6 +3343,7 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.geometry("620x310")
         popup.minsize(540, 280)
         popup.configure(bg=PHOENIX_THEME.card_bg)
+
         popup.transient(self.winfo_toplevel())
         popup.grab_set()
         self._presets_popup = popup
@@ -3427,6 +3431,7 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.geometry("560x760")
         popup.configure(bg=PHOENIX_THEME.card_bg)
         popup.minsize(460, 580)
+
         popup.transient(self.winfo_toplevel())
         popup.grab_set()
         self._advanced_popup = popup
@@ -3780,10 +3785,19 @@ class PhoenixPromptView(WorkspaceFrame):
         BrandManager.apply_window_icon(popup)
         popup.title(tr("boost_preview_title", "Phoenix Boost – Vorschau"))
         popup.configure(bg=PHOENIX_THEME.card_bg)
-        popup.geometry("760x760")
-        popup.minsize(680, 620)
-        popup.transient(self.winfo_toplevel())
+        work_area = StudioDialog._get_work_area(popup)
+        popup_size, popup_min_size = self._boost_preview_sizes(work_area)
+        popup.minsize(*popup_min_size)
+        popup.resizable(True, True)
+
         popup.grab_set()
+        master = self.winfo_toplevel()
+        x = master.winfo_rootx() + (master.winfo_width() - popup_size[0]) // 2
+        y = master.winfo_rooty() + (master.winfo_height() - popup_size[1]) // 2
+        work_x, work_y, work_width, work_height = work_area
+        x = max(work_x, min(x, work_x + work_width - popup_size[0]))
+        y = max(work_y, min(y, work_y + work_height - popup_size[1]))
+        popup.geometry(f"{popup_size[0]}x{popup_size[1]}+{x}+{y}")
         self._boost_popup = popup
         self._boost_run_token = object()
         self._boost_install_btn = None
@@ -3797,13 +3811,19 @@ class PhoenixPromptView(WorkspaceFrame):
 
         dialog_shell = tk.Frame(popup, bg=PHOENIX_THEME.card_bg)
         dialog_shell.pack(fill="both", expand=True)
+        self._boost_dialog_shell = dialog_shell
 
         actions = tk.Frame(dialog_shell, bg=PHOENIX_THEME.card_bg)
-        actions.pack(side="bottom", fill="x", padx=24, pady=(8, 16))
+        actions.pack(
+            side="bottom", fill="x",
+            padx=PHOENIX_THEME.space_lg,
+            pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_lg),
+        )
         self._boost_actions = actions
 
         scroll_area = tk.Frame(dialog_shell, bg=PHOENIX_THEME.card_bg)
         scroll_area.pack(side="top", fill="both", expand=True)
+        self._boost_scroll_area = scroll_area
         scroll_canvas = tk.Canvas(
             scroll_area, bg=PHOENIX_THEME.card_bg,
             highlightthickness=0, bd=0,
@@ -3818,7 +3838,9 @@ class PhoenixPromptView(WorkspaceFrame):
         self._boost_scroll_canvas = scroll_canvas
 
         container = tk.Frame(scroll_canvas, bg=PHOENIX_THEME.card_bg)
-        content_window = scroll_canvas.create_window((24, 20), window=container, anchor="nw")
+        content_window = scroll_canvas.create_window(
+            (PHOENIX_THEME.space_lg, PHOENIX_THEME.space_md), window=container, anchor="nw"
+        )
         container.bind(
             "<Configure>",
             lambda _event: scroll_canvas.configure(scrollregion=scroll_canvas.bbox("all")),
@@ -3826,7 +3848,7 @@ class PhoenixPromptView(WorkspaceFrame):
         scroll_canvas.bind(
             "<Configure>",
             lambda event: scroll_canvas.itemconfigure(
-                content_window, width=max(1, event.width - 48)
+                content_window, width=max(1, event.width - 2 * PHOENIX_THEME.space_lg)
             ),
         )
         popup.bind(
@@ -3838,9 +3860,10 @@ class PhoenixPromptView(WorkspaceFrame):
         )
 
         ai_info = tk.Frame(container, bg=PHOENIX_THEME.surface)
-        ai_info.pack(fill="x", pady=(0, 10))
+        ai_info.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
+        ai_info.grid_columnconfigure(0, weight=1)
         ai_copy = tk.Frame(ai_info, bg=PHOENIX_THEME.surface)
-        ai_copy.pack(side="left", fill="x", expand=True, padx=10, pady=(11, 8))
+        ai_copy.grid(row=0, column=0, sticky="ew", padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm)
         self._boost_ai_title_lbl = tk.Label(
             ai_copy, text=tr("boost_ai_title", "Phoenix Boost AI"),
             bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
@@ -3856,7 +3879,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 "Phoenix Boost ist freiwillig – Sie können auch ohne Phoenix Boost Bilder erstellen.",
             ),
             bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
-            font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=470,
+            font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=500,
         )
         self._boost_ai_optional_lbl.pack(fill="x", pady=(7, 6))
         self._boost_ollama_status_lbl = tk.Label(
@@ -3883,7 +3906,10 @@ class PhoenixPromptView(WorkspaceFrame):
             ai_info, command=self._open_ollama_download,
             button_type="primary", font=PHOENIX_THEME.font_small,
         )
-        self._boost_install_btn.pack(side="right", padx=8, pady=5)
+        self._boost_install_btn.grid(
+            row=0, column=1, sticky="e",
+            padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_sm,
+        )
         self._update_ollama_install_button(self._ollama_status)
 
         self._boost_run_status_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
@@ -3915,21 +3941,35 @@ class PhoenixPromptView(WorkspaceFrame):
             anchor="w", justify="left",
         )
 
-        self._boost_preview_field(container, tr("boost_original_prompt", "Originalprompt"), suggestion.original_prompt)
+        prompt_pairs = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        prompt_pairs.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
+        prompt_pairs.grid_columnconfigure(0, weight=1, uniform="boost_columns")
+        prompt_pairs.grid_columnconfigure(1, weight=1, uniform="boost_columns")
+        self._boost_prompt_pairs = prompt_pairs
+        original_prompt = tk.Frame(prompt_pairs, bg=PHOENIX_THEME.card_bg)
+        original_prompt.grid(row=0, column=0, sticky="nsew", padx=(0, PHOENIX_THEME.space_sm))
+        optimized_prompt = tk.Frame(prompt_pairs, bg=PHOENIX_THEME.card_bg)
+        optimized_prompt.grid(row=0, column=1, sticky="nsew")
+        self._boost_preview_field(original_prompt, tr("boost_original_prompt", "Originalprompt"), suggestion.original_prompt)
         self._boost_optimized_value = self._boost_preview_field(
-            container, tr("boost_optimized_prompt", "Optimierter Prompt"), suggestion.optimized_prompt
+            optimized_prompt, tr("boost_optimized_prompt", "Optimierter Prompt"), suggestion.optimized_prompt
         )
+        existing_negative = tk.Frame(prompt_pairs, bg=PHOENIX_THEME.card_bg)
+        existing_negative.grid(row=1, column=0, sticky="nsew", padx=(0, PHOENIX_THEME.space_sm))
+        recommended_negative = tk.Frame(prompt_pairs, bg=PHOENIX_THEME.card_bg)
+        recommended_negative.grid(row=1, column=1, sticky="nsew")
         self._boost_preview_field(
-            container,
+            existing_negative,
             tr("boost_existing_negative", "Vorhandener Negative Prompt"),
             suggestion.existing_negative_prompt or tr("boost_none", "Nicht vorhanden"),
         )
         self._boost_negative_value = self._boost_preview_field(
-            container, tr("boost_negative_addition", "Empfohlene Ergänzung"), suggestion.negative_addition,
+            recommended_negative, tr("boost_negative_addition", "Empfohlene Ergänzung"), suggestion.negative_addition,
         )
 
         values = tk.Frame(container, bg=PHOENIX_THEME.surface)
-        values.pack(fill="x", pady=(4, 10))
+        values.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
+        self._boost_parameter_table = values
         rows = (
             (tr("boost_steps", "Schritte"), str(suggestion.current_steps), str(suggestion.recommended_steps)),
             (tr("boost_cfg", "CFG Scale"), f"{suggestion.current_cfg:g}", f"{suggestion.recommended_cfg:g}"),
@@ -3939,25 +3979,27 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         for column, text_value in enumerate(("", tr("boost_current", "Aktuell"), tr("boost_recommended", "Empfohlen"))):
             tk.Label(values, text=text_value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_secondary,
-                     font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=column, sticky="ew", padx=10, pady=(8, 4))
+                     font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=column, sticky="ew", padx=PHOENIX_THEME.space_sm, pady=(PHOENIX_THEME.space_sm, PHOENIX_THEME.space_xs))
         for row, (label, current, recommended) in enumerate(rows, start=1):
             for column, text_value in enumerate((label, current, recommended)):
                 tk.Label(values, text=text_value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
-                         font=PHOENIX_THEME.font_small, anchor="w").grid(row=row, column=column, sticky="ew", padx=10, pady=3)
+                         font=PHOENIX_THEME.font_small, anchor="w").grid(row=row, column=column, sticky="ew", padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_xs)
         for column in range(3):
             values.grid_columnconfigure(column, weight=1)
 
+        options = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
+        options.pack(fill="x", pady=(0, PHOENIX_THEME.space_sm))
         if suggestion.model_hint:
             tk.Label(
-                container,
+                options,
                 text=tr("boost_model_hint", "Modellhinweis: Für dieses Motiv kann SDXL bessere Details liefern."),
                 bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_small, anchor="w", justify="left",
-            ).pack(fill="x", pady=(0, 8))
+            ).pack(fill="x", pady=(0, PHOENIX_THEME.space_xs))
 
         self._boost_apply_negative_var = tk.BooleanVar(value=False)
         tk.Checkbutton(
-            container, variable=self._boost_apply_negative_var,
+            options, variable=self._boost_apply_negative_var,
             text=tr("boost_apply_negative", "Empfohlene Ergänzung zum Negative Prompt übernehmen"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.card_bg, activeforeground=PHOENIX_THEME.text_primary,
@@ -3967,7 +4009,7 @@ class PhoenixPromptView(WorkspaceFrame):
         resolution_allowed = self._boost_resolution_allowed(suggestion)
         self._boost_apply_resolution_var = tk.BooleanVar(value=False)
         resolution_check = tk.Checkbutton(
-            container, variable=self._boost_apply_resolution_var,
+            options, variable=self._boost_apply_resolution_var,
             text=tr("boost_apply_resolution", "Empfohlene Auflösung ausdrücklich übernehmen"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
             activebackground=PHOENIX_THEME.card_bg, activeforeground=PHOENIX_THEME.text_primary,
@@ -3979,7 +4021,7 @@ class PhoenixPromptView(WorkspaceFrame):
         if not resolution_allowed:
             reason_key = "boost_resolution_controlnet_locked" if self._controlnet_active() else "boost_resolution_model_locked"
             fallback = "Bei aktivem ControlNet bleibt die Auflösung unverändert." if self._controlnet_active() else "Die Auflösung ist für dieses Modell/Backend fest vorgegeben."
-            tk.Label(container, text=tr(reason_key, fallback), bg=PHOENIX_THEME.card_bg,
+            tk.Label(options, text=tr(reason_key, fallback), bg=PHOENIX_THEME.card_bg,
                      fg=PHOENIX_THEME.text_muted, font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x", padx=(22, 0))
 
         self._boost_save_template_btn = PhoenixButton(
@@ -4032,16 +4074,26 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self._prompt_and_save_preset(data)
 
+    @classmethod
+    def _boost_preview_sizes(
+        cls, work_area: tuple[int, int, int, int]
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
+        return StudioDialog._fit_to_work_area(
+            cls.BOOST_PREVIEW_SIZE,
+            cls.BOOST_PREVIEW_MIN_SIZE,
+            work_area,
+        )
+
     @staticmethod
     def _boost_preview_field(parent: tk.Widget, label: str, value: str) -> tk.Label:
         tk.Label(parent, text=label, bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
                  font=PHOENIX_THEME.font_small, anchor="w").pack(fill="x")
         value_label = tk.Label(
             parent, text=value, bg=PHOENIX_THEME.surface, fg=PHOENIX_THEME.text_primary,
-            font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=690,
-            padx=10, pady=7,
+            font=PHOENIX_THEME.font_small, anchor="w", justify="left", wraplength=320,
+            padx=PHOENIX_THEME.space_sm, pady=PHOENIX_THEME.space_xs,
         )
-        value_label.pack(fill="x", pady=(2, 8))
+        value_label.pack(fill="x", pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_sm))
         return value_label
 
     def _load_boost_ai_suggestion(
@@ -4805,6 +4857,7 @@ class PhoenixPromptView(WorkspaceFrame):
         popup.geometry("380x600")
         popup.configure(bg=PHOENIX_THEME.card_bg)
         popup.resizable(False, False)
+
         popup.transient(self.winfo_toplevel())
         popup.protocol("WM_DELETE_WINDOW", self._close_controlnet_popup)
         

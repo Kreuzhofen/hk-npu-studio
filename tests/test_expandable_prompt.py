@@ -40,7 +40,8 @@ from engine.boost_ai_service import BoostAIService, BoostAIRun
 from engine.boost_engine import PhoenixBoostEngine
 from engine.ollama_status import OllamaStatus, OllamaStatusService
 from widgets.phoenix.views.prompt_view import PhoenixPromptView
-from widgets.phoenix.theme import PHOENIX_THEME
+from widgets.phoenix.theme import PHOENIX_THEME, update_phoenix_theme
+from dialogs.studio_dialog import StudioDialog
 
 # Restore original palette function
 ThemeManager.palette = original_palette_func
@@ -488,7 +489,7 @@ class ExpandablePromptTests(unittest.TestCase):
             "Phoenix Boost ist freiwillig – Sie können auch ohne Phoenix Boost Bilder erstellen.",
             texts,
         )
-        self.assertEqual(self.view._boost_ai_optional_lbl.cget("wraplength"), 470)
+        self.assertEqual(self.view._boost_ai_optional_lbl.cget("wraplength"), 500)
         self.assertEqual(self.view._boost_ai_optional_lbl.pack_info()["pady"], (7, 6))
         self.assertNotEqual(self.view.gen_btn.cget("state"), "disabled")
         self.assertIn("Ollama: nicht installiert", texts)
@@ -670,6 +671,34 @@ class ExpandablePromptTests(unittest.TestCase):
             self.assertEqual(float(self.view._boost_countdown_bar.cget("maximum")), BoostAIService.REQUEST_TIMEOUT_SECONDS)
             self.assertEqual(float(self.view._boost_countdown_bar.cget("value")), BoostAIService.REQUEST_TIMEOUT_SECONDS)
             self.view._boost_popup.destroy()
+
+    def test_boost_preview_uses_compact_scrollable_layout_with_fixed_actions(self) -> None:
+        self.view.prompt_text.insert("1.0", "A mountain landscape")
+        original_theme = ThemeManager.active_theme()
+        try:
+            for theme_name in ("dark", "light"):
+                update_phoenix_theme(theme_name)
+                with patch.object(StudioDialog, "_get_work_area", return_value=(0, 0, 800, 600)), \
+                     patch("widgets.phoenix.views.prompt_view.threading.Thread"):
+                    self.view._open_boost_preview()
+                    self.root.update_idletasks()
+
+                popup = self.view._boost_popup
+                self.assertLessEqual(self.view._boost_preview_sizes((0, 0, 800, 600))[0][1], 552)
+                self.assertEqual(popup.resizable(), (True, True))
+                self.assertFalse(popup.transient())
+                self.assertIs(self.view._boost_actions.master, self.view._boost_dialog_shell)
+                self.assertIsNot(self.view._boost_actions.master, self.view._boost_scroll_canvas)
+                self.assertEqual(self.view._boost_prompt_pairs.grid_columnconfigure(0)["weight"], 1)
+                self.assertEqual(self.view._boost_prompt_pairs.grid_columnconfigure(1)["weight"], 1)
+                self.assertTrue(self.view._boost_parameter_table.winfo_manager())
+                self.assertEqual(self.view._boost_save_template_btn.command, self.view._save_boost_as_template)
+                self.assertTrue(self.view._boost_apply_btn.command)
+                self.assertTrue(self.view._boost_cancel_btn.command)
+                self.assertEqual(self.view._boost_prompt_pairs.cget("bg"), PHOENIX_THEME.card_bg)
+                popup.destroy()
+        finally:
+            update_phoenix_theme(original_theme)
 
     def test_boost_cancel_changes_nothing(self) -> None:
         self.view.prompt_text.insert("1.0", "A mountain landscape")
