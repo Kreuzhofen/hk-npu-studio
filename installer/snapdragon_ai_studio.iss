@@ -60,7 +60,7 @@ spanish.FinishedHeadingLabel=Snapdragon AI Studio 2.0 RC2 se ha instalado correc
 spanish.FinishedLabel=Snapdragon AI Studio 2.0 RC2 se ha instalado correctamente.%n%nGracias por probar Snapdragon AI Studio RC2.
 
 [Files]
-Source: "..\dist\SnapdragonAIStudio\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\SnapdragonAIStudio\*"; DestDir: "{app}"; Excludes: "output\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExecutableName}"

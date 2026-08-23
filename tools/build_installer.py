@@ -14,6 +14,16 @@ from engine.release_config import RELEASE
 
 
 INSTALLER_SCRIPT = PROJECT_ROOT / "installer" / "snapdragon_ai_studio.iss"
+RELEASE_STAGING_DIR = PROJECT_ROOT / "dist" / "SnapdragonAIStudio"
+
+
+def validate_release_staging(staging_dir: Path = RELEASE_STAGING_DIR) -> None:
+    """Reject runtime output from the installer staging tree."""
+    runtime_output = staging_dir / "output"
+    if runtime_output.exists():
+        raise RuntimeError(
+            f"Release-Staging darf keinen Runtime-Ausgabeordner enthalten: {runtime_output}"
+        )
 
 
 def build_command(iscc_path: str | Path) -> list[str]:
@@ -41,9 +51,10 @@ def main() -> int:
     )
     if not iscc:
         raise RuntimeError("Inno Setup Compiler (ISCC.exe) wurde nicht gefunden.")
-    executable = PROJECT_ROOT / "dist" / "SnapdragonAIStudio" / RELEASE.executable_name
+    executable = RELEASE_STAGING_DIR / RELEASE.executable_name
     if not executable.is_file():
         raise FileNotFoundError(f"Release-Build fehlt: {executable}")
+    validate_release_staging()
     return subprocess.run(build_command(iscc), cwd=PROJECT_ROOT, check=False).returncode
 
 

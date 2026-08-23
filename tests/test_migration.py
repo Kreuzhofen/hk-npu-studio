@@ -8,6 +8,32 @@ import pytest
 
 import config
 from app.migration import migrate_legacy_generations
+from tools.build_installer import validate_release_staging
+
+
+def test_release_staging_rejects_runtime_output_and_preserves_files(tmp_path):
+    runtime_output = tmp_path / "output"
+    image = runtime_output / "generate_0001.png"
+    sidecar = runtime_output / "generate_0001.json"
+    runtime_output.mkdir()
+    image.write_bytes(b"image")
+    sidecar.write_text('{"prompt": "legacy"}', encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="Runtime-Ausgabeordner"):
+        validate_release_staging(tmp_path)
+
+    assert image.read_bytes() == b"image"
+    assert sidecar.read_text(encoding="utf-8") == '{"prompt": "legacy"}'
+
+
+def test_clean_release_staging_has_no_runtime_output(tmp_path):
+    (tmp_path / "SnapdragonAIStudio.exe").write_bytes(b"executable")
+    validate_release_staging(tmp_path)
+
+
+def test_installer_excludes_runtime_output_from_recursive_staging():
+    installer_script = Path(__file__).resolve().parents[1] / "installer" / "snapdragon_ai_studio.iss"
+    assert 'Excludes: "output\\*"' in installer_script.read_text(encoding="utf-8")
 
 def test_migration_legacy_folder_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "frozen", True, raising=False)
