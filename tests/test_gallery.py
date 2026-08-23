@@ -138,14 +138,42 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
 
     def test_gallery_output_action_opens_configured_output_directory(self):
         output_dir = self.temp_dir / "output"
-        output_dir.mkdir()
         view = object.__new__(PhoenixGalleryView)
 
         with patch("widgets.phoenix.views.gallery_view.OUTPUT_DIR", output_dir), \
              patch("widgets.phoenix.views.gallery_view.subprocess.Popen") as mock_popen:
             view._open_output_directory()
 
+        self.assertTrue(output_dir.is_dir())
         mock_popen.assert_called_once_with(["explorer", str(output_dir.resolve())])
+
+    def test_gallery_output_action_preserves_existing_files(self):
+        output_dir = self.temp_dir / "output"
+        output_dir.mkdir()
+        existing_image = output_dir / "existing.png"
+        existing_image.write_bytes(b"existing image")
+        view = object.__new__(PhoenixGalleryView)
+
+        with patch("widgets.phoenix.views.gallery_view.OUTPUT_DIR", output_dir), \
+             patch("widgets.phoenix.views.gallery_view.subprocess.Popen") as mock_popen:
+            view._open_output_directory()
+
+        self.assertEqual(existing_image.read_bytes(), b"existing image")
+        mock_popen.assert_called_once_with(["explorer", str(output_dir.resolve())])
+
+    def test_gallery_output_action_does_not_open_explorer_after_directory_error(self):
+        output_dir = self.temp_dir / "missing" / "output"
+        view = object.__new__(PhoenixGalleryView)
+        logger = MagicMock()
+
+        with patch("widgets.phoenix.views.gallery_view.OUTPUT_DIR", output_dir), \
+             patch.object(Path, "mkdir", side_effect=OSError("access denied")), \
+             patch("widgets.phoenix.views.gallery_view.subprocess.Popen") as mock_popen, \
+             patch("logging.getLogger", return_value=logger):
+            view._open_output_directory()
+
+        mock_popen.assert_not_called()
+        logger.error.assert_called_once()
 
     def test_gallery_output_action_label_is_localized_and_sized(self):
         root = Path(__file__).resolve().parents[1]
@@ -203,6 +231,7 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
             self.assertIsNotNone(gallery_view.inspector)
             self.assertIsNotNone(gallery_view.thumbnail_area)
             self.assertIsNotNone(gallery_view.status_bar)
+            self.assertEqual(gallery_view.toolbar.on_open_folder, gallery_view._open_output_directory)
             
             gallery_view.destroy()
         finally:

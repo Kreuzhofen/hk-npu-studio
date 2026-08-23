@@ -171,6 +171,7 @@ class PhoenixGalleryView(WorkspaceFrame):
 
     def _open_output_directory(self) -> None:
         try:
+            OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
             subprocess.Popen(["explorer", str(OUTPUT_DIR.resolve())])
         except Exception as error:
             import logging
