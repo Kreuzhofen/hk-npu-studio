@@ -1,9 +1,8 @@
 # Snapdragon AI Studio 2.0 RC2B — Release Notes
 
-> [!WARNING]
-> **Release Candidate:** This is a pre-release version of Snapdragon AI Studio intended for testing and validation. It is not a final stable release.
+**RC2B is the most stable, refined, and user-friendly Snapdragon AI Studio release candidate to date.** Building on RC2A, it delivers substantial improvements to Windows scaling, gallery workflows, image comparison, Phoenix Boost, plugin integration, and installer/output safety.
 
-This release candidate, **Version 2.0 RC2B** (dated August 23, 2026), builds directly on top of the RC2A baseline. It introduces UI responsiveness optimizations, gallery filtering adaptations, synchronous image comparison panning, prompt-expansion preview adjustments, plugin UI styling, and build/installer output safety enhancements.
+Validated on the Windows ARM64 development system and on RC2CleanTest, RC2B combines the strongest Phoenix UI, installer safeguards, and day-to-day workflow improvements delivered so far.
 
 ---
 
