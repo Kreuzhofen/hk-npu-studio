@@ -34,7 +34,7 @@
   <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Hardware-Snapdragon_X_Elite-D00000?style=flat-square" alt="Snapdragon X Elite">
   <img src="https://img.shields.io/badge/NPU-Qualcomm_Hexagon-EA272A?style=flat-square" alt="Qualcomm Hexagon NPU">
-  <img src="https://img.shields.io/badge/Status-2.0_RC2A-success?style=flat-square" alt="RC2A Status">
+  <img src="https://img.shields.io/badge/Status-2.0_RC2B-success?style=flat-square" alt="RC2B Status">
 </p>
 
 ---
@@ -42,7 +42,7 @@
 ## 📋 Table of Contents
 
 - [About the Project](#-about-the-project)
-- [RC2A — What Changed Since RC2](#-rc2a--what-changed-since-rc2)
+- [RC2B — Improvements Since RC2A](#-rc2b--improvements-since-rc2a)
 - [Phoenix Boost](#-phoenix-boost)
 - [Stable Diffusion 3.5 Medium](#-stable-diffusion-35-medium--qai-appbuilder)
 - [Features](#-features)
@@ -80,77 +80,34 @@ The **Phoenix Engine** coordinates model discovery, validation, installation, ac
 
 ---
 
-## 🚀 RC2A — What Changed Since RC2
+## 🚀 RC2B — Improvements Since RC2A
 
-RC2A is a further stabilization and usability step on top of the major RC2 redesign. The focus is not simply on small bug fixes: the model download and installation workflow has been hardened further, **Phoenix Boost** has been refined, and the **Stable Diffusion 3.5 Medium / Qualcomm QAI AppBuilder** setup path has been substantially improved.
+RC2B builds directly on top of RC2A as the baseline, introducing UI responsiveness optimizations, gallery and comparison enhancements, and additional safety and validation measures.
 
-### 🔥 Phoenix Boost refined
+### 🎨 Responsive Phoenix UI & DPI Scaling
+- **Windows Scaling Support:** The affected Phoenix views have been responsively optimized for Windows scaling from 100% to 175%. Wrapping and local scroll areas keep content and critical actions accessible.
+- **Flexible Wrapping:** Control elements wrap dynamically to prevent layout clipping in narrow windows.
+- **Local Scroll Areas:** Long inspectors and sidebars feature local scroll fallbacks to keep critical buttons accessible.
+- **DPI and Theme Improvements:** The interface has been refined for both Dark and Light modes across all supported DPI ranges.
 
-**Phoenix Boost** is one of the core features developed for Snapdragon AI Studio.
+### 🖼️ Enhanced Gallery & Hover Preview
+- **Gallery Filter Toolbar:** The existing gallery toolbar has been rebuilt to be responsive. Searching, sorting, thumbnail sizing, and filtering are preserved. The hover on/off switch was added, and toolbar groups wrap in a controlled manner at low widths.
+- **Safe Output Directory Handling:** Clicking "Open Output Folder" opens the output folder configured for the current user and safely creates it if it does not yet exist.
+- **Optional Hover Preview:** Toggleable and persistent hover preview (state saved across restarts). When enabled, hovering over gallery thumbnails instantly previews the image; disabling it prevents new previews and immediately closes any active preview. Selection, double-click, and context menus remain independent.
 
-RC2A continues to refine the prompt-enhancement workflow:
+### 🔍 Image Comparison & Synchronization
+- **Comparison Tool Panning:** Zoom levels (Fit, 50%, 100%, 200%) are set via a shared toolbar, with mouse-panning supported for enlarged images.
+- **Synchronized Panning:** "Synchronous: On" transfers normalized pan positions between the two image views, while "Synchronous: Off" keeps pan positions independent.
+- **Text-Based Metadata Comparison:** Clear status messages distinguish between missing, one-sided, identical, or differing technical parameters (no visual pixel/color area comparison).
 
-- deterministic local prompt enhancement,
-- optional local **AI Boost**,
-- **Ollama + Qwen2.5 3B** integration,
-- prompt preview before generation,
-- local processing after setup,
-- graceful fallback: Phoenix Boost remains optional and never needs to block normal image generation.
+### 🧠 Phoenix Boost Refinements
+- **Compact Boost Preview:** An optimized, space-saving preview displaying prompt and negative prompt comparisons side-by-side.
+- **Sticky Action Bar:** Control actions are fixed and accessible outside the scroll area at the bottom.
+- **Maximizable Preview:** The preview is maximizable and restorable for comfortable prompt inspection, with scroll fallback for long texts.
 
-Phoenix Boost is designed to help turn a short idea into a richer image prompt while keeping the user in control of the final text.
-
-### 📥 Download & installation reliability
-
-RC2A further improves the guided model-installation workflow introduced with RC2:
-
-- clearer download, preparation, validation and activation phases,
-- improved handling of existing installation data,
-- distinction between complete and incomplete model sources,
-- explicit redownload paths when a source is incomplete or damaged,
-- stronger validation before a model is treated as ready,
-- automatic activation after a successful installation,
-- less technical decision-making for the user.
-
-The intended user experience is no longer “find the right files and put them in the right folder.” Phoenix guides the process.
-
-### 🧠 Stable Diffusion 3.5 Medium / QAI AppBuilder
-
-The largest RC2A installation improvement is the **Stable Diffusion 3.5 Medium** setup path built around Qualcomm **QAI AppBuilder**.
-
-Phoenix now guides and automates the workflow as far as possible:
-
-1. locate the expected QAI AppBuilder ZIP,
-2. extract and prepare the Qualcomm workspace,
-3. prepare the required setup dependencies,
-4. run the Qualcomm SD3.5 workflow,
-5. download the required model data,
-6. import the resulting model into Snapdragon AI Studio,
-7. create validation/manifest information,
-8. validate the final installation,
-9. activate the model.
-
-RC2A also hardens workspace reuse. Phoenix checks whether an existing extracted workspace actually belongs to the currently selected ZIP. Stale or mismatched extraction data can be replaced instead of silently being reused.
-
-The current Qualcomm model download is approximately **3.24 GB**.
-
-### ✅ Real clean-install validation
-
-The RC2A SD3.5 path has been validated through the complete real user flow:
-
-> **not installed → first-attempt setup → Qualcomm download → import → validation → activation → real image generation**
-
-This is an important milestone for the RC2A workflow: installation is not considered complete merely because files exist — the model must validate and successfully reach the actual generation path.
-
-### 🧭 Guided first-run experience
-
-RC2A continues the RC2 goal of making the application understandable to non-technical users:
-
-- clearer first-run readiness state,
-- beginner-friendly Model Manager,
-- guided model sources,
-- automatic post-install activation,
-- clearer status and progress feedback,
-- direct transition from setup to image generation.
+### 🛡️ Plugins, Safety and Installer
+- **Phoenix-Compliant Plugins:** The plugin installation section uses existing Phoenix components and PHOENIX_THEME-based styling.
+- **Output Safety & Build Protection:** Inno Setup excludes runtime outputs, and build_installer.py rejects the installer build if the frozen staging tree contains a runtime output folder.
 
 ---
 
@@ -177,7 +134,7 @@ Once installed, prompt enhancement runs locally. Phoenix shows the enhanced prom
 
 ## 🧠 Stable Diffusion 3.5 Medium — QAI AppBuilder
 
-RC2A introduces a substantially more automated path for Stable Diffusion 3.5 Medium.
+RC2B continues the automated path for Stable Diffusion 3.5 Medium.
 
 Instead of asking the user to manually assemble individual technical model components, Phoenix coordinates the QAI AppBuilder preparation, model download, import, validation and activation.
 
@@ -189,7 +146,7 @@ This workflow was successfully validated from a clean “not installed” state 
 
 ## ⚡ Features
 
-| Feature Group | Component | RC2A Status | Description |
+| Feature Group | Component | RC2B Status | Description |
 |---|---|---:|---|
 | **Platform** | Native Windows ARM64 | ✅ Supported | Designed for Windows 11 ARM64. |
 | **Hardware** | Snapdragon X Plus / X Elite | ✅ Primary target | Optimized around Windows on Snapdragon systems. |
@@ -197,13 +154,13 @@ This workflow was successfully validated from a clean “not installed” state 
 | **Inference** | ONNX Runtime | ✅ Integrated | Local runtime foundation used by supported pipelines. |
 | **Models** | Stable Diffusion 1.5 | ✅ Available | Guided model workflow with supported Qualcomm/NPU package path. |
 | **Models** | Stable Diffusion 2.1 | ✅ Available | Guided Snapdragon/Qualcomm-oriented model workflow. |
-| **Models** | Stable Diffusion 3.5 Medium | ✅ RC2A validated | Guided QAI AppBuilder setup and real generation path validated. |
+| **Models** | Stable Diffusion 3.5 Medium | ✅ Validated | Guided QAI AppBuilder setup and real generation path validated. |
 | **Models** | SDXL and additional models | 🧪 Experimental | Continued research and development. |
 | **Prompting** | Phoenix Boost | ✅ Supported | Deterministic boost plus optional local AI Boost. |
 | **Prompting** | Ollama + Qwen2.5 3B | ✅ Optional | Local AI-powered prompt enhancement. |
 | **Control** | ControlNet Canny | ✅ Supported where compatible | Structural image guidance for supported model/backend combinations. |
-| **UX** | Guided First Run | ✅ Improved | Clearer path from first launch to first image. |
-| **Management** | Model Manager | ✅ Improved | Guided installation, validation and activation. |
+| **UX** | Guided First Run | ✅ RC2B Improved | Clearer path from first launch to first image. |
+| **Management** | Model Manager | ✅ RC2B Improved | Guided installation, validation and activation. |
 | **Localization** | EN / DE / ES | ✅ Supported | English, German and Spanish interface. |
 | **Privacy** | Local generation | ✅ Core design | Supported generation runs locally after required setup/downloads. |
 
@@ -254,7 +211,7 @@ This workflow was successfully validated from a clean “not installed” state 
 ### Option A: Release Installer — Recommended
 
 1. Open the Snapdragon AI Studio **Releases** page.
-2. Download `SnapdragonAIStudio-2.0.0-rc.2a-ARM64-Setup.exe`.
+2. Download `SnapdragonAIStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
 3. Run the installer and follow the Windows setup wizard.
 4. Start Snapdragon AI Studio from the Start menu or shortcut.
 5. Use the guided Model Manager to set up your first model.
@@ -282,7 +239,7 @@ python gui_v2.py
 
 ## 📚 User Guides / Documentation
 
-RC2A includes dedicated user documentation in three languages:
+RC2B includes dedicated user documentation in three languages:
 
 - 🇩🇪 **Deutsch:** [Benutzerhandbuch](docs/user-guide/USER_GUIDE_DE.md)
 - 🇬🇧 **English:** [User Guide](docs/user-guide/USER_GUIDE_EN.md)
@@ -349,7 +306,7 @@ Its responsibilities include:
 - diagnostics and progress reporting,
 - output handling.
 
-RC2/RC2A increasingly move technical setup complexity behind this orchestration layer so users can focus on selecting a model and creating images.
+RC2/RC2A/RC2B increasingly move technical setup complexity behind this orchestration layer so users can focus on selecting a model and creating images.
 
 ---
 
@@ -379,7 +336,7 @@ The diagram is intentionally high-level. Individual model pipelines can use diff
 
 ## Supported AI Backends
 
-| Backend / Path | Target | RC2A Status | Notes |
+| Backend / Path | Target | RC2B Status | Notes |
 |---|---|---:|---|
 | **ONNX Runtime CPU** | Snapdragon CPU | ✅ Supported | Local compatibility and validation path where supported. |
 | **Qualcomm QNN** | Hexagon NPU | ✅ Integrated | Hardware-accelerated execution for compatible QNN model pipelines. |
@@ -398,7 +355,7 @@ snapdragon-ai-studio/
 ├── data/                 # Local application data/metadata
 ├── dialogs/              # Dialog windows
 ├── docs/                 # Project and user documentation
-│   └── user-guide/       # RC2A user guides (DE / EN / ES)
+│   └── user-guide/       # RC2B user guides (DE / EN / ES)
 ├── engine/               # Phoenix Engine and inference/install services
 ├── installer/            # Windows installer configuration
 ├── locales/              # EN / DE / ES localization
@@ -440,7 +397,7 @@ For development:
 python -m pytest
 ```
 
-For release-critical model workflows, automated tests alone are not sufficient. RC2A development also uses real Windows-on-Snapdragon user-flow tests, including clean model installation and actual image generation.
+For release-critical model workflows, automated tests alone are not sufficient. RC2B development also uses real Windows-on-Snapdragon user-flow tests, including clean model installation and actual image generation.
 
 ---
 
@@ -458,7 +415,7 @@ Depending on the active model/backend, diagnostics can expose:
 - pipeline timing and error information,
 - log output for reproducible troubleshooting.
 
-RC2A places particular emphasis on validating the real model state instead of relying only on previously stored installation metadata.
+RC2B places particular emphasis on validating the real model state instead of relying only on previously stored installation metadata.
 
 ---
 
@@ -486,15 +443,15 @@ Only for the optional **Phoenix AI Boost**. Normal image generation and determin
 
 ### Which model does Phoenix AI Boost use?
 
-RC2A uses **Qwen2.5 3B** through Ollama.
+RC2B uses **Qwen2.5 3B** through Ollama.
 
 ### How is Stable Diffusion 3.5 Medium installed?
 
-RC2A provides a guided Qualcomm QAI AppBuilder workflow that prepares the source, runs the Qualcomm setup, downloads the required model data, imports it into Snapdragon AI Studio, validates it and activates it.
+RC2B provides a guided Qualcomm QAI AppBuilder workflow that prepares the source, runs the Qualcomm setup, downloads the required model data, imports it into Snapdragon AI Studio, validates it and activates it.
 
 ### Is SD3.5 actually tested beyond installation?
 
-Yes. The RC2A flow was validated from a clean not-installed state through successful setup, model validation/activation and a real generated image.
+Yes. The RC2B flow was validated from a clean not-installed state through successful setup, model validation/activation and a real generated image.
 
 ### Which interface languages are available?
 
