@@ -192,6 +192,7 @@ class PhoenixPromptView(WorkspaceFrame):
     """
     BOOST_PREVIEW_SIZE = (760, 660)
     BOOST_PREVIEW_MIN_SIZE = (640, 520)
+    INSPECTOR_PREVIEW_MIN_HEIGHT = 180
     COMPACT_PREVIEW_MODE = False
 
     def __init__(self, master: tk.Misc, controller: PromptWorkspaceController | None = None) -> None:
@@ -1400,6 +1401,7 @@ class PhoenixPromptView(WorkspaceFrame):
 
         # ── Section: Preview ──────────────────────────
         row = self._inspector_section_header(tr("insp_sec_preview", "Preview"), row)
+        self.preview_header = self.insp_content.grid_slaves(row=row - 1, column=0)[0]
 
         preview_frame = tk.Frame(
             self.insp_content, bg=PHOENIX_THEME.content_bg,
@@ -1407,12 +1409,18 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         preview_frame.grid(row=row, column=0, columnspan=4, sticky="nsew", padx=16, pady=(0, 4))
         preview_frame.grid_columnconfigure(0, weight=1)
-        preview_frame.grid_rowconfigure(0, weight=1)
-        self.insp_content.grid_rowconfigure(row, weight=1)
+        preview_frame.grid_rowconfigure(0, weight=1, minsize=self.INSPECTOR_PREVIEW_MIN_HEIGHT)
+        self.insp_content.grid_rowconfigure(
+            row, minsize=self.INSPECTOR_PREVIEW_MIN_HEIGHT + 16
+        )
 
-        self.preview_center = tk.Frame(preview_frame, bg=PHOENIX_THEME.content_bg)
-        self.preview_center.grid(row=0, column=0, sticky="nsew", pady=8)
-        self.preview_center.grid_columnconfigure(0, weight=0)
+        self.preview_center = tk.Frame(
+            preview_frame,
+            bg=PHOENIX_THEME.content_bg,
+            height=self.INSPECTOR_PREVIEW_MIN_HEIGHT,
+        )
+        self.preview_center.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        self.preview_center.grid_columnconfigure(0, weight=1)
         self.preview_center.grid_rowconfigure(0, weight=1)
         self.preview_center.bind("<Configure>", self._on_preview_resize)
 
@@ -1609,6 +1617,10 @@ class PhoenixPromptView(WorkspaceFrame):
             )
             for row in (2, 5, 7, 8, 9)
         )
+        self._generation_information_pairs = tuple(
+            pair for _row, pair in self._inspector_pairs
+            if pair[1] in {self.insp_size, self.insp_cfg, self.insp_sampler}
+        )
         self._inspector_wrap_labels = (
             self.insp_model,
             self.insp_backend,
@@ -1629,31 +1641,57 @@ class PhoenixPromptView(WorkspaceFrame):
         """Reflow paired inspector details before translated values can be clipped."""
         if not hasattr(self, "_inspector_base_rows"):
             return
-        single_column = width < 520
-        status_stacked = width < 520
         pair_rows = dict(self._inspector_pairs)
+        information_pair_rows = {
+            row for row, pair in pair_rows.items()
+            if pair in self._generation_information_pairs
+        }
+        information_single_column = width < max(
+            self._inspector_pair_required_width(pair)
+            for pair in self._generation_information_pairs
+        )
+        stacked_pair_rows = {
+            row for row, pair in pair_rows.items()
+            if (
+                row in information_pair_rows and information_single_column
+            ) or (
+                row not in information_pair_rows
+                and width < self._inspector_pair_required_width(pair)
+            )
+        }
         status_row = self._inspector_base_rows[self.insp_gen_status]
+        status_stacked = width < self._inspector_widgets_required_width(
+            (self.insp_gen_status_caption, self.insp_gen_status)
+        )
+        for row in range(
+            max(self._inspector_base_rows.values()) + len(pair_rows) + 1
+        ):
+            self.insp_content.grid_rowconfigure(row, weight=0, minsize=0)
         for widget, base_row in self._inspector_base_rows.items():
-            shift = sum(1 for pair_row in pair_rows if single_column and pair_row < base_row)
+            shift = sum(1 for pair_row in stacked_pair_rows if pair_row < base_row)
             shift += int(status_stacked and base_row > status_row)
             widget.grid_configure(row=base_row + shift)
         for base_row, pair in pair_rows.items():
             first_label, first_value, second_label, second_value = pair
-            shift = sum(1 for pair_row in pair_rows if single_column and pair_row < base_row)
+            shift = sum(1 for pair_row in stacked_pair_rows if pair_row < base_row)
             shift += int(status_stacked and base_row > status_row)
             row = base_row + shift
             first_label.grid_configure(row=row, column=0, sticky="w", padx=(16, 4))
             first_value.grid_configure(row=row, column=1, columnspan=1, sticky="ew", padx=(4, 12))
-            if single_column:
+            if base_row in stacked_pair_rows:
                 second_label.grid_configure(row=row + 1, column=0, sticky="w", padx=(16, 4))
                 second_value.grid_configure(row=row + 1, column=1, columnspan=1, sticky="ew", padx=(4, 12))
             else:
                 second_label.grid_configure(row=row, column=2, sticky="w", padx=(16, 4))
                 second_value.grid_configure(row=row, column=3, columnspan=1, sticky="ew", padx=(4, 16))
+        preview_row = int(self.preview_center.master.grid_info()["row"])
+        self.insp_content.grid_rowconfigure(
+            preview_row, minsize=self.INSPECTOR_PREVIEW_MIN_HEIGHT + 16
+        )
         wraplength = max(1, width - 32) if width else 1
         for label in self._inspector_wrap_labels:
             label.configure(wraplength=wraplength)
-        status_shift = sum(1 for pair_row in pair_rows if single_column and pair_row < status_row)
+        status_shift = sum(1 for pair_row in stacked_pair_rows if pair_row < status_row)
         if status_stacked:
             self.insp_gen_status_caption.grid_configure(
                 row=status_row + status_shift, column=0, columnspan=4, sticky="w", padx=16
@@ -1670,6 +1708,25 @@ class PhoenixPromptView(WorkspaceFrame):
             )
         self.after_idle(self._update_inspector_status_wrap)
         self.after_idle(self._update_action_hint_wrap)
+
+    @staticmethod
+    def _inspector_grid_padx(widget: tk.Widget) -> int:
+        """Return the horizontal grid spacing already assigned to a widget."""
+        padx = widget.grid_info().get("padx", 0)
+        if isinstance(padx, tuple):
+            return sum(int(value) for value in padx)
+        return 2 * int(padx)
+
+    def _inspector_widgets_required_width(self, widgets: tuple[tk.Widget, ...]) -> int:
+        """Measure translated widget text and values with their grid spacing."""
+        return sum(
+            widget.winfo_reqwidth() + self._inspector_grid_padx(widget)
+            for widget in widgets
+        )
+
+    def _inspector_pair_required_width(self, pair: tuple[tk.Widget, ...]) -> int:
+        """Return the actual width required to keep an inspector pair on one row."""
+        return self._inspector_widgets_required_width(pair)
 
     def _resize_inspector_canvas(self, event: tk.Event) -> None:
         """Keep the scrolling inspector content at its assigned canvas width."""
@@ -2301,6 +2358,7 @@ class PhoenixPromptView(WorkspaceFrame):
         self.insp_seed.configure(text=str(state.seed))
         self.insp_sampler.configure(text=self.sampler_var.get())
         self.insp_scheduler.configure(text=self.scheduler_var.get())
+        self._layout_generation_inspector(self.insp_canvas.winfo_width())
 
         self.model_status_label.configure(text=tr("model_prefix", "Modell: {model}", model=state.selected_model if state.selected_model else "-"))
         self.backend_status_label.configure(text=tr("backend_prefix", "Backend: {backend}", backend=active_backend_name))
@@ -2348,6 +2406,7 @@ class PhoenixPromptView(WorkspaceFrame):
                         cursor="hand2"
                     )
                     img_label.is_image_label = True
+                    img_label.image = self._preview_photo
                     img_label.place(relx=0.5, rely=0.5, anchor="center")
                     img_label.bind("<Button-1>", lambda e: self._open_lightbox_preview(img_path))
 
@@ -2382,7 +2441,22 @@ class PhoenixPromptView(WorkspaceFrame):
             ).pack(anchor="center")
 
         self._enable_action_buttons(has_preview)
+        if has_preview and img_path != getattr(self, "_last_scrolled_preview_path", None):
+            self._last_scrolled_preview_path = img_path
+            self.after_idle(self._scroll_inspector_to_preview)
         self._update_dnd_preview()
+
+    def _scroll_inspector_to_preview(self) -> None:
+        """Bring a newly loaded preview into the local inspector viewport."""
+        image_path = getattr(self, "_current_preview_image_path", None)
+        if not image_path or not image_path.exists():
+            return
+        self.insp_content.update_idletasks()
+        content_height = self.insp_content.winfo_height()
+        if content_height > 0:
+            self.insp_canvas.yview_moveto(
+                max(0.0, self.preview_header.winfo_y() / content_height)
+            )
 
     def _open_lightbox_preview(self, img_path: Path) -> None:
         """Opens a large popup window showing the generated image in full size."""
@@ -2449,6 +2523,7 @@ class PhoenixPromptView(WorkspaceFrame):
             for widget in self.preview_center.winfo_children():
                 if isinstance(widget, tk.Label) and getattr(widget, "is_image_label", False):
                     widget.configure(image=self._preview_photo)
+                    widget.image = self._preview_photo
                     break
         except Exception:
             pass

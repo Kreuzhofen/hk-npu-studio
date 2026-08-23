@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import unittest
 import json
+import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 import tkinter as tk
+
+from PIL import Image
 
 from app.i18n import set_language, tr
 from engine.theme_manager import ThemeManager, ThemePalette
@@ -175,6 +179,91 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(int(self.view.maximize_btn.grid_info()["row"]), 5)
         self.assertTrue(self.view.param_scrollbar.winfo_manager())
 
+    def test_result_preview_keeps_height_aspect_reference_and_actions_on_resize(self) -> None:
+        self.root.geometry("1180x820")
+        self.view.pack(fill="both", expand=True)
+        self.root.update_idletasks()
+        action_commands = {
+            button: button.command
+            for button in (
+                self.view.btn_open_library,
+                self.view.btn_open_review,
+                self.view.btn_save_as,
+                self.view.btn_open_explorer,
+            )
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image_path = Path(temp_dir) / "result.png"
+            Image.new("RGB", (640, 320), "navy").save(image_path)
+            self.controller.last_response = SimpleNamespace(
+                success=True, image_path=str(image_path)
+            )
+            with patch.object(self.view.insp_canvas, "yview_moveto") as scroll_to_preview:
+                self.view.refresh()
+                self.root.update_idletasks()
+            scroll_to_preview.assert_called_once()
+
+            self.assertGreaterEqual(
+                self.view.preview_center.winfo_height(),
+                self.view.INSPECTOR_PREVIEW_MIN_HEIGHT,
+            )
+            image_labels = [
+                widget for widget in self.view.preview_center.winfo_children()
+                if getattr(widget, "is_image_label", False)
+            ]
+            self.assertEqual(len(image_labels), 1)
+            image_label = image_labels[0]
+            self.assertIs(image_label.image, self.view._preview_photo)
+            self.assertAlmostEqual(
+                self.view._preview_photo.width() / self.view._preview_photo.height(),
+                2.0,
+                places=2,
+            )
+
+            self.root.geometry("680x520")
+            self.root.update_idletasks()
+            self.view._on_preview_resize()
+            self.root.geometry("1180x820")
+            self.root.update_idletasks()
+            self.view._on_preview_resize()
+
+            self.assertGreaterEqual(
+                self.view.preview_center.winfo_height(),
+                self.view.INSPECTOR_PREVIEW_MIN_HEIGHT,
+            )
+            self.assertAlmostEqual(
+                self.view._preview_photo.width() / self.view._preview_photo.height(),
+                2.0,
+                places=2,
+            )
+            self.assertEqual(self.view.action_bar.master, self.view.inspector_panel)
+            self.assertNotEqual(self.view.btn_open_library.master, self.view.action_bar)
+            self.assertTrue(self.view.action_bar.winfo_manager())
+            self.assertTrue(self.view.btn_open_library.winfo_manager())
+            for button, command in action_commands.items():
+                self.assertIs(button.command, command)
+
+    def test_invalid_result_preview_keeps_existing_placeholder_handling(self) -> None:
+        self.root.geometry("980x700")
+        self.view.pack(fill="both", expand=True)
+        self.root.update_idletasks()
+        self.controller.last_response = SimpleNamespace(
+            success=True, image_path=str(Path("missing-result.png").resolve())
+        )
+
+        with patch.object(self.view.insp_canvas, "yview_moveto") as scroll_to_preview:
+            self.view.refresh()
+            self.root.update_idletasks()
+        scroll_to_preview.assert_not_called()
+
+        self.assertIsNone(self.view._current_preview_image_path)
+        self.assertFalse(any(
+            getattr(widget, "is_image_label", False)
+            for widget in self.view.preview_center.winfo_children()
+        ))
+        self.assertEqual(self.view.btn_open_library.cget("state"), "disabled")
+
     def test_generation_inspector_reflows_pairs_and_wraps_at_narrow_width(self) -> None:
         first_row, first_pair = self.view._inspector_pairs[0]
         self.view._layout_generation_inspector(640)
@@ -193,6 +282,98 @@ class ExpandablePromptTests(unittest.TestCase):
             int(str(self.view.action_hint.cget("wraplength"))),
             self.view._widget_content_width(self.view.action_hint),
         )
+
+    def test_generation_information_reflows_without_expanding_gap(self) -> None:
+        self.root.geometry("1180x900")
+        self.view.pack(fill="both", expand=True)
+        self.root.update_idletasks()
+        callbacks = {
+            button: button.command
+            for button in (
+                self.view.btn_open_library,
+                self.view.btn_open_review,
+                self.view.btn_save_as,
+                self.view.btn_open_explorer,
+                self.view.gen_btn,
+                self.view.cancel_btn,
+            )
+        }
+
+        self.view._layout_generation_inspector(640)
+        wide_size_row = int(self.view.insp_size.grid_info()["row"])
+        preview_base_row = int(self.view.preview_center.master.grid_info()["row"])
+        self.assertEqual(int(self.view.insp_steps.grid_info()["row"]), wide_size_row)
+        self.assertEqual(
+            self.view.insp_content.grid_rowconfigure(preview_base_row)["minsize"],
+            self.view.INSPECTOR_PREVIEW_MIN_HEIGHT + 16,
+        )
+
+        required_width = max(
+            self.view._inspector_pair_required_width(pair)
+            for pair in self.view._generation_information_pairs
+        )
+        self.view._layout_generation_inspector(required_width)
+        for pair in self.view._generation_information_pairs:
+            self.assertEqual(int(pair[2].grid_info()["row"]), int(pair[0].grid_info()["row"]))
+            self.assertEqual(int(pair[2].grid_info()["column"]), 2)
+
+        self.view._generation_information_pairs[-1][0].configure(
+            text="Stichprobenverfahren:"
+        )
+        self.view._generation_information_pairs[-1][2].configure(
+            text="Programador de muestreo:"
+        )
+        self.root.update_idletasks()
+        translated_required_width = max(
+            self.view._inspector_pair_required_width(pair)
+            for pair in self.view._generation_information_pairs
+        )
+        self.view._layout_generation_inspector(translated_required_width)
+        translated_pair = self.view._generation_information_pairs[-1]
+        self.assertEqual(
+            int(translated_pair[2].grid_info()["row"]),
+            int(translated_pair[0].grid_info()["row"]),
+        )
+
+        self.view._layout_generation_inspector(translated_required_width - 1)
+        info_values = (
+            self.view.insp_size,
+            self.view.insp_steps,
+            self.view.insp_cfg,
+            self.view.insp_seed,
+            self.view.insp_sampler,
+            self.view.insp_scheduler,
+        )
+        info_rows = [int(widget.grid_info()["row"]) for widget in info_values]
+        self.assertEqual(info_rows, list(range(info_rows[0], info_rows[0] + len(info_rows))))
+        for row in info_rows:
+            self.assertEqual(self.view.insp_content.grid_rowconfigure(row)["weight"], 0)
+            self.assertEqual(self.view.insp_content.grid_rowconfigure(row)["minsize"], 0)
+        preview_row = int(self.view.preview_center.master.grid_info()["row"])
+        self.assertGreater(preview_row, info_rows[-1])
+        self.assertEqual(self.view.insp_content.grid_rowconfigure(preview_base_row)["weight"], 0)
+        self.assertEqual(self.view.insp_content.grid_rowconfigure(preview_base_row)["minsize"], 0)
+        self.assertEqual(
+            self.view.insp_content.grid_rowconfigure(preview_row)["minsize"],
+            self.view.INSPECTOR_PREVIEW_MIN_HEIGHT + 16,
+        )
+        self.root.update_idletasks()
+        self.assertGreaterEqual(
+            self.view.preview_center.winfo_height(),
+            self.view.INSPECTOR_PREVIEW_MIN_HEIGHT,
+        )
+        self.assertIs(self.view.action_bar.master, self.view.inspector_panel)
+        self.assertTrue(self.view.action_bar.winfo_manager())
+        self.assertTrue(self.view.gen_btn.winfo_manager())
+
+        self.view._layout_generation_inspector(640)
+        self.assertEqual(int(self.view.insp_size.grid_info()["row"]), wide_size_row)
+        self.assertEqual(int(self.view.insp_steps.grid_info()["row"]), wide_size_row)
+        self.assertEqual(
+            int(self.view.preview_center.master.grid_info()["row"]), preview_base_row
+        )
+        for button, command in callbacks.items():
+            self.assertIs(button.command, command)
 
     def test_action_hint_uses_assigned_inner_width_and_natural_height(self) -> None:
         hint_text = "Bereit für deine nächste Idee – Ausführung erfolgt lokal auf der NPU."
@@ -252,9 +433,9 @@ class ExpandablePromptTests(unittest.TestCase):
             self.view.insp_gen_status.winfo_height(),
             self.view.insp_gen_status_caption.winfo_height(),
         )
-        self.assertLessEqual(
-            self.view.insp_gen_status.winfo_y() + self.view.insp_gen_status.winfo_height(),
-            self.view.progress_bar.winfo_y(),
+        self.assertLess(
+            int(status_grid["row"]),
+            int(self.view.progress_bar.grid_info()["row"]),
         )
         self.assertIs(self.view.insp_content.master, self.view.insp_canvas)
         self.assertIs(self.view.action_bar.master, self.view.inspector_panel)
