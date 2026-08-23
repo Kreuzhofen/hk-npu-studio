@@ -167,7 +167,9 @@ class PhoenixPluginView(WorkspaceFrame):
             textvariable=self.install_path_var,
             state="readonly",
             bg=PHOENIX_THEME.elevated_bg,
+            readonlybackground=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_secondary,
+            insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border,
             highlightthickness=1,
             bd=0,
@@ -182,6 +184,8 @@ class PhoenixPluginView(WorkspaceFrame):
             text=tr("plugins_choose_folder_btn", "Ordner wählen..."),
             command=self._on_browse_plugin,
             button_type="neutral",
+            icon_name="folder",
+            icon_color=PHOENIX_THEME.warning,
             height=32,
         )
         self.browse_btn.grid(row=2, column=0, sticky="ew", padx=(16, 4), pady=(0, 16))
@@ -191,9 +195,47 @@ class PhoenixPluginView(WorkspaceFrame):
             text=tr("plugins_install_btn", "Installieren"),
             command=self._on_install_plugin,
             button_type="primary",
+            icon_name="plugins",
+            icon_color=PHOENIX_THEME.text_on_accent,
             height=32,
         )
         self.install_btn.grid(row=2, column=1, sticky="ew", padx=(4, 16), pady=(0, 16))
+        self._install_actions_stacked: bool | None = None
+        self.install_frame.bind("<Configure>", self._layout_install_actions, add="+")
+
+    def _layout_install_actions(self, event: tk.Event) -> None:
+        available_width = max(1, event.width - 2 * PHOENIX_THEME.space_lg)
+        required_width = (
+            self.browse_btn.winfo_reqwidth()
+            + self.install_btn.winfo_reqwidth()
+            + PHOENIX_THEME.space_sm
+        )
+        stacked = required_width > available_width
+        if stacked == self._install_actions_stacked:
+            return
+        self._install_actions_stacked = stacked
+        self.browse_btn.grid_forget()
+        self.install_btn.grid_forget()
+        if stacked:
+            self.browse_btn.grid(
+                row=2, column=0, columnspan=2, sticky="ew",
+                padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_sm),
+            )
+            self.install_btn.grid(
+                row=3, column=0, columnspan=2, sticky="ew",
+                padx=PHOENIX_THEME.space_lg, pady=(0, PHOENIX_THEME.space_lg),
+            )
+        else:
+            self.browse_btn.grid(
+                row=2, column=0, sticky="ew",
+                padx=(PHOENIX_THEME.space_lg, PHOENIX_THEME.space_xs),
+                pady=(0, PHOENIX_THEME.space_lg),
+            )
+            self.install_btn.grid(
+                row=2, column=1, sticky="ew",
+                padx=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_lg),
+                pady=(0, PHOENIX_THEME.space_lg),
+            )
 
     def _on_tab_changed(self, tab_name: str) -> None:
         self.active_tab = tab_name
