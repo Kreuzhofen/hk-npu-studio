@@ -1,5 +1,5 @@
 # Snapdragon AI Studio – Phoenix Engine
-## Manual de usuario – Versión 2.0 RC2A
+## Manual de usuario – Versión 2.0 RC2B
 
 > **Proyecto independiente de código abierto para Windows en Snapdragon.**  
 > Snapdragon AI Studio no es un producto oficial de Qualcomm Technologies, Inc. y no está patrocinado ni respaldado por Qualcomm.
@@ -10,7 +10,7 @@
 
 Snapdragon AI Studio es una aplicación de escritorio para la generación local de imágenes con IA en equipos Windows 11 ARM64 con procesadores Snapdragon. **Phoenix Engine** se encarga de la gestión de modelos, la preparación y la ejecución de las canalizaciones de IA compatibles.
 
-RC2A pone especial énfasis en un flujo guiado: **Instalar → seleccionar un modelo → generar una imagen.** Los detalles técnicos deben permanecer en segundo plano tanto como sea posible durante el uso normal.
+RC2B pone especial énfasis en un flujo guiado: **Instalar → seleccionar un modelo → generar una imagen.** Los detalles técnicos deben permanecer en segundo plano tanto como sea posible durante el uso normal.
 
 La generación de imágenes se ejecuta localmente en el PC. Una vez configurado el modelo necesario, la generación propiamente dicha no requiere, por regla general, un servicio de generación de imágenes en la nube.
 
@@ -35,10 +35,10 @@ Se necesita una conexión a Internet cuando se descargan por primera vez los com
 
 ---
 
-## 3. Instalar RC2A
+## 3. Instalar RC2B
 
 1. Descarga el instalador ARM64 actual desde la versión oficial de Snapdragon AI Studio en GitHub.
-2. Ejecuta `SnapdragonAIStudio-2.0.0-rc.2a-ARM64-Setup.exe`.
+2. Ejecuta `SnapdragonAIStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
 3. Sigue el asistente de instalación de Windows.
 4. Inicia **Snapdragon AI Studio** desde el menú Inicio o desde el acceso directo creado.
 
@@ -50,7 +50,7 @@ Para el uso normal del instalador publicado no es necesario instalar Python por 
 
 ## 4. Primer inicio
 
-RC2A guía a los nuevos usuarios durante la configuración inicial de forma mucho más clara que los candidatos de versión anteriores.
+RC2B guía a los nuevos usuarios durante la configuración inicial de forma mucho más clara que los candidatos de versión anteriores.
 
 La página de inicio muestra el estado actual de configuración. Si todavía no hay ningún modelo utilizable configurado, la aplicación te guía hasta el Gestor de modelos. Tras completar correctamente la configuración, se actualiza el estado de disponibilidad y puedes pasar directamente a la primera generación de imágenes.
 
@@ -96,7 +96,7 @@ Estos modelos no forman parte del mismo flujo estable que los modelos publicados
 
 ## 6. Instalar modelos
 
-RC2A utiliza distintas fuentes y métodos de instalación según el modelo. El Gestor de modelos intenta ocultar estas diferencias y ofrecer un flujo guiado.
+RC2B utiliza distintas fuentes y métodos de instalación según el modelo. El Gestor de modelos intenta ocultar estas diferencias y ofrecer un flujo guiado.
 
 ### Stable Diffusion 1.5
 
@@ -108,7 +108,7 @@ Stable Diffusion 2.1 también está disponible como vía de generación orientad
 
 ### Stable Diffusion 3.5 Medium
 
-RC2A incluye un proceso de configuración mucho más automatizado para **Stable Diffusion 3.5 Medium mediante Qualcomm QAI AppBuilder**. Este flujo se describe por separado en el siguiente capítulo.
+RC2B incluye un proceso de configuración mucho más automatizado para **Stable Diffusion 3.5 Medium mediante Qualcomm QAI AppBuilder**. Este flujo se describe por separado en el siguiente capítulo.
 
 ---
 
@@ -146,7 +146,7 @@ No cierres Snapdragon AI Studio durante este proceso y deja que la instalación 
 
 ### Finalización
 
-Después de la configuración, se validan los archivos del modelo y este queda disponible para Snapdragon AI Studio. El flujo de usuario correcto de RC2A se ha probado como una cadena completa:
+Después de la configuración, se validan los archivos del modelo y este queda disponible para Snapdragon AI Studio. El flujo de usuario correcto de RC2B se ha probado como una cadena completa:
 
 **no instalado → configuración correcta en el primer intento → descarga de Qualcomm → importación/validación → activación → generación real de una imagen.**
 
@@ -229,7 +229,7 @@ El boost determinista local funciona sin un modelo de lenguaje adicional. Amplí
 
 El AI Boost opcional utiliza un modelo de lenguaje ejecutado localmente para mejorar el prompt de forma más inteligente.
 
-RC2A utiliza:
+RC2B utiliza:
 
 - **Ollama** como servicio local de modelos
 - **Qwen2.5 3B** como modelo de lenguaje local previsto
@@ -238,9 +238,16 @@ Si Ollama o Qwen todavía no están disponibles, Phoenix Boost guía al usuario 
 
 Tras una instalación correcta, este boost funciona localmente en el ordenador. El prompt original no necesita enviarse a un servicio externo de optimización de prompts en la nube.
 
-### Vista previa
+### Vista previa de Boost y edición
 
-Antes de generar la imagen, puedes revisar la versión del prompt creada por Phoenix Boost. Así queda claro qué descripción se entrega realmente a la canalización de imagen.
+Antes de la generación real de la imagen, Phoenix Boost proporciona una vista previa interactiva para revisar el prompt optimizado.
+
+- **Vista previa compacta:** Una vista optimizada y que ahorra espacio presenta los prompts de manera estructurada.
+- **Prompt original y optimizado uno al lado del otro:** Los prompts originales y mejorados se muestran uno al lado del otro en una vista de dos columnas.
+- **Prompts negativos uno al lado del otro:** Los prompts negativos también se colocan uno al lado del otro.
+- **Barra de acciones fija:** Los botones de acción existentes permanecen accesibles fuera del área de desplazamiento.
+- **Scroll-Fallback (Alternativa de desplazamiento):** Si el texto es más largo que el espacio disponible, un área de desplazamiento sirve de fallback para que el contenido siga accesible.
+- **Maximizable y restaurable:** La ventana de vista previa se puede maximizar y restaurar a su tamaño original.
 
 > Phoenix Boost es opcional. La generación normal de imágenes no debe depender de que Ollama o Qwen estén instalados.
 
@@ -267,18 +274,44 @@ ControlNet no está disponible para todas las variantes de modelos. La interfaz 
 
 Snapdragon AI Studio ofrece vistas de imágenes e historial para revisar las imágenes generadas.
 
-Según la vista, puedes:
+### Galería e historial
 
-- consultar generaciones anteriores,
-- volver a abrir resultados,
-- comparar imágenes,
-- consultar información relevante de la generación.
+La galería ofrece una vista estructurada de todas las imágenes generadas localmente.
+
+- **Búsqueda, ordenación, tamaño de miniatura y filtros:** Puedes buscar en la galería, ordenar las imágenes según los criterios disponibles, ajustar el tamaño de las miniaturas y aplicar filtros.
+- **Abrir carpeta de salida:** Este botón abre en el Explorador de Windows la carpeta de salida configurada para el usuario actual. Si la carpeta no existe, la aplicación la crea de forma segura.
+- **Vista previa al pasar el ratón (Hover):** El interruptor de Phoenix "Vista previa: Act./Desact." se encuentra junto a "Abrir carpeta de salida".
+  - **Activada por defecto:** La vista previa al pasar el ratón está activada de forma predeterminada.
+  - **Con Act.:** Al pasar el cursor sobre la miniatura de una imagen en la galería, se abre inmediatamente la vista previa de la imagen.
+  - **Con Desact.:** Al pasar el cursor sobre una miniatura, no se abre ninguna vista previa.
+  - **Desactivar:** Desactivar la función cierra cualquier vista previa que esté abierta.
+  - **Guardado del estado:** El ajuste se guarda de forma permanente.
+  - **Independencia:** La selección de imágenes, el doble clic para abrir y el menú contextual siguen funcionando independientemente de este ajuste.
+
+### Comparación de imágenes y validación de metadatos
+
+La herramienta integrada de comparación de imágenes te permite analizar dos imágenes una al lado de la otra.
+
+- **Cargar imágenes:** Puedes cargar la imagen original y la imagen de salida una al lado de la otra en la vista de comparación.
+- **Opciones de zoom:** Los niveles de zoom *Ajustar (Fit)*, *50 %*, *100 %* y *200 %* se configuran para la vista de comparación a través de la barra de herramientas compartida.
+- **Desplazamiento (Panning):** Cuando las imágenes se amplían, la sección se puede desplazar manteniendo pulsado el botón izquierdo del ratón.
+- **Interruptor síncrono:**
+  - Con **Sincronizar: Activado**, las posiciones de desplazamiento normalizadas se transfieren a la otra imagen (posiciones de imagen sincronizadas).
+  - Con **Sincronizar: Desactivado**, las posiciones de desplazamiento permanecen independientes.
+- **Intercambiar:** Puedes intercambiar las posiciones de las dos imágenes cargadas.
+- **Comparar metadatos de generación:** Puedes comparar directamente los parámetros de generación incrustados de ambas imágenes.
+  - *Aclaración importante:* La comparación de metadatos es una comparación puramente de texto de los parámetros técnicos de generación. **No** es una comparación visual de píxeles y **no** se resalta en color ninguna área diferente de la imagen.
+  - *Mensajes de estado:* La aplicación compara los metadatos con precisión y distingue claramente entre:
+    - *Metadatos ausentes* (no se encontraron metadatos en ninguna de las imágenes),
+    - *Metadatos unilaterales* (solo una de las imágenes contiene metadatos),
+    - *Metadatos idénticos* (ambas imágenes se generaron con exactamente los mismos parámetros),
+    - *Metadatos diferentes* (los parámetros difieren entre sí).
 
 La presentación exacta puede seguir evolucionando entre candidatos de versión.
 
 ---
 
-## 14. Idioma y modos oscuro y claro
+## 14. Idioma, temas y escalado de Windows
 
 La interfaz de usuario admite:
 
@@ -286,7 +319,16 @@ La interfaz de usuario admite:
 - Inglés
 - Español
 
-También están disponibles los modos oscuro y claro. El idioma y la apariencia pueden cambiarse en la configuración de la aplicación.
+### Opciones de tema (Claro y Oscuro)
+
+Están disponibles un **Tema claro (Light)** y un **Tema oscuro (Dark)**. El idioma y el tema se pueden cambiar en cualquier momento en la configuración de la aplicación. La paridad de temas garantiza que todos los elementos de control sigan siendo visualmente atractivos y fáciles de leer con un alto contraste en ambas variantes de color.
+
+### Escalado de Windows y responsividad
+
+La interfaz de Phoenix está optimizada para el escalado de pantalla de Windows del **100 % al 175 %**.
+
+- **Ajuste flexible (Wrapping):** Los elementos de control y las barras de acciones se adaptan dinámicamente al tamaño y al escalado de la ventana. El ajuste automático evita que se corten los botones.
+- **Áreas de desplazamiento local:** Estas áreas mantienen accesibles el contenido y las acciones importantes con escalado alto o poca altura de ventana.
 
 ---
 
@@ -393,11 +435,11 @@ Solo si quieres utilizar el **Phoenix AI Boost** opcional. La generación normal
 
 ### ¿Qué modelo de lenguaje utiliza Phoenix AI Boost?
 
-RC2A utiliza **Qwen2.5 3B** mediante Ollama.
+RC2B utiliza **Qwen2.5 3B** mediante Ollama.
 
 ### ¿Tengo que recopilar manualmente archivos individuales de Qualcomm para SD3.5?
 
-El flujo de RC2A está diseñado para automatizar la configuración de Qualcomm en la medida de lo posible. El usuario no debería tener que seleccionar manualmente componentes internos individuales del modelo.
+El flujo de RC2B está diseñado para automatizar la configuración de Qualcomm en la medida de lo posible. El usuario no debería tener que seleccionar manualmente componentes internos individuales del modelo.
 
 ### ¿Puedo eliminar los modelos directamente de sus carpetas?
 
@@ -435,18 +477,22 @@ El uso de estos nombres describe plataformas técnicas o compatibilidad y no imp
 
 ---
 
-## 22. RC2A de un vistazo
+## 22. RC2B de un vistazo
 
-RC2A se centra especialmente en un flujo de usuario más fiable y comprensible:
+RC2B se centra en un flujo de usuario fiable y comprensible, junto con una interfaz modernizada:
 
-- configuración inicial guiada,
-- Gestor de modelos apto para principiantes,
-- fuentes y descargas de modelos guiadas,
-- activación automática después de una instalación correcta,
-- indicadores de estado y progreso mejorados,
-- Phoenix Boost con AI Boost local opcional,
-- proceso automatizado de Qualcomm QAI AppBuilder para Stable Diffusion 3.5 Medium,
-- generación local de imágenes en Windows 11 ARM64 / Snapdragon.
+- **Configuración inicial guiada:** Inicio estructurado para nuevos usuarios directamente desde el primer arranque.
+- **Gestor de modelos apto para principiantes:** El inspector sigue siendo desplazable mientras la barra de instalación de modelos y sus acciones permanecen accesibles.
+- **Fuentes y descargas de modelos guiadas:** Proceso automatizado de Qualcomm QAI AppBuilder para Stable Diffusion 3.5 Medium.
+- **Activación automática:** Activación del modelo inmediatamente después de una instalación y validación correctas.
+- **Indicadores de estado y progreso:** Comentarios claros durante la configuración y la generación.
+- **Phoenix Boost con AI Boost opcional:** Expansión inteligente de prompts a través de Ollama/Qwen local con una vista previa compacta (maximizable/restaurable, prompts uno al lado del otro, barra de acciones fija y scroll-fallback).
+- **Generación local de imágenes:** Tras la configuración necesaria, la generación se ejecuta localmente en Windows 11 ARM64/Snapdragon. La configuración y las descargas aún pueden requerir Internet.
+- **Interfaz responsive:** Optimizada para el escalado de Windows del 100 % al 175 % con ajuste dinámico y áreas de desplazamiento local.
+- **Carpeta de salida fiable:** Abre directamente la carpeta de salida configurada y la crea de forma segura si no existe.
+- **Vista previa opcional al pasar el ratón en la galería:** Vista previa de la imagen al pasar el cursor sobre las miniaturas (interruptor junto a la carpeta de salida, el estado se guarda, al desactivar se cierra la vista previa activa).
+- **Comparación de imágenes y sincronización:** Barra de herramientas compartida para zoom (Ajustar, 50 %, 100 %, 200 %), desplazamiento con el botón izquierdo del ratón y posiciones sincronizadas o independientes (Sincronizar: Act./Desact.).
+- **Comparación de metadatos comprensible:** Comparación de texto de los parámetros con mensajes de estado claros (sin comparación visual de píxeles).
 
 El objetivo sigue siendo deliberadamente sencillo:
 

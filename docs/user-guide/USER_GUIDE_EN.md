@@ -1,5 +1,5 @@
 # Snapdragon AI Studio – Phoenix Engine
-## User Guide – Version 2.0 RC2A
+## User Guide – Version 2.0 RC2B
 
 > **Independent open-source project for Windows on Snapdragon.**  
 > Snapdragon AI Studio is not an official product of Qualcomm Technologies, Inc. and is not sponsored or supported by Qualcomm.
@@ -10,7 +10,7 @@
 
 Snapdragon AI Studio is a desktop application for local AI image generation on Windows 11 ARM64 PCs with Snapdragon processors. The **Phoenix Engine** manages model handling, preparation, and execution of the supported AI pipelines.
 
-RC2A puts particular emphasis on a guided workflow: **Install → select a model → generate an image.** Technical details should remain in the background as much as possible during normal use.
+RC2B puts particular emphasis on a guided workflow: **Install → select a model → generate an image.** Technical details should remain in the background as much as possible during normal use.
 
 Image generation itself runs locally on the PC. Once a required model has been set up, the actual generation process generally does not require a cloud image-generation service.
 
@@ -35,10 +35,10 @@ An internet connection is required when necessary components or models are downl
 
 ---
 
-## 3. Installing RC2A
+## 3. Installing RC2B
 
 1. Download the current ARM64 installer from the official Snapdragon AI Studio GitHub release.
-2. Start `SnapdragonAIStudio-2.0.0-rc.2a-ARM64-Setup.exe`.
+2. Start `SnapdragonAIStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
 3. Follow the Windows setup wizard.
 4. Start **Snapdragon AI Studio** from the Start menu or the created shortcut.
 
@@ -50,7 +50,7 @@ A separate Python installation is not required for normal use of the published i
 
 ## 4. First Start
 
-RC2A guides new users through initial setup much more clearly than earlier release candidates.
+RC2B guides new users through initial setup much more clearly than earlier release candidates.
 
 The home page shows the current setup state. If no usable model has been configured yet, the application guides you to the Model Manager. After successful setup, the readiness status is updated and you can proceed directly to your first image generation.
 
@@ -96,7 +96,7 @@ These models are not part of the same stable user workflow as released models. E
 
 ## 6. Installing Models
 
-RC2A uses different sources and installation methods depending on the model. The Model Manager attempts to hide these differences and provide a guided workflow.
+RC2B uses different sources and installation methods depending on the model. The Model Manager attempts to hide these differences and provide a guided workflow.
 
 ### Stable Diffusion 1.5
 
@@ -108,7 +108,7 @@ Stable Diffusion 2.1 is also available as a Snapdragon/Qualcomm-oriented image-g
 
 ### Stable Diffusion 3.5 Medium
 
-RC2A includes a substantially more automated setup path for **Stable Diffusion 3.5 Medium via Qualcomm QAI AppBuilder**. This workflow is described separately in the next section.
+RC2B includes a substantially more automated setup path for **Stable Diffusion 3.5 Medium via Qualcomm QAI AppBuilder**. This workflow is described separately in the next section.
 
 ---
 
@@ -146,7 +146,7 @@ Do not close Snapdragon AI Studio during this process; allow the installation to
 
 ### Completion
 
-After setup, the model files are validated and the model becomes available to Snapdragon AI Studio. The successful RC2A user workflow was tested as a complete chain:
+After setup, the model files are validated and the model becomes available to Snapdragon AI Studio. The successful RC2B user workflow was tested as a complete chain:
 
 **not installed → setup succeeds on the first attempt → Qualcomm download → import/validation → activation → real image generation.**
 
@@ -229,7 +229,7 @@ The local deterministic boost works without an additional language model. It exp
 
 The optional AI Boost uses a locally running language model to improve the prompt more intelligently.
 
-RC2A uses:
+RC2B uses:
 
 - **Ollama** as the local model service
 - **Qwen2.5 3B** as the intended local language model
@@ -238,9 +238,16 @@ If Ollama or Qwen is not yet available, Phoenix Boost guides you through the req
 
 After successful installation, this boost runs locally on the computer. The original prompt does not need to be sent to an external cloud prompt-optimization service.
 
-### Preview
+### Boost Preview and Editing
 
-Before image generation, you can review the prompt version produced by Phoenix Boost. This makes it clear which description is actually passed to the image pipeline.
+Before the actual image generation, Phoenix Boost provides an interactive preview to review the optimized prompt.
+
+- **Compact Preview:** An optimized, space-saving view displays the prompts in a structured layout.
+- **Original/Optimized Prompt Side-by-Side:** The original and improved prompts are displayed side-by-side in a two-column view.
+- **Negative Prompts Side-by-Side:** Negative prompts are also positioned side-by-side.
+- **Fixed Action Bar:** The existing action buttons remain accessible outside the scroll area.
+- **Scroll Fallback:** If the text is longer than the available space, a scroll area serves as a fallback to keep the content accessible.
+- **Maximizable and Restorable:** The preview window can be maximized and restored to its original size.
 
 > Phoenix Boost is optional. Normal image generation must not depend on Ollama or Qwen being installed.
 
@@ -267,18 +274,44 @@ ControlNet is not available for every model variant. The interface adapts to the
 
 Snapdragon AI Studio provides image and history views for reviewing generated images.
 
-Depending on the view, you can:
+### Gallery and History
 
-- review previous generations,
-- reopen results,
-- compare images,
-- inspect relevant generation information.
+The gallery provides a structured overview of all locally generated images.
+
+- **Search, Sorting, Thumbnail Size, and Filters:** You can search the gallery, sort images using the available criteria, adjust thumbnail size, and apply filters.
+- **Open Output Folder:** This button opens the output folder configured for the current user in Windows Explorer. If the folder is missing, the application creates it safely.
+- **Hover Preview:** The Phoenix switch "Hover Preview: On/Off" is located next to "Open Output Folder".
+  - **Enabled by Default:** Hover preview is turned on by default.
+  - **When On:** Hovering your mouse pointer over an image thumbnail in the gallery immediately opens the image preview.
+  - **When Off:** Hovering over a thumbnail does not open a preview.
+  - **Turning Off:** Disabling the function closes any currently open preview.
+  - **Saved State:** The setting is persistently saved.
+  - **Independence:** Image selection, double-clicking to open, and the context menu continue to work independently of this setting.
+
+### Image Comparison and Metadata Validation
+
+The integrated image comparison tool allows you to analyze two images side-by-side.
+
+- **Loading Images:** You can load the original image and the output image side-by-side in the comparison view.
+- **Zoom Options:** Zoom levels *Fit*, *50%*, *100%*, and *200%* are configured for the comparison view via the shared toolbar.
+- **Panning:** When images are zoomed in, you can pan the section by holding down the left mouse button.
+- **Synchronous Switch:**
+  - When set to **Synchronous: On**, normalized pan positions are transferred to the other image (synchronized image positions).
+  - When set to **Synchronous: Off**, the pan positions remain independent.
+- **Swap:** You can instantly swap the positions of the two loaded images (left/right).
+- **Compare Generation Metadata:** You can directly compare the embedded generation parameters (such as prompt, seed, steps, etc.) of both images.
+  - *Important Clarification:* The metadata comparison is a purely text-based comparison of the technical generation parameters. It is **not** a visual pixel comparison, and **no** differing image areas are highlighted in color.
+  - *Status Messages:* The application compares the metadata precisely and clearly distinguishes between:
+    - *Missing metadata* (no metadata found in either image),
+    - *One-sided metadata* (only one of the images contains metadata),
+    - *Identical metadata* (both images were generated with exactly the same parameters),
+    - *Differing metadata* (the parameters deviate from each other).
 
 The exact presentation may continue to evolve between release candidates.
 
 ---
 
-## 14. Language, Dark Mode, and Light Mode
+## 14. Language, Themes, and Windows Scaling
 
 The user interface supports:
 
@@ -286,7 +319,16 @@ The user interface supports:
 - English
 - Spanish
 
-Dark and Light appearances are also available. Language and appearance can be changed in the application settings.
+### Theme Options (Light & Dark)
+
+A **Light Theme** and a **Dark Theme** are available. The language and theme can be changed at any time in the application settings. Theme parity ensures that all controls remain visually appealing and easily readable with high contrast in both color variants.
+
+### Windows Scaling and Responsiveness
+
+The Phoenix interface is optimized for Windows display scaling from **100% to 175%**.
+
+- **Flexible Wrapping:** Control elements and action bars adapt dynamically to the window size and scaling. Automatic wrapping prevents buttons from being cut off.
+- **Local Scroll Areas:** Scroll areas keep content and important actions accessible under high scaling or limited window height.
 
 ---
 
@@ -393,11 +435,11 @@ Only if you want to use the optional **Phoenix AI Boost**. Normal image generati
 
 ### Which language model does Phoenix AI Boost use?
 
-RC2A uses **Qwen2.5 3B** through Ollama.
+RC2B uses **Qwen2.5 3B** through Ollama.
 
 ### Do I need to manually collect individual Qualcomm files for SD3.5?
 
-The RC2A workflow is designed to automate Qualcomm setup as far as possible. Users should not need to manually select individual internal model components.
+The RC2B workflow is designed to automate Qualcomm setup as far as possible. Users should not need to manually select individual internal model components.
 
 ### Can I simply delete models from their folders?
 
@@ -435,18 +477,22 @@ Use of these names describes technical platforms or compatibility and does not i
 
 ---
 
-## 22. RC2A at a Glance
+## 22. RC2B at a Glance
 
-RC2A focuses particularly on a more reliable and understandable user workflow:
+RC2B focuses on a reliable and understandable user workflow, along with a modernized interface:
 
-- guided initial setup,
-- beginner-friendly Model Manager,
-- guided model sources and downloads,
-- automatic activation after successful installation,
-- improved status and progress displays,
-- Phoenix Boost with optional local AI Boost,
-- automated Qualcomm QAI AppBuilder path for Stable Diffusion 3.5 Medium,
-- local image generation on Windows 11 ARM64 / Snapdragon.
+- **Guided Initial Setup:** Structured entry point for new users right from the first start.
+- **Beginner-Friendly Model Manager:** The inspector remains scrollable while the model installation bar and its actions remain accessible.
+- **Guided Model Sources and Downloads:** Automated Qualcomm QAI AppBuilder path for Stable Diffusion 3.5 Medium.
+- **Automatic Activation:** Activation of the model immediately after successful installation and validation.
+- **Status and Progress Displays:** Clear feedback during setup and generation.
+- **Phoenix Boost with Optional AI Boost:** Intelligent prompt expansion via local Ollama/Qwen with a compact preview (maximizable/restorable, side-by-side prompts, sticky action bar, and scroll fallback).
+- **Local Image Generation:** After the required setup, image generation runs locally on Windows 11 ARM64/Snapdragon. Internet access may still be required for setup and downloads.
+- **Responsive Interface:** Optimized for Windows scaling from 100% to 175% with flexible wrapping and local scroll areas.
+- **Reliable Output Folder:** Direct opening of the runtime path and safe automatic directory creation if it is missing.
+- **Optional Gallery Hover Preview:** Image preview when hovering over gallery thumbnails (switch next to the output folder button, status is saved, disabling closes active preview).
+- **Image Comparison and Synchronization:** Shared toolbar for zoom (Fit, 50%, 100%, 200%), panning with the left mouse button, and synchronized or independent panning (Synchronous On/Off).
+- **Understandable Metadata Comparison:** Text-based comparison of parameters with clear status messages (no visual pixel comparison).
 
 The goal remains deliberately simple:
 
