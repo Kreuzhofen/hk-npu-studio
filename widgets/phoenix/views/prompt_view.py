@@ -1540,6 +1540,9 @@ class PhoenixPromptView(WorkspaceFrame):
             padx=12,
             pady=(0, 4),
         )
+        self.action_hint.bind(
+            "<Configure>", lambda _event: self._update_action_hint_wrap(), add="+"
+        )
 
         self.gen_btn = tk.Button(
             self.action_bar,
@@ -1666,7 +1669,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 row=status_row + status_shift, column=1, columnspan=3, sticky="ew", padx=(4, 16)
             )
         self.after_idle(self._update_inspector_status_wrap)
-        self.action_hint.configure(wraplength=max(1, width - 24) if width else 1)
+        self.after_idle(self._update_action_hint_wrap)
 
     def _resize_inspector_canvas(self, event: tk.Event) -> None:
         """Keep the scrolling inspector content at its assigned canvas width."""
@@ -1698,7 +1701,15 @@ class PhoenixPromptView(WorkspaceFrame):
         return 2 * (option("borderwidth") + option("highlightthickness") + option("padx"))
 
     def _resize_action_hint(self, event: tk.Event) -> None:
-        self.action_hint.configure(wraplength=max(1, event.width - 24))
+        self.after_idle(self._update_action_hint_wrap)
+
+    def _update_action_hint_wrap(self) -> None:
+        """Wrap the action hint against its assigned inner label width."""
+        if not self.action_hint.winfo_exists():
+            return
+        wraplength = self._widget_content_width(self.action_hint)
+        if int(str(self.action_hint.cget("wraplength"))) != wraplength:
+            self.action_hint.configure(wraplength=wraplength)
 
     def _inspector_section_header(self, title: str, row: int) -> int:
         tk.Label(

@@ -185,11 +185,48 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(int(first_pair[2].grid_info()["row"]), first_row + 1)
         self.assertEqual(int(first_pair[2].grid_info()["column"]), 0)
         self.assertLessEqual(int(self.view.insp_queue.cget("wraplength")), 288)
-        self.assertLessEqual(int(self.view.action_hint.cget("wraplength")), 296)
+        self.assertLessEqual(int(str(self.view.action_hint.cget("wraplength"))), 296)
         self.assertEqual(self.view.action_bar.master, self.view.inspector_panel)
         self.assertTrue(self.view.gen_btn.winfo_manager())
-        self.view._resize_action_hint(MagicMock(width=280))
-        self.assertEqual(int(self.view.action_hint.cget("wraplength")), 256)
+        self.view._update_action_hint_wrap()
+        self.assertEqual(
+            int(str(self.view.action_hint.cget("wraplength"))),
+            self.view._widget_content_width(self.view.action_hint),
+        )
+
+    def test_action_hint_uses_assigned_inner_width_and_natural_height(self) -> None:
+        hint_text = "Bereit für deine nächste Idee – Ausführung erfolgt lokal auf der NPU."
+        generate_command = self.view.gen_btn.command
+        self.view.pack(fill="both", expand=True)
+
+        geometries = ((1200, 900), (640, 900), (1200, 900))
+        action_widths = []
+        for width, height in geometries:
+            self.root.geometry(f"{width}x{height}")
+            self.root.update()
+            self.view._update_action_hint_wrap()
+            self.root.update_idletasks()
+            action_widths.append(self.view.action_bar.winfo_width())
+            self.assertEqual(self.view.action_hint.cget("text"), hint_text)
+            self.assertEqual(
+                int(str(self.view.action_hint.cget("wraplength"))),
+                self.view._widget_content_width(self.view.action_hint),
+            )
+            self.assertLessEqual(
+                self.view.action_hint.winfo_x() + self.view.action_hint.winfo_width(),
+                self.view.action_bar.winfo_width(),
+            )
+            self.assertLessEqual(
+                self.view.action_hint.winfo_y() + self.view.action_hint.winfo_height(),
+                self.view.gen_btn.winfo_y(),
+            )
+            self.assertTrue(self.view.gen_btn.winfo_manager())
+
+        self.assertGreater(action_widths[0], action_widths[1])
+        self.assertEqual(action_widths[0], action_widths[2])
+        self.assertIs(self.view.action_bar.master, self.view.inspector_panel)
+        self.assertEqual(int(self.view.action_bar.grid_info()["row"]), 1)
+        self.assertEqual(self.view.gen_btn.command, generate_command)
 
     def test_generation_inspector_long_status_uses_full_span_and_dynamic_wrap(self) -> None:
         self.view.insp_gen_status.configure(
