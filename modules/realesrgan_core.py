@@ -3,7 +3,7 @@ from engine.file_utils import get_unique_filename
 import math
 import time
 from PIL import Image
-from config import OUTPUT_DIR, TEMP_DIR, REALESRGAN_MODEL, TILE_SIZE, SCALE
+from config import OUTPUT_DIR, TEMP_DIR, TILE_SIZE, SCALE
 from modules.preprocess import tile_to_raw
 from modules.qnn import run_qnn_context
 from modules.postprocess import raw_tile_to_image
@@ -32,7 +32,7 @@ def run_tile(tile: Image.Image, work_dir: Path, tile_index: int) -> Image.Image:
     input_list = input_dir / "input_list.txt"
     tile_to_raw(tile, raw_input)
     input_list.write_text(str(raw_input), encoding="utf-8")
-    run_qnn_context(REALESRGAN_MODEL, input_list, output_dir, log_level="error")
+    run_qnn_context(input_list, output_dir, log_level="error")
     result_raw = output_dir / "Result_0" / "upscaled_image.raw"
     return raw_tile_to_image(result_raw)
 
@@ -50,9 +50,6 @@ def upscale_tiled(image_path: Path, log=None, progress=None, status=None, percen
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
-    if not REALESRGAN_MODEL.exists():
-        raise FileNotFoundError(f"Modell fehlt: {REALESRGAN_MODEL}")
-
     _status("Bild wird geladen...")
     _log("Bild wird geladen...")
     image = Image.open(image_path).convert("RGB")

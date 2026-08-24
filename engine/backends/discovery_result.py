@@ -23,6 +23,8 @@ class DiscoveryResult:
     qnn_sdk_path: str | None = None
     qnn_tools_found: bool = False
     qnn_net_run_path: str | None = None
+    qnn_htp_backend_path: str | None = None
+    qnn_htp_skeleton_dirs: tuple[str, ...] = ()
     
     available_backends: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)

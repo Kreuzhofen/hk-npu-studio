@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import platform
+import re
 from pathlib import Path
 from engine.backends.discovery_result import DiscoveryResult
 
@@ -62,6 +63,8 @@ class BackendDiscoveryService:
         qnn_sdk_path = None
         qnn_tools_found = False
         qnn_net_run_path = None
+        qnn_htp_backend_path = None
+        qnn_htp_skeleton_dirs: tuple[str, ...] = ()
 
         # Check environment variables first
         for var_name in cls.ENV_QNN_VARS:
@@ -103,7 +106,9 @@ class BackendDiscoveryService:
             sdk_p = Path(qnn_sdk_path)
             search_patterns = [
                 "bin/aarch64-windows/qnn-net-run.exe",
+                "bin/aarch64-windows-msvc/qnn-net-run.exe",
                 "bin/x86_64-windows/qnn-net-run.exe",
+                "bin/x86_64-windows-msvc/qnn-net-run.exe",
                 "qairt/bin/aarch64-windows/qnn-net-run.exe",
                 "qairt/bin/x86_64-windows/qnn-net-run.exe",
             ]
@@ -124,6 +129,44 @@ class BackendDiscoveryService:
                             break
                 except Exception as error:
                     warnings.append(f"Fehler bei rekursiver qnn-net-run.exe Suche: {error}")
+
+            backend_patterns = [
+                "lib/aarch64-windows-msvc/QnnHtp.dll",
+                "lib/aarch64-windows/QnnHtp.dll",
+                "qairt/lib/aarch64-windows-msvc/QnnHtp.dll",
+                "qairt/lib/aarch64-windows/QnnHtp.dll",
+            ]
+            for pattern in backend_patterns:
+                backend_path = sdk_p / pattern
+                if backend_path.is_file():
+                    qnn_htp_backend_path = str(backend_path.resolve())
+                    break
+            if qnn_htp_backend_path is None:
+                try:
+                    for root, dirs, files in os.walk(qnn_sdk_path):
+                        if "QnnHtp.dll" in files:
+                            qnn_htp_backend_path = str(Path(root) / "QnnHtp.dll")
+                            break
+                except Exception as error:
+                    warnings.append(f"Fehler bei rekursiver QnnHtp.dll Suche: {error}")
+
+            skeleton_dirs = set()
+            skeleton_pattern = re.compile(r"^libQnnHtpV(.+)Skel\.so$", re.IGNORECASE)
+            try:
+                for root, _dirs, files in os.walk(sdk_p):
+                    catalog_names = {name.casefold() for name in files}
+                    for name in files:
+                        match = skeleton_pattern.match(name)
+                        if match and (
+                            f"libqnnhtpv{match.group(1)}.cat".casefold()
+                            in catalog_names
+                        ):
+                            skeleton_dirs.add(str(Path(root).resolve()))
+            except Exception as error:
+                warnings.append(f"Fehler bei HTP-Skeleton-Suche: {error}")
+            qnn_htp_skeleton_dirs = tuple(
+                sorted(skeleton_dirs, key=lambda path: path.casefold())
+            )
 
         # Assemble available backends list
         available_backends = ["CPU"]
@@ -150,6 +193,8 @@ class BackendDiscoveryService:
             qnn_sdk_path=qnn_sdk_path,
             qnn_tools_found=qnn_tools_found,
             qnn_net_run_path=qnn_net_run_path,
+            qnn_htp_backend_path=qnn_htp_backend_path,
+            qnn_htp_skeleton_dirs=qnn_htp_skeleton_dirs,
             available_backends=available_backends,
             warnings=warnings,
             errors=errors,

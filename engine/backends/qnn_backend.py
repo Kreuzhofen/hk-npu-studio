@@ -7,12 +7,12 @@ Created by Holger Kreuzhofen
 Phoenix Engine
 """
 
-from pathlib import Path
-import os
 import subprocess
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageOps
+from engine.realesrgan_qnn_runtime import resolve_realesrgan_qnn_runtime
 Image.MAX_IMAGE_PIXELS = None
 
 
@@ -28,19 +28,12 @@ class QNNBackend:
     MODEL_SCALE = 4
     MODEL_OUTPUT_SHAPE = (1, 512, 512, 3)
 
-    def __init__(self):
-        self.base_path = Path(r"C:\SnapdragonAI")
-        self.input_dir = self.base_path / "input"
-        self.output_dir = self.base_path / "output"
+    def __init__(self, runtime_resolver=resolve_realesrgan_qnn_runtime):
+        from config import INPUT_DIR, OUTPUT_DIR
 
-        self.qnn_bin = Path(
-            r"C:\Qualcomm\AIStack\2.47.0.260601\bin\aarch64-windows-msvc\qnn-net-run.exe"
-        )
-        self.qnn_backend = Path(
-            r"C:\Qualcomm\AIStack\2.47.0.260601\lib\aarch64-windows-msvc\QnnHtp.dll"
-        )
-        self.model_path = self.base_path / "models" / "real_esrgan_x4plus.bin"
-
+        self.input_dir = INPUT_DIR
+        self.output_dir = OUTPUT_DIR
+        self._runtime_resolver = runtime_resolver
         self.result_raw = self.output_dir / "Result_0" / "upscaled_image.raw"
         self.result_png = self.output_dir / "upscaled_image.png"
 
@@ -86,28 +79,9 @@ class QNNBackend:
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        env = os.environ.copy()
-        env["PATH"] = (
-            str(self.qnn_backend.parent)
-            + ";"
-            + str(self.qnn_bin.parent)
-            + ";"
-            + env["PATH"]
-        )
-
-        cmd = [
-            str(self.qnn_bin),
-            "--retrieve_context",
-            str(self.model_path),
-            "--backend",
-            str(self.qnn_backend),
-            "--input_list",
-            str(input_list),
-            "--output_dir",
-            str(self.output_dir),
-            "--log_level",
-            "info",
-        ]
+        runtime = self._runtime_resolver()
+        env = runtime.process_environment()
+        cmd = runtime.build_command(Path(input_list), self.output_dir, "info")
 
         subprocess.run(
             cmd,
