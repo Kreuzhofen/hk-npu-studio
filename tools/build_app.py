@@ -16,6 +16,7 @@ from engine.release_config import RELEASE
 BUILD_ROOT = PROJECT_ROOT / "build" / "release"
 DIST_ROOT = PROJECT_ROOT / "dist"
 APP_DIST = DIST_ROOT / "SnapdragonAIStudio"
+REALESRGAN_PRODUCT_MODEL = PROJECT_ROOT / "models" / "real_esrgan_x4plus.bin"
 
 
 def _find_optional_qai_appbuilder() -> tuple[Path, Path] | None:
@@ -107,6 +108,10 @@ def _write_version_file() -> Path:
 
 
 def build_arguments() -> list[str]:
+    if not REALESRGAN_PRODUCT_MODEL.is_file():
+        raise FileNotFoundError(
+            f"Produktgebundenes RealESRGAN-Modell fehlt: {REALESRGAN_PRODUCT_MODEL}"
+        )
     resources = _prepare_release_resources()
     plugins = BUILD_ROOT / "release_data" / "plugins"
     shutil.copytree(
@@ -178,6 +183,8 @@ def build_arguments() -> list[str]:
         "setuptools._vendor.backports",
         "--add-data",
         f"{PROJECT_ROOT / 'release.json'}{os.pathsep}.",
+        "--add-data",
+        f"{REALESRGAN_PRODUCT_MODEL}{os.pathsep}models",
     ]
     if qai_runtime is not None:
         qai_package, _ = qai_runtime

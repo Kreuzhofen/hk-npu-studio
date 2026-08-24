@@ -65,7 +65,7 @@ class QNNBackend:
         tensor.tofile(raw_input)
 
         with input_list.open("w", encoding="utf-8") as f:
-            f.write(str(raw_input))
+            f.write(raw_input.name)
 
         return {
             "raw_input": raw_input,
@@ -86,6 +86,7 @@ class QNNBackend:
         subprocess.run(
             cmd,
             env=env,
+            cwd=Path(input_list).parent,
             check=True,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )

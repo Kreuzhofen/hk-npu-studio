@@ -73,6 +73,7 @@ def resolve_realesrgan_qnn_runtime(
     local_app_data: Path | None = None,
     project_root: Path | None = None,
     frozen: bool | None = None,
+    frozen_app_dir: Path | None = None,
     discovery_service: type[BackendDiscoveryService] = BackendDiscoveryService,
 ) -> RealESRGANQnnRuntime:
     """Resolve only a usable HTP context runtime; never select CPU or ONNX."""
@@ -83,15 +84,23 @@ def resolve_realesrgan_qnn_runtime(
     )
     user_model = app_data / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
     development_model = (project_root or Path(__file__).resolve().parents[1]) / "models" / MODEL_FILENAME
-
-    model_path, model_source = (
-        (user_model, "user") if is_frozen else (development_model, "development")
+    bundled_model = (frozen_app_dir or Path(sys.executable).resolve().parent) / "models" / MODEL_FILENAME
+    candidates = (
+        ((user_model, "user"), (bundled_model, "bundled"))
+        if is_frozen
+        else ((development_model, "development"),)
     )
-    if not model_path.is_file():
+    model_path = None
+    model_source = None
+    for candidate_path, candidate_source in candidates:
+        if candidate_path.is_file():
+            model_path, model_source = candidate_path, candidate_source
+            break
+    if model_path is None:
         raise RealESRGANRuntimeUnavailable(
             "REALESRGAN_MODEL_MISSING",
             "model",
-            "QNN context not found: " + str(model_path),
+            "QNN context not found: " + ", ".join(str(path) for path, _source in candidates),
         )
 
     discovery = discovery_service.discover()

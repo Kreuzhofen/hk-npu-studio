@@ -31,7 +31,7 @@ def run_tile(tile: Image.Image, work_dir: Path, tile_index: int) -> Image.Image:
     raw_input = input_dir / "image.raw"
     input_list = input_dir / "input_list.txt"
     tile_to_raw(tile, raw_input)
-    input_list.write_text(str(raw_input), encoding="utf-8")
+    input_list.write_text(raw_input.name, encoding="utf-8")
     run_qnn_context(input_list, output_dir, log_level="error")
     result_raw = output_dir / "Result_0" / "upscaled_image.raw"
     return raw_tile_to_image(result_raw)

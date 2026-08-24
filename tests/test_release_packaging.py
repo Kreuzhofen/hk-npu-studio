@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 
+import pytest
 from engine.release_config import RELEASE
+from tools import build_app
 from tools.build_app import BUILD_ROOT, build_arguments
 from tools.build_installer import build_command
 
@@ -56,6 +59,36 @@ def test_packaged_model_metadata_does_not_leak_local_install_paths():
         assert data["downloaded"] is False
         assert data["path"] == ""
         assert data["status"] == "Not Installed"
+
+
+def test_packaging_includes_only_the_product_real_esrgan_model():
+    arguments = build_arguments()
+    add_data_values = [
+        arguments[index + 1]
+        for index, argument in enumerate(arguments[:-1])
+        if argument == "--add-data"
+    ]
+    expected = f"{build_app.REALESRGAN_PRODUCT_MODEL}{os.pathsep}models"
+
+    assert add_data_values.count(expected) == 1
+    assert all(
+        value.split(os.pathsep, 1)[0] != str(build_app.PROJECT_ROOT / "models")
+        for value in add_data_values
+    )
+    assert all(
+        destination != "models" or source == str(build_app.REALESRGAN_PRODUCT_MODEL)
+        for source, destination in (
+            value.split(os.pathsep, 1) for value in add_data_values
+        )
+    )
+
+
+def test_packaging_fails_when_product_real_esrgan_model_is_missing(tmp_path, monkeypatch):
+    missing_model = tmp_path / "real_esrgan_x4plus.bin"
+    monkeypatch.setattr(build_app, "REALESRGAN_PRODUCT_MODEL", missing_model)
+
+    with pytest.raises(FileNotFoundError, match="Produktgebundenes RealESRGAN-Modell fehlt"):
+        build_app.build_arguments()
 
 
 def test_installer_command_uses_final_executable_and_package_version():

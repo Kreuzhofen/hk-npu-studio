@@ -105,14 +105,18 @@ def test_non_frozen_uses_development_model_when_both_models_exist(tmp_path):
     development_model = tmp_path / "source" / "models" / MODEL_FILENAME
     user_model.parent.mkdir(parents=True)
     development_model.parent.mkdir(parents=True)
+    bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
+    bundled_model.parent.mkdir(parents=True)
     user_model.touch()
     development_model.touch()
+    bundled_model.touch()
     _DiscoveryService.result = _discovery(runner, backend)
 
     runtime = resolve_realesrgan_qnn_runtime(
         local_app_data=tmp_path / "appdata",
         project_root=tmp_path / "source",
         frozen=False,
+        frozen_app_dir=tmp_path / "frozen-app",
         discovery_service=_DiscoveryService,
     )
 
@@ -126,18 +130,40 @@ def test_frozen_uses_local_app_data_model_when_both_models_exist(tmp_path):
     development_model = tmp_path / "source" / "models" / MODEL_FILENAME
     user_model.parent.mkdir(parents=True)
     development_model.parent.mkdir(parents=True)
+    bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
+    bundled_model.parent.mkdir(parents=True)
     user_model.touch()
     development_model.touch()
+    bundled_model.touch()
     _DiscoveryService.result = _discovery(runner, backend)
 
     runtime = resolve_realesrgan_qnn_runtime(
         local_app_data=tmp_path / "appdata",
         project_root=tmp_path / "source",
         frozen=True,
+        frozen_app_dir=tmp_path / "frozen-app",
         discovery_service=_DiscoveryService,
     )
     assert runtime.model_path == user_model
     assert runtime.model_source == "user"
+
+
+def test_frozen_uses_bundled_model_when_user_model_is_missing(tmp_path):
+    runner, backend = _runtime_files(tmp_path / "qnn")
+    bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
+    bundled_model.parent.mkdir(parents=True)
+    bundled_model.touch()
+    _DiscoveryService.result = _discovery(runner, backend)
+
+    runtime = resolve_realesrgan_qnn_runtime(
+        local_app_data=tmp_path / "appdata",
+        frozen=True,
+        frozen_app_dir=tmp_path / "frozen-app",
+        discovery_service=_DiscoveryService,
+    )
+
+    assert runtime.model_path == bundled_model
+    assert runtime.model_source == "bundled"
 
 
 def test_non_frozen_does_not_fall_back_to_local_app_data_model(tmp_path):
@@ -145,6 +171,9 @@ def test_non_frozen_does_not_fall_back_to_local_app_data_model(tmp_path):
     user_model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
     user_model.parent.mkdir(parents=True)
     user_model.touch()
+    bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
+    bundled_model.parent.mkdir(parents=True)
+    bundled_model.touch()
     _DiscoveryService.result = _discovery(runner, backend)
 
     with pytest.raises(RealESRGANRuntimeUnavailable) as error:
@@ -152,12 +181,14 @@ def test_non_frozen_does_not_fall_back_to_local_app_data_model(tmp_path):
             local_app_data=tmp_path / "appdata",
             project_root=tmp_path / "source",
             frozen=False,
+            frozen_app_dir=tmp_path / "frozen-app",
             discovery_service=_DiscoveryService,
         )
     expected = tmp_path / "source" / "models" / MODEL_FILENAME
     assert error.value.code == "REALESRGAN_MODEL_MISSING"
     assert str(expected) in error.value.detail
     assert str(user_model) not in error.value.detail
+    assert str(bundled_model) not in error.value.detail
 
 
 def test_frozen_does_not_fall_back_to_development_model(tmp_path):
@@ -172,11 +203,14 @@ def test_frozen_does_not_fall_back_to_development_model(tmp_path):
             local_app_data=tmp_path / "appdata",
             project_root=tmp_path / "source",
             frozen=True,
+            frozen_app_dir=tmp_path / "frozen-app",
             discovery_service=_DiscoveryService,
         )
     user_model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
     assert error.value.code == "REALESRGAN_MODEL_MISSING"
     assert str(user_model) in error.value.detail
+    assert str(bundled_model) in error.value.detail
     assert str(development_model) not in error.value.detail
 
 
@@ -241,6 +275,7 @@ def test_qnn_command_uses_the_discovered_runner_and_htp_backend(tmp_path, monkey
     def fake_run(command, **kwargs):
         captured["command"] = command
         captured["environment"] = kwargs["env"]
+        captured["cwd"] = kwargs["cwd"]
 
     monkeypatch.setattr("engine.backends.qnn_backend.subprocess.run", fake_run)
     backend_instance.execute_qnn(input_list)
@@ -249,6 +284,7 @@ def test_qnn_command_uses_the_discovered_runner_and_htp_backend(tmp_path, monkey
     assert str(backend.parent) in captured["environment"]["PATH"]
     assert str(runner.parent) in captured["environment"]["PATH"]
     assert str(backend.parent / "htp") in captured["environment"]["ADSP_LIBRARY_PATH"]
+    assert captured["cwd"] == input_list.parent
     assert "onnxruntime" not in Path("engine/realesrgan_qnn_runtime.py").read_text(encoding="utf-8").lower()
 
 
@@ -276,12 +312,14 @@ def test_qnn_call_sites_share_runtime_process_environment(tmp_path, monkeypatch)
     )
     assert environment["UNCHANGED"] == "value"
 
-    input_list = tmp_path / "input_list.txt"
+    input_dir = tmp_path / "Local AppData Test"
+    input_dir.mkdir()
+    input_list = input_dir / "input_list.txt"
     input_list.write_text("image.raw", encoding="utf-8")
     captured = []
     monkeypatch.setattr(
         "engine.backends.qnn_backend.subprocess.run",
-        lambda _command, **kwargs: captured.append(kwargs["env"]),
+        lambda _command, **kwargs: captured.append(kwargs),
     )
     backend_instance = QNNBackend(runtime_resolver=lambda: runtime)
     backend_instance.output_dir = tmp_path / "backend-output"
@@ -291,15 +329,47 @@ def test_qnn_call_sites_share_runtime_process_environment(tmp_path, monkeypatch)
     monkeypatch.setattr(
         qnn_module.subprocess,
         "run",
-        lambda _command, **kwargs: captured.append(kwargs["env"]),
+        lambda _command, **kwargs: captured.append(kwargs),
     )
     qnn_module.run_qnn_context(input_list, tmp_path / "module-output")
 
     assert len(captured) == 2
-    for process_environment in captured:
-        assert str(backend.parent) in process_environment["PATH"]
-        assert str(runner.parent) in process_environment["PATH"]
-        assert str(backend.parent / "htp") in process_environment["ADSP_LIBRARY_PATH"]
+    for call in captured:
+        assert str(backend.parent) in call["env"]["PATH"]
+        assert str(runner.parent) in call["env"]["PATH"]
+        assert str(backend.parent / "htp") in call["env"]["ADSP_LIBRARY_PATH"]
+        assert call["cwd"] == input_dir
+
+
+def test_qnn_input_lists_use_relative_raw_names_with_space_paths(tmp_path, monkeypatch):
+    work_dir = tmp_path / "Local AppData Test"
+    backend_instance = QNNBackend()
+    backend_instance.input_dir = work_dir / "backend"
+
+    class Tensor:
+        @staticmethod
+        def tofile(path):
+            Path(path).write_bytes(b"raw")
+
+    backend_files = backend_instance.write_raw_input(Tensor())
+    assert backend_files["input_list"].read_text(encoding="utf-8") == "image.raw"
+
+    def write_raw(_tile, raw_path):
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        raw_path.write_bytes(b"raw")
+
+    captured = {}
+    monkeypatch.setattr(realesrgan_core, "tile_to_raw", write_raw)
+    monkeypatch.setattr(
+        realesrgan_core,
+        "run_qnn_context",
+        lambda input_list, _output_dir, **_kwargs: captured.setdefault("input_list", input_list),
+    )
+    monkeypatch.setattr(realesrgan_core, "raw_tile_to_image", lambda _path: Image.new("RGB", (1, 1)))
+
+    realesrgan_core.run_tile(Image.new("RGB", (1, 1)), work_dir, 0)
+
+    assert captured["input_list"].read_text(encoding="utf-8") == "image.raw"
 
 
 def test_tiled_upscale_preserves_original_aspect_and_callbacks(tmp_path, monkeypatch):

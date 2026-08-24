@@ -12,4 +12,4 @@ def run_qnn_context(input_list: Path, output_dir: Path, log_level: str = "error"
     output_dir.mkdir(parents=True, exist_ok=True)
     env = runtime.process_environment()
     cmd = runtime.build_command(input_list, output_dir, log_level)
-    subprocess.run(cmd, env=env, check=True)
+    subprocess.run(cmd, env=env, cwd=input_list.parent, check=True)
