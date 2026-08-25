@@ -10,16 +10,13 @@ Phoenix Plugin
 from pathlib import Path
 
 from engine.plugin_base import PluginBase
-from engine.backends.qnn_backend import QNNBackend
+from modules.realesrgan_core import upscale_tiled
 
 
 class RealESRGANPlugin(PluginBase):
     id = "realesrgan"
     name = "RealESRGAN"
     skills = ["image.upscale"]
-
-    def __init__(self):
-        self.backend = QNNBackend()
 
     def execute(self, skill_name: str, **kwargs):
         if not self.can_handle(skill_name):
@@ -30,15 +27,15 @@ class RealESRGANPlugin(PluginBase):
         if not input_path.exists():
             raise FileNotFoundError(input_path)
 
-        result = self.backend.upscale(input_path)
+        output_path = upscale_tiled(input_path)
 
         return {
             "status": "success",
             "plugin": self.name,
             "skill": skill_name,
             "input_path": str(input_path),
-            "output_path": result["output"],
-            "backend": result["backend"],
+            "output_path": str(output_path),
+            "backend": "QNN",
         }
 
 

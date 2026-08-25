@@ -24,7 +24,6 @@
 ## v1.5 Generation
 
 - InvokeAI backend
-- ComfyUI backend
 - Model selection
 - Prompt history
 

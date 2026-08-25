@@ -87,9 +87,9 @@ C:\SnapdragonAI
 ├── temp/                 # Temporäre Bildkacheln und Laufzeitdateien
 ├── tools/                # Diagnose- und Hilfswerkzeuge
 ├── widgets/              # Wiederverwendbare UI-Komponenten (Sidebar, Cards)
-├── workflows/            # JSON-Beschreibungen für ComfyUI-Abläufe
+├── workflows/            # JSON-Beschreibungen für Anwendungsabläufe
 ├── config.py             # Zentrale Konfigurationsparameter (Pfade, Ports)
-├── gui.py / gui_v2.py    # GUI-Einstiegspunkte (Legacy vs. Phoenix)
+├── gui_v2.py             # Phoenix-GUI-Einstiegspunkt
 ├── launcher.py           # Anwendungsstarter
 ├── phoenix.py            # Phoenix-Umgebungs-Einstiegspunkt
 └── version.py            # Versionsinformationen der Anwendung

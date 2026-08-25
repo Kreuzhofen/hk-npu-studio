@@ -154,11 +154,14 @@ class PromptWorkspaceController:
             self.save_prompt_to_history(self.model.state.prompt)
         return result
 
-    def upscale_generated_image_2x(self, image_path: str) -> str:
-        """Create a separate 2x image through the existing RealESRGAN skill."""
+    def upscale_generated_image(self, image_path: str, scale: int) -> str:
+        """Create a separate RealESRGAN-QNN result for the requested profile."""
         from PIL import Image
         from engine.file_utils import get_unique_filename
         from engine.phoenix_adapter import PhoenixAdapter
+
+        if scale not in (2, 4):
+            raise ValueError(f"Unsupported RealESRGAN scale: {scale}")
 
         source_path = Path(image_path).resolve()
         if not source_path.is_file():
@@ -168,18 +171,27 @@ class PromptWorkspaceController:
         intermediate_path = Path(str(upscale_result["output_path"])).resolve()
         if not intermediate_path.is_file():
             raise FileNotFoundError(intermediate_path)
+        if intermediate_path == source_path:
+            raise RuntimeError("RealESRGAN must return a separate output file")
 
         target_path = get_unique_filename(
             source_path.parent,
-            f"{source_path.stem}_2x.png",
+            f"{source_path.stem}_{scale}x.png",
         )
-        with Image.open(source_path) as original, Image.open(intermediate_path) as enhanced:
-            target_size = (original.width * 2, original.height * 2)
-            enhanced.resize(target_size, Image.Resampling.LANCZOS).save(target_path)
+        if scale == 2:
+            with Image.open(source_path) as original, Image.open(intermediate_path) as enhanced:
+                target_size = (original.width * 2, original.height * 2)
+                enhanced.resize(target_size, Image.Resampling.LANCZOS).save(target_path)
+        elif intermediate_path != target_path.resolve():
+            intermediate_path.replace(target_path)
 
         if intermediate_path not in {source_path, target_path.resolve()}:
             intermediate_path.unlink(missing_ok=True)
         return str(target_path.resolve())
+
+    def upscale_generated_image_2x(self, image_path: str) -> str:
+        """Compatibility wrapper for callers using the former 2x-only API."""
+        return self.upscale_generated_image(image_path, 2)
 
     def load_prompt_history(self, return_dicts: bool = False) -> list[Any]:
         """Load prompt history from disk."""

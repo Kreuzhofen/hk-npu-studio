@@ -316,8 +316,8 @@ class PhoenixPromptView(WorkspaceFrame):
         self.canny_high_var = tk.IntVar(value=150)
         self.conditioning_strength_var = tk.DoubleVar(value=1.0)
         self.controlnet_canny_var = tk.BooleanVar(value=False)
-        self.upscale_2x_var = tk.BooleanVar(value=False)
-        self._upscale_requested_for_job = False
+        self.upscale_profile_var = tk.StringVar(value="off")
+        self._upscale_profile_for_job = "off"
 
         self.canny_low_var.trace_add("write", self._on_canny_param_changed)
         self.canny_high_var.trace_add("write", self._on_canny_param_changed)
@@ -1914,7 +1914,9 @@ class PhoenixPromptView(WorkspaceFrame):
         sampler = self.sampler_var.get()
         scheduler = self.scheduler_var.get()
         canny_low, canny_high, cond_scale = self._get_controlnet_params()
-        self._upscale_requested_for_job = bool(self.upscale_2x_var.get())
+        self._upscale_profile_for_job = self._normalize_upscale_profile(
+            self.upscale_profile_var.get()
+        )
 
         self.controller.update_parameters(
             prompt=prompt, negative_prompt=neg_prompt,
@@ -1967,18 +1969,19 @@ class PhoenixPromptView(WorkspaceFrame):
 
             result = self.controller.generate_image(notify_workflow=False, progress_callback=progress_cb)
             if (
-                self._upscale_requested_for_job
+                self._upscale_profile_for_job in ("2", "4")
                 and result.success
                 and result.status != "CANCELLED"
                 and result.image_path
             ):
                 try:
-                    result.metadata["upscaled_2x_image_path"] = (
-                        self.controller.upscale_generated_image_2x(result.image_path)
+                    scale = int(self._upscale_profile_for_job)
+                    result.metadata[f"upscaled_{scale}x_image_path"] = (
+                        self.controller.upscale_generated_image(result.image_path, scale)
                     )
                 except Exception as error:
-                    logger.exception("Optional RealESRGAN 2x upscale failed")
-                    result.metadata["upscale_2x_error"] = str(error)
+                    logger.exception("Optional RealESRGAN %sx upscale failed", self._upscale_profile_for_job)
+                    result.metadata[f"upscale_{self._upscale_profile_for_job}x_error"] = str(error)
             self._generation_events.put(("result", result))
         except Exception as error:
             logger.exception("Prompt-to-image generation failed")
@@ -2081,13 +2084,18 @@ class PhoenixPromptView(WorkspaceFrame):
             self._append_generation_diagnostic(result, "before_finish_callback")
             self._notify_generation_finished(result)
             self._append_generation_diagnostic(result, "after_finish_callback")
-            upscale_error = result.metadata.get("upscale_2x_error")
+            upscale_scale = next(
+                (scale for scale in ("2", "4") if result.metadata.get(f"upscale_{scale}x_error")),
+                None,
+            )
+            upscale_error = result.metadata.get(f"upscale_{upscale_scale}x_error") if upscale_scale else None
             if upscale_error:
                 messagebox.showwarning(
-                    tr("upscale_2x_title", "2× Upscaling"),
+                    tr("upscale_profile_title", "RealESRGAN Upscaling"),
                     tr(
-                        "upscale_2x_failed",
-                        "Das Originalbild wurde gespeichert, aber das optionale 2×-Upscaling ist fehlgeschlagen: {error}",
+                        "upscale_profile_failed",
+                        "Das Originalbild wurde gespeichert, aber das optionale {scale}×-Upscaling ist fehlgeschlagen: {error}",
+                        scale=upscale_scale,
                         error=upscale_error,
                     ),
                 )
@@ -3279,7 +3287,25 @@ class PhoenixPromptView(WorkspaceFrame):
         self.batch_var.set(str(normalized["batch"]))
         self.sampler_var.set(str(normalized["sampler"]))
         self.scheduler_var.set(str(normalized["scheduler"]))
+        self._set_upscale_profile(normalized["upscale_profile"])
         self._update_prompt_counters()
+
+    @staticmethod
+    def _normalize_upscale_profile(value: object) -> str:
+        """Migrate legacy bool values and accept only persisted profile values."""
+        if value is True:
+            return "2"
+        if value is False or value is None:
+            return "off"
+        return str(value) if str(value) in {"off", "2", "4"} else "off"
+
+    def _set_upscale_profile(self, value: object) -> None:
+        profile = self._normalize_upscale_profile(value)
+        self.upscale_profile_var.set(profile)
+        for button_profile, button in getattr(self, "_upscale_profile_buttons", {}).items():
+            button.button_type = "primary" if button_profile == profile else "neutral"
+            button._resolve_colors()
+            button._redraw()
 
     def _normalize_preset_for_active_model(self, settings: dict) -> dict:
         """Normalize preset values without changing model or ControlNet state."""
@@ -3304,6 +3330,9 @@ class PhoenixPromptView(WorkspaceFrame):
                 "scheduler", contract_default("scheduler", "Normal")
             ),
             "batch": settings.get("batch", settings.get("batch_size", 1)),
+            "upscale_profile": self._normalize_upscale_profile(
+                settings.get("upscale_profile", settings.get("upscale_2x", False))
+            ),
         }
 
         fields = {
@@ -3369,11 +3398,15 @@ class PhoenixPromptView(WorkspaceFrame):
             "canny_high_threshold": 150,
             "controlnet_conditioning_scale": 1.0,
             "reference_image_path": "",
+            "upscale_profile": "off",
         }
         normalized = dict(defaults)
         normalized.update(settings)
         if "batch" not in settings and "batch_size" in settings:
             normalized["batch"] = settings["batch_size"]
+        normalized["upscale_profile"] = self._normalize_upscale_profile(
+            settings.get("upscale_profile", settings.get("upscale_2x", False))
+        )
         return normalized
 
     def _ensure_progress_style(self) -> None:
@@ -4002,24 +4035,35 @@ class PhoenixPromptView(WorkspaceFrame):
             font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
         ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(3, 0))
 
-        popup_upscale_check = tk.Checkbutton(
+        tk.Label(
             output_frame,
-            text=tr("upscale_2x_option", "Nach Generierung mit RealESRGAN 2× hochskalieren"),
-            variable=self.upscale_2x_var,
-            bg=PHOENIX_THEME.card_bg,
-            fg=PHOENIX_THEME.text_primary,
-            activebackground=PHOENIX_THEME.card_bg,
-            activeforeground=PHOENIX_THEME.text_primary,
-            selectcolor=PHOENIX_THEME.elevated_bg,
-            font=PHOENIX_THEME.font_small,
-            anchor="w",
-        )
-        popup_upscale_check.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(12, 2))
+            text=tr("upscale_profile_label", "RealESRGAN (NPU):"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(12, 4))
+        profile_frame = tk.Frame(output_frame, bg=PHOENIX_THEME.card_bg)
+        profile_frame.grid(row=3, column=0, columnspan=4, sticky="ew")
+        for index in range(3):
+            profile_frame.grid_columnconfigure(index, weight=1)
+        self._upscale_profile_buttons = {}
+        for index, (profile, key, fallback) in enumerate((
+            ("off", "upscale_profile_off", "Aus"),
+            ("2", "upscale_profile_2x", "2×"),
+            ("4", "upscale_profile_4x", "4×"),
+        )):
+            button = PhoenixButton(
+                profile_frame, text=tr(key, fallback),
+                command=lambda selected=profile: self._set_upscale_profile(selected),
+                button_type="primary" if self.upscale_profile_var.get() == profile else "neutral",
+                font=PHOENIX_THEME.font_small, height=32, radius=6, width=82,
+            )
+            button.grid(row=0, column=index, sticky="ew", padx=(0 if index == 0 else 4, 0 if index == 2 else 4))
+            self._upscale_profile_buttons[profile] = button
         tk.Label(
             output_frame,
             text=tr(
-                "upscale_2x_help",
-                "Optional; erhält das Original und speichert zusätzlich ein separates Bild mit doppelter Auflösung.",
+                "upscale_profile_help",
+                "2× erzeugt ein separates Bild mit doppelter Auflösung. 4× erzeugt ein separates Bild mit vierfacher Auflösung und benötigt mehr Zeit.",
             ),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -4027,7 +4071,7 @@ class PhoenixPromptView(WorkspaceFrame):
             anchor="w",
             justify="left",
             wraplength=460,
-        ).grid(row=3, column=0, columnspan=4, sticky="ew", pady=(0, 4))
+        ).grid(row=4, column=0, columnspan=4, sticky="ew", pady=(4, 4))
 
 
 
@@ -5008,6 +5052,7 @@ class PhoenixPromptView(WorkspaceFrame):
             "canny_high_threshold": numeric(self.canny_high_var, int, 150),
             "controlnet_conditioning_scale": numeric(self.conditioning_strength_var, float, 1.0),
             "reference_image_path": getattr(self, "_ref_image_path", None) or "",
+            "upscale_profile": self._normalize_upscale_profile(self.upscale_profile_var.get()),
         }
 
     def _prompt_and_save_preset(self, data: dict) -> bool:

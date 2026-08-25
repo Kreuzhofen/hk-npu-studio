@@ -9,6 +9,7 @@ from PIL import Image
 
 from engine.backends.backend_discovery_service import BackendDiscoveryService
 from engine.backends.qnn_backend import QNNBackend
+from controllers.prompt_workspace_controller import PromptWorkspaceController
 from engine.realesrgan_qnn_runtime import (
     MODEL_FILENAME,
     RealESRGANQnnRuntime,
@@ -17,6 +18,7 @@ from engine.realesrgan_qnn_runtime import (
 )
 from modules import realesrgan_core
 from modules import qnn as qnn_module
+from plugins.realesrgan import plugin as realesrgan_plugin_module
 from plugins.realesrgan.plugin import RealESRGANPlugin
 
 
@@ -397,6 +399,212 @@ def test_tiled_upscale_preserves_original_aspect_and_callbacks(tmp_path, monkeyp
     assert any(kind == "progress" for kind, _ in events)
     assert any(kind == "status" for kind, _ in events)
     assert events[-1] == ("progress", "100 %")
+
+
+@pytest.mark.parametrize(
+    ("length", "expected"),
+    (
+        (64, [0]),
+        (128, [0]),
+        (512, [0, 96, 192, 288, 384]),
+        (1024, [0, 112, 224, 336, 448, 560, 672, 784, 896]),
+        (1000, [0, 109, 218, 327, 436, 545, 654, 763, 872]),
+    ),
+)
+def test_tile_positions_cover_each_axis_with_controlled_overlap(length, expected):
+    positions = realesrgan_core.tile_positions(length)
+
+    assert positions == expected
+    assert positions[0] == 0
+    assert positions[-1] == max(0, length - realesrgan_core.TILE_SIZE)
+    assert all(next_position <= position + realesrgan_core.TILE_SIZE for position, next_position in zip(positions, positions[1:]))
+    assert all(next_position < position + realesrgan_core.TILE_SIZE for position, next_position in zip(positions, positions[1:]))
+
+
+def test_tile_overlaps_are_derived_from_distributed_positions():
+    positions = realesrgan_core.tile_positions(512)
+
+    assert realesrgan_core.tile_overlaps(positions, [0], 0, 0, 128, 128) == (0, 32, 0, 0)
+    assert realesrgan_core.tile_overlaps(positions, [0], 1, 0, 128, 128) == (32, 32, 0, 0)
+    assert realesrgan_core.tile_overlaps(positions, [0], 4, 0, 128, 128) == (32, 0, 0, 0)
+
+
+def test_tiled_upscale_feathers_overlapping_model_tiles(tmp_path, monkeypatch):
+    source = tmp_path / "source.png"
+    Image.new("RGB", (224, 128), "white").save(source)
+    original_bytes = source.read_bytes()
+    output_dir = tmp_path / "output"
+
+    monkeypatch.setattr(realesrgan_core, "OUTPUT_DIR", output_dir)
+    monkeypatch.setattr(realesrgan_core, "TEMP_DIR", tmp_path / "temp")
+    monkeypatch.setattr(
+        realesrgan_core,
+        "run_tile",
+        lambda _tile, _work_dir, index: Image.new("RGB", (512, 512), "red" if index == 1 else "blue"),
+    )
+
+    result_path = realesrgan_core.upscale_tiled(source)
+
+    assert source.read_bytes() == original_bytes
+    with Image.open(result_path) as result:
+        assert result.size == (896, 512)
+        assert result.getpixel((0, 256)) == (255, 0, 0)
+        assert result.getpixel((895, 256)) == (0, 0, 255)
+        blended = result.getpixel((96 * 4 + 16 * 4, 256))
+        assert blended[0] > 0 and blended[2] > 0
+
+
+@pytest.mark.parametrize("scale", (2, 4))
+def test_controller_upscale_profiles_use_one_qnn_adapter_run_and_keep_original(tmp_path, monkeypatch, scale):
+    source = tmp_path / "generated.png"
+    intermediate = tmp_path / "native_4x.png"
+    Image.new("RGB", (10, 6), "navy").save(source)
+    Image.new("RGB", (40, 24), "red").save(intermediate)
+    original_bytes = source.read_bytes()
+    calls = []
+
+    class Adapter:
+        def run(self, skill, **kwargs):
+            calls.append((skill, kwargs))
+            return {"output_path": str(intermediate)}
+
+    monkeypatch.setattr("engine.phoenix_adapter.PhoenixAdapter", Adapter)
+    controller = PromptWorkspaceController.__new__(PromptWorkspaceController)
+    result = Path(controller.upscale_generated_image(str(source), scale))
+
+    assert calls == [("image.upscale", {"input_path": str(source.resolve())})]
+    assert source.read_bytes() == original_bytes
+    assert result.name == f"generated_{scale}x.png"
+    with Image.open(result) as image:
+        assert image.size == ((20, 12) if scale == 2 else (40, 24))
+    assert not intermediate.exists()
+
+
+def test_controller_4x_profile_never_uses_lanczos_resize(tmp_path, monkeypatch):
+    source = tmp_path / "generated.png"
+    intermediate = tmp_path / "native_4x.png"
+    Image.new("RGB", (8, 8), "navy").save(source)
+    Image.new("RGB", (32, 32), "red").save(intermediate)
+
+    class Adapter:
+        def run(self, _skill, **_kwargs):
+            return {"output_path": str(intermediate)}
+
+    monkeypatch.setattr("engine.phoenix_adapter.PhoenixAdapter", Adapter)
+    monkeypatch.setattr(Image.Image, "resize", lambda *_args, **_kwargs: pytest.fail("4x must not resize"))
+    controller = PromptWorkspaceController.__new__(PromptWorkspaceController)
+
+    result = Path(controller.upscale_generated_image(str(source), 4))
+
+    assert result.name == "generated_4x.png"
+
+
+def test_controller_upscale_profile_rejects_invalid_scale_and_preserves_original(tmp_path):
+    source = tmp_path / "generated.png"
+    Image.new("RGB", (8, 8), "navy").save(source)
+    original_bytes = source.read_bytes()
+    controller = PromptWorkspaceController.__new__(PromptWorkspaceController)
+
+    with pytest.raises(ValueError, match="Unsupported RealESRGAN scale: 3"):
+        controller.upscale_generated_image(str(source), 3)
+
+    assert source.read_bytes() == original_bytes
+
+
+def test_controller_upscale_failure_preserves_generated_original(tmp_path, monkeypatch):
+    source = tmp_path / "generated.png"
+    Image.new("RGB", (8, 8), "navy").save(source)
+    original_bytes = source.read_bytes()
+
+    class Adapter:
+        def run(self, _skill, **_kwargs):
+            raise RuntimeError("QNN unavailable")
+
+    monkeypatch.setattr("engine.phoenix_adapter.PhoenixAdapter", Adapter)
+    controller = PromptWorkspaceController.__new__(PromptWorkspaceController)
+
+    with pytest.raises(RuntimeError, match="QNN unavailable"):
+        controller.upscale_generated_image(str(source), 4)
+
+    assert source.read_bytes() == original_bytes
+
+
+def test_controller_rejects_original_path_as_upscale_output(tmp_path, monkeypatch):
+    source = tmp_path / "generated.png"
+    Image.new("RGB", (8, 8), "navy").save(source)
+    original_bytes = source.read_bytes()
+
+    class Adapter:
+        def run(self, _skill, **_kwargs):
+            return {"output_path": str(source)}
+
+    monkeypatch.setattr("engine.phoenix_adapter.PhoenixAdapter", Adapter)
+    controller = PromptWorkspaceController.__new__(PromptWorkspaceController)
+
+    with pytest.raises(RuntimeError, match="separate output file"):
+        controller.upscale_generated_image(str(source), 4)
+
+    assert source.read_bytes() == original_bytes
+
+
+def test_controller_legacy_2x_wrapper_delegates_to_profile_method(tmp_path):
+    controller = PromptWorkspaceController.__new__(PromptWorkspaceController)
+    calls = []
+    controller.upscale_generated_image = lambda path, scale: calls.append((path, scale)) or str(tmp_path / "result.png")
+
+    assert controller.upscale_generated_image_2x("generated.png") == str(tmp_path / "result.png")
+    assert calls == [("generated.png", 2)]
+
+
+def test_plugin_routes_image_upscale_to_overlap_tiled_pipeline(tmp_path, monkeypatch):
+    source = tmp_path / "generated.png"
+    output = tmp_path / "generated_tile_upscaled_x4.png"
+    Image.new("RGB", (512, 512), "navy").save(source)
+    output.touch()
+    calls = []
+
+    def tiled(path):
+        calls.append(path)
+        return output
+
+    monkeypatch.setattr(realesrgan_plugin_module, "upscale_tiled", tiled)
+    monkeypatch.setattr(
+        QNNBackend,
+        "upscale",
+        lambda *_args, **_kwargs: pytest.fail("image.upscale must not use QNNBackend.upscale"),
+    )
+
+    result = RealESRGANPlugin().execute("image.upscale", input_path=str(source))
+
+    assert calls == [source]
+    assert result == {
+        "status": "success",
+        "plugin": "RealESRGAN",
+        "skill": "image.upscale",
+        "input_path": str(source),
+        "output_path": str(output),
+        "backend": "QNN",
+    }
+
+
+def test_plugin_propagates_tiled_upscale_errors(tmp_path, monkeypatch):
+    source = tmp_path / "generated.png"
+    Image.new("RGB", (512, 512), "navy").save(source)
+
+    def tiled(_path):
+        raise RuntimeError("QNN tile failed")
+
+    monkeypatch.setattr(realesrgan_plugin_module, "upscale_tiled", tiled)
+
+    with pytest.raises(RuntimeError, match="QNN tile failed"):
+        RealESRGANPlugin().execute("image.upscale", input_path=str(source))
+
+
+def test_plugin_tiled_pipeline_uses_25_tiles_for_512_square_image():
+    positions = realesrgan_core.tile_positions(512)
+
+    assert len(positions) == 5
+    assert len(positions) * len(positions) == 25
 
 
 def test_plugin_and_controller_contracts_remain_qnn_upscale_connections():

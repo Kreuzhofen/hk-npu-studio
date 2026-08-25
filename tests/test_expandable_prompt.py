@@ -657,7 +657,7 @@ class ExpandablePromptTests(unittest.TestCase):
             "width", "height", "steps", "cfg_scale", "sampler", "scheduler",
             "batch", "controlnet_enabled", "canny_low_threshold",
             "canny_high_threshold", "controlnet_conditioning_scale",
-            "reference_image_path",
+            "reference_image_path", "upscale_profile",
         }
         self.assertEqual(set(saved), expected_keys)
         self.assertEqual(saved["prompt"], "Complete prompt")
@@ -667,6 +667,7 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(saved["canny_low_threshold"], 40)
         self.assertEqual(saved["canny_high_threshold"], 140)
         self.assertEqual(saved["controlnet_conditioning_scale"], 0.75)
+        self.assertEqual(saved["upscale_profile"], "off")
 
         self.view.apply_generation_settings(saved)
         self.assertEqual(self.view.prompt_text.get("1.0", "end-1c"), "Complete prompt")
@@ -675,6 +676,42 @@ class ExpandablePromptTests(unittest.TestCase):
         )
         self.assertEqual(self.view.seed_var.get(), "12345")
         self.assertEqual(self.view.batch_var.get(), "4")
+
+    def test_upscale_profiles_migrate_legacy_values_and_use_phoenix_buttons(self) -> None:
+        self.assertEqual(PhoenixPromptView._normalize_upscale_profile(True), "2")
+        self.assertEqual(PhoenixPromptView._normalize_upscale_profile(False), "off")
+        self.assertEqual(PhoenixPromptView._normalize_upscale_profile(None), "off")
+        self.assertEqual(PhoenixPromptView._normalize_upscale_profile("4"), "4")
+        self.assertEqual(PhoenixPromptView._normalize_upscale_profile("invalid"), "off")
+        self.assertEqual(
+            self.view._normalize_preset_for_active_model({"upscale_2x": True})["upscale_profile"],
+            "2",
+        )
+
+        self.view._open_advanced_settings_popup()
+        self.root.update_idletasks()
+        self.assertEqual(set(self.view._upscale_profile_buttons), {"off", "2", "4"})
+        self.assertTrue(all(button.__class__.__name__ == "PhoenixButton" for button in self.view._upscale_profile_buttons.values()))
+        self.assertTrue(all(button._height == 32 for button in self.view._upscale_profile_buttons.values()))
+        self.assertLessEqual(
+            sum(button.winfo_reqwidth() for button in self.view._upscale_profile_buttons.values()) + 16,
+            460,
+        )
+        self.view._set_upscale_profile("4")
+        self.assertEqual(self.view.upscale_profile_var.get(), "4")
+        self.assertEqual(self.view._upscale_profile_buttons["4"].button_type, "primary")
+        self.assertEqual(self.view._upscale_profile_buttons["2"].button_type, "neutral")
+        self.view._advanced_popup.destroy()
+
+    def test_upscale_profile_localization_covers_all_profiles_and_help(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        for locale in ("de_DE", "en_US", "es_ES"):
+            with self.subTest(locale=locale):
+                data = json.loads((root / "locales" / f"{locale}.json").read_text(encoding="utf-8"))
+                for key in ("upscale_profile_off", "upscale_profile_2x", "upscale_profile_4x", "upscale_profile_help"):
+                    self.assertTrue(data[key])
+                self.assertIn("2×", data["upscale_profile_help"])
+                self.assertIn("4×", data["upscale_profile_help"])
 
     def test_boost_optimized_prompt_can_be_saved_as_template(self) -> None:
         manager = MagicMock()

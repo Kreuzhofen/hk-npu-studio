@@ -72,7 +72,6 @@ Wichtige Start- und Konfigurationsdateien:
 
 ```text
 config.py
-gui.py
 gui_v2.py
 launcher.py
 phoenix.py

@@ -41,7 +41,7 @@ Niedrig: kosmetisch oder spaeter optimierbar
 | TD-017 | Magic Numbers | 128, 512, x4 mehrfach implizit | Modellwechsel schwierig | Hoch |
 | TD-018 | Datenstrategie | `temp` und `output` wachsen stark | Speicherverbrauch und Unordnung | Mittel |
 | TD-019 | Tests | kaum sichtbare automatisierte Tests | Refactoring riskant | Hoch |
-| TD-020 | Startskripte | `start_gui.bat` nutzt festen Pfad | Portabilitaet eingeschraenkt | Mittel |
+| TD-020 | Startskripte | `start_gui.bat` startet Phoenix relativ zum Repository | Behoben | - |
 
 ## Details
 
@@ -222,7 +222,7 @@ Prioritaet: Mittel.
 
 Aktueller Zustand:
 
-Legacy-GUI, Phoenix-Anwendung, `gui.py`, `gui_v2.py`, `app/application.py` und Phoenix-Widgets existieren parallel.
+Die Phoenix-Anwendung verwendet `gui_v2.py`, `app/application.py` und Phoenix-Widgets.
 
 Risiko:
 
@@ -230,7 +230,7 @@ Neue Funktionen koennen an der falschen UI-Schicht angebaut werden.
 
 Empfehlung:
 
-Phoenix als Ziel-GUI definieren. Legacy stabil halten, aber nicht weiter ausbauen, ausser es ist fuer Migration notwendig.
+Phoenix als alleinige GUI-Schicht beibehalten.
 
 Prioritaet: Hoch.
 

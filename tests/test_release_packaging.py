@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+from pathlib import Path
 
 import pytest
 from engine.release_config import RELEASE
@@ -96,3 +98,26 @@ def test_installer_command_uses_final_executable_and_package_version():
 
     assert f"/DExecutableName={RELEASE.executable_name}" in command
     assert f"/DAppVersion={RELEASE.package_version}" in command
+
+
+def test_development_launcher_targets_the_phoenix_entrypoint_without_legacy_gui():
+    project_root = build_app.PROJECT_ROOT
+    launcher = (project_root / "start_gui.bat").read_text(encoding="utf-8")
+
+    assert "%~dp0" in launcher
+    assert "gui_v2.py" in launcher
+    assert "C:\\sd-compile-x64" not in launcher
+    assert "python gui.py" not in launcher.lower()
+    assert not (project_root / "gui.py").exists()
+
+    tracked_files = subprocess.check_output(
+        ["git", "-C", str(project_root), "ls-files", "*.py", "*.bat"], text=True
+    ).splitlines()
+    product_sources = [
+        project_root / relative for relative in tracked_files if not relative.startswith("tests/")
+    ]
+    product_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in product_sources if path.is_file()
+    )
+    assert "Studio v1.1 Identity" not in product_text
+    assert "ComfyUI Backend" not in product_text
