@@ -9,6 +9,7 @@ import subprocess
 import logging
 import json
 import inspect
+import threading
 from pathlib import Path
 from typing import Callable, Any
 
@@ -18,6 +19,96 @@ from config import TEMP_DIR, USER_BASE
 from engine.model_install_service import SD35InstallState, SD35SourceInspection
 
 logger = logging.getLogger("SD35SetupHelper")
+
+
+_EXTERNAL_SD35_PROCESS_LOCK = threading.RLock()
+
+
+def _is_frozen_windows_process() -> bool:
+    """Return whether an external process inherits a PyInstaller DLL directory."""
+    return bool(
+        os.name == "nt"
+        and getattr(sys, "frozen", False)
+        and getattr(sys, "_MEIPASS", None)
+    )
+
+
+def _external_sd35_process_environment() -> dict[str, str]:
+    """Build an isolated child environment without mutating this process."""
+    environment = os.environ.copy()
+    environment.pop("PYTHONPATH", None)
+    environment.pop("PYTHONHOME", None)
+
+    bundle_dir = getattr(sys, "_MEIPASS", None)
+    if _is_frozen_windows_process() and bundle_dir and "PATH" in environment:
+        normalized_bundle = os.path.normcase(os.path.normpath(str(bundle_dir)))
+        retained_entries = []
+        for entry in environment["PATH"].split(os.pathsep):
+            normalized_entry = os.path.normcase(os.path.normpath(entry)) if entry else ""
+            is_bundle_entry = normalized_entry == normalized_bundle or normalized_entry.startswith(
+                normalized_bundle + os.sep
+            )
+            if not is_bundle_entry:
+                retained_entries.append(entry)
+        environment["PATH"] = os.pathsep.join(retained_entries)
+    return environment
+
+
+def _get_windows_dll_directory() -> str | None:
+    """Return the process DLL directory configured by PyInstaller, if any."""
+    import ctypes
+
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = ctypes.windll.kernel32.GetDllDirectoryW(len(buffer), buffer)
+    return buffer.value if length else None
+
+
+def _set_windows_dll_directory(directory: str | None) -> None:
+    """Set the process DLL directory for the brief external-process launch."""
+    import ctypes
+
+    if not ctypes.windll.kernel32.SetDllDirectoryW(directory):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+def _launch_external_sd35_process(command: list[str], **kwargs: Any) -> subprocess.Popen[str]:
+    """Launch an SD3.5 child with a clean environment and isolated DLL lookup."""
+    process_kwargs = dict(kwargs)
+    process_kwargs["env"] = _external_sd35_process_environment()
+    if not _is_frozen_windows_process():
+        return subprocess.Popen(command, **process_kwargs)
+
+    with _EXTERNAL_SD35_PROCESS_LOCK:
+        previous_dll_directory = _get_windows_dll_directory()
+        _set_windows_dll_directory(None)
+        try:
+            return subprocess.Popen(command, **process_kwargs)
+        finally:
+            _set_windows_dll_directory(previous_dll_directory)
+
+
+def _run_external_sd35_process(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    """Run an SD3.5 child while restoring the parent DLL lookup after creation."""
+    check = kwargs.pop("check", False)
+    capture_output = kwargs.pop("capture_output", False)
+    timeout = kwargs.pop("timeout", None)
+    if capture_output:
+        kwargs["stdout"] = subprocess.PIPE
+        kwargs["stderr"] = subprocess.PIPE
+
+    process = _launch_external_sd35_process(command, **kwargs)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()
+        raise
+    completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+    if check and completed.returncode:
+        raise subprocess.CalledProcessError(
+            completed.returncode, command, output=completed.stdout, stderr=completed.stderr
+        )
+    return completed
 
 
 def sanitize_pip_line(line: str) -> str:
@@ -237,10 +328,6 @@ class SD35SetupHelper:
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                 creationflags = subprocess.CREATE_NO_WINDOW
 
-            # Set up environment variables with PYTHONPATH cleared to prevent leakage
-            env = os.environ.copy()
-            env.pop("PYTHONPATH", None)
-
             def run_preflight_check() -> tuple[bool, str]:
                 logger.info("Running runtime preflight check...")
                 preflight_code = (
@@ -271,9 +358,8 @@ class SD35SetupHelper:
                     "print('PREFLIGHT_OK')\n"
                 )
                 try:
-                    preflight_process = subprocess.run(
+                    preflight_process = _run_external_sd35_process(
                         [str(venv_python), "-c", preflight_code],
-                        env=env,
                         capture_output=True,
                         text=True,
                         startupinfo=startupinfo,
@@ -318,7 +404,7 @@ class SD35SetupHelper:
 
                 logger.info("Creating isolated virtual environment at %s", venv_dir)
                 try:
-                    subprocess.run(
+                    _run_external_sd35_process(
                         [python_executable, "-m", "venv", str(venv_dir)],
                         check=True,
                         capture_output=True,
@@ -452,7 +538,7 @@ class SD35SetupHelper:
                 # Nested helper to run pip and capture errors
                 def run_pip(pip_cmd: list[str]) -> bool:
                     logger.info("Running: %s", " ".join(pip_cmd))
-                    process = subprocess.Popen(
+                    process = _launch_external_sd35_process(
                         pip_cmd,
                         cwd=str(working_dir),
                         stdout=subprocess.PIPE,
@@ -461,8 +547,7 @@ class SD35SetupHelper:
                         startupinfo=startupinfo,
                         creationflags=creationflags,
                         encoding="utf-8",
-                        errors="replace",
-                        env=env
+                        errors="replace"
                     )
 
                     pip_output_buffer = []
@@ -538,7 +623,7 @@ class SD35SetupHelper:
             run_cmd = [str(venv_python), "stable_diffusion_v3_5.py"]
             logger.info("Running Qualcomm sample script: %s", " ".join(run_cmd))
 
-            process = subprocess.Popen(
+            process = _launch_external_sd35_process(
                 run_cmd,
                 cwd=str(working_dir),
                 stdout=subprocess.PIPE,
@@ -547,8 +632,7 @@ class SD35SetupHelper:
                 startupinfo=startupinfo,
                 creationflags=creationflags,
                 encoding="utf-8",
-                errors="replace",
-                env=env
+                errors="replace"
             )
 
             import re

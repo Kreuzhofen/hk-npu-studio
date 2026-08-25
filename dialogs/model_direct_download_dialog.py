@@ -7,8 +7,8 @@ from queue import Empty, Queue
 from tkinter import ttk
 from typing import Any, Callable
 
+import config
 from app.i18n import tr
-from config import MODELS_DIR
 from dialogs.studio_dialog import StudioDialog
 from engine.brand_manager import BrandManager
 from widgets.phoenix.controls.button import PhoenixButton
@@ -169,7 +169,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         ).pack(fill="x")
         tk.Label(
             details,
-            text=tr("direct_model_target_path", "Folder: {path}", path=str(MODELS_DIR)),
+            text=tr("direct_model_target_path", "Folder: {path}", path=str(config.MODELS_DIR)),
             bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption, anchor="w", wraplength=540,
         ).pack(fill="x", pady=(PHOENIX_THEME.space_xs, 0))
@@ -481,7 +481,15 @@ class ModelDirectDownloadDialog(StudioDialog):
                 msg, tag = log_messages[phase]
                 self._log_message(msg, tag)
                 if guided_sd35 and phase in ("ready", "cleanup_warning"):
-                    self._log_message(tr("sd35_log_path_info", "The model is now permanently located under: C:\\SnapdragonAI\\models\\stable_diffusion_v3_5_qai"), "success")
+                    model_path = config.MODELS_DIR / "stable_diffusion_v3_5_qai"
+                    self._log_message(
+                        tr(
+                            "sd35_log_path_info",
+                            "The model is now permanently located under: {path}",
+                            path=str(model_path),
+                        ),
+                        "success",
+                    )
 
         failed = phase.endswith("_failed") or phase == "redownload_required"
         self._failure_message_shown = failed

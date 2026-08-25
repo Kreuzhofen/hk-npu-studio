@@ -984,7 +984,7 @@
   "sd35_log_ready": "✓ Stable Diffusion 3.5 Medium erfolgreich eingerichtet!",
   "sd35_log_cleanup_warn": "⚠ Temporäre Setup-Dateien konnten nicht automatisch gelöscht werden.",
   "sd35_log_failed": "❌ Einrichtung fehlgeschlagen.",
-  "sd35_log_path_info": "Das Modell befindet sich nun dauerhaft unter: C:\\SnapdragonAI\\models\\stable_diffusion_v3_5_qai",
+  "sd35_log_path_info": "Das Modell befindet sich nun dauerhaft unter: {path}",
   "sd35_redownload_action": "Modelldateien erneut herunterladen",
   "sd35_install_error": "Die erforderlichen Modelldateien konnten nicht vollständig bereitgestellt werden. Ihre bereits installierten Modelle wurden nicht verändert.",
   "continue": "Weiter",

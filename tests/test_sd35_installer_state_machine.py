@@ -1,15 +1,21 @@
 import json
 import os
+import inspect
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from controllers.model_repository import ModelRepository
 from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
 from engine.model_install_service import ModelInstallService, SD35InstallState
-from tools.sd35_setup_helper import SD35SetupHelper, resolve_python_executable
+from tools.sd35_setup_helper import (
+    SD35SetupHelper,
+    _external_sd35_process_environment,
+    _launch_external_sd35_process,
+    resolve_python_executable,
+)
 
 
 class _Installer:
@@ -53,7 +59,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         from unittest.mock import Mock
         import tools.sd35_setup_helper
 
-        if not isinstance(tools.sd35_setup_helper.subprocess.run, Mock):
+        if not isinstance(tools.sd35_setup_helper._run_external_sd35_process, Mock):
             def default_mock_run(cmd, *args, **kwargs):
                 if "venv" in cmd:
                     workspace = self.root
@@ -68,7 +74,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
                  patch("tools.sd35_setup_helper.USER_BASE", self.root), \
                  patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
-                 patch("tools.sd35_setup_helper.subprocess.run", side_effect=default_mock_run):
+                 patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=default_mock_run):
                 result = SD35SetupHelper.run_setup(
                     str(archive), installer, events.append, **kwargs
                 )
@@ -492,7 +498,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         with patch("sys.frozen", True, create=True), \
              patch("sys.executable", mock_executable), \
              patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen), \
-             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+             patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run):
             result, events = self._run_helper(
                 _Installer(self.service), archive, allow_redownload=True
             )
@@ -558,7 +564,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         with patch("sys.frozen", True, create=True), \
              patch("sys.executable", mock_executable), \
              patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen), \
-             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+             patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run):
             result, events = self._run_helper(
                 _Installer(self.service), archive, allow_redownload=True
             )
@@ -627,7 +633,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         def mock_run(cmd, *args, **kwargs):
             return MagicMock(returncode=0)
 
-        with patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+        with patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run):
             result, events = self._run_helper(
                 _Installer(self.service), archive, allow_redownload=True
             )
@@ -665,7 +671,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         import tools.sd35_setup_helper
         with patch("sys.frozen", True, create=True), \
              patch("sys.executable", mock_executable), \
-             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run):
+             patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run):
             result, events = self._run_helper(
                 _Installer(self.service), archive, allow_redownload=True
             )
@@ -709,7 +715,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         with patch("sys.frozen", True, create=True), \
              patch("sys.executable", mock_executable), \
-             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run), \
+             patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run), \
              patch("shutil.copytree", side_effect=mock_copytree):
             result, events = self._run_helper(
                 _Installer(self.service), archive, allow_redownload=True
@@ -847,7 +853,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
              patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
              patch("tools.sd35_setup_helper.USER_BASE", self.root), \
              patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
-             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run), \
+             patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run), \
              patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen):
              
              result = SD35SetupHelper.run_setup(
@@ -1007,7 +1013,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
              patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
              patch("tools.sd35_setup_helper.USER_BASE", self.root), \
              patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
-             patch("tools.sd35_setup_helper.subprocess.run", side_effect=mock_run), \
+             patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run), \
              patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen):
 
              result = SD35SetupHelper.run_setup(
@@ -1087,6 +1093,67 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertTrue(stale_script.exists())
         self.assertEqual(stale_script.read_text(encoding="utf-8"), "print('valid')")
         self.assertTrue(archive.exists())  # ZIP remains untouched
+
+    def test_external_sd35_process_environment_isolated_from_frozen_bundle(self) -> None:
+        bundle = r"C:\PyInstaller Bundle"
+        original_environment = {
+            "PATH": os.pathsep.join((r"C:\Windows", bundle, r"c:\PYINSTALLER BUNDLE\subdir", r"C:\Tools")),
+            "PYTHONPATH": r"C:\parent-pythonpath",
+            "PYTHONHOME": r"C:\parent-pythonhome",
+            "KEEP": "value",
+        }
+        with patch.dict(os.environ, original_environment, clear=True), \
+             patch("tools.sd35_setup_helper._is_frozen_windows_process", return_value=True), \
+             patch("sys._MEIPASS", bundle, create=True):
+            child_environment = _external_sd35_process_environment()
+            self.assertEqual(os.environ["PYTHONPATH"], r"C:\parent-pythonpath")
+            self.assertEqual(os.environ["PYTHONHOME"], r"C:\parent-pythonhome")
+            self.assertEqual(os.environ["PATH"], original_environment["PATH"])
+
+        self.assertNotIn("PYTHONPATH", child_environment)
+        self.assertNotIn("PYTHONHOME", child_environment)
+        self.assertEqual(child_environment["PATH"], os.pathsep.join((r"C:\Windows", r"C:\Tools")))
+        self.assertEqual(child_environment["KEEP"], "value")
+
+    def test_external_sd35_process_resets_and_restores_frozen_dll_directory(self) -> None:
+        process = MagicMock()
+        with patch("tools.sd35_setup_helper._is_frozen_windows_process", return_value=True), \
+             patch("tools.sd35_setup_helper._get_windows_dll_directory", return_value=r"C:\\Bundle"), \
+             patch("tools.sd35_setup_helper._set_windows_dll_directory") as set_directory, \
+             patch("tools.sd35_setup_helper.subprocess.Popen", return_value=process) as popen:
+            self.assertIs(_launch_external_sd35_process(["venv-python", "-c", "pass"]), process)
+
+        self.assertEqual(set_directory.call_args_list, [
+            call(None), call(r"C:\\Bundle")
+        ])
+        popen.assert_called_once()
+
+    def test_external_sd35_process_restores_dll_directory_when_launch_fails(self) -> None:
+        with patch("tools.sd35_setup_helper._is_frozen_windows_process", return_value=True), \
+             patch("tools.sd35_setup_helper._get_windows_dll_directory", return_value=r"C:\\Bundle"), \
+             patch("tools.sd35_setup_helper._set_windows_dll_directory") as set_directory, \
+             patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=OSError("launch failed")):
+            with self.assertRaisesRegex(OSError, "launch failed"):
+                _launch_external_sd35_process(["venv-python", "-c", "pass"])
+
+        self.assertEqual(set_directory.call_args_list, [
+            call(None), call(r"C:\\Bundle")
+        ])
+
+    def test_external_sd35_process_skips_dll_api_outside_frozen_windows(self) -> None:
+        with patch("tools.sd35_setup_helper._is_frozen_windows_process", return_value=False), \
+             patch("tools.sd35_setup_helper._get_windows_dll_directory") as get_directory, \
+             patch("tools.sd35_setup_helper._set_windows_dll_directory") as set_directory, \
+             patch("tools.sd35_setup_helper.subprocess.Popen", return_value=MagicMock()):
+            _launch_external_sd35_process(["venv-python", "-c", "pass"])
+
+        get_directory.assert_not_called()
+        set_directory.assert_not_called()
+
+    def test_all_sd35_external_process_types_use_central_launchers(self) -> None:
+        source = inspect.getsource(SD35SetupHelper.run_setup)
+        self.assertEqual(source.count("_run_external_sd35_process("), 2)
+        self.assertEqual(source.count("_launch_external_sd35_process("), 2)
 
 
 if __name__ == "__main__":

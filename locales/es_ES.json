@@ -984,7 +984,7 @@
   "sd35_log_ready": "✓ ¡Stable Diffusion 3.5 Medium configurado correctamente!",
   "sd35_log_cleanup_warn": "⚠ No se pudieron eliminar automáticamente los archivos temporales de configuración.",
   "sd35_log_failed": "❌ Configuración fallida.",
-  "sd35_log_path_info": "El modelo se encuentra ahora de forma permanente en: C:\\SnapdragonAI\\models\\stable_diffusion_v3_5_qai",
+  "sd35_log_path_info": "El modelo se encuentra ahora de forma permanente en: {path}",
   "sd35_redownload_action": "Descargar los archivos del modelo de nuevo",
   "sd35_install_error": "No se pudieron proporcionar por completo los archivos del modelo requeridos. Los modelos ya instalados no se han modificado.",
   "continue": "Continuar",

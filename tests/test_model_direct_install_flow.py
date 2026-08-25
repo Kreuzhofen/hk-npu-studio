@@ -491,6 +491,38 @@ class DirectModelInstallTests(unittest.TestCase):
             dialog._open_generate,
         )
 
+    def test_sd35_success_log_uses_configured_model_path(self) -> None:
+        configured_models = Path(tempfile.mkdtemp(prefix="SD35 Models With Spaces "))
+        expected_path = configured_models / "stable_diffusion_v3_5_qai"
+        try:
+            for phase in ("ready", "cleanup_warning"):
+                with self.subTest(phase=phase), patch(
+                    "dialogs.model_direct_download_dialog.config.MODELS_DIR", configured_models
+                ):
+                    dialog = ModelDirectDownloadDialog.__new__(ModelDirectDownloadDialog)
+                    dialog.progress_var = MagicMock()
+                    dialog.status_label = MagicMock()
+                    dialog.log_widget = MagicMock()
+                    dialog._operation = "sd35_auto"
+                    dialog._logged_phases = set()
+                    dialog._update_step_states = MagicMock()
+                    dialog._log_message = MagicMock()
+                    dialog._set_progress({"phase": phase, "percent": 100.0})
+
+                logged_messages = [entry.args[0] for entry in dialog._log_message.call_args_list]
+                self.assertTrue(any(str(expected_path) in message for message in logged_messages))
+                self.assertNotIn("C:\\SnapdragonAI", "\n".join(logged_messages))
+
+            root = Path(__file__).resolve().parents[1]
+            for locale in ("de_DE", "en_US", "es_ES"):
+                template = json.loads(
+                    (root / "locales" / f"{locale}.json").read_text(encoding="utf-8")
+                )["sd35_log_path_info"]
+                self.assertIn("{path}", template)
+                self.assertNotIn("C:\\SnapdragonAI", template)
+        finally:
+            configured_models.rmdir()
+
     def test_footer_buttons_fit_minimum_dialog_width(self) -> None:
         button_width = (
             ModelDirectDownloadDialog.START_BUTTON_WIDTH
