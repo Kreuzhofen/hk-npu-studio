@@ -82,7 +82,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         guided_sd35 = self._operation in ("sd35_folder", "sd35_auto")
         self.add_title(
             tr("sd35_install_title", "Install Stable Diffusion 3.5 Medium") if guided_sd35 else tr("direct_model_install_title", "Install model"),
-            tr("sd35_folder_processing", "Snapdragon AI Studio checks and installs the Qualcomm model folder automatically.") if guided_sd35 else tr("direct_model_install_automatic", "Snapdragon AI Studio installs the model automatically."),
+            tr("sd35_folder_processing", "HK NPU STUDIO checks and installs the Qualcomm model folder automatically.") if guided_sd35 else tr("direct_model_install_automatic", "HK NPU STUDIO installs the model automatically."),
         )
         scroll_area = tk.Frame(self.body, bg=PHOENIX_THEME.card_bg)
         scroll_area.pack(fill="both", expand=True)
@@ -151,7 +151,7 @@ class ModelDirectDownloadDialog(StudioDialog):
                 details,
                 text=tr(
                     self._description_key,
-                    "Snapdragon AI Studio downloads and sets up the compatible model automatically.",
+                    "HK NPU STUDIO downloads and sets up the compatible model automatically.",
                 ),
                 bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_body, anchor="w", justify="left", wraplength=540,
@@ -163,7 +163,7 @@ class ModelDirectDownloadDialog(StudioDialog):
         ).pack(fill="x", pady=(0, PHOENIX_THEME.space_md))
         tk.Label(
             details,
-            text=tr("direct_model_target_name", "Destination: Snapdragon AI Studio Models"),
+            text=tr("direct_model_target_name", "Destination: HK NPU STUDIO Models"),
             bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_card_title, anchor="w",
         ).pack(fill="x")
@@ -278,7 +278,7 @@ class ModelDirectDownloadDialog(StudioDialog):
 
         self.warning_label = tk.Label(
             self.content_body,
-            text=tr("sd35_install_warning", "This process may take some time. Please do not close Snapdragon AI Studio during setup.")
+            text=tr("sd35_install_warning", "This process may take some time. Please do not close HK NPU STUDIO during setup.")
             if guided_sd35 else tr("direct_model_install_warning", "The installation may take some time. You can cancel the download at any time."),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -432,13 +432,13 @@ class ModelDirectDownloadDialog(StudioDialog):
             "installing": tr("direct_model_installing", "Model is being installed …"),
             "validating": tr("direct_model_validating", "Model is being validated …"),
             "activating": tr("direct_model_activating", "Model is being activated …"),
-            "ready": tr("sd35_ready_clean", "✓ Stable Diffusion 3.5 Medium was successfully installed. The temporary Qualcomm installation files have been removed.") if guided_sd35 else tr("home_studio_ready", "✓ Snapdragon AI Studio is ready"),
+            "ready": tr("sd35_ready_clean", "✓ Stable Diffusion 3.5 Medium was successfully installed. The temporary Qualcomm installation files have been removed.") if guided_sd35 else tr("home_studio_ready", "✓ HK NPU STUDIO is ready"),
             "cleanup_warning": tr("sd35_cleanup_warning", "✓ Stable Diffusion 3.5 Medium was successfully installed. However, the temporary Qualcomm files could not be automatically removed."),
             "sd35_find_zip": tr("sd35_find_zip", "Locating ZIP file …"),
             "sd35_extracting": tr("sd35_extracting", "Preparing Qualcomm files (extracting) …"),
             "sd35_installing_deps": tr("sd35_installing_deps", "Setting up required components (Python packages) …"),
             "sd35_downloading_weights": tr("sd35_downloading_weights", "Downloading model files (Qualcomm script) …"),
-            "sd35_importing": tr("sd35_importing", "Preparing and importing model into Snapdragon AI Studio …"),
+            "sd35_importing": tr("sd35_importing", "Preparing and importing model into HK NPU STUDIO …"),
             "download_failed": tr("direct_model_download_failed", "Download failed. Please check your connection and try again."),
             "validation_failed": tr("direct_model_validation_failed", "The downloaded model package could not be verified."),
             "sd35_folder_incomplete": tr("sd35_folder_incomplete", "Not all required Stable Diffusion 3.5 files were found in this folder. Please select the folder created by the Qualcomm sample after the download."),
@@ -459,10 +459,10 @@ class ModelDirectDownloadDialog(StudioDialog):
                 "checking": (tr("direct_model_checking", "Model package is being checked …"), "info"),
                 "sd35_installing_deps": (tr("sd35_log_deps", "Installing Python dependencies …"), "info"),
                 "sd35_downloading_weights": (tr("sd35_log_weights", "Qualcomm SD3.5 preparation & download started …"), "warning"),
-                "sd35_importing": (tr("sd35_log_import", "Importing model files into Snapdragon AI Studio …"), "info"),
+                "sd35_importing": (tr("sd35_log_import", "Importing model files into HK NPU STUDIO …"), "info"),
                 "installing": (tr("direct_model_installing", "Model is being installed …"), "info"),
                 "activating": (tr("direct_model_activating", "Model is being activated …"), "info"),
-                "ready": ((tr("sd35_log_ready", "Stable Diffusion 3.5 Medium successfully set up!") if guided_sd35 else tr("home_studio_ready", "Snapdragon AI Studio is ready")), "success"),
+                "ready": ((tr("sd35_log_ready", "Stable Diffusion 3.5 Medium successfully set up!") if guided_sd35 else tr("home_studio_ready", "HK NPU STUDIO is ready")), "success"),
                 "cleanup_warning": (tr("sd35_log_cleanup_warn", "⚠ Temporary setup files could not be automatically deleted."), "warning"),
                 "install_failed": (tr("sd35_log_failed", "❌ Setup failed."), "error"),
                 "activation_failed": (tr("direct_model_activation_failed", "The model was installed but could not be activated."), "error"),
@@ -613,7 +613,7 @@ class ModelDirectDownloadDialog(StudioDialog):
             self.progress_var.set(100.0)
             if getattr(self, "_operation", None) not in ("sd35_folder", "sd35_auto"):
                 self.status_label.configure(
-                    text=tr("home_studio_ready", "✓ Snapdragon AI Studio is ready"),
+                    text=tr("home_studio_ready", "✓ HK NPU STUDIO is ready"),
                     fg=PHOENIX_THEME.success,
                 )
             self._on_installed()

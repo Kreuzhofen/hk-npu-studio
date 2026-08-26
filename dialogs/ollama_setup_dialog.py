@@ -96,8 +96,8 @@ class OllamaSetupDialog(StudioDialog):
             content,
             text=tr(
                 "boost_ollama_setup_desc_prompt",
-                "Für den optionalen lokalen KI-Boost benötigt Snapdragon AI Studio Ollama.\n\n"
-                "Snapdragon AI Studio lädt die benötigte Ollama-Installation herunter und führt Sie anschließend automatisch weiter."
+                "Für den optionalen lokalen KI-Boost benötigt HK NPU STUDIO Ollama.\n\n"
+                "HK NPU STUDIO lädt die benötigte Ollama-Installation herunter und führt Sie anschließend automatisch weiter."
             ),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_secondary,

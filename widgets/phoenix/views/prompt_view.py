@@ -4588,7 +4588,7 @@ class PhoenixPromptView(WorkspaceFrame):
             self._boost_ai_info_lbl.configure(text=tr(
                 "boost_ai_setup_prompt",
                 "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
-                "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung.",
+                "HK NPU STUDIO führt Sie automatisch durch die Einrichtung.",
             ))
             self._boost_install_btn.configure(
                 text=tr("boost_setup_action", "Phoenix Boost einrichten"),
@@ -4609,7 +4609,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 self._boost_ai_info_lbl.configure(text=tr(
                     "boost_ai_setup_prompt",
                     "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
-                    "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung.",
+                    "HK NPU STUDIO führt Sie automatisch durch die Einrichtung.",
                 ))
                 self._boost_install_btn.configure(
                     text=tr("boost_setup_action", "Phoenix Boost einrichten"),

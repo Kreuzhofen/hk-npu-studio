@@ -512,7 +512,7 @@ def main() -> int:
             return 1
 
     # Main orchestrator run
-    print("=== Snapdragon AI Studio: QNN Execution Probe ===", flush=True)
+    print("=== HK NPU Studio: QNN Execution Probe ===", flush=True)
     mem_before = _memory_snapshot()
 
     # Run the session probe via subprocess

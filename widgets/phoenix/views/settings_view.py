@@ -325,7 +325,7 @@ class PhoenixSettingsView(tk.Frame):
             sys_form,
             text=tr(
                 "settings_system_npu_hint",
-                "Hinweis: Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
+                "Hinweis: HK NPU STUDIO wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
             ),
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_muted,
@@ -652,7 +652,7 @@ class PhoenixSettingsView(tk.Frame):
                 
                 messagebox.showinfo(
                     tr("settings_restart_title", "Neustart erforderlich"),
-                    tr("settings_restart_msg", "Die Einstellungen wurden gespeichert. Snapdragon AI Studio wird jetzt neu gestartet, um die Änderungen anzuwenden.")
+                    tr("settings_restart_msg", "Die Einstellungen wurden gespeichert. HK NPU STUDIO wird jetzt neu gestartet, um die Änderungen anzuwenden.")
                 )
                 
                 # Windows-kompatibler Neustart der App

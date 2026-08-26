@@ -154,7 +154,7 @@ class MenuBar:
         )
 
         menu.add_command(
-            label=tr("menu_about", "Über Snapdragon AI Studio"),
+            label=tr("menu_about", "Über HK NPU STUDIO"),
             command=lambda: self._callback("about"),
         )
 

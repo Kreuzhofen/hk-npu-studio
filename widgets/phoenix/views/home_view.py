@@ -139,7 +139,7 @@ class PhoenixHomeView(tk.Frame):
         ).pack(fill="x")
         tk.Label(
             welcome,
-            text=tr("app_title", "Snapdragon AI Studio"),
+            text=tr("app_title", "HK NPU STUDIO"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_title,
@@ -147,7 +147,7 @@ class PhoenixHomeView(tk.Frame):
         ).pack(fill="x", pady=(2, 0))
         tk.Label(
             welcome,
-            text=tr("app_tagline", "Create. Organize. Review. Evolve."),
+            text=tr("app_tagline", "Your Hardware • Your AI • Your Control"),
             bg=PHOENIX_THEME.content_bg,
             fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body,
@@ -774,7 +774,7 @@ class PhoenixHomeView(tk.Frame):
             self._readiness_title.configure(
                 text=tr(
                     "home_studio_ready",
-                    "✓ Snapdragon AI Studio ist bereit",
+                    "✓ HK NPU STUDIO ist bereit",
                 ),
                 fg=PHOENIX_THEME.success,
             )

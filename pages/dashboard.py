@@ -65,7 +65,7 @@ class DashboardPage(tk.Frame):
 
         tk.Label(
             self,
-            text="Phoenix Mission Control",
+            text="HK NPU STUDIO",
             bg=BG,
             fg=TEXT,
             font=("Segoe UI", 24, "bold"),
@@ -80,7 +80,7 @@ class DashboardPage(tk.Frame):
         ).pack(anchor="w", padx=24, pady=(0, 18))
 
         self.card(
-            "🧠 Phoenix Engine",
+            "🧠 Local AI Engine",
             [
                 "Status: Online",
                 f"Plugins geladen: {self.status['plugin_count']}",

@@ -56,7 +56,7 @@ class SettingsViewTests(unittest.TestCase):
         self.assertEqual(self.view.ui_language_save_hint.cget("wraplength"), 440)
         self.assertEqual(
             self.view.system_npu_hint.cget("text"),
-            "Hinweis: Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
+            "Hinweis: HK NPU STUDIO wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
         )
         self.assertEqual(self.view.system_npu_hint.cget("wraplength"), 440)
         
@@ -73,15 +73,15 @@ class SettingsViewTests(unittest.TestCase):
         expected = {
             "de_DE": (
                 "Hinweis: Änderungen an Sprache und Benutzeroberfläche werden erst nach dem Speichern übernommen.",
-                "Hinweis: Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
+                "Hinweis: HK NPU STUDIO wählt die passende Verarbeitung für das verwendete Modell automatisch aus. Sie müssen hier normalerweise nichts einstellen.",
             ),
             "en_US": (
                 "Note: Changes to the language and user interface are applied after you save the settings.",
-                "Note: Snapdragon AI Studio automatically selects the appropriate processing method for the model you are using. You normally do not need to change anything here.",
+                "Note: HK NPU STUDIO automatically selects the appropriate processing method for the model you are using. You normally do not need to change anything here.",
             ),
             "es_ES": (
                 "Nota: Los cambios de idioma y de la interfaz se aplican después de guardar la configuración.",
-                "Nota: Snapdragon AI Studio selecciona automáticamente el procesamiento adecuado para el modelo que está utilizando. Normalmente no necesita cambiar nada aquí.",
+                "Nota: HK NPU STUDIO selecciona automáticamente el procesamiento adecuado para el modelo que está utilizando. Normalmente no necesita cambiar nada aquí.",
             ),
         }
         root = Path(__file__).resolve().parents[1]

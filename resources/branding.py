@@ -14,10 +14,10 @@ class Branding:
     Zentrale Branding-Informationen.
     """
 
-    APP_NAME = RELEASE.app_name
+    APP_NAME = "HK NPU STUDIO"
     APP_VERSION = RELEASE.display_version
 
-    ENGINE_NAME = "Phoenix Engine"
+    ENGINE_NAME = "HK NPU STUDIO"
     ENGINE_VERSION = "1.0"
 
     AUTHOR = "Holger Kreuzhofen"
@@ -41,12 +41,14 @@ class Branding:
 
     ABOUT = (
         f"{APP_NAME}\n"
-        f"{ENGINE_NAME} {ENGINE_VERSION}\n\n"
+        "Your Hardware • Your AI • Your Control\n"
+        "Local AI for Snapdragon® PCs\n"
+        "Featuring Phoenix Boost\n\n"
         f"Created by {AUTHOR}"
     )
 
     SPLASH_TITLE = APP_NAME
-    SPLASH_SUBTITLE = ENGINE_NAME
+    SPLASH_SUBTITLE = "Your Hardware • Your AI • Your Control"
 
     READY = "Ready"
     LOADING = "Loading..."

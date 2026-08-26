@@ -24,18 +24,22 @@ class BrandManager:
     APP_NAME = RELEASE.app_name
     APP_VERSION = RELEASE.display_version
 
-    ENGINE_NAME = "Phoenix Engine"
+    ENGINE_NAME = "HK NPU STUDIO"
     ENGINE_VERSION = "1.0"
+
+    HEADER_BRAND_NAME = "HK NPU STUDIO"
+    PLATFORM_DESCRIPTION = "Local AI for Snapdragon® PCs"
+    PHOENIX_BOOST_CREDIT = "Featuring Phoenix Boost"
 
     AUTHOR = RELEASE.publisher
     COPYRIGHT = "© 2026 Holger Kreuzhofen\nAll rights reserved."
 
-    SLOGAN = "Phoenix Engine"
+    SLOGAN = "Your Hardware • Your AI • Your Control"
     AI_ASSISTANCE = "Developed with AI assistance using OpenAI"
-    ABOUT_DESCRIPTION = (
-        "Professional local AI platform for image enhancement,\n"
-        "AI workflows and Snapdragon NPU acceleration."
+    TRADEMARK_NOTICE = (
+        "Snapdragon is a trademark or registered trademark of Qualcomm Incorporated."
     )
+    ABOUT_DESCRIPTION = f"{PLATFORM_DESCRIPTION}\n{PHOENIX_BOOST_CREDIT}"
     WINDOW_TITLE_WITH_VERSION = APP_NAME
 
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -112,7 +116,7 @@ class BrandManager:
         return self
 
     def app_name(self) -> str:
-        return self.APP_NAME
+        return self.HEADER_BRAND_NAME
 
     def version(self) -> str:
         return self.APP_VERSION
@@ -135,8 +139,17 @@ class BrandManager:
     def engine_version(self) -> str:
         return self.ENGINE_VERSION
 
+    def header_brand_name(self) -> str:
+        return self.HEADER_BRAND_NAME
+
+    def platform_description(self) -> str:
+        return self.PLATFORM_DESCRIPTION
+
+    def phoenix_boost_credit(self) -> str:
+        return self.PHOENIX_BOOST_CREDIT
+
     def window_title(self) -> str:
-        return self.APP_NAME
+        return self.HEADER_BRAND_NAME
 
     def author(self) -> str:
         return self.AUTHOR
@@ -146,6 +159,9 @@ class BrandManager:
 
     def ai_assistance(self) -> str:
         return self.AI_ASSISTANCE
+
+    def trademark_notice(self) -> str:
+        return self.TRADEMARK_NOTICE
 
     def about_description(self) -> str:
         return self.ABOUT_DESCRIPTION

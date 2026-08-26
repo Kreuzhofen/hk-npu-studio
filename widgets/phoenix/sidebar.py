@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+import tkinter.font as tkfont
 from typing import Callable
 
 from engine.brand_manager import BrandManager
@@ -52,23 +53,33 @@ class PhoenixSidebar(tk.Frame):
         self._build()
 
     def _build(self) -> None:
-        tk.Label(
+        self.brand_label = tk.Label(
             self,
             text=BrandManager.ENGINE_NAME,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_primary,
             font=PHOENIX_THEME.font_section,
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(24, 4))
+        )
+        self.brand_label.pack(
+            fill="x",
+            padx=PHOENIX_THEME.space_lg,
+            pady=(24, 4),
+        )
 
-        tk.Label(
+        self.brand_credit_label = tk.Label(
             self,
-            text=tr("nav_workspace_version", "Workspace 1.0"),
+            text=BrandManager.PHOENIX_BOOST_CREDIT,
             bg=PHOENIX_THEME.panel_bg,
             fg=PHOENIX_THEME.text_muted,
-            font=PHOENIX_THEME.font_caption,
+            font=self._brand_credit_font(),
             anchor="w",
-        ).pack(fill="x", padx=PHOENIX_THEME.space_lg, pady=(0, 16))
+        )
+        self.brand_credit_label.pack(
+            fill="x",
+            padx=PHOENIX_THEME.space_lg,
+            pady=(0, 16),
+        )
 
         self._nav_button("home", tr("nav_home", "Home"))
         self._nav_button("prompt", tr("nav_ai_generate", "AI Generate"))
@@ -78,6 +89,19 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("compare", tr("nav_compare", "Compare"))
         self._nav_button("plugins", tr("nav_plugins", "Plugins"))
         self._nav_button("settings", tr("nav_settings", "Settings"))
+
+    def _brand_credit_font(self) -> tuple[str, int]:
+        family = PHOENIX_THEME.font_caption[0]
+        title_font = tkfont.Font(root=self, font=PHOENIX_THEME.font_section)
+        title_width = title_font.measure(BrandManager.ENGINE_NAME)
+        max_size = PHOENIX_THEME.font_section[1] - 1
+
+        for size in range(max_size, 0, -1):
+            candidate = tkfont.Font(root=self, family=family, size=size)
+            if candidate.measure(BrandManager.PHOENIX_BOOST_CREDIT) <= title_width:
+                return (family, size)
+
+        return (family, 1)
 
     def _nav_button(self, view_name: str, text: str) -> None:
         icon_color = self._icon_color(view_name)

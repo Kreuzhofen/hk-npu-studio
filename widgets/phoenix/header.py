@@ -33,30 +33,30 @@ class PhoenixHeader(tk.Frame):
             image=self.logo_image,
             bg=PHOENIX_THEME.header_bg,
             bd=0,
-        ).pack(side="left", padx=(0, PHOENIX_THEME.space_lg), pady=(6, 7))
+        ).pack(side="left", padx=(0, PHOENIX_THEME.space_lg), pady=2)
 
         title_group = tk.Frame(left, bg=PHOENIX_THEME.header_bg)
         title_group.pack(side="left", fill="y")
 
         self.title_label = tk.Label(
             title_group,
-            text=self.brand.engine_name(),
+            text=self.brand.header_brand_name(),
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_title,
             anchor="w",
         )
-        self.title_label.pack(side="top", anchor="w", pady=(6, 0))
+        self.title_label.pack(side="top", anchor="w")
 
         self.view_label = tk.Label(
             title_group,
-            text=f"{self.brand.app_name()} · {tr('nav_home', 'Home')}",
+            text=f"{self.brand.platform_description()} - {tr('nav_home', 'Home')}",
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="w",
         )
-        self.view_label.pack(side="top", anchor="w", pady=(0, 7))
+        self.view_label.pack(side="top", anchor="w")
 
         release_group = tk.Frame(self, bg=PHOENIX_THEME.header_bg)
         release_group.pack(side="right", fill="y", padx=PHOENIX_THEME.space_lg)
@@ -70,7 +70,7 @@ class PhoenixHeader(tk.Frame):
             fg=PHOENIX_THEME.accent,
             font=PHOENIX_THEME.font_section,
             anchor="e",
-        ).pack(side="top", fill="x", anchor="e", pady=(14, 0))
+        ).pack(side="top", fill="x", anchor="e", pady=(6, 0))
 
         tk.Label(
             release_group,
@@ -79,7 +79,9 @@ class PhoenixHeader(tk.Frame):
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="e",
-        ).pack(side="top", fill="x", anchor="e", pady=(0, 14))
+        ).pack(side="top", fill="x", anchor="e", pady=(0, 6))
 
     def set_view(self, title: str) -> None:
-        self.view_label.configure(text=f"{self.brand.app_name()} · {title}")
+        self.view_label.configure(
+            text=f"{self.brand.platform_description()} - {title}"
+        )

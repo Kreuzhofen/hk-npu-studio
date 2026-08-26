@@ -1,8 +1,8 @@
-Snapdragon AI Studio – Schritt-für-Schritt-Hilfe
+HK NPU STUDIO – Schritt-für-Schritt-Hilfe
 
-1. Was ist Snapdragon AI Studio?
+1. Was ist HK NPU STUDIO?
 ---------------------------------
-Snapdragon AI Studio erzeugt Bilder aus Textbeschreibungen. Die Verarbeitung läuft lokal auf Ihrem Windows-PC. Je nach Modell arbeitet die App mit der Snapdragon-NPU oder mit der CPU.
+HK NPU STUDIO erzeugt Bilder aus Textbeschreibungen. Die Verarbeitung läuft lokal auf Ihrem Windows-PC. Je nach Modell arbeitet die App mit der Snapdragon-NPU oder mit der CPU.
 
 Ein „Modell“ ist die Datei, die gelernt hat, Bilder zu erzeugen. Das Modell muss installiert und aktiviert sein, bevor Sie ein Bild erstellen können.
 
@@ -18,7 +18,7 @@ Die App lädt nicht jedes Modell automatisch. Wenn keine offizielle Quelle hinte
 
 3. Erster Start
 ---------------
-1. Starten Sie Snapdragon AI Studio. Beim ersten Start analysiert eine Bereitschaftsprüfung im Hintergrund Ihre Systemumgebung (Windows 11 ARM64, NPU-Treiber, Python).
+1. Starten Sie HK NPU STUDIO. Beim ersten Start analysiert eine Bereitschaftsprüfung im Hintergrund Ihre Systemumgebung (Windows 11 ARM64, NPU-Treiber, Python).
 2. Warten Sie, bis die Hauptansicht geladen ist.
 3. Öffnen Sie in der linken Navigation den „Modell-Manager“.
 4. Suchen Sie nach dem gewünschten Modell (für den Einstieg wird Stable Diffusion 1.5 QNN empfohlen).
@@ -209,7 +209,7 @@ Standardpfade in der installierten Version:
 - Logs: %LOCALAPPDATA%\Snapdragon AI Studio\logs
 
 Hinweise zur Hardware-Nutzung (System & NPU):
-Snapdragon AI Studio wählt die passende Verarbeitung für das verwendete Modell automatisch aus (z. B. Snapdragon NPU-Beschleunigung über QNN oder CPU-Verarbeitung). In den Einstellungen unter „System & NPU“ muss der Nutzer normalerweise nichts manuell konfigurieren.
+HK NPU STUDIO wählt die passende Verarbeitung für das verwendete Modell automatisch aus (z. B. Snapdragon NPU-Beschleunigung über QNN oder CPU-Verarbeitung). In den Einstellungen unter „System & NPU“ muss der Nutzer normalerweise nichts manuell konfigurieren.
 
 Ausgabe- und Modellordner können in „Einstellungen“ abweichend festgelegt werden. Prüfen Sie dort den aktuell gespeicherten Pfad.
 
@@ -254,4 +254,4 @@ Nein. Ein Modell ist als aktives Modell für den nächsten Auftrag ausgewählt.
 
 18. Hinweis zum unabhängigen Open-Source-Projekt
 -------------------------------------------------
-Snapdragon AI Studio ist ein unabhängiges Open-Source-Projekt. Es ist kein offizielles Produkt von Qualcomm. Marken und Modellnamen gehören ihren jeweiligen Eigentümern. Beachten Sie die Lizenzen der verwendeten Modelle und laden Sie Modellpakete nur aus Quellen herunter, zu deren Nutzung Sie berechtigt sind.
+HK NPU STUDIO ist ein unabhängiges Open-Source-Projekt. Es ist kein offizielles Produkt von Qualcomm. Marken und Modellnamen gehören ihren jeweiligen Eigentümern. Beachten Sie die Lizenzen der verwendeten Modelle und laden Sie Modellpakete nur aus Quellen herunter, zu deren Nutzung Sie berechtigt sind.

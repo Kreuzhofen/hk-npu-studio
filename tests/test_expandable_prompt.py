@@ -846,7 +846,7 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertFalse(any("{sampler}" in text or "{scheduler}" in text for text in texts))
         self.assertIn(
             "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
-            "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung.",
+            "HK NPU STUDIO führt Sie automatisch durch die Einrichtung.",
             texts,
         )
         self.assertTrue(self.view._boost_suggestion.optimized_prompt)
@@ -1608,7 +1608,7 @@ class ExpandablePromptTests(unittest.TestCase):
             text=tr(
                 "boost_ai_setup_prompt",
                 "Richten Sie Phoenix Boost in zwei einfachen Schritten ein.\n"
-                "Snapdragon AI Studio führt Sie automatisch durch die Einrichtung."
+                "HK NPU STUDIO führt Sie automatisch durch die Einrichtung."
             )
         )
         self.view._boost_install_btn.configure.assert_called_with(

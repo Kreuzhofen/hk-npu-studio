@@ -81,7 +81,7 @@ class ModelSourceDialog(StudioDialog):
             },
             2: {
                 self.STEP_TITLE: tr("model_src_sd35_step2_title", "Step 2 of 2 – Set up SD3.5 automatically"),
-                self.STEP_TEXT: tr("model_src_sd35_step2_text", "Snapdragon AI Studio can now prepare and set up the model fully automatically for you.\n\nPhoenix will locate the downloaded ZIP file in your Downloads folder, extract it to a temporary directory, install all required Python components, and run the Qualcomm script to automatically retrieve and convert the model files.\n\nClick the 'Set up SD3.5 automatically' button and wait for the process to complete. This may take several minutes."),
+                self.STEP_TEXT: tr("model_src_sd35_step2_text", "HK NPU STUDIO can now prepare and set up the model fully automatically for you.\n\nHK NPU STUDIO will locate the downloaded ZIP file in your Downloads folder, extract it to a temporary directory, install all required Python components, and run the Qualcomm script to automatically retrieve and convert the model files.\n\nClick the 'Set up SD3.5 automatically' button and wait for the process to complete. This may take several minutes."),
                 self.STEP_BTN_TEXT: tr("model_src_sd35_step2_btn_text", "Set up SD3.5 automatically"),
             },
         }
@@ -235,7 +235,7 @@ class ModelSourceDialog(StudioDialog):
         referenced_local = not official and bool(self.reference_url)
         description = tr(
             "model_src_sd35_guided_description",
-            "Stable Diffusion 3.5 Medium for Snapdragon is provided by Qualcomm. Snapdragon AI Studio cannot currently perform the Qualcomm model download itself because it uses only clearly documented download and usage rights. This guide takes you through the official Qualcomm route; afterwards, Snapdragon AI Studio handles verification and installation automatically.",
+            "Stable Diffusion 3.5 Medium for Snapdragon is provided by Qualcomm. HK NPU STUDIO cannot currently perform the Qualcomm model download itself because it uses only clearly documented download and usage rights. This guide takes you through the official Qualcomm route; afterwards, HK NPU STUDIO handles verification and installation automatically.",
         ) if self.sd35_guided else tr(
             "model_src_official_description",
             "A fully automated download path is not yet available for this model.",
@@ -356,7 +356,7 @@ class ModelSourceDialog(StudioDialog):
             else:
                 contract_text = tr(
                     "model_src_variant_missing",
-                    "Snapdragon AI Studio can verify and install a compatible package automatically, but the exact Qualcomm file variant is not yet defined in the model contract.",
+                    "HK NPU STUDIO can verify and install a compatible package automatically, but the exact Qualcomm file variant is not yet defined in the model contract.",
                 )
                 contract_color = PHOENIX_THEME.warning
             contract_label = tk.Label(
@@ -379,7 +379,7 @@ class ModelSourceDialog(StudioDialog):
                 help_content,
                 text=tr(
                     "model_src_official_compatible_help",
-                    "Select only an already prepared ZIP or SMP package compatible with Snapdragon AI Studio.",
+                    "Select only an already prepared ZIP or SMP package compatible with HK NPU STUDIO.",
                 ),
                 bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_body, anchor="w", justify="left", wraplength=520,
@@ -391,7 +391,7 @@ class ModelSourceDialog(StudioDialog):
                 self.body,
                 text=tr(
                     "model_src_local_install_note",
-                    "Select an existing model package. Snapdragon AI Studio handles verification and installation.",
+                    "Select an existing model package. HK NPU STUDIO handles verification and installation.",
                 ),
                 bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_body, anchor="w", justify="left", wraplength=540,
@@ -409,7 +409,7 @@ class ModelSourceDialog(StudioDialog):
                 help_content,
                 text=tr(
                     "model_src_sd35_compatible_help",
-                    "After the Qualcomm sample has finished, select the model folder it created. Snapdragon AI Studio then creates the manifest and checksums automatically.",
+                    "After the Qualcomm sample has finished, select the model folder it created. HK NPU STUDIO then creates the manifest and checksums automatically.",
                 ),
                 bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_secondary,
                 font=PHOENIX_THEME.font_body, anchor="w", justify="left", wraplength=520,

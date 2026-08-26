@@ -62,7 +62,7 @@ class Sidebar(tk.Frame):
     def build(self):
         tk.Label(
             self,
-            text=BrandManager.APP_NAME,
+            text=BrandManager.HEADER_BRAND_NAME,
             bg=BG,
             fg="white",
             font=("Segoe UI", 18, "bold"),

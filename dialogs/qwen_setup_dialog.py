@@ -90,7 +90,7 @@ class QwenSetupDialog(StudioDialog):
             text=tr(
                 "boost_qwen_setup_desc_prompt",
                 "Jetzt wird das lokale KI-Modell für Phoenix Boost eingerichtet.\n\n"
-                "Snapdragon AI Studio lädt Qwen2.5 3B automatisch herunter."
+                "HK NPU STUDIO lädt Qwen2.5 3B automatisch herunter."
             ),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.text_secondary,

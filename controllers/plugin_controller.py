@@ -80,7 +80,7 @@ class PluginController:
                     version = "1.0.0"
                     from app.i18n import tr
                     author = tr("plugin_fallback_author", "System")
-                    description = tr("plugin_fallback_description", "Zusatzmodul für Snapdragon AI Studio.")
+                    description = tr("plugin_fallback_description", "Zusatzmodul für HK NPU STUDIO.")
 
                     if plugin_json.exists():
                         try:

@@ -41,7 +41,7 @@ class ModelReadyDialog(StudioDialog):
         content.pack(fill="x", padx=PHOENIX_THEME.card_pad_x, pady=PHOENIX_THEME.card_pad_y)
         tk.Label(
             content,
-            text=tr("home_studio_ready", "✓ Snapdragon AI Studio is ready"),
+            text=tr("home_studio_ready", "✓ HK NPU STUDIO is ready"),
             bg=PHOENIX_THEME.elevated_bg,
             fg=PHOENIX_THEME.success,
             font=PHOENIX_THEME.font_section,

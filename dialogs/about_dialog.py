@@ -43,7 +43,7 @@ class AboutDialog(StudioDialog):
 
         tk.Label(
             self.body,
-            text=self.brand.app_name(),
+            text=self.brand.header_brand_name(),
             font=PHOENIX_THEME.font_title,
             fg=PHOENIX_THEME.text_primary,
             bg=PHOENIX_THEME.card_bg,
@@ -59,22 +59,31 @@ class AboutDialog(StudioDialog):
 
         tk.Label(
             self.body,
-            text=self.brand.engine(),
-            font=PHOENIX_THEME.font_button,
-            fg=PHOENIX_THEME.text_primary,
+            text=self.brand.platform_description(),
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
-        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_xl))
-
-        self.add_separator()
+        ).pack(anchor="center")
 
         tk.Label(
             self.body,
-            text=self.brand.about_description(),
+            text=self.brand.slogan(),
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,
             justify="center",
-        ).pack(anchor="center", pady=(0, PHOENIX_THEME.space_lg))
+        ).pack(anchor="center", pady=(PHOENIX_THEME.space_xs, 0))
+
+        tk.Label(
+            self.body,
+            text=self.brand.phoenix_boost_credit(),
+            font=PHOENIX_THEME.font_small,
+            fg=PHOENIX_THEME.text_muted,
+            bg=PHOENIX_THEME.card_bg,
+        ).pack(
+            anchor="center",
+            pady=(PHOENIX_THEME.space_xs, PHOENIX_THEME.space_lg),
+        )
 
         self.add_separator()
 
@@ -123,7 +132,7 @@ class AboutDialog(StudioDialog):
 
         tk.Label(
             self.body,
-            text=tr("qualcomm_independence_notice", "Unabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt."),
+            text=self.brand.trademark_notice(),
             font=PHOENIX_THEME.font_small,
             fg=PHOENIX_THEME.text_muted,
             bg=PHOENIX_THEME.card_bg,

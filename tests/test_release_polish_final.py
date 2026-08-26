@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 
 import pytest
@@ -49,29 +50,54 @@ def test_sidebar_visual_contract_in_all_languages(tk_root):
     try:
         for theme_name in ("dark", "light"):
             update_phoenix_theme(theme_name)
-            for locale, labels in expected_labels.items():
-                set_language(locale)
-                sidebar = PhoenixSidebar(tk_root)
-                tk_root.update_idletasks()
+            for scaling in (1.0, 1.25, 1.5, 1.75):
+                tk_root.tk.call("tk", "scaling", scaling)
+                for locale, labels in expected_labels.items():
+                    set_language(locale)
+                    sidebar = PhoenixSidebar(tk_root)
+                    tk_root.update_idletasks()
 
-                assert PhoenixSidebar.BUTTON_HEIGHT == 46
-                assert PhoenixSidebar.BUTTON_FONT[1] == 11
-                assert PhoenixSidebar.ICON_COLORS == expected_colors
-                assert tuple(
-                    sidebar._buttons[name].text for name in ("home", "prompt", "models")
-                ) == labels
+                    assert PhoenixSidebar.BUTTON_HEIGHT == 46
+                    assert PhoenixSidebar.BUTTON_FONT[1] == 11
+                    assert PhoenixSidebar.ICON_COLORS == expected_colors
+                    assert tuple(
+                        sidebar._buttons[name].text
+                        for name in ("home", "prompt", "models")
+                    ) == labels
+                    assert sidebar.brand_label.cget("text") == "HK NPU STUDIO"
+                    assert (
+                        sidebar.brand_credit_label.cget("text")
+                        == "Featuring Phoenix Boost"
+                    )
 
-                expected_theme_colors = (
-                    PhoenixSidebar.LIGHT_ICON_COLORS
-                    if theme_name == "light"
-                    else expected_colors
-                )
-                for name, button in sidebar._buttons.items():
-                    sidebar.set_active(name)
-                    assert button.button_type == "nav_active"
-                    assert button.icon_color == expected_theme_colors[name]
-                    assert button.normal_fg == expected_theme_colors[name]
-                sidebar.destroy()
+                    title_font = tkfont.Font(
+                        root=tk_root,
+                        font=sidebar.brand_label.cget("font"),
+                    )
+                    credit_font = tkfont.Font(
+                        root=tk_root,
+                        font=sidebar.brand_credit_label.cget("font"),
+                    )
+                    assert credit_font.measure("Featuring Phoenix Boost") <= (
+                        title_font.measure("HK NPU STUDIO")
+                    )
+                    assert sidebar.brand_label.cget("anchor") == "w"
+                    assert sidebar.brand_credit_label.cget("anchor") == "w"
+                    assert sidebar.brand_label.pack_info()["padx"] == (
+                        sidebar.brand_credit_label.pack_info()["padx"]
+                    )
+
+                    expected_theme_colors = (
+                        PhoenixSidebar.LIGHT_ICON_COLORS
+                        if theme_name == "light"
+                        else expected_colors
+                    )
+                    for name, button in sidebar._buttons.items():
+                        sidebar.set_active(name)
+                        assert button.button_type == "nav_active"
+                        assert button.icon_color == expected_theme_colors[name]
+                        assert button.normal_fg == expected_theme_colors[name]
+                    sidebar.destroy()
     finally:
         set_language("de_DE")
         update_phoenix_theme("dark")

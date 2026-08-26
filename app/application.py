@@ -44,7 +44,7 @@ class PlaceholderPage(tk.Frame):
 class PhoenixApplication:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title(f"{version.APP_NAME} - Phoenix Preview")
+        self.root.title(version.APP_NAME)
         self.root.geometry("1400x800")
         self.root.configure(bg=BG)
 

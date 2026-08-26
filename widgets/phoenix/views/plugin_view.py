@@ -20,7 +20,7 @@ class PhoenixPluginView(WorkspaceFrame):
         super().__init__(
             master,
             title=tr("plugins_title", "Plugins"),
-            subtitle=tr("plugins_subtitle", "Verwalte Erweiterungen und Zusatzmodule für das Snapdragon AI Studio."),
+            subtitle=tr("plugins_subtitle", "Verwalte Erweiterungen und Zusatzmodule für HK NPU STUDIO."),
             has_inspector=False,
         )
         self.controller = controller or PluginController()

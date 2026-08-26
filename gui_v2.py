@@ -318,7 +318,7 @@ class SnapdragonAIStudioV2(BaseWindow):
         if not log_path.exists():
             log_path.parent.mkdir(parents=True, exist_ok=True)
             with open(log_path, "w", encoding="utf-8") as f:
-                f.write("Snapdragon AI Studio Runtime Diagnostics Log\n")
+                f.write("HK NPU Studio Runtime Diagnostics Log\n")
                 f.write("============================================\n")
         try:
             os.startfile(log_path)

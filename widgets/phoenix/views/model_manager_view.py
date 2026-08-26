@@ -44,7 +44,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
         super().__init__(
             master,
             tr("model_manager_title", "Modell-Manager"),
-            tr("model_manager_subtitle", "Verwalte KI-Modelle und Snapdragon NPU-Pakete für die Phoenix Engine"),
+            tr("model_manager_subtitle", "Verwalte KI-Modelle und Snapdragon NPU-Pakete"),
             has_inspector=True
         )
         
@@ -101,7 +101,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         self.beginner_guide_label = tk.Label(
             header_frame,
-            text=tr("model_beginner_guide", "Wählen Sie für den ersten Start das empfohlene Modell. Snapdragon AI Studio führt Sie anschließend zur Installation oder Aktivierung."),
+            text=tr("model_beginner_guide", "Wählen Sie für den ersten Start das empfohlene Modell. HK NPU STUDIO führt Sie anschließend zur Installation oder Aktivierung."),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_body, anchor="w", justify="left", wraplength=680,
         )
@@ -111,7 +111,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             header_frame,
             text=tr(
                 "model_phoenix_rating_note",
-                "Phoenix-Bewertung: Orientierung für Bildqualität und Nutzung in Snapdragon AI Studio. Kein standardisierter Benchmark.",
+                "Phoenix-Bewertung: Orientierung für Bildqualität und Nutzung in HK NPU STUDIO. Kein standardisierter Benchmark.",
             ),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption, anchor="w", justify="left", wraplength=680,

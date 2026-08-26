@@ -30,6 +30,22 @@ def test_about_dialog_uses_the_canonical_window_icon():
         assert dialog._dialog_images
         assert dialog._dialog_images[0].width() == 128
         assert dialog._dialog_images[0].height() == 128
+        visible_texts = [
+            child.cget("text")
+            for child in dialog.body.winfo_children()
+            if isinstance(child, tk.Label) and "text" in child.keys()
+        ]
+        expected_branding = [
+            BrandManager.HEADER_BRAND_NAME,
+            "Version 2.0 RC2B",
+            BrandManager.PLATFORM_DESCRIPTION,
+            BrandManager.SLOGAN,
+            BrandManager.PHOENIX_BOOST_CREDIT,
+        ]
+        branding_positions = [visible_texts.index(text) for text in expected_branding]
+        assert branding_positions == sorted(branding_positions)
+        assert "HK NPU Studio 1.0" not in visible_texts
+        assert BrandManager.TRADEMARK_NOTICE in visible_texts
         dialog.destroy()
     finally:
         root.destroy()
@@ -106,9 +122,12 @@ def test_phoenix_header_branding_and_theme_contrast_at_dpi_scalings():
                 header = PhoenixHeader(root)
                 header.pack(fill="x")
                 root.update_idletasks()
-                assert header.title_label.cget("text") == BrandManager.ENGINE_NAME
+                assert header.title_label.cget("text") == BrandManager.HEADER_BRAND_NAME
+                assert header.view_label.cget("text") == (
+                    f"{BrandManager.PLATFORM_DESCRIPTION} - Home"
+                )
                 assert header.title_label.cget("fg") == PHOENIX_THEME.accent
-                assert header.winfo_reqheight() > 40
+                assert 40 < header.winfo_reqheight() <= 96
                 header.destroy()
     finally:
         root.destroy()

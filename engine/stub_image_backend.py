@@ -77,7 +77,7 @@ class StubImageBackend(InferenceBackend):
             draw.line([(40, 100), (w - 40, 100)], fill="#3b82f6", width=3)
 
             # Draw header labels
-            draw.text((40, 50), "Snapdragon AI Studio", fill="#3b82f6", font=font_title)
+            draw.text((40, 50), "HK NPU STUDIO", fill="#3b82f6", font=font_title)
             draw.text((40, 115), "Stub Generation", fill="#e8edf2", font=font_subtitle)
 
             # Draw metadata values
