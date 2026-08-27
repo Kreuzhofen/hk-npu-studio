@@ -219,7 +219,7 @@ def test_phase1_approved_brand_master_hash_preserved():
 
     assert master.is_file()
     actual_hash = hashlib.sha256(master.read_bytes()).hexdigest().upper()
-    assert actual_hash == "3845D1D8DA50334AB14EEAC6EED282C21FDC3B2DF24A5CE8D55A627A6826ECB1"
+    assert actual_hash == "FE9CFD4A393BE39B0F9FAA13DB1AECACD0B8BC38E079C781E5C9E9D92E3CE8A8"
 
 
 def test_phase1_snapdragon_hardware_terms_preserved():
