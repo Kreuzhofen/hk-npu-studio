@@ -459,7 +459,7 @@ El proyecto está diseñado para Windows 11 ARM64 en Snapdragon. Otras plataform
 
 Repositorio del proyecto:
 
-`https://github.com/Kreuzhofen/snapdragon-ai-studio`
+`https://github.com/Kreuzhofen/hk-npu-studio`
 
 Para errores reproducibles, utiliza GitHub Issues. Para preguntas generales y debates, puede utilizarse GitHub Discussions si está habilitado para el repositorio.
 

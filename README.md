@@ -11,17 +11,17 @@
 ## 🛡️ Badges
 
 <p align="center">
-  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/releases">
-    <img src="https://img.shields.io/github/v/release/Kreuzhofen/snapdragon-ai-studio?include_prereleases&style=flat-square&color=0078D4" alt="Release">
+  <a href="https://github.com/Kreuzhofen/hk-npu-studio/releases">
+    <img src="https://img.shields.io/github/v/release/Kreuzhofen/hk-npu-studio?include_prereleases&style=flat-square&color=0078D4" alt="Release">
   </a>
-  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/blob/main/LICENSE">
+  <a href="https://github.com/Kreuzhofen/hk-npu-studio/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-808080?style=flat-square" alt="License">
   </a>
-  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/releases">
-    <img src="https://img.shields.io/github/downloads/Kreuzhofen/snapdragon-ai-studio/total?style=flat-square&color=blueviolet" alt="Downloads">
+  <a href="https://github.com/Kreuzhofen/hk-npu-studio/releases">
+    <img src="https://img.shields.io/github/downloads/Kreuzhofen/hk-npu-studio/total?style=flat-square&color=blueviolet" alt="Downloads">
   </a>
-  <a href="https://github.com/Kreuzhofen/snapdragon-ai-studio/stargazers">
-    <img src="https://img.shields.io/github/stars/Kreuzhofen/snapdragon-ai-studio?style=flat-square&color=gold" alt="Stars">
+  <a href="https://github.com/Kreuzhofen/hk-npu-studio/stargazers">
+    <img src="https://img.shields.io/github/stars/Kreuzhofen/hk-npu-studio?style=flat-square&color=gold" alt="Stars">
   </a>
   <br>
   <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
@@ -216,8 +216,8 @@ A separate Python installation is not required for normal use of the published i
 Development from source requires an appropriate Windows ARM64 development environment and Python 3.11 ARM64.
 
 ```powershell
-git clone https://github.com/Kreuzhofen/snapdragon-ai-studio.git
-cd snapdragon-ai-studio
+git clone https://github.com/Kreuzhofen/hk-npu-studio.git
+cd hk-npu-studio
 
 py -3.11-arm64 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -475,9 +475,9 @@ Please do not disclose security vulnerabilities publicly. Follow [SECURITY.md](S
 
 ## 💬 Support
 
-- **Bug reports:** [GitHub Issues](https://github.com/Kreuzhofen/snapdragon-ai-studio/issues)
-- **Feature requests:** [GitHub Issues](https://github.com/Kreuzhofen/snapdragon-ai-studio/issues) / [Discussions](https://github.com/Kreuzhofen/snapdragon-ai-studio/discussions)
-- **Questions and setup help:** [GitHub Discussions](https://github.com/Kreuzhofen/snapdragon-ai-studio/discussions)
+- **Bug reports:** [GitHub Issues](https://github.com/Kreuzhofen/hk-npu-studio/issues)
+- **Feature requests:** [GitHub Issues](https://github.com/Kreuzhofen/hk-npu-studio/issues) / [Discussions](https://github.com/Kreuzhofen/hk-npu-studio/discussions)
+- **Questions and setup help:** [GitHub Discussions](https://github.com/Kreuzhofen/hk-npu-studio/discussions)
 
 When reporting issues, never publish access tokens, credentials or other confidential information.
 
