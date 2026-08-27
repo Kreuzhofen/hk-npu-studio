@@ -10,7 +10,7 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 class PhoenixDropdown(PhoenixButton):
     """
-    A premium custom dropdown control designed for Snapdragon AI Studio.
+    A premium custom dropdown control designed for HK NPU STUDIO.
     Inherits hover/animation states from PhoenixButton but renders a modern combobox dropdown layout
     with a left icon, current value text, and a right vector chevron.
     """

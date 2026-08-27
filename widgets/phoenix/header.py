@@ -9,6 +9,10 @@ from engine.brand_manager import BrandManager
 from widgets.phoenix.theme import PHOENIX_THEME
 
 
+HEADER_TEXT_TOP_OFFSET = 8
+HEADER_TITLE_GROUP_UP_OFFSET = 5
+
+
 class PhoenixHeader(tk.Frame):
     def __init__(self, master: tk.Misc) -> None:
         super().__init__(master, bg=PHOENIX_THEME.header_bg)
@@ -33,10 +37,17 @@ class PhoenixHeader(tk.Frame):
             image=self.logo_image,
             bg=PHOENIX_THEME.header_bg,
             bd=0,
-        ).pack(side="left", padx=(0, PHOENIX_THEME.space_lg), pady=2)
+        ).pack(side="left", anchor="n", padx=(0, PHOENIX_THEME.space_lg), pady=2)
 
         title_group = tk.Frame(left, bg=PHOENIX_THEME.header_bg)
-        title_group.pack(side="left", fill="y")
+        title_group.pack(
+            side="left",
+            anchor="n",
+            pady=(
+                HEADER_TEXT_TOP_OFFSET - HEADER_TITLE_GROUP_UP_OFFSET,
+                HEADER_TITLE_GROUP_UP_OFFSET,
+            ),
+        )
 
         self.title_label = tk.Label(
             title_group,
@@ -59,7 +70,12 @@ class PhoenixHeader(tk.Frame):
         self.view_label.pack(side="top", anchor="w")
 
         release_group = tk.Frame(self, bg=PHOENIX_THEME.header_bg)
-        release_group.pack(side="right", fill="y", padx=PHOENIX_THEME.space_lg)
+        release_group.pack(
+            side="right",
+            anchor="n",
+            padx=PHOENIX_THEME.space_lg,
+            pady=(HEADER_TEXT_TOP_OFFSET, 0),
+        )
 
         tk.Label(
             release_group,

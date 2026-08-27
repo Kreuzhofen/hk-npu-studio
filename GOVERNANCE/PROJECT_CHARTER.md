@@ -1,7 +1,7 @@
-# Project Charter – Snapdragon AI Studio
+# Project Charter – HK NPU STUDIO
 
 ## 1. Projektvision
-Snapdragon AI Studio ist eine professionelle, kommerziell ausgereifte Desktop-Anwendung für lokale KI-Bildverarbeitung auf Windows 11 ARM64-Systemen mit Qualcomm Snapdragon X Prozessoren. Es handelt sich nicht um eine einfache Tkinter-Demo, sondern um eine stabile, erweiterbare und performante Software-Plattform für Entwickler und Anwender. Jede architektonische Entscheidung dient der Etablierung eines professionellen Industriestandards.
+HK NPU STUDIO ist eine professionelle, kommerziell ausgereifte Desktop-Anwendung für lokale KI-Bildverarbeitung auf Windows 11 ARM64-Systemen mit Qualcomm Snapdragon X Prozessoren. Es handelt sich nicht um eine einfache Tkinter-Demo, sondern um eine stabile, erweiterbare und performante Software-Plattform für Entwickler und Anwender. Jede architektonische Entscheidung dient der Etablierung eines professionellen Industriestandards.
 
 ## 2. Projektziele
 * **NPU-First Execution:** Maximale Beschleunigung von Modellen (wie RealESRGAN x4, Stable Diffusion, LLMs) direkt auf der Snapdragon-NPU.

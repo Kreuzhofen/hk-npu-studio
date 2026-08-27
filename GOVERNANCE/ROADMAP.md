@@ -1,6 +1,6 @@
-# Produkt-Roadmap – Snapdragon AI Studio
+# Produkt-Roadmap – HK NPU STUDIO
 
-Diese Roadmap dokumentiert die offiziell beschlossenen Meilensteine und Entwicklungsphasen für Snapdragon AI Studio. Es werden keine hypothetischen Funktionen hinzugefügt.
+Diese Roadmap dokumentiert die offiziell beschlossenen Meilensteine und Entwicklungsphasen für HK NPU STUDIO. Es werden keine hypothetischen Funktionen hinzugefügt.
 
 ---
 

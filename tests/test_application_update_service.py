@@ -14,7 +14,7 @@ def manifest(version="2.0.0-rc.2", architecture="arm64"):
     return {
         "version": version,
         "architecture": architecture,
-        "package_url": "https://updates.example.test/SnapdragonAIStudio.exe",
+        "package_url": "https://updates.example.test/HKNPUStudio.exe",
         "sha256": "a" * 64,
     }
 

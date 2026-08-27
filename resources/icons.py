@@ -1,5 +1,5 @@
 """
-Snapdragon AI Studio
+HK NPU STUDIO
 
 Central icon management for the UI.
 
@@ -35,7 +35,7 @@ class IconAsset:
 
 class IconManager:
     """
-    Central logical icon registry for Snapdragon AI Studio.
+    Central logical icon registry for HK NPU STUDIO.
 
     UI code should request icons by logical names such as "folder" or
     "refresh". Real Lucide files can later be added under

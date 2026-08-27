@@ -204,7 +204,7 @@ This workflow was successfully validated from a clean “not installed” state 
 ### Option A: Release Installer — Recommended
 
 1. Open the HK NPU STUDIO **Releases** page.
-2. Download `SnapdragonAIStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
+2. Download `HKNPUStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
 3. Run the installer and follow the Windows setup wizard.
 4. Start HK NPU STUDIO from the Start menu or shortcut.
 5. Use the guided Model Manager to set up your first model.

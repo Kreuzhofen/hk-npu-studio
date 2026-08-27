@@ -1,4 +1,4 @@
-# Snapdragon AI Studio Roadmap
+# HK NPU STUDIO Roadmap
 
 ## v1.1 Identity
 

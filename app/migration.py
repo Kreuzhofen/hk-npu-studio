@@ -5,9 +5,13 @@ import shutil
 import sys
 from pathlib import Path
 
+
 def migrate_legacy_generations() -> None:
-    """Migrate legacy generations from the old output folder to the new canonical OUTPUT_DIR.
-    Does not delete source files, does not overwrite target files, and is idempotent.
+    """Copy legacy user data into the canonical product directory safely.
+
+    Sources are never deleted and existing target files are never overwritten. The
+    operation is therefore idempotent and preserves models, settings, outputs, logs,
+    and any other existing user-managed data.
     """
     if not getattr(sys, "frozen", False):
         return
@@ -15,14 +19,21 @@ def migrate_legacy_generations() -> None:
     local_app_data = os.environ.get("LOCALAPPDATA")
     if not local_app_data:
         return
-        
-    legacy_dir = Path(local_app_data) / "Programs" / "Snapdragon AI Studio" / "output"
+
+    from config import LEGACY_PRODUCT_DATA_DIR_NAME, USER_BASE
+
+    local_root = Path(local_app_data)
+    target_root = Path(USER_BASE)
+    legacy_user_root = local_root / LEGACY_PRODUCT_DATA_DIR_NAME
+    _copy_tree_without_overwrite(legacy_user_root, target_root)
+
+    legacy_dir = local_root / "Programs" / LEGACY_PRODUCT_DATA_DIR_NAME / "output"
     if not legacy_dir.is_dir():
         return
-        
+
     from config import OUTPUT_DIR
     target_dir = Path(OUTPUT_DIR)
-    
+
     try:
         if target_dir.resolve() == legacy_dir.resolve():
             return
@@ -53,6 +64,30 @@ def migrate_legacy_generations() -> None:
             starts_with_generate = path.name.startswith("generate")
             if has_sidecar or starts_with_generate:
                 _safe_copy_with_sidecar(path, target_dir)
+
+
+def _copy_tree_without_overwrite(source_root: Path, target_root: Path) -> None:
+    if not source_root.is_dir():
+        return
+    try:
+        entries = list(source_root.rglob("*"))
+    except OSError:
+        return
+
+    for source in entries:
+        try:
+            if source.is_symlink():
+                continue
+            relative = source.relative_to(source_root)
+            target = target_root / relative
+            if source.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+            elif source.is_file() and not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
+        except (OSError, ValueError):
+            continue
+
 
 def _safe_copy_with_sidecar(source_image_path: Path, target_dir: Path) -> None:
     try:

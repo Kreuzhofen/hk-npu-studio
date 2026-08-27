@@ -69,7 +69,7 @@ class SettingsManager:
         
         url = "https://huggingface.co/api/whoami-v2"
         req = urllib.request.Request(url, headers={
-            "User-Agent": "SnapdragonAIStudio/2.0",
+            "User-Agent": "HKNPUStudio/2.0",
             "Authorization": f"Bearer {token}"
         })
         try:

@@ -1,5 +1,5 @@
 """
-Snapdragon AI Studio
+HK NPU STUDIO
 
 Native Menu Bar Widget
 
@@ -15,7 +15,7 @@ from collections.abc import Callable
 from app.i18n import tr
 
 class MenuBar:
-    """Native Tk menu bar for Snapdragon AI Studio.
+    """Native Tk menu bar for HK NPU STUDIO.
 
     The menu maps menu entries to callback names supplied by UIBuilder
     and binds hotkeys for accessibility.

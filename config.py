@@ -3,9 +3,13 @@ import sys
 from pathlib import Path
 
 BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+PRODUCT_DATA_DIR_NAME = "HK NPU STUDIO"
+LEGACY_PRODUCT_DATA_DIR_NAME = "Snapdragon AI Studio"
+LOCAL_APP_DATA = Path(
+    os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")
+)
 USER_BASE = (
-    Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    / "Snapdragon AI Studio"
+    LOCAL_APP_DATA / PRODUCT_DATA_DIR_NAME
     if getattr(sys, "frozen", False)
     else BASE
 )

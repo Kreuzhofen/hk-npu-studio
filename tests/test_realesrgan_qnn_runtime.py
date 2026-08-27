@@ -103,7 +103,7 @@ class _DiscoveryService:
 
 def test_non_frozen_uses_development_model_when_both_models_exist(tmp_path):
     runner, backend = _runtime_files(tmp_path / "qnn")
-    user_model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    user_model = tmp_path / "appdata" / "HK NPU STUDIO" / "models" / MODEL_FILENAME
     development_model = tmp_path / "source" / "models" / MODEL_FILENAME
     user_model.parent.mkdir(parents=True)
     development_model.parent.mkdir(parents=True)
@@ -128,7 +128,7 @@ def test_non_frozen_uses_development_model_when_both_models_exist(tmp_path):
 
 def test_frozen_uses_local_app_data_model_when_both_models_exist(tmp_path):
     runner, backend = _runtime_files(tmp_path / "qnn")
-    user_model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    user_model = tmp_path / "appdata" / "HK NPU STUDIO" / "models" / MODEL_FILENAME
     development_model = tmp_path / "source" / "models" / MODEL_FILENAME
     user_model.parent.mkdir(parents=True)
     development_model.parent.mkdir(parents=True)
@@ -168,9 +168,36 @@ def test_frozen_uses_bundled_model_when_user_model_is_missing(tmp_path):
     assert runtime.model_source == "bundled"
 
 
+def test_frozen_reuses_legacy_user_model_before_bundled_model(tmp_path):
+    runner, backend = _runtime_files(tmp_path / "qnn")
+    legacy_model = (
+        tmp_path
+        / "appdata"
+        / "Snapdragon AI Studio"
+        / "models"
+        / MODEL_FILENAME
+    )
+    legacy_model.parent.mkdir(parents=True)
+    legacy_model.touch()
+    bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
+    bundled_model.parent.mkdir(parents=True)
+    bundled_model.touch()
+    _DiscoveryService.result = _discovery(runner, backend)
+
+    runtime = resolve_realesrgan_qnn_runtime(
+        local_app_data=tmp_path / "appdata",
+        frozen=True,
+        frozen_app_dir=tmp_path / "frozen-app",
+        discovery_service=_DiscoveryService,
+    )
+
+    assert runtime.model_path == legacy_model
+    assert runtime.model_source == "legacy_user"
+
+
 def test_non_frozen_does_not_fall_back_to_local_app_data_model(tmp_path):
     runner, backend = _runtime_files(tmp_path / "qnn")
-    user_model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    user_model = tmp_path / "appdata" / "HK NPU STUDIO" / "models" / MODEL_FILENAME
     user_model.parent.mkdir(parents=True)
     user_model.touch()
     bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
@@ -208,7 +235,7 @@ def test_frozen_does_not_fall_back_to_development_model(tmp_path):
             frozen_app_dir=tmp_path / "frozen-app",
             discovery_service=_DiscoveryService,
         )
-    user_model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    user_model = tmp_path / "appdata" / "HK NPU STUDIO" / "models" / MODEL_FILENAME
     bundled_model = tmp_path / "frozen-app" / "models" / MODEL_FILENAME
     assert error.value.code == "REALESRGAN_MODEL_MISSING"
     assert str(user_model) in error.value.detail
@@ -222,7 +249,7 @@ def test_frozen_does_not_fall_back_to_development_model(tmp_path):
 )
 def test_missing_qnn_components_fail_without_fallback(tmp_path, runner, backend, expected_code):
     available_runner, available_backend = _runtime_files(tmp_path / "qnn")
-    model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    model = tmp_path / "appdata" / "HK NPU STUDIO" / "models" / MODEL_FILENAME
     model.parent.mkdir(parents=True)
     model.touch()
     _DiscoveryService.result = _discovery(
@@ -241,7 +268,7 @@ def test_missing_qnn_components_fail_without_fallback(tmp_path, runner, backend,
 
 def test_missing_signed_htp_skeleton_pair_fails_closed(tmp_path):
     runner, backend = _runtime_files(tmp_path / "qnn")
-    model = tmp_path / "appdata" / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    model = tmp_path / "appdata" / "HK NPU STUDIO" / "models" / MODEL_FILENAME
     model.parent.mkdir(parents=True)
     model.touch()
     _DiscoveryService.result = SimpleNamespace(
@@ -341,6 +368,32 @@ def test_qnn_call_sites_share_runtime_process_environment(tmp_path, monkeypatch)
         assert str(runner.parent) in call["env"]["PATH"]
         assert str(backend.parent / "htp") in call["env"]["ADSP_LIBRARY_PATH"]
         assert call["cwd"] == input_dir
+
+
+def test_tiled_qnn_call_suppresses_windows_console(tmp_path, monkeypatch):
+    runner, backend = _runtime_files(tmp_path / "qnn")
+    model = tmp_path / "model" / MODEL_FILENAME
+    model.parent.mkdir()
+    model.touch()
+    runtime = RealESRGANQnnRuntime(
+        model, runner, backend, "development", (backend.parent / "htp",)
+    )
+    input_list = tmp_path / "input_list.txt"
+    input_list.write_text("image.raw", encoding="utf-8")
+    captured = {}
+    no_window = 0x08000000
+
+    monkeypatch.setattr(qnn_module, "resolve_realesrgan_qnn_runtime", lambda: runtime)
+    monkeypatch.setattr(qnn_module.subprocess, "CREATE_NO_WINDOW", no_window, raising=False)
+    monkeypatch.setattr(
+        qnn_module.subprocess,
+        "run",
+        lambda _command, **kwargs: captured.update(kwargs),
+    )
+
+    qnn_module.run_qnn_context(input_list, tmp_path / "output")
+
+    assert captured["creationflags"] == no_window
 
 
 def test_qnn_input_lists_use_relative_raw_names_with_space_paths(tmp_path, monkeypatch):
@@ -497,6 +550,42 @@ def test_controller_4x_profile_never_uses_lanczos_resize(tmp_path, monkeypatch):
     result = Path(controller.upscale_generated_image(str(source), 4))
 
     assert result.name == "generated_4x.png"
+
+
+def test_controller_4x_retries_transient_windows_file_lock(tmp_path, monkeypatch):
+    source = tmp_path / "generated.png"
+    intermediate = tmp_path / "native_4x.png"
+    Image.new("RGB", (8, 8), "navy").save(source)
+    Image.new("RGB", (32, 32), "red").save(intermediate)
+    original_bytes = source.read_bytes()
+
+    class Adapter:
+        def run(self, _skill, **_kwargs):
+            return {"output_path": str(intermediate)}
+
+    original_replace = Path.replace
+    attempts = []
+
+    def replace_with_transient_lock(path, target):
+        attempts.append((path, target))
+        if len(attempts) < 3:
+            error = PermissionError(32, "file is in use", str(path))
+            error.winerror = 32
+            raise error
+        return original_replace(path, target)
+
+    monkeypatch.setattr("engine.phoenix_adapter.PhoenixAdapter", Adapter)
+    monkeypatch.setattr(Path, "replace", replace_with_transient_lock)
+    monkeypatch.setattr("controllers.prompt_workspace_controller.time.sleep", lambda _delay: None)
+    controller = PromptWorkspaceController.__new__(PromptWorkspaceController)
+
+    result = Path(controller.upscale_generated_image(str(source), 4))
+
+    assert len(attempts) == 3
+    assert result.name == "generated_4x.png"
+    assert result.is_file()
+    assert not intermediate.exists()
+    assert source.read_bytes() == original_bytes
 
 
 def test_controller_upscale_profile_rejects_invalid_scale_and_preserves_original(tmp_path):

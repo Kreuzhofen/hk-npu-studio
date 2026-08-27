@@ -1,5 +1,5 @@
 """
-Snapdragon AI Studio
+HK NPU STUDIO
 
 Base Card Widget
 
@@ -13,7 +13,7 @@ from tkinter import ttk
 class BaseCard(ttk.LabelFrame):
     """
     Gemeinsame Basisklasse für alle Karten-Widgets
-    im Snapdragon AI Studio.
+    im HK NPU STUDIO.
     """
 
     def __init__(self, master, title: str):

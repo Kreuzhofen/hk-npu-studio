@@ -116,7 +116,7 @@ class ModelDownloader:
         start_time = time.time()
 
         hf_token = os.environ.get("HF_TOKEN") or getattr(config, "HF_TOKEN", None)
-        headers = {"User-Agent": "SnapdragonAIStudio/2.0"}
+        headers = {"User-Agent": "HKNPUStudio/2.0"}
         if hf_token:
             headers["Authorization"] = f"Bearer {hf_token}"
         existing_bytes = partial_path.stat().st_size if partial_path.exists() else 0

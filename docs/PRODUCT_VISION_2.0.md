@@ -1,10 +1,10 @@
-# Product Vision 2.0 – Snapdragon AI Studio
+# Product Vision 2.0 – HK NPU STUDIO
 
 ## 1. Mission
 
 **Create. Organize. Review. Evolve.**
 
-Snapdragon AI Studio is a professional, local AI Creative Suite designed specifically for Snapdragon-powered PCs. It leverages hardware acceleration (via Qualcomm Hexagon HPU/NPU) to make generative AI fast, accessible, and integrated.
+HK NPU STUDIO is a professional, local AI Creative Suite designed specifically for Snapdragon-powered PCs. It leverages hardware acceleration (via Qualcomm Hexagon HPU/NPU) to make generative AI fast, accessible, and integrated.
 
 ---
 
@@ -53,7 +53,7 @@ To reflect the transition into an AI Creative Suite, the workspaces follow a pro
 
 ## 6. Out of Scope (What is NOT in the Product)
 
-Snapdragon AI Studio intentionally excludes classic image editing tools to focus on generative workflows. The following are out of scope:
+HK NPU STUDIO intentionally excludes classic image editing tools to focus on generative workflows. The following are out of scope:
 * Sharpening, Denoising, and traditional color filters.
 * Curve adjustments and color correction layers.
 * Selection brushes, clone stamps, or vector layers.

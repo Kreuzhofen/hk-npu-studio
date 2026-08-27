@@ -37,7 +37,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
         job = GenerationJob(session=session)
         
         with patch("sys.frozen", True, create=True), \
-             patch("sys.executable", "SnapdragonAIStudio.exe"), \
+             patch("sys.executable", "HKNPUStudio.exe"), \
              patch("subprocess.Popen") as mock_popen:
             
             # Mock process
@@ -53,7 +53,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
             
             # Verify command spawned
             called_cmd = mock_popen.call_args[0][0]
-            self.assertEqual(called_cmd[0], "SnapdragonAIStudio.exe")
+            self.assertEqual(called_cmd[0], "HKNPUStudio.exe")
             self.assertEqual(called_cmd[1], "--qnn-worker")
             self.assertEqual(called_cmd[2], "sd15")
             self.assertEqual(
@@ -67,7 +67,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
         job = GenerationJob(session=session)
         
         with patch("sys.frozen", True, create=True), \
-             patch("sys.executable", "SnapdragonAIStudio.exe"), \
+             patch("sys.executable", "HKNPUStudio.exe"), \
              patch("subprocess.Popen") as mock_popen:
             
             # Mock process
@@ -81,7 +81,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
                 backend.generate(job)
             
             called_cmd = mock_popen.call_args[0][0]
-            self.assertEqual(called_cmd[0], "SnapdragonAIStudio.exe")
+            self.assertEqual(called_cmd[0], "HKNPUStudio.exe")
             self.assertEqual(called_cmd[1], "--qnn-worker")
             self.assertEqual(called_cmd[2], "sd21")
             self.assertIn("creationflags", mock_popen.call_args.kwargs)
@@ -92,7 +92,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
         job = GenerationJob(session=session)
         
         with patch("sys.frozen", True, create=True), \
-             patch("sys.executable", "SnapdragonAIStudio.exe"), \
+             patch("sys.executable", "HKNPUStudio.exe"), \
              patch("subprocess.Popen") as mock_popen:
             
             # Mock process
@@ -106,7 +106,7 @@ class FrozenQnnWorkerFixTests(unittest.TestCase):
                 backend.generate(job)
             
             called_cmd = mock_popen.call_args[0][0]
-            self.assertEqual(called_cmd[0], "SnapdragonAIStudio.exe")
+            self.assertEqual(called_cmd[0], "HKNPUStudio.exe")
             self.assertEqual(called_cmd[1], "--qnn-worker")
             self.assertEqual(called_cmd[2], "controlnet-canny")
             self.assertIn("creationflags", mock_popen.call_args.kwargs)

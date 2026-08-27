@@ -1,4 +1,4 @@
-# Snapdragon AI Studio Architecture
+# HK NPU STUDIO Architecture
 
 Created by Holger Kreuzhofen
 
@@ -8,7 +8,7 @@ Phoenix Architecture
 
 ## Goal
 
-Snapdragon AI Studio wird von einer fensterbasierten Anwendung zu einer modularen Seiten-Anwendung umgebaut.
+HK NPU STUDIO wird von einer fensterbasierten Anwendung zu einer modularen Seiten-Anwendung umgebaut.
 
 ## Target Structure
 

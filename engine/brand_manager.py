@@ -19,7 +19,7 @@ class BrandState:
 
 
 class BrandManager:
-    """Central branding and asset manager for Snapdragon AI Studio."""
+    """Central branding and asset manager for HK NPU STUDIO."""
 
     APP_NAME = RELEASE.app_name
     APP_VERSION = RELEASE.display_version
@@ -62,7 +62,7 @@ class BrandManager:
 
     @classmethod
     def apply_window_icon(cls, window) -> bool:
-        """Apply the canonical Snapdragon AI Studio title-bar icon."""
+        """Apply the canonical HK NPU STUDIO title-bar icon."""
         if not cls.APP_ICON.is_file():
             return False
         try:

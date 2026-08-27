@@ -46,6 +46,48 @@ class GenerationStatusFeedbackTests(unittest.TestCase):
         self.assertEqual(self.view.status_label.cget("text"), "Status: Sampling Phase (Schritt 9/20)...")
         self.assertEqual(self.view.insp_gen_status.cget("text"), "Sampling Phase (Schritt 9/20)...")
 
+    def test_progress_stage_updates_keep_inspector_geometry_stable_at_supported_dpi(self) -> None:
+        """Changing generation-stage lengths must not add or remove inspector rows."""
+        original_scaling = float(self.root.tk.call("tk", "scaling"))
+        self.root.geometry("1200x900")
+        self.view.pack(fill="both", expand=True)
+        self.root.update()
+        stages = (
+            "Vorbereiten",
+            "Sampling Phase (Schritt 9/20)...",
+            "Bild wird gespeichert & Metadaten geschrieben...",
+            "Fertig",
+        )
+
+        try:
+            for scaling in (1.0, 1.25, 1.5, 1.75):
+                with self.subTest(scaling=scaling):
+                    self.root.tk.call("tk", "scaling", scaling)
+                    self.root.update()
+                    inspector_width = self.view.insp_canvas.winfo_width()
+                    snapshots = []
+                    for stage in stages:
+                        self.view._set_progress(50.0, stage, "Schritt 9 / 20")
+                        self.view._layout_generation_inspector(inspector_width)
+                        self.root.update_idletasks()
+                        snapshots.append(
+                            (
+                                self.view.insp_content.winfo_reqheight(),
+                                int(self.view.progress_stage_label.grid_info()["row"]),
+                                int(self.view.progress_step_label.grid_info()["row"]),
+                            )
+                        )
+
+                    self.assertEqual(len(set(snapshots)), 1, snapshots)
+                    self.assertEqual(
+                        snapshots[0][2],
+                        snapshots[0][1] + 1,
+                        "phase and step rows must stay stacked for stable geometry",
+                    )
+        finally:
+            self.root.tk.call("tk", "scaling", original_scaling)
+            self.view.pack_forget()
+
     def test_late_progress_does_not_overwrite_terminal_state(self) -> None:
         self.view._generation_running = False
         self.view.status_label.configure(text="Status: CANCELLED")

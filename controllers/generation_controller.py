@@ -17,16 +17,13 @@ from engine.model_loader_service import ModelLoaderService
 logger = get_logger("GenerationController")
 
 def log_abort(event_name, error=None, model_id=None, model_path=None):
-    import os
     import sys
     import traceback
-    from pathlib import Path
     import datetime
 
-    local_app_data = os.environ.get("LOCALAPPDATA")
-    if not local_app_data:
-        local_app_data = str(Path.home() / "AppData" / "Local")
-    log_file = Path(local_app_data) / "Snapdragon AI Studio" / "logs" / "early_generation_abort.log"
+    from config import LOG_DIR
+
+    log_file = Path(LOG_DIR) / "early_generation_abort.log"
     try:
         log_file.parent.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.datetime.now().isoformat()

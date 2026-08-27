@@ -8,7 +8,7 @@ from threading import Lock
 from config import LOG_BACKUP_COUNT, LOG_DIR, LOG_LEVEL, LOG_MAX_BYTES
 
 
-LOG_FILE_NAME = "snapdragon_ai_studio.log"
+LOG_FILE_NAME = "hk_npu_studio.log"
 _HANDLER_MARKER = "_snapdragon_ai_managed_handler"
 _CONFIG_LOCK = Lock()
 

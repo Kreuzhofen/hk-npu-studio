@@ -1,4 +1,4 @@
-# Future Roadmap – Snapdragon AI Studio
+# Future Roadmap – HK NPU STUDIO
 
 Datum: 2026-07-07
 Status: Offizielle Produkt-Roadmap (Vision 2.0)
@@ -7,7 +7,7 @@ Status: Offizielle Produkt-Roadmap (Vision 2.0)
 
 ## 1. Zielbild – Local AI Creative Suite
 
-Snapdragon AI Studio entwickelt sich weg von einer breitgefächerten Utility-Sammlung hin zu einer fokussierten, professionellen **lokalen AI Creative Suite** für Snapdragon-PCs. Die Suite konzentriert sich auf die vier Kernprozesse (C.O.R.E.):
+HK NPU STUDIO entwickelt sich weg von einer breitgefächerten Utility-Sammlung hin zu einer fokussierten, professionellen **lokalen AI Creative Suite** für Snapdragon-PCs. Die Suite konzentriert sich auf die vier Kernprozesse (C.O.R.E.):
 * **CREATE:** Bild- und Video-Generierung direkt auf der lokalen Snapdragon HPU/NPU.
 * **ORGANIZE:** Strukturierte Speicherung, Indizierung und Metadaten-Katalogisierung (Prompts, Seeds).
 * **REVIEW:** Side-by-Side-Parametervergleiche und Qualitätsbeurteilung.

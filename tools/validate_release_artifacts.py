@@ -25,7 +25,7 @@ def sha256(path: Path) -> str:
 
 
 def collect_artifacts() -> list[dict[str, object]]:
-    app = DIST_ROOT / "SnapdragonAIStudio" / RELEASE.executable_name
+    app = DIST_ROOT / "HKNPUStudio" / RELEASE.executable_name
     installers = sorted((DIST_ROOT / "installer").glob("*.exe"))
     paths = [app, *installers]
     missing = [str(path) for path in paths if not path.is_file()]

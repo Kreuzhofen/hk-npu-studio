@@ -1,4 +1,4 @@
-# Technical Debt - Snapdragon AI Studio
+# Technical Debt - HK NPU STUDIO
 
 Datum: 2026-07-01
 Status: Analyse- und Planungsdokument

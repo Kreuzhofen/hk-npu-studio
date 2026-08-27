@@ -231,7 +231,7 @@ class ModelRegistryTests(unittest.TestCase):
             )
 
     def test_frozen_upgrade_includes_existing_installation_models_root(self):
-        executable = Path("C:/Program Files/Snapdragon AI Studio/SnapdragonAIStudio.exe")
+        executable = Path("C:/Program Files/HK NPU STUDIO/HKNPUStudio.exe")
         with patch("controllers.model_repository.sys.frozen", True, create=True), patch(
             "controllers.model_repository.sys.executable", str(executable)
         ), patch(
@@ -244,7 +244,7 @@ class ModelRegistryTests(unittest.TestCase):
 
     def test_sd35_backend_uses_existing_frozen_legacy_model_path(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            executable = Path(temp_dir) / "SnapdragonAIStudio.exe"
+            executable = Path(temp_dir) / "HKNPUStudio.exe"
             legacy = executable.parent / "models" / "stable_diffusion_v3_5_qai"
             legacy.mkdir(parents=True)
             missing_canonical = executable.parent / "new-models"

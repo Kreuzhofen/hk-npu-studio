@@ -13,8 +13,9 @@ from engine.release_config import RELEASE, ReleaseConfig
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PRODUCT_DIR = "HK NPU STUDIO"
 LEGACY_PRODUCT_DIR = "Snapdragon AI Studio"
-EXECUTABLE_NAME = "SnapdragonAIStudio.exe"
+EXECUTABLE_NAME = "HKNPUStudio.exe"
 INSTALLER_APP_ID = "{{8D9D455C-4C15-4A61-9685-21F67C5D4A44}"
 
 
@@ -22,10 +23,12 @@ def _read(relative_path: str) -> str:
     return (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def test_phase1_legacy_storage_contract_unchanged():
+def test_rebranded_storage_target_preserves_legacy_source_contract():
     config_source = _read("config.py")
 
-    assert f'/ "{LEGACY_PRODUCT_DIR}"' in config_source
+    assert f'PRODUCT_DATA_DIR_NAME = "{PRODUCT_DIR}"' in config_source
+    assert f'LEGACY_PRODUCT_DATA_DIR_NAME = "{LEGACY_PRODUCT_DIR}"' in config_source
+    assert "LOCAL_APP_DATA / PRODUCT_DATA_DIR_NAME" in config_source
     for contract in (
         'INPUT_DIR = USER_BASE / "input"',
         'OUTPUT_DIR = USER_BASE / "output"',
@@ -41,56 +44,52 @@ def test_phase1_legacy_storage_contract_unchanged():
         assert contract in config_source
 
 
-def test_phase1_legacy_migration_path_unchanged():
+def test_legacy_migration_sources_are_preserved():
     migration_source = _read("app/migration.py")
 
-    assert (
-        'Path(local_app_data) / "Programs" / "Snapdragon AI Studio" / "output"'
-        in migration_source
-    )
+    assert "legacy_user_root = local_root / LEGACY_PRODUCT_DATA_DIR_NAME" in migration_source
+    assert 'local_root / "Programs" / LEGACY_PRODUCT_DATA_DIR_NAME / "output"' in migration_source
+    assert "not target.exists()" in migration_source
 
 
-def test_phase1_early_generation_abort_log_path_unchanged():
+def test_early_generation_abort_log_uses_canonical_log_dir():
     generation_source = _read("controllers/generation_controller.py")
 
-    assert (
-        'Path(local_app_data) / "Snapdragon AI Studio" / "logs" / '
-        '"early_generation_abort.log"'
-        in generation_source
-    )
+    assert 'Path(LOG_DIR) / "early_generation_abort.log"' in generation_source
 
 
-def test_phase1_executable_contract_unchanged():
+def test_rebranded_executable_contract():
     assert RELEASE.executable_name == EXECUTABLE_NAME
     assert json.loads(_read("release.json"))["executable_name"] == EXECUTABLE_NAME
 
 
-def test_phase1_installer_identity_unchanged():
+def test_installer_keeps_upgrade_identity_and_uses_new_paths():
     installer = _read("installer/snapdragon_ai_studio.iss")
 
     assert f"AppId={INSTALLER_APP_ID}" in installer
     assert (
-        r"DefaultDirName={localappdata}\Programs\Snapdragon AI Studio"
+        r"DefaultDirName={localappdata}\Programs\HK NPU STUDIO"
         in installer
     )
     assert (
-        r"PreferencesDir := ExpandConstant('{localappdata}\Snapdragon AI Studio\data');"
+        r"PreferencesDir := ExpandConstant('{localappdata}\HK NPU STUDIO\data');"
         in installer
     )
+    assert r"{localappdata}\Snapdragon AI Studio\data\preferences.json" in installer
 
 
-def test_phase1_update_contracts_unchanged(tmp_path):
+def test_rebranded_packaging_and_update_contracts(tmp_path):
     installer = _read("installer/snapdragon_ai_studio.iss")
     build_installer = _read("tools/build_installer.py")
     build_app = _read("tools/build_app.py")
 
-    assert "OutputBaseFilename=SnapdragonAIStudio-{#AppVersion}-ARM64-Setup" in installer
-    assert r'Source: "..\dist\SnapdragonAIStudio\*"; DestDir: "{app}"' in installer
+    assert "OutputBaseFilename=HKNPUStudio-{#AppVersion}-ARM64-Setup" in installer
+    assert r'Source: "..\dist\HKNPUStudio\*"; DestDir: "{app}"' in installer
     assert r'Filename: "{app}\{#ExecutableName}"' in installer
-    assert 'RELEASE_STAGING_DIR = PROJECT_ROOT / "dist" / "SnapdragonAIStudio"' in build_installer
-    assert 'APP_DIST = DIST_ROOT / "SnapdragonAIStudio"' in build_app
-    assert 'StringStruct(\'InternalName\', \'SnapdragonAIStudio\')' in build_app
-    assert '"SnapdragonAIStudio"' in build_app
+    assert 'RELEASE_STAGING_DIR = PROJECT_ROOT / "dist" / "HKNPUStudio"' in build_installer
+    assert 'APP_DIST = DIST_ROOT / "HKNPUStudio"' in build_app
+    assert 'StringStruct(\'InternalName\', \'HKNPUStudio\')' in build_app
+    assert '"HKNPUStudio"' in build_app
 
     calls: list[tuple[str, dict[str, object]]] = []
 
@@ -115,17 +114,17 @@ def test_phase1_update_contracts_unchanged(tmp_path):
     result = service.stage_update(manifest)
 
     assert result.success is True
-    assert calls[0][1]["filename"] == "SnapdragonAIStudio-2.0.0-rc.2-ARM64-Setup.exe"
+    assert calls[0][1]["filename"] == "HKNPUStudio-2.0.0-rc.2-ARM64-Setup.exe"
 
 
-def test_phase1_technical_user_agent_contracts_unchanged():
+def test_rebranded_technical_user_agent_contracts():
     expected_user_agents = {
-        "app/model_downloader.py": '"User-Agent": "SnapdragonAIStudio/2.0"',
-        "app/settings_manager.py": '"User-Agent": "SnapdragonAIStudio/2.0"',
+        "app/model_downloader.py": '"User-Agent": "HKNPUStudio/2.0"',
+        "app/settings_manager.py": '"User-Agent": "HKNPUStudio/2.0"',
         "engine/application_update_service.py": (
-            '"User-Agent": f"SnapdragonAIStudio/{self.current_version}"'
+            '"User-Agent": f"HKNPUStudio/{self.current_version}"'
         ),
-        "engine/download_service.py": '"User-Agent": "SnapdragonAIStudio/2.0"',
+        "engine/download_service.py": '"User-Agent": "HKNPUStudio/2.0"',
     }
 
     for relative_path, expected_contract in expected_user_agents.items():
@@ -246,12 +245,12 @@ def test_phase1_snapdragon_hardware_terms_preserved():
         assert hardware_term in sources
 
 
-def test_phase1_help_keeps_legacy_storage_paths():
+def test_help_uses_rebranded_storage_paths():
     expected_paths = (
-        rf"%LOCALAPPDATA%\{LEGACY_PRODUCT_DIR}\output",
-        rf"%LOCALAPPDATA%\{LEGACY_PRODUCT_DIR}\models",
-        rf"%LOCALAPPDATA%\{LEGACY_PRODUCT_DIR}\data",
-        rf"%LOCALAPPDATA%\{LEGACY_PRODUCT_DIR}\logs",
+        rf"%LOCALAPPDATA%\{PRODUCT_DIR}\output",
+        rf"%LOCALAPPDATA%\{PRODUCT_DIR}\models",
+        rf"%LOCALAPPDATA%\{PRODUCT_DIR}\data",
+        rf"%LOCALAPPDATA%\{PRODUCT_DIR}\logs",
     )
     for locale in ("de_DE", "en_US", "es_ES"):
         help_text = _read(f"locales/help_{locale}.txt")
@@ -261,7 +260,7 @@ def test_phase1_help_keeps_legacy_storage_paths():
 
 def test_phase1_visible_branding_can_change_independently(tmp_path):
     release_values = json.loads(_read("release.json"))
-    release_values["app_name"] = "HK NPU Studio"
+    release_values["app_name"] = "HK NPU STUDIO"
     candidate = tmp_path / "release.json"
     candidate.write_text(
         json.dumps(release_values, ensure_ascii=False),
@@ -270,7 +269,7 @@ def test_phase1_visible_branding_can_change_independently(tmp_path):
 
     branded = ReleaseConfig.load(candidate)
 
-    assert branded.app_name == "HK NPU Studio"
+    assert branded.app_name == "HK NPU STUDIO"
     assert branded.executable_name == EXECUTABLE_NAME
     assert branded.package_version == RELEASE.package_version
     assert branded.architecture == "arm64"

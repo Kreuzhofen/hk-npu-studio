@@ -69,7 +69,7 @@ class ApplicationUpdateService:
         try:
             request = urllib.request.Request(
                 manifest_url,
-                headers={"User-Agent": f"SnapdragonAIStudio/{self.current_version}"},
+                headers={"User-Agent": f"HKNPUStudio/{self.current_version}"},
             )
             with self._opener(request, timeout=15.0) as response:
                 payload = response.read(MAX_MANIFEST_BYTES + 1)
@@ -116,9 +116,7 @@ class ApplicationUpdateService:
         )
         if not check.available:
             return ApplicationUpdateStage(False, check.message)
-        filename = (
-            f"SnapdragonAIStudio-{manifest.version}-ARM64-Setup.exe"
-        )
+        filename = f"HKNPUStudio-{manifest.version}-ARM64-Setup.exe"
         result = self.download_service.download(
             manifest.package_url,
             filename=filename,

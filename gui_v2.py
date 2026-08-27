@@ -1,5 +1,5 @@
 """
-Snapdragon AI Studio
+HK NPU STUDIO
 
 GUI Version 2
 
@@ -15,6 +15,14 @@ import tkinter as tk
 from pathlib import Path
 
 from PIL import Image, ImageTk
+
+try:
+    from app.migration import migrate_legacy_generations
+
+    migrate_legacy_generations()
+except Exception as error:
+    print(f"Error during legacy migration: {error}", file=sys.stderr)
+
 from engine.startup_diagnostics import run_startup_diagnostics
 from app.i18n import tr
 
@@ -413,11 +421,6 @@ def main():
         )
         return 0 if report.safe_to_start else 1
     run_startup_diagnostics()
-    try:
-        from app.migration import migrate_legacy_generations
-        migrate_legacy_generations()
-    except Exception as e:
-        print(f"Error during legacy migration: {e}", file=sys.stderr)
     app = SnapdragonAIStudioV2()
     app.mainloop()
     return 0

@@ -9,7 +9,11 @@ from app.i18n import set_language, tr
 from dialogs.about_dialog import AboutDialog
 from engine.brand_manager import BrandManager
 from engine.theme_manager import ThemeManager
-from widgets.phoenix.header import PhoenixHeader
+from widgets.phoenix.header import (
+    HEADER_TEXT_TOP_OFFSET,
+    HEADER_TITLE_GROUP_UP_OFFSET,
+    PhoenixHeader,
+)
 from widgets.phoenix.controls.vector_icons import draw_vector_icon
 from widgets.phoenix.theme import PHOENIX_THEME, update_phoenix_theme
 from widgets.phoenix.views.home_view import PhoenixHomeView
@@ -113,20 +117,45 @@ def test_global_text_context_menu_is_bound_to_all_text_inputs():
 def test_phoenix_header_branding_and_theme_contrast_at_dpi_scalings():
     set_language("en_US")
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("1000x300")
     try:
         for theme_name in ("dark", "light"):
             update_phoenix_theme(theme_name)
-            for scaling in (1.0, 1.25, 1.5):
+            for scaling in (1.0, 1.25, 1.5, 1.75):
                 root.tk.call("tk", "scaling", scaling)
                 header = PhoenixHeader(root)
                 header.pack(fill="x")
-                root.update_idletasks()
+                root.update()
+                title_group = header.title_label.master
+                logo_label = title_group.master.winfo_children()[0]
+                release_group = header.winfo_children()[1]
                 assert header.title_label.cget("text") == BrandManager.HEADER_BRAND_NAME
                 assert header.view_label.cget("text") == (
                     f"{BrandManager.PLATFORM_DESCRIPTION} - Home"
                 )
                 assert header.title_label.cget("fg") == PHOENIX_THEME.accent
+                assert title_group.pack_info()["pady"] == (
+                    HEADER_TEXT_TOP_OFFSET - HEADER_TITLE_GROUP_UP_OFFSET,
+                    HEADER_TITLE_GROUP_UP_OFFSET,
+                )
+                assert release_group.pack_info()["pady"] == (HEADER_TEXT_TOP_OFFSET, 0)
+                assert title_group.winfo_y() == (
+                    HEADER_TEXT_TOP_OFFSET - HEADER_TITLE_GROUP_UP_OFFSET
+                )
+                assert release_group.winfo_y() == HEADER_TEXT_TOP_OFFSET
+                assert title_group.pack_info()["fill"] == "none"
+                assert release_group.pack_info()["fill"] == "none"
+                assert (
+                    logo_label.cget("image") == str(header.logo_image)
+                    and header.logo_image.width() == 73
+                    and header.logo_image.height() == 73
+                )
+                assert logo_label.winfo_y() == 2
+                assert title_group.winfo_height() >= title_group.winfo_reqheight()
+                assert release_group.winfo_height() >= release_group.winfo_reqheight()
+                assert header.winfo_reqheight() == max(
+                    title_group.master.winfo_reqheight(), release_group.winfo_reqheight()
+                )
                 assert 40 < header.winfo_reqheight() <= 96
                 header.destroy()
     finally:

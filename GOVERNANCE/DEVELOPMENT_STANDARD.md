@@ -1,4 +1,4 @@
-# Development Standard – Snapdragon AI Studio
+# Development Standard – HK NPU STUDIO
 
 Dieses Dokument legt die verbindlichen Qualitäts- und Entwicklungsstandards für alle Mitwirkenden (menschliche Entwickler und KI-Modelle) fest. Die Einhaltung dieser Richtlinien ist Voraussetzung für jeden Code-Review.
 
@@ -30,7 +30,7 @@ Views (in `pages/` oder `widgets/`) dienen ausschließlich dem Aufbau der Oberfl
 ## 2. UI/UX & Design-Standards
 
 ### 2.1 Commercial Polish
-Snapdragon AI Studio ist kein akademischer Prototyp, sondern soll sich wie eine professionelle, kommerzielle Desktop-Anwendung anfühlen.
+HK NPU STUDIO ist kein akademischer Prototyp, sondern soll sich wie eine professionelle, kommerzielle Desktop-Anwendung anfühlen.
 * Widgets müssen saubere Abstände (Padding/Margin), abgerundete Ecken und durchdachte Hover-Effekte aufweisen.
 * Schriftarten müssen plattformübergreifend einheitlich geladen werden (bevorzugt "Segoe UI" auf Windows).
 

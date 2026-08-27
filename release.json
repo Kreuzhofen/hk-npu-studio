@@ -1,10 +1,10 @@
 {
-  "app_name": "HK NPU Studio",
+  "app_name": "HK NPU STUDIO",
   "display_version": "2.0 RC2B",
   "package_version": "2.0.0-rc.2b",
   "build": "2026.07.29",
   "codename": "Phoenix",
   "publisher": "Holger Kreuzhofen",
   "architecture": "arm64",
-  "executable_name": "SnapdragonAIStudio.exe"
+  "executable_name": "HKNPUStudio.exe"
 }

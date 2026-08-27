@@ -4,7 +4,7 @@ from app import theme
 
 class Card(tk.Frame):
     """
-    Wiederverwendbare Karte für Snapdragon AI Studio.
+    Wiederverwendbare Karte für HK NPU STUDIO.
 
     Beispiel:
         Card(parent, title="RealESRGAN", subtitle="QNN / Snapdragon NPU")

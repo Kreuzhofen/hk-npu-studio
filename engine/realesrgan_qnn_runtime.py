@@ -7,6 +7,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from config import LEGACY_PRODUCT_DATA_DIR_NAME, PRODUCT_DATA_DIR_NAME
 from engine.backends.backend_discovery_service import BackendDiscoveryService
 
 
@@ -82,11 +83,18 @@ def resolve_realesrgan_qnn_runtime(
     app_data = local_app_data or Path(
         os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")
     )
-    user_model = app_data / "Snapdragon AI Studio" / "models" / MODEL_FILENAME
+    user_model = app_data / PRODUCT_DATA_DIR_NAME / "models" / MODEL_FILENAME
+    legacy_user_model = (
+        app_data / LEGACY_PRODUCT_DATA_DIR_NAME / "models" / MODEL_FILENAME
+    )
     development_model = (project_root or Path(__file__).resolve().parents[1]) / "models" / MODEL_FILENAME
     bundled_model = (frozen_app_dir or Path(sys.executable).resolve().parent) / "models" / MODEL_FILENAME
     candidates = (
-        ((user_model, "user"), (bundled_model, "bundled"))
+        (
+            (user_model, "user"),
+            (legacy_user_model, "legacy_user"),
+            (bundled_model, "bundled"),
+        )
         if is_frozen
         else ((development_model, "development"),)
     )

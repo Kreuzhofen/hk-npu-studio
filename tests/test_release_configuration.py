@@ -59,4 +59,4 @@ def test_inno_setup_contract_is_arm64_and_requires_build_defines():
     assert "ArchitecturesAllowed=arm64" in content
     assert "ArchitecturesInstallIn64BitMode=arm64" in content
     assert "#ifndef AppVersion" in content
-    assert r'dist\SnapdragonAIStudio\*' in content
+    assert r'dist\HKNPUStudio\*' in content

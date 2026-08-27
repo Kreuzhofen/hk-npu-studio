@@ -1,5 +1,5 @@
 """
-Snapdragon AI Studio
+HK NPU STUDIO
 SAI Design System
 
 Zentrale Farben, Abstände und Schriftdefinitionen.

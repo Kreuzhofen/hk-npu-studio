@@ -15,13 +15,13 @@
 AppId={{8D9D455C-4C15-4A61-9685-21F67C5D4A44}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppVerName=HK NPU Studio 2.0 RC2
+AppVerName=HK NPU STUDIO 2.0 RC2
 AppPublisher={#Publisher}
 AppCopyright=© 2026 Holger Kreuzhofen
-DefaultDirName={localappdata}\Programs\Snapdragon AI Studio
+DefaultDirName={localappdata}\Programs\HK NPU STUDIO
 DefaultGroupName={#AppName}
 OutputDir=..\dist\installer
-OutputBaseFilename=SnapdragonAIStudio-{#AppVersion}-ARM64-Setup
+OutputBaseFilename=HKNPUStudio-{#AppVersion}-ARM64-Setup
 SetupIconFile=..\assets\brand\icons\app.ico
 Compression=lzma2
 SolidCompression=yes
@@ -38,29 +38,29 @@ Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Messages]
-english.SelectLanguageTitle=HK NPU Studio · Version 2.0 RC2
+english.SelectLanguageTitle=HK NPU STUDIO · Version 2.0 RC2
 english.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Release Candidate 2%nSelect the installation language:
-english.WelcomeLabel1=Welcome to HK NPU Studio
-english.WelcomeLabel2=HK NPU Studio · Version 2.0 RC2%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nPre-release version for testing and evaluation purposes.%n%nIndependent open-source project for Windows on Snapdragon. Not an official Qualcomm product.%n%n© 2026 Holger Kreuzhofen
-english.FinishedHeadingLabel=HK NPU Studio 2.0 RC2 has been installed successfully
-english.FinishedLabel=Setup has finished installing HK NPU Studio 2.0 RC2.%n%nThank you for testing HK NPU Studio RC2.
+english.WelcomeLabel1=Welcome to HK NPU STUDIO
+english.WelcomeLabel2=HK NPU STUDIO · Version 2.0 RC2%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nPre-release version for testing and evaluation purposes.%n%nIndependent open-source project for Windows on Snapdragon. Not an official Qualcomm product.%n%n© 2026 Holger Kreuzhofen
+english.FinishedHeadingLabel=HK NPU STUDIO 2.0 RC2 has been installed successfully
+english.FinishedLabel=Setup has finished installing HK NPU STUDIO 2.0 RC2.%n%nThank you for testing HK NPU STUDIO RC2.
 
-german.SelectLanguageTitle=HK NPU Studio · Version 2.0 RC2
+german.SelectLanguageTitle=HK NPU STUDIO · Version 2.0 RC2
 german.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Release Candidate 2%nInstallationssprache auswählen:
-german.WelcomeLabel1=Willkommen bei HK NPU Studio
-german.WelcomeLabel2=HK NPU Studio · Version 2.0 RC2%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nVorabversion zu Test- und Evaluierungszwecken.%n%nUnabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt.%n%n© 2026 Holger Kreuzhofen
-german.FinishedHeadingLabel=HK NPU Studio 2.0 RC2 wurde erfolgreich installiert
-german.FinishedLabel=Die Installation von HK NPU Studio 2.0 RC2 wurde erfolgreich abgeschlossen.%n%nVielen Dank, dass Sie HK NPU Studio RC2 testen.
+german.WelcomeLabel1=Willkommen bei HK NPU STUDIO
+german.WelcomeLabel2=HK NPU STUDIO · Version 2.0 RC2%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nVorabversion zu Test- und Evaluierungszwecken.%n%nUnabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt.%n%n© 2026 Holger Kreuzhofen
+german.FinishedHeadingLabel=HK NPU STUDIO 2.0 RC2 wurde erfolgreich installiert
+german.FinishedLabel=Die Installation von HK NPU STUDIO 2.0 RC2 wurde erfolgreich abgeschlossen.%n%nVielen Dank, dass Sie HK NPU STUDIO RC2 testen.
 
-spanish.SelectLanguageTitle=HK NPU Studio · Version 2.0 RC2
+spanish.SelectLanguageTitle=HK NPU STUDIO · Version 2.0 RC2
 spanish.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Release Candidate 2%nSeleccione el idioma de instalación:
-spanish.WelcomeLabel1=Bienvenido a HK NPU Studio
-spanish.WelcomeLabel2=HK NPU Studio · Versión 2.0 RC2%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nVersión preliminar para fines de prueba y evaluación.%n%nProyecto independiente de código abierto para Windows en Snapdragon. No es un producto oficial de Qualcomm.%n%n© 2026 Holger Kreuzhofen
-spanish.FinishedHeadingLabel=HK NPU Studio 2.0 RC2 se ha instalado correctamente
-spanish.FinishedLabel=HK NPU Studio 2.0 RC2 se ha instalado correctamente.%n%nGracias por probar HK NPU Studio RC2.
+spanish.WelcomeLabel1=Bienvenido a HK NPU STUDIO
+spanish.WelcomeLabel2=HK NPU STUDIO · Versión 2.0 RC2%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nVersión preliminar para fines de prueba y evaluación.%n%nProyecto independiente de código abierto para Windows en Snapdragon. No es un producto oficial de Qualcomm.%n%n© 2026 Holger Kreuzhofen
+spanish.FinishedHeadingLabel=HK NPU STUDIO 2.0 RC2 se ha instalado correctamente
+spanish.FinishedLabel=HK NPU STUDIO 2.0 RC2 se ha instalado correctamente.%n%nGracias por probar HK NPU STUDIO RC2.
 
 [Files]
-Source: "..\dist\SnapdragonAIStudio\*"; DestDir: "{app}"; Excludes: "output\*"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\HKNPUStudio\*"; DestDir: "{app}"; Excludes: "output\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExecutableName}"
@@ -77,13 +77,25 @@ procedure InitializeLanguagePreferences;
 var
   PreferencesDir: String;
   PreferencesPath: String;
+  LegacyPreferencesPath: String;
   Language: String;
   PreferencesJson: String;
 begin
-  PreferencesDir := ExpandConstant('{localappdata}\Snapdragon AI Studio\data');
+  PreferencesDir := ExpandConstant('{localappdata}\HK NPU STUDIO\data');
   PreferencesPath := AddBackslash(PreferencesDir) + 'preferences.json';
   if FileExists(PreferencesPath) then
     Exit;
+
+  LegacyPreferencesPath := ExpandConstant(
+    '{localappdata}\Snapdragon AI Studio\data\preferences.json'
+  );
+  if FileExists(LegacyPreferencesPath) then
+  begin
+    if ForceDirectories(PreferencesDir) then
+      FileCopy(LegacyPreferencesPath, PreferencesPath, False);
+    if FileExists(PreferencesPath) then
+      Exit;
+  end;
 
   Language := 'Deutsch';
   if ActiveLanguage = 'english' then

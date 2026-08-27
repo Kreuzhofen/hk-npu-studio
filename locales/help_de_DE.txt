@@ -203,10 +203,10 @@ Standardpfade in der Entwicklung:
 - Logs: C:\SnapdragonAI\logs
 
 Standardpfade in der installierten Version:
-- Bilder: %LOCALAPPDATA%\Snapdragon AI Studio\output
-- Modelle: %LOCALAPPDATA%\Snapdragon AI Studio\models
-- Einstellungen und Verlauf: %LOCALAPPDATA%\Snapdragon AI Studio\data
-- Logs: %LOCALAPPDATA%\Snapdragon AI Studio\logs
+- Bilder: %LOCALAPPDATA%\HK NPU STUDIO\output
+- Modelle: %LOCALAPPDATA%\HK NPU STUDIO\models
+- Einstellungen und Verlauf: %LOCALAPPDATA%\HK NPU STUDIO\data
+- Logs: %LOCALAPPDATA%\HK NPU STUDIO\logs
 
 Hinweise zur Hardware-Nutzung (System & NPU):
 HK NPU STUDIO wählt die passende Verarbeitung für das verwendete Modell automatisch aus (z. B. Snapdragon NPU-Beschleunigung über QNN oder CPU-Verarbeitung). In den Einstellungen unter „System & NPU“ muss der Nutzer normalerweise nichts manuell konfigurieren.

@@ -1,4 +1,4 @@
-# Architecture Plan V2 - Snapdragon AI Studio
+# Architecture Plan V2 - HK NPU STUDIO
 
 Datum: 2026-07-01
 Status: Zielarchitektur und Planungsdokument
@@ -6,7 +6,7 @@ Geltungsbereich: C:\SnapdragonAI
 
 ## Zweck
 
-Dieses Dokument beschreibt eine professionelle Zielarchitektur fuer Snapdragon AI Studio. Es basiert auf der erneuten Analyse des vorhandenen Projekts, der vorhandenen Dokumentation und den Projektregeln aus `docs/CODEX_INSTRUCTIONS.md`.
+Dieses Dokument beschreibt eine professionelle Zielarchitektur fuer HK NPU STUDIO. Es basiert auf der erneuten Analyse des vorhandenen Projekts, der vorhandenen Dokumentation und den Projektregeln aus `docs/CODEX_INSTRUCTIONS.md`.
 
 Es wurden fuer dieses Dokument keine Quellcode-Dateien und keine Konfigurationen geaendert.
 
@@ -340,4 +340,4 @@ CPU nur nutzen, wenn kein NPU-Pfad verfuegbar ist oder der Benutzer es explizit 
 
 ## Zusammenfassung
 
-Die Zielarchitektur soll Snapdragon AI Studio von einem starken Prototyp mit QNN-Anker zu einer professionellen lokalen KI-Plattform entwickeln. Der wichtigste kurzfristige Schritt ist nicht ein neues Feature, sondern eine saubere Plattformbasis: zentrale Konfiguration, einheitliche Backend-Abstraktion, stabile Modellverwaltung und klare Dokumentation.
+Die Zielarchitektur soll HK NPU STUDIO von einem starken Prototyp mit QNN-Anker zu einer professionellen lokalen KI-Plattform entwickeln. Der wichtigste kurzfristige Schritt ist nicht ein neues Feature, sondern eine saubere Plattformbasis: zentrale Konfiguration, einheitliche Backend-Abstraktion, stabile Modellverwaltung und klare Dokumentation.

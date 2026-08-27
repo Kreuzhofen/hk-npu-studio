@@ -1,14 +1,14 @@
-# Snapdragon AI Studio – Phoenix Engine
+# HK NPU STUDIO – Phoenix Engine
 ## Manual de usuario – Versión 2.0 RC2B
 
 > **Proyecto independiente de código abierto para Windows en Snapdragon.**  
-> Snapdragon AI Studio no es un producto oficial de Qualcomm Technologies, Inc. y no está patrocinado ni respaldado por Qualcomm.
+> HK NPU STUDIO no es un producto oficial de Qualcomm Technologies, Inc. y no está patrocinado ni respaldado por Qualcomm.
 
 ---
 
 ## 1. Bienvenido
 
-Snapdragon AI Studio es una aplicación de escritorio para la generación local de imágenes con IA en equipos Windows 11 ARM64 con procesadores Snapdragon. **Phoenix Engine** se encarga de la gestión de modelos, la preparación y la ejecución de las canalizaciones de IA compatibles.
+HK NPU STUDIO es una aplicación de escritorio para la generación local de imágenes con IA en equipos Windows 11 ARM64 con procesadores Snapdragon. **Phoenix Engine** se encarga de la gestión de modelos, la preparación y la ejecución de las canalizaciones de IA compatibles.
 
 RC2B pone especial énfasis en un flujo guiado: **Instalar → seleccionar un modelo → generar una imagen.** Los detalles técnicos deben permanecer en segundo plano tanto como sea posible durante el uso normal.
 
@@ -37,10 +37,10 @@ Se necesita una conexión a Internet cuando se descargan por primera vez los com
 
 ## 3. Instalar RC2B
 
-1. Descarga el instalador ARM64 actual desde la versión oficial de Snapdragon AI Studio en GitHub.
-2. Ejecuta `SnapdragonAIStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
+1. Descarga el instalador ARM64 actual desde la versión oficial de HK NPU STUDIO en GitHub.
+2. Ejecuta `HKNPUStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
 3. Sigue el asistente de instalación de Windows.
-4. Inicia **Snapdragon AI Studio** desde el menú Inicio o desde el acceso directo creado.
+4. Inicia **HK NPU STUDIO** desde el menú Inicio o desde el acceso directo creado.
 
 > **Windows SmartScreen:** Windows puede mostrar una advertencia para una versión que todavía no sea ampliamente reconocida o no tenga una firma comercial. Utiliza únicamente instaladores obtenidos desde el repositorio oficial del proyecto.
 
@@ -56,7 +56,7 @@ La página de inicio muestra el estado actual de configuración. Si todavía no 
 
 ### Flujo básico
 
-1. Inicia Snapdragon AI Studio.
+1. Inicia HK NPU STUDIO.
 2. Abre el Gestor de modelos.
 3. Selecciona el modelo compatible que desees.
 4. Inicia el proceso de instalación ofrecido.
@@ -70,7 +70,7 @@ En el flujo guiado normal no necesitas seleccionar por separado componentes inte
 
 ## 5. Gestor de modelos
 
-El Gestor de modelos muestra los modelos conocidos por Snapdragon AI Studio y su estado actual.
+El Gestor de modelos muestra los modelos conocidos por HK NPU STUDIO y su estado actual.
 
 Según el modelo y su estado de desarrollo, puede aparecer como instalado, no instalado, disponible o experimental.
 
@@ -125,7 +125,7 @@ El flujo guiado puede:
 3. preparar los componentes de Python necesarios para la configuración,
 4. ejecutar el script de Qualcomm para SD3.5,
 5. descargar los archivos de modelo necesarios,
-6. importar los archivos generados a Snapdragon AI Studio,
+6. importar los archivos generados a HK NPU STUDIO,
 7. crear el manifiesto y la información de validación,
 8. validar la instalación,
 9. activar el modelo a continuación.
@@ -142,11 +142,11 @@ El archivo ZIP del usuario no se elimina durante el proceso normal de instalaci�
 
 Durante la configuración, el script de Qualcomm descarga los archivos necesarios de SD3.5. La descarga es actualmente de aproximadamente **3,24 GB**. La velocidad y duración dependen de la conexión a Internet, el dispositivo de almacenamiento y el estado del sistema.
 
-No cierres Snapdragon AI Studio durante este proceso y deja que la instalación termine por completo.
+No cierres HK NPU STUDIO durante este proceso y deja que la instalación termine por completo.
 
 ### Finalización
 
-Después de la configuración, se validan los archivos del modelo y este queda disponible para Snapdragon AI Studio. El flujo de usuario correcto de RC2B se ha probado como una cadena completa:
+Después de la configuración, se validan los archivos del modelo y este queda disponible para HK NPU STUDIO. El flujo de usuario correcto de RC2B se ha probado como una cadena completa:
 
 **no instalado → configuración correcta en el primer intento → descarga de Qualcomm → importación/validación → activación → generación real de una imagen.**
 
@@ -217,7 +217,7 @@ Cuando el backend activo lo permite, el scheduler influye en el proceso de denoi
 
 ## 11. Phoenix Boost
 
-**Phoenix Boost** es una función de Snapdragon AI Studio para mejorar o ampliar los prompts antes de generar una imagen.
+**Phoenix Boost** es una función de HK NPU STUDIO para mejorar o ampliar los prompts antes de generar una imagen.
 
 Existen dos modos fundamentalmente distintos.
 
@@ -272,7 +272,7 @@ ControlNet no está disponible para todas las variantes de modelos. La interfaz 
 
 ## 13. Galería, historial y comparación
 
-Snapdragon AI Studio ofrece vistas de imágenes e historial para revisar las imágenes generadas.
+HK NPU STUDIO ofrece vistas de imágenes e historial para revisar las imágenes generadas.
 
 ### Galería e historial
 
@@ -334,12 +334,12 @@ La interfaz de Phoenix está optimizada para el escalado de pantalla de Windows 
 
 ## 15. Datos y modelos locales
 
-Snapdragon AI Studio almacena localmente la configuración de la aplicación, los datos de trabajo y los modelos instalados.
+HK NPU STUDIO almacena localmente la configuración de la aplicación, los datos de trabajo y los modelos instalados.
 
 Con una instalación normal mediante el instalador, los datos productivos de los modelos pueden encontrarse en el área local de la aplicación del usuario de Windows, por ejemplo:
 
 ```text
-%LOCALAPPDATA%\Snapdragon AI Studio\models
+%LOCALAPPDATA%\HK NPU STUDIO\models
 ```
 
 Las rutas internas pueden variar entre las versiones de desarrollo y las versiones instaladas. **No muevas ni elimines manualmente los archivos de modelos** salvo que estés realizando deliberadamente un diagnóstico.
@@ -350,7 +350,7 @@ La aplicación valida las instalaciones de modelos mediante los archivos y metad
 
 ## 16. Privacidad y funcionamiento sin conexión
 
-Uno de los objetivos centrales de Snapdragon AI Studio es la ejecución local de IA.
+Uno de los objetivos centrales de HK NPU STUDIO es la ejecución local de IA.
 
 ### Local
 
@@ -375,7 +375,7 @@ Abre el Gestor de modelos y utiliza el proceso de instalación previsto. No copi
 
 ### La instalación se interrumpió
 
-Reinicia Snapdragon AI Studio y abre el Gestor de modelos. Según el modelo, Phoenix puede reutilizar datos completos existentes u ofrecer una nueva descarga.
+Reinicia HK NPU STUDIO y abre el Gestor de modelos. Según el modelo, Phoenix puede reutilizar datos completos existentes u ofrecer una nueva descarga.
 
 ### SD3.5 informa de archivos incompletos
 
@@ -397,7 +397,7 @@ Durante fases largas de instalación o generación, espera primero al progreso m
 
 Para problemas reproducibles resulta útil incluir:
 
-- versión de Snapdragon AI Studio
+- versión de HK NPU STUDIO
 - versión de Windows
 - dispositivo/procesador Snapdragon
 - modelo utilizado
@@ -409,7 +409,7 @@ Para problemas reproducibles resulta útil incluir:
 
 ## 18. Desinstalación
 
-Snapdragon AI Studio puede desinstalarse desde **Configuración de Windows → Aplicaciones → Aplicaciones instaladas**.
+HK NPU STUDIO puede desinstalarse desde **Configuración de Windows → Aplicaciones → Aplicaciones instaladas**.
 
 Ten en cuenta que los archivos grandes de modelos y los datos del usuario pueden almacenarse por separado según la estrategia de instalación y almacenamiento. Antes de eliminar algo manualmente, comprueba si deseas conservar las imágenes generadas o los modelos.
 
@@ -417,9 +417,9 @@ Ten en cuenta que los archivos grandes de modelos y los datos del usuario pueden
 
 ## 19. Preguntas frecuentes
 
-### ¿Snapdragon AI Studio es un producto oficial de Qualcomm?
+### ¿HK NPU STUDIO es un producto oficial de Qualcomm?
 
-No. Snapdragon AI Studio es un proyecto independiente de código abierto.
+No. HK NPU STUDIO es un proyecto independiente de código abierto.
 
 ### ¿Se envían mis prompts a un servicio de imágenes en la nube?
 
@@ -449,7 +449,7 @@ No se recomienda durante el uso normal. Utiliza los procesos previstos de gesti�
 
 Alemán, inglés y español.
 
-### ¿Puedo utilizar Snapdragon AI Studio en equipos Intel o AMD?
+### ¿Puedo utilizar HK NPU STUDIO en equipos Intel o AMD?
 
 El proyecto está diseñado para Windows 11 ARM64 en Snapdragon. Otras plataformas no forman parte del objetivo principal oficialmente previsto o validado.
 
@@ -469,7 +469,7 @@ No publiques credenciales, tokens u otra información confidencial en registros 
 
 ## 21. Código abierto, licencias y marcas
 
-Snapdragon AI Studio se desarrolla como un proyecto independiente de código abierto. La propia aplicación se distribuye bajo la licencia del proyecto indicada en el repositorio. Los modelos, frameworks y componentes externos están sujetos además a sus respectivas licencias y condiciones de uso.
+HK NPU STUDIO se desarrolla como un proyecto independiente de código abierto. La propia aplicación se distribuye bajo la licencia del proyecto indicada en el repositorio. Los modelos, frameworks y componentes externos están sujetos además a sus respectivas licencias y condiciones de uso.
 
 Qualcomm, Snapdragon y Hexagon son marcas comerciales o marcas registradas de Qualcomm Incorporated. Windows es una marca de Microsoft. Las demás marcas pertenecen a sus respectivos propietarios.
 
@@ -496,10 +496,10 @@ RC2B se centra en un flujo de usuario fiable y comprensible, junto con una inter
 
 El objetivo sigue siendo deliberadamente sencillo:
 
-> **Instalar Snapdragon AI Studio → seleccionar un modelo → generar una imagen.**
+> **Instalar HK NPU STUDIO → seleccionar un modelo → generar una imagen.**
 
 ---
 
-**Snapdragon AI Studio – Phoenix Engine**  
+**HK NPU STUDIO – Phoenix Engine**
 Holger Kreuzhofen  
 Founder & Lead Developer

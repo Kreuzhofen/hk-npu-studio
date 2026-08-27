@@ -1,6 +1,6 @@
-# Teamstruktur & Rollenverteilung – Snapdragon AI Studio
+# Teamstruktur & Rollenverteilung – HK NPU STUDIO
 
-Dieses Dokument definiert die Rollen, Verantwortlichkeiten und Freigabeprozesse innerhalb des Projekts Snapdragon AI Studio.
+Dieses Dokument definiert die Rollen, Verantwortlichkeiten und Freigabeprozesse innerhalb des Projekts HK NPU STUDIO.
 
 ---
 

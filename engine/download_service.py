@@ -126,7 +126,7 @@ class DownloadService:
             partial_path.unlink()
 
         existing_bytes = partial_path.stat().st_size if partial_path.exists() else 0
-        headers = {"User-Agent": "SnapdragonAIStudio/2.0"}
+        headers = {"User-Agent": "HKNPUStudio/2.0"}
         if authorization_token:
             headers["Authorization"] = f"Bearer {authorization_token}"
         if existing_bytes:

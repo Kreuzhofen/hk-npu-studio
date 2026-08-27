@@ -203,10 +203,10 @@ Rutas predeterminadas en desarrollo:
 - Logs: C:\SnapdragonAI\logs
 
 Rutas predeterminadas en la versión instalada:
-- Imágenes: %LOCALAPPDATA%\Snapdragon AI Studio\output
-- Modelos: %LOCALAPPDATA%\Snapdragon AI Studio\models
-- Configuración e historial: %LOCALAPPDATA%\Snapdragon AI Studio\data
-- Logs: %LOCALAPPDATA%\Snapdragon AI Studio\logs
+- Imágenes: %LOCALAPPDATA%\HK NPU STUDIO\output
+- Modelos: %LOCALAPPDATA%\HK NPU STUDIO\models
+- Configuración e historial: %LOCALAPPDATA%\HK NPU STUDIO\data
+- Logs: %LOCALAPPDATA%\HK NPU STUDIO\logs
 
 Notas sobre el uso del hardware (Sistema y NPU):
 HK NPU STUDIO selecciona automáticamente el método de procesamiento adecuado (por ejemplo, aceleración Snapdragon NPU a través de QNN o procesamiento de CPU) para el modelo que está utilizando. Normalmente no necesita configurar nada manualmente en la pestaña «Sistema y NPU».

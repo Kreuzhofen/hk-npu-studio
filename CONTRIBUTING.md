@@ -2,7 +2,7 @@
 
 
 
-Thank you for your interest in Snapdragon AI Studio.
+Thank you for your interest in HK NPU STUDIO.
 
 
 

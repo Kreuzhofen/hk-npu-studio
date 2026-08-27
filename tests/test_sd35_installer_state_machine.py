@@ -308,7 +308,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         interpreter.parent.mkdir(parents=True)
         interpreter.write_bytes(b"python")
         with patch.object(sys, "frozen", True, create=True), patch.object(
-            sys, "executable", str(self.root / "SnapdragonAIStudio.exe")
+            sys, "executable", str(self.root / "HKNPUStudio.exe")
         ), patch.dict("os.environ", {"ProgramFiles": str(program_files)}, clear=False):
             self.assertEqual(resolve_python_executable(), str(interpreter.resolve()))
 
@@ -493,7 +493,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         exe_parent = self.root / "app_bin"
         exe_parent.mkdir(parents=True, exist_ok=True)
         self._create_bundled_deps(exe_parent)
-        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+        mock_executable = str(exe_parent / "HKNPUStudio.exe")
 
         with patch("sys.frozen", True, create=True), \
              patch("sys.executable", mock_executable), \
@@ -559,7 +559,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         exe_parent = self.root / "app_bin"
         exe_parent.mkdir(parents=True, exist_ok=True)
         self._create_bundled_deps(exe_parent)
-        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+        mock_executable = str(exe_parent / "HKNPUStudio.exe")
 
         with patch("sys.frozen", True, create=True), \
              patch("sys.executable", mock_executable), \
@@ -655,7 +655,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         exe_parent.mkdir(parents=True, exist_ok=True)
         (exe_parent / "torch").mkdir(exist_ok=True)
         # missing torchgen and others
-        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+        mock_executable = str(exe_parent / "HKNPUStudio.exe")
 
         def mock_run(cmd, *args, **kwargs):
             if "venv" in cmd:
@@ -692,7 +692,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         exe_parent = self.root / "app_bin"
         exe_parent.mkdir(parents=True, exist_ok=True)
         self._create_bundled_deps(exe_parent)
-        mock_executable = str(exe_parent / "SnapdragonAIStudio.exe")
+        mock_executable = str(exe_parent / "HKNPUStudio.exe")
 
         def mock_run(cmd, *args, **kwargs):
             if "venv" in cmd:
@@ -849,7 +849,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             return mock_proc
 
         with patch("sys.frozen", True, create=True), \
-             patch("sys.executable", str(self.root / "SnapdragonAIStudio.exe")), \
+             patch("sys.executable", str(self.root / "HKNPUStudio.exe")), \
              patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
              patch("tools.sd35_setup_helper.USER_BASE", self.root), \
              patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
@@ -1009,7 +1009,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             return mock_proc
 
         with patch("sys.frozen", True, create=True), \
-             patch("sys.executable", str(self.root / "SnapdragonAIStudio.exe")), \
+             patch("sys.executable", str(self.root / "HKNPUStudio.exe")), \
              patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
              patch("tools.sd35_setup_helper.USER_BASE", self.root), \
              patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \

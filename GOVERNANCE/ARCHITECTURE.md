@@ -1,7 +1,7 @@
-# Software-Architektur – Snapdragon AI Studio
+# Software-Architektur – HK NPU STUDIO
 
 ## 1. Übersicht & Schichtenmodell
-Snapdragon AI Studio (Codename: **Phoenix Architecture**) basiert auf einer klaren Trennung von Benutzeroberfläche (GUI), Anwendungssteuerung (Application Layer), Ausführungs-Engine (Engine) und Hardware-Abstraktion (Backends/Modules).
+HK NPU STUDIO (Codename: **Phoenix Architecture**) basiert auf einer klaren Trennung von Benutzeroberfläche (GUI), Anwendungssteuerung (Application Layer), Ausführungs-Engine (Engine) und Hardware-Abstraktion (Backends/Modules).
 
 ```text
        [ GUI / Views ] (Präsentationsschicht)
@@ -46,7 +46,7 @@ Der [ThemeManager](file:///C:/SnapdragonAI/engine/theme_manager.py) verwaltet di
 
 ### 2.4 BrandManager
 Der [BrandManager](file:///C:/SnapdragonAI/engine/brand_manager.py) steuert die Corporate Identity und die Marken-Assets des Produkts.
-* **Metadaten:** Verwaltet Produktname (`Snapdragon AI Studio`), Version (`2.0 Preview`), Engine-Version (`Phoenix Engine 1.0`), Urheberrechtshinweise (`Holger Kreuzhofen`) und Beschreibungen.
+* **Metadaten:** Verwaltet Produktname (`HK NPU STUDIO`), Version (`2.0 Preview`), Engine-Version (`Phoenix Engine 1.0`), Urheberrechtshinweise (`Holger Kreuzhofen`) und Beschreibungen.
 * **Asset-Pfade:** Löst die Speicherorte für Master-Vektoren, App-Icons, Splashscreens, Header-Bilder und das About-Fenster auf.
 * **Dynamische CI-Erstellung:** Passt Logos und Assets zur Laufzeit an das aktive Theme an (z. B. Erzeugung des hellen Logos per Pixel-Transformation im Light Theme).
 
@@ -65,7 +65,7 @@ Die Fachfunktionen der Anwendung sind als eigenständige Plugins implementiert (
 ---
 
 ## 3. Aktuelle Projektstruktur
-Die Dateiorganisation von Snapdragon AI Studio stellt sich wie folgt dar:
+Die Dateiorganisation von HK NPU STUDIO stellt sich wie folgt dar:
 
 ```text
 C:\SnapdragonAI

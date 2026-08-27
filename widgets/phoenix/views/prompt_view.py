@@ -1650,9 +1650,10 @@ class PhoenixPromptView(WorkspaceFrame):
             self._inspector_pair_required_width(pair)
             for pair in self._generation_information_pairs
         )
+        progress_pair_row = self._inspector_base_rows[self.progress_stage_label]
         stacked_pair_rows = {
             row for row, pair in pair_rows.items()
-            if (
+            if row == progress_pair_row or (
                 row in information_pair_rows and information_single_column
             ) or (
                 row not in information_pair_rows

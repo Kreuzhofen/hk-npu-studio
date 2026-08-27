@@ -14,7 +14,7 @@ from engine.release_config import RELEASE
 
 
 INSTALLER_SCRIPT = PROJECT_ROOT / "installer" / "snapdragon_ai_studio.iss"
-RELEASE_STAGING_DIR = PROJECT_ROOT / "dist" / "SnapdragonAIStudio"
+RELEASE_STAGING_DIR = PROJECT_ROOT / "dist" / "HKNPUStudio"
 
 
 def validate_release_staging(staging_dir: Path = RELEASE_STAGING_DIR) -> None:

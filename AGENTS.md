@@ -1,13 +1,13 @@
-# AI Development Framework – Snapdragon AI Studio
+# AI Development Framework – HK NPU STUDIO
 
-Willkommen bei Snapdragon AI Studio. Dieses Dokument dient als zentraler Einstiegspunkt für KI-Agenten und Entwicklungsmodelle (z. B. Gemini, Codex, ChatGPT). Es beschreibt den Entwicklungsprozess, Qualitätsstandards und architektonische Rahmenbedingungen.
+Willkommen bei HK NPU STUDIO. Dieses Dokument dient als zentraler Einstiegspunkt für KI-Agenten und Entwicklungsmodelle (z. B. Gemini, Codex, ChatGPT). Es beschreibt den Entwicklungsprozess, Qualitätsstandards und architektonische Rahmenbedingungen.
 
 Ziel ist ein hocheffizienter Entwicklungsprozess mit minimalem Einarbeitungskontext. Jede Entscheidung und Codeänderung muss sich an den hier festgelegten Regeln orientieren.
 
 ---
 
 ## 1. Projektidentität
-* **Name:** Snapdragon AI Studio
+* **Name:** HK NPU STUDIO
 * **Codename:** Phoenix Architecture
 * **Zweck:** Lokale, professionelle Desktop-Anwendung für Windows 11 ARM64 mit Qualcomm Snapdragon X NPU-Beschleunigung (über QNN).
 * **Fokus:** Etablierung eines kommerziell ausgereiften Standards (keine Tkinter-Demo).

@@ -1,5 +1,5 @@
 """
-Snapdragon AI Studio
+HK NPU STUDIO
 
 Import Controller
 
@@ -15,7 +15,7 @@ from app.i18n import tr
 
 class ImportController:
     """
-    Handles image and folder import actions for Snapdragon AI Studio.
+    Handles image and folder import actions for HK NPU STUDIO.
     """
 
     def __init__(self, app):

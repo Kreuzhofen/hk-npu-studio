@@ -27,7 +27,7 @@ def test_release_staging_rejects_runtime_output_and_preserves_files(tmp_path):
 
 
 def test_clean_release_staging_has_no_runtime_output(tmp_path):
-    (tmp_path / "SnapdragonAIStudio.exe").write_bytes(b"executable")
+    (tmp_path / "HKNPUStudio.exe").write_bytes(b"executable")
     validate_release_staging(tmp_path)
 
 
@@ -132,3 +132,38 @@ def test_migration_files_copied_not_overwritten_idempotent(tmp_path, monkeypatch
     migrate_legacy_generations()
     assert target_png1.read_bytes() == b"existing_png1_data"
     assert len(list(mock_output_dir.iterdir())) == 6
+
+
+def test_legacy_app_data_tree_is_copied_without_overwrite_or_delete(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    local_app_data = tmp_path / "local"
+    legacy_root = local_app_data / "Snapdragon AI Studio"
+    target_root = local_app_data / "HK NPU STUDIO"
+    monkeypatch.setenv("LOCALAPPDATA", str(local_app_data))
+    monkeypatch.setattr(config, "USER_BASE", target_root)
+    monkeypatch.setattr(config, "OUTPUT_DIR", target_root / "output")
+
+    source_files = {
+        legacy_root / "data" / "preferences.json": b'{"language":"English"}',
+        legacy_root / "models" / "model.bin": b"model",
+        legacy_root / "output" / "generate_legacy.png": b"image",
+        legacy_root / "logs" / "app.log": b"log",
+    }
+    for path, content in source_files.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    existing = target_root / "data" / "preferences.json"
+    existing.parent.mkdir(parents=True)
+    existing.write_bytes(b'{"language":"Deutsch"}')
+
+    migrate_legacy_generations()
+    migrate_legacy_generations()
+
+    assert existing.read_bytes() == b'{"language":"Deutsch"}'
+    assert (target_root / "models" / "model.bin").read_bytes() == b"model"
+    assert (target_root / "output" / "generate_legacy.png").read_bytes() == b"image"
+    assert (target_root / "logs" / "app.log").read_bytes() == b"log"
+    for path, content in source_files.items():
+        assert path.read_bytes() == content

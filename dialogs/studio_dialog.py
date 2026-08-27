@@ -1,5 +1,5 @@
 """
-Snapdragon AI Studio
+HK NPU STUDIO
 
 Unified Studio Dialog Foundation
 
@@ -20,7 +20,7 @@ from widgets.phoenix.theme import PHOENIX_THEME
 
 
 class StudioDialog(tk.Toplevel):
-    """Shared dialog foundation for Snapdragon AI Studio."""
+    """Shared dialog foundation for HK NPU STUDIO."""
 
     DEFAULT_SIZE = (520, 360)
     MIN_SIZE = (420, 280)

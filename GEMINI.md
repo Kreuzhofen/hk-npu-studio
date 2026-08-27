@@ -1,4 +1,4 @@
-\# Snapdragon AI Studio
+\# HK NPU STUDIO
 
 
 
@@ -178,7 +178,7 @@ Breaking Changes
 
 
 
-Snapdragon AI Studio
+HK NPU STUDIO
 
 soll sich wie
 

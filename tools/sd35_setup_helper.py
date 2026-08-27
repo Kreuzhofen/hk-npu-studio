@@ -440,7 +440,11 @@ class SD35SetupHelper:
                     if (candidate / "torch").is_dir():
                         bundled_libs_path = candidate
                 else:
-                    dev_candidate = Path(__file__).resolve().parent.parent / "dist" / "SnapdragonAIStudio"
+                    dev_candidate = (
+                        Path(__file__).resolve().parent.parent
+                        / "dist"
+                        / "HKNPUStudio"
+                    )
                     if (dev_candidate / "torch").is_dir():
                         bundled_libs_path = dev_candidate
 

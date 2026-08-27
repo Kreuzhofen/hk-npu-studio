@@ -15,7 +15,7 @@ from engine.release_config import RELEASE
 
 BUILD_ROOT = PROJECT_ROOT / "build" / "release"
 DIST_ROOT = PROJECT_ROOT / "dist"
-APP_DIST = DIST_ROOT / "SnapdragonAIStudio"
+APP_DIST = DIST_ROOT / "HKNPUStudio"
 REALESRGAN_PRODUCT_MODEL = PROJECT_ROOT / "models" / "real_esrgan_x4plus.bin"
 
 
@@ -94,7 +94,7 @@ def _write_version_file() -> Path:
       StringStruct('CompanyName', '{RELEASE.publisher}'),
       StringStruct('FileDescription', '{RELEASE.app_name}'),
       StringStruct('FileVersion', '{RELEASE.package_version}'),
-      StringStruct('InternalName', 'SnapdragonAIStudio'),
+      StringStruct('InternalName', 'HKNPUStudio'),
       StringStruct('OriginalFilename', '{RELEASE.executable_name}'),
       StringStruct('ProductName', '{RELEASE.app_name}'),
       StringStruct('ProductVersion', '{RELEASE.package_version}')
@@ -158,7 +158,7 @@ def build_arguments() -> list[str]:
     arguments = [
         str(PROJECT_ROOT / "gui_v2.py"),
         "--name",
-        "SnapdragonAIStudio",
+        "HKNPUStudio",
         "--onedir",
         "--windowed",
         "--clean",

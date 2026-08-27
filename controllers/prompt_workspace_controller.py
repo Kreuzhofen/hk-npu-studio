@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -183,7 +184,14 @@ class PromptWorkspaceController:
                 target_size = (original.width * 2, original.height * 2)
                 enhanced.resize(target_size, Image.Resampling.LANCZOS).save(target_path)
         elif intermediate_path != target_path.resolve():
-            intermediate_path.replace(target_path)
+            for attempt in range(5):
+                try:
+                    intermediate_path.replace(target_path)
+                    break
+                except OSError as error:
+                    if getattr(error, "winerror", None) != 32 or attempt == 4:
+                        raise
+                    time.sleep(0.1 * (attempt + 1))
 
         if intermediate_path not in {source_path, target_path.resolve()}:
             intermediate_path.unlink(missing_ok=True)
