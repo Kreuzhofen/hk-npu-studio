@@ -341,7 +341,7 @@ The diagram is intentionally high-level. Individual model pipelines can use diff
 ## 📁 Project Structure
 
 ```text
-snapdragon-ai-studio/
+hk-npu-studio/
 ├── app/                  # Application bootstrap/core
 ├── assets/               # Branding, icons and visual assets
 ├── controllers/          # Workflow and UI orchestration
