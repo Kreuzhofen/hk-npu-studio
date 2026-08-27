@@ -1,9 +1,9 @@
 <a id="top"></a>
 
 <p align="center">
-  <img src="assets/brand/snapdragon-ai-studio-banner.png"
+  <img src="assets/brand/hk_npu_studio_banner_master.png"
        width="100%"
-       alt="Snapdragon AI Studio — Phoenix Engine">
+       alt="HK NPU STUDIO — Local AI for Snapdragon® PCs">
 </p>
 
 > [!NOTE]
@@ -68,13 +68,13 @@
 
 ## 📖 About the Project
 
-**Snapdragon AI Studio – Phoenix Engine** is an independent open-source desktop application for local generative AI on Windows 11 ARM64 PCs.
+**HK NPU STUDIO** is an independent open-source desktop application for local generative AI on Windows 11 ARM64 PCs.
 
 It is built specifically around Snapdragon X hardware and aims to make local AI image generation approachable without forcing users to understand model package layouts, QNN components, ONNX files, or installation internals.
 
 The product goal is deliberately simple:
 
-> **Install Snapdragon AI Studio → select a model → generate an image.**
+> **Install HK NPU STUDIO → select a model → generate an image.**
 
 The **Phoenix Engine** coordinates model discovery, validation, installation, activation and inference while keeping supported generation workflows local on the PC.
 
@@ -171,7 +171,7 @@ This workflow was successfully validated from a clean “not installed” state 
 ### Main Workspace
 
 <p align="center">
-  <img src="docs/images/home-dark-light.png" width="95%" alt="Snapdragon AI Studio main workspace">
+  <img src="docs/images/home-dark-light.png" width="95%" alt="HK NPU STUDIO main workspace">
 </p>
 
 ### AI Image Generation
@@ -201,7 +201,7 @@ This workflow was successfully validated from a clean “not installed” state 
 ### Settings
 
 <p align="center">
-  <img src="docs/images/settings-dark-light.png" width="95%" alt="Snapdragon AI Studio settings">
+  <img src="docs/images/settings-dark-light.png" width="95%" alt="HK NPU STUDIO settings">
 </p>
 
 ---
@@ -210,10 +210,10 @@ This workflow was successfully validated from a clean “not installed” state 
 
 ### Option A: Release Installer — Recommended
 
-1. Open the Snapdragon AI Studio **Releases** page.
+1. Open the HK NPU STUDIO **Releases** page.
 2. Download `SnapdragonAIStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
 3. Run the installer and follow the Windows setup wizard.
-4. Start Snapdragon AI Studio from the Start menu or shortcut.
+4. Start HK NPU STUDIO from the Start menu or shortcut.
 5. Use the guided Model Manager to set up your first model.
 
 A separate Python installation is not required for normal use of the published installer.
@@ -266,7 +266,7 @@ Large models require additional disk space. Stable Diffusion 3.5 Medium download
 
 ## Quick Start
 
-1. Launch **Snapdragon AI Studio**.
+1. Launch **HK NPU STUDIO**.
 2. Check the readiness status on the home page.
 3. Open the **Model Manager**.
 4. Select an available model.
@@ -286,13 +286,13 @@ No manual selection of individual QNN/ONNX model components is required for the 
 ### Holger Kreuzhofen
 *Founder • Lead Developer • Product Owner • Phoenix Engine Architect*
 
-Holger Kreuzhofen is the founder and lead developer of Snapdragon AI Studio and the architect of the Phoenix Engine. He is responsible for the product vision, software architecture, engineering direction, user experience and release management of the independent open-source project.
+Holger Kreuzhofen is the founder and lead developer of HK NPU STUDIO and the architect of the Phoenix Engine. He is responsible for the product vision, software architecture, engineering direction, user experience and release management of the independent open-source project.
 
 ---
 
 ## 🌐 Phoenix Engine
 
-The **Phoenix Engine** is the orchestration layer behind Snapdragon AI Studio.
+The **Phoenix Engine** is the orchestration layer behind HK NPU STUDIO.
 
 Its responsibilities include:
 
@@ -403,7 +403,7 @@ For release-critical model workflows, automated tests alone are not sufficient. 
 
 ## 🔍 Diagnostics
 
-Snapdragon AI Studio includes diagnostic and progress reporting intended to make local AI workflows understandable and debuggable.
+HK NPU STUDIO includes diagnostic and progress reporting intended to make local AI workflows understandable and debuggable.
 
 Depending on the active model/backend, diagnostics can expose:
 
@@ -421,7 +421,7 @@ RC2B places particular emphasis on validating the real model state instead of re
 
 ## ❓ FAQ
 
-### Is Snapdragon AI Studio an official Qualcomm product?
+### Is HK NPU STUDIO an official Qualcomm product?
 
 No. It is an independent open-source project and is not affiliated with, sponsored by, or endorsed by Qualcomm Technologies, Inc.
 
@@ -447,7 +447,7 @@ RC2B uses **Qwen2.5 3B** through Ollama.
 
 ### How is Stable Diffusion 3.5 Medium installed?
 
-RC2B provides a guided Qualcomm QAI AppBuilder workflow that prepares the source, runs the Qualcomm setup, downloads the required model data, imports it into Snapdragon AI Studio, validates it and activates it.
+RC2B provides a guided Qualcomm QAI AppBuilder workflow that prepares the source, runs the Qualcomm setup, downloads the required model data, imports it into HK NPU STUDIO, validates it and activates it.
 
 ### Is SD3.5 actually tested beyond installation?
 
@@ -519,8 +519,8 @@ Use of these names describes technical platforms, compatibility or third-party c
 ---
 
 <p align="center">
-  <strong>Snapdragon AI Studio — Phoenix Engine</strong><br>
-  <em>Local AI image generation for Windows 11 ARM64.</em>
+  <strong>HK NPU STUDIO</strong><br>
+  <em>Local AI for Snapdragon® PCs</em>
 </p>
 
 <p align="center">
