@@ -5,6 +5,15 @@
        width="100%"
        alt="HK NPU STUDIO — Local AI for Snapdragon® PCs">
 </p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
+    <img src="assets/brand/phoenix_logo_black.png"
+         width="180"
+         alt="HK NPU STUDIO Phoenix">
+  </picture>
+</p>
 
 ---
 
