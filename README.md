@@ -253,6 +253,19 @@ This workflow was successfully validated from a clean “not installed” state 
   <em>Configure HK NPU STUDIO to match your system and workflow, including appearance, application behavior, storage locations, and hardware-related options. Settings are kept together in a dedicated configuration workspace.</em>
 </p>
 
+### Phoenix Boost
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/Phoenix_Boost_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/Phoenix_Boost_light.png">
+    <img src="docs/images/Phoenix_Boost_light.png"
+         width="95%"
+         alt="HK NPU STUDIO Phoenix Boost">
+  </picture>
+  <br>
+  <em>Phoenix Boost provides an optimized local AI workflow designed to make supported generation tasks easier and more efficient on Snapdragon® PCs. The dedicated interface brings Phoenix Boost controls and status information together while keeping processing and user data on the local system.</em>
+</p>
 ### Canny-Guided Generation
 
 <p align="center">
