@@ -270,7 +270,38 @@ ControlNet ist nicht für jede Modellvariante verfügbar. Die Oberfläche richte
 
 ---
 
-## 13. Galerie, Verlauf und Vergleich
+## 13. RealESRGAN NPU Upscaling
+
+HK NPU STUDIO unterstützt lokales **RealESRGAN-Upscaling auf der NPU**, um vorhandene Bilder in höherer Auflösung auszugeben.
+
+### 2× Upscaling
+
+Beim **2×-Upscaling** werden Breite und Höhe des Ausgangsbildes jeweils verdoppelt. Ein Bild mit 512×512 Pixeln wird beispielsweise als 1024×1024-Pixel-Bild ausgegeben.
+
+Dieser Modus eignet sich für eine moderate Vergrößerung, wenn das Ausgangsbild möglichst nah am Original erhalten bleiben soll.
+
+### 4× Upscaling
+
+Beim **4×-Upscaling** werden Breite und Höhe des Ausgangsbildes jeweils vervierfacht. Ein Bild mit 512×512 Pixeln wird beispielsweise als 2048×2048-Pixel-Bild ausgegeben.
+
+Der 4×-Modus verwendet den vorgesehenen RealESRGAN-4×-Pfad und verarbeitet größere Bilder intern kachelweise. Die einzelnen Kacheln werden anschließend wieder zu einem vollständigen Ausgabebild zusammengesetzt.
+
+### Verwendung
+
+1. Öffne die Upscaling-Funktion in HK NPU STUDIO.
+2. Wähle das gewünschte Ausgangsbild.
+3. Wähle **2×** oder **4×** als Vergrößerungsfaktor.
+4. Starte das Upscaling.
+5. Warte, bis die lokale Verarbeitung abgeschlossen ist.
+6. Prüfe anschließend das erzeugte Bild.
+
+Das Upscaling läuft auf unterstützten Snapdragon-PCs lokal über den vorgesehenen NPU/QNN-Pfad. Das Ausgangsbild wird dabei nicht an einen externen Bildverarbeitungsdienst übertragen.
+
+> **Hinweis:** Upscaling erhöht die Bildauflösung und rekonstruiert Details. Es ist keine neue Prompt-basierte Bildgenerierung. Ziel ist eine hochauflösende Version des vorhandenen Bildes bei möglichst gutem Erhalt des ursprünglichen Bildinhalts.
+
+---
+
+## 14. Galerie, Verlauf und Vergleich
 
 HK NPU STUDIO stellt erzeugte Bilder innerhalb seiner Bild- und Verlaufsansichten zur weiteren Betrachtung bereit.
 
@@ -311,7 +342,7 @@ Die genaue Darstellung kann sich zwischen Release Candidates weiterentwickeln.
 
 ---
 
-## 14. Sprache, Designs und Windows-Skalierung
+## 15. Sprache, Designs und Windows-Skalierung
 
 Die Benutzeroberfläche unterstützt:
 
@@ -332,7 +363,7 @@ Die Phoenix-Oberfläche ist für Windows-Bildschirmskalierungen von **100 % bis 
 
 ---
 
-## 15. Lokale Daten und Modelle
+## 16. Lokale Daten und Modelle
 
 HK NPU STUDIO speichert Anwendungseinstellungen, Arbeitsdaten und installierte Modelle lokal.
 
@@ -348,7 +379,7 @@ Die Anwendung prüft Modellinstallationen anhand der erwarteten Dateien und Meta
 
 ---
 
-## 16. Datenschutz und Offline-Betrieb
+## 17. Datenschutz und Offline-Betrieb
 
 Das zentrale Ziel von HK NPU STUDIO ist lokale KI-Ausführung.
 
@@ -367,7 +398,7 @@ Nach erfolgreicher Einrichtung können die dafür vorgesehenen lokalen Generieru
 
 ---
 
-## 17. Problemlösung
+## 18. Problemlösung
 
 ### Modell wird als „Nicht installiert“ angezeigt
 
@@ -407,7 +438,7 @@ Bei reproduzierbaren Problemen sind folgende Angaben hilfreich:
 
 ---
 
-## 18. Deinstallation
+## 19. Deinstallation
 
 HK NPU STUDIO kann über die Windows-Einstellungen unter **Apps → Installierte Apps** deinstalliert werden.
 
@@ -415,7 +446,7 @@ Beachte: Große Modelldateien und Benutzerdaten können je nach Installations- u
 
 ---
 
-## 19. FAQ
+## 20. FAQ
 
 ### Ist HK NPU STUDIO ein offizielles Qualcomm-Produkt?
 
@@ -455,7 +486,7 @@ Das Projekt ist für Windows 11 ARM64 auf Snapdragon ausgelegt. Andere Plattform
 
 ---
 
-## 20. Support und Fehlerberichte
+## 21. Support und Fehlerberichte
 
 Projekt-Repository:
 
@@ -467,7 +498,7 @@ Bei Fehlerberichten keine Zugangsdaten, Tokens oder andere vertrauliche Informat
 
 ---
 
-## 21. Open Source, Lizenzen und Marken
+## 22. Open Source, Lizenzen und Marken
 
 HK NPU STUDIO wird als unabhängiges Open-Source-Projekt entwickelt. Die Anwendung selbst steht unter der im Repository angegebenen Projektlizenz. Zusätzlich gelten für verwendete Modelle, Frameworks und externe Komponenten deren jeweilige Lizenzen und Nutzungsbedingungen.
 
@@ -477,7 +508,7 @@ Die Verwendung dieser Namen beschreibt technische Plattformen bzw. Kompatibilit�
 
 ---
 
-## 22. RC2B auf einen Blick
+## 23. RC2B auf einen Blick
 
 RC2B konzentriert sich auf einen zuverlässigen und verständlichen Anwenderflow sowie eine modernisierte Oberfläche:
 
@@ -487,6 +518,7 @@ RC2B konzentriert sich auf einen zuverlässigen und verständlichen Anwenderflow
 - **Automatische Aktivierung:** Aktivierung des Modells unmittelbar nach erfolgreicher Installation und Validierung.
 - **Status- und Fortschrittsanzeigen:** Klare Rückmeldungen während der Einrichtung und Generierung.
 - **Phoenix Boost mit optionalem AI Boost:** Intelligente Prompt-Erweiterung über lokales Ollama/Qwen mit einer kompakten Boost-Vorschau (maximierbar/wiederherstellbar, nebeneinander liegende Prompts, feste Aktionsleiste und Scroll-Fallback).
+- **RealESRGAN NPU Upscaling:** Lokales 2×- und 4×-Upscaling vorhandener Bilder über den vorgesehenen NPU/QNN-Pfad.
 - **Lokale Bildgenerierung:** Vollständig offline-fähige Ausführung auf Windows 11 ARM64 / Snapdragon.
 - **Responsive Oberfläche:** Optimiert für Windows-Skalierungen von 100 % bis 175 % mit flexiblem Umbruch und lokalen Scrollbereichen.
 - **Zuverlässiger Ausgabeordner:** Direktes Öffnen des Laufzeitpfades und sicheres automatisches Anlegen, falls dieser fehlt.

@@ -270,7 +270,38 @@ ControlNet is not available for every model variant. The interface adapts to the
 
 ---
 
-## 13. Gallery, History, and Comparison
+## 13. RealESRGAN NPU Upscaling
+
+HK NPU STUDIO supports local **RealESRGAN upscaling on the NPU** to produce higher-resolution versions of existing images.
+
+### 2× Upscaling
+
+With **2× upscaling**, both the width and height of the source image are doubled. For example, a 512×512 image is output as a 1024×1024 image.
+
+This mode is suitable for moderate enlargement when the source image should remain as close as possible to the original.
+
+### 4× Upscaling
+
+With **4× upscaling**, both the width and height of the source image are quadrupled. For example, a 512×512 image is output as a 2048×2048 image.
+
+The 4× mode uses the designated RealESRGAN 4× path and processes larger images internally in tiles. The individual tiles are then recombined into the complete output image.
+
+### Usage
+
+1. Open the upscaling function in HK NPU STUDIO.
+2. Select the source image.
+3. Select **2×** or **4×** as the upscale factor.
+4. Start the upscaling process.
+5. Wait for local processing to complete.
+6. Review the resulting image.
+
+On supported Snapdragon PCs, upscaling runs locally through the designated NPU/QNN path. The source image is not sent to an external image-processing service.
+
+> **Note:** Upscaling increases image resolution and reconstructs details. It is not a new prompt-based image generation. The goal is a higher-resolution version of the existing image while preserving the original image content as closely as possible.
+
+---
+
+## 14. Gallery, History, and Comparison
 
 HK NPU STUDIO provides image and history views for reviewing generated images.
 
@@ -311,7 +342,7 @@ The exact presentation may continue to evolve between release candidates.
 
 ---
 
-## 14. Language, Themes, and Windows Scaling
+## 15. Language, Themes, and Windows Scaling
 
 The user interface supports:
 
@@ -332,7 +363,7 @@ The Phoenix interface is optimized for Windows display scaling from **100% to 17
 
 ---
 
-## 15. Local Data and Models
+## 16. Local Data and Models
 
 HK NPU STUDIO stores application settings, working data, and installed models locally.
 
@@ -348,7 +379,7 @@ The application validates model installations using expected files and metadata.
 
 ---
 
-## 16. Privacy and Offline Operation
+## 17. Privacy and Offline Operation
 
 A central goal of HK NPU STUDIO is local AI execution.
 
@@ -367,7 +398,7 @@ After successful setup, the intended local generation functions can be used with
 
 ---
 
-## 17. Troubleshooting
+## 18. Troubleshooting
 
 ### A Model Is Shown as “Not Installed”
 
@@ -407,7 +438,7 @@ For reproducible problems, the following information is helpful:
 
 ---
 
-## 18. Uninstalling
+## 19. Uninstalling
 
 HK NPU STUDIO can be uninstalled through **Windows Settings → Apps → Installed apps**.
 
@@ -415,7 +446,7 @@ Note that large model files and user data may be stored separately depending on 
 
 ---
 
-## 19. FAQ
+## 20. FAQ
 
 ### Is HK NPU STUDIO an official Qualcomm product?
 
@@ -455,7 +486,7 @@ The project is designed for Windows 11 ARM64 on Snapdragon. Other platforms are 
 
 ---
 
-## 20. Support and Bug Reports
+## 21. Support and Bug Reports
 
 Project repository:
 
@@ -467,7 +498,7 @@ Do not publish credentials, tokens, or other confidential information in logs or
 
 ---
 
-## 21. Open Source, Licenses, and Trademarks
+## 22. Open Source, Licenses, and Trademarks
 
 HK NPU STUDIO is developed as an independent open-source project. The application itself is provided under the project license specified in the repository. Models, frameworks, and external components are additionally subject to their respective licenses and terms of use.
 
@@ -477,7 +508,7 @@ Use of these names describes technical platforms or compatibility and does not i
 
 ---
 
-## 22. RC2B at a Glance
+## 23. RC2B at a Glance
 
 RC2B focuses on a reliable and understandable user workflow, along with a modernized interface:
 
@@ -487,6 +518,7 @@ RC2B focuses on a reliable and understandable user workflow, along with a modern
 - **Automatic Activation:** Activation of the model immediately after successful installation and validation.
 - **Status and Progress Displays:** Clear feedback during setup and generation.
 - **Phoenix Boost with Optional AI Boost:** Intelligent prompt expansion via local Ollama/Qwen with a compact preview (maximizable/restorable, side-by-side prompts, sticky action bar, and scroll fallback).
+- **RealESRGAN NPU Upscaling:** Local 2× and 4× upscaling of existing images through the designated NPU/QNN path.
 - **Local Image Generation:** After the required setup, image generation runs locally on Windows 11 ARM64/Snapdragon. Internet access may still be required for setup and downloads.
 - **Responsive Interface:** Optimized for Windows scaling from 100% to 175% with flexible wrapping and local scroll areas.
 - **Reliable Output Folder:** Direct opening of the runtime path and safe automatic directory creation if it is missing.
