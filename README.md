@@ -260,7 +260,7 @@ This workflow was successfully validated from a clean “not installed” state 
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/Phoenix_Boost_dark.png">
     <source media="(prefers-color-scheme: light)" srcset="docs/images/Phoenix_Boost_light.png">
     <img src="docs/images/Phoenix_Boost_light.png"
-         width="95%"
+         width="70%"
          alt="HK NPU STUDIO Phoenix Boost">
   </picture>
   <br>
@@ -273,7 +273,7 @@ This workflow was successfully validated from a clean “not installed” state 
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/Canny_dark.png">
     <source media="(prefers-color-scheme: light)" srcset="docs/images/Canny_light.png">
     <img src="docs/images/Canny_light.png"
-         width="95%"
+         width="70%"
          alt="HK NPU STUDIO Canny-guided generation">
   </picture>
   <br>
