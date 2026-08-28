@@ -172,37 +172,99 @@ This workflow was successfully validated from a clean “not installed” state 
 ### Main Workspace
 
 <p align="center">
-  <img src="docs/images/home-dark-light.png" width="95%" alt="HK NPU STUDIO main workspace">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/home-light.png">
+    <img src="docs/images/home-light.png"
+         width="95%"
+         alt="HK NPU STUDIO Home">
+  </picture>
+  <br>
+  <em>The central workspace of HK NPU STUDIO provides quick access to AI image generation, installed models, the gallery, comparison tools, and application settings. System and hardware information is available at a glance.</em>
 </p>
 
 ### AI Image Generation
 
 <p align="center">
-  <img src="docs/images/ai-generate-dark-light.png" width="95%" alt="Local AI image generation workspace">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/ai-generate-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/ai-generate-light.png">
+    <img src="docs/images/ai-generate-light.png"
+         width="95%"
+         alt="HK NPU STUDIO AI Generate">
+  </picture>
+  <br>
+  <em>Create AI-generated images locally with direct control over models, prompts, presets, resolution, generation parameters, and advanced options. The workspace keeps the complete generation workflow accessible from a single view.</em>
 </p>
 
 ### Model Management
 
 <p align="center">
-  <img src="docs/images/model-manager-dark-light.png" width="95%" alt="AI model management">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/model-manager-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/model-manager-light.png">
+    <img src="docs/images/model-manager-light.png"
+         width="95%"
+         alt="HK NPU STUDIO Model Manager">
+  </picture>
+  <br>
+  <em>Install, manage, and review supported AI models directly inside HK NPU STUDIO. Model availability, installation status, and the required components can be handled without leaving the application.</em>
 </p>
 
 ### Image Comparison
 
 <p align="center">
-  <img src="docs/images/compare-dark-light.png" width="95%" alt="Generated image comparison">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/compare-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/compare-light.png">
+    <img src="docs/images/compare-light.png"
+         width="95%"
+         alt="HK NPU STUDIO Compare">
+  </picture>
+  <br>
+  <em>Compare generated images side by side with synchronized navigation, zoom, and panning. Image information and generation metadata make it easier to evaluate differences between models, prompts, and settings.</em>
 </p>
 
 ### Gallery
 
 <p align="center">
-  <img src="docs/images/gallery-dark-light.png" width="95%" alt="Generated image gallery">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/gallery-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/gallery-light.png">
+    <img src="docs/images/gallery-light.png"
+         width="95%"
+         alt="HK NPU STUDIO Gallery">
+  </picture>
+  <br>
+  <em>Browse and manage locally generated images in one central gallery. Preview results, inspect generation metadata, open images for closer inspection, and quickly return to previous creations.</em>
 </p>
 
 ### Settings
 
 <p align="center">
-  <img src="docs/images/settings-dark-light.png" width="95%" alt="HK NPU STUDIO settings">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/settings-light.png">
+    <img src="docs/images/settings-light.png"
+         width="95%"
+         alt="HK NPU STUDIO Settings">
+  </picture>
+  <br>
+  <em>Configure HK NPU STUDIO to match your system and workflow, including appearance, application behavior, storage locations, and hardware-related options. Settings are kept together in a dedicated configuration workspace.</em>
+</p>
+
+### Canny-Guided Generation
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/Canny_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/Canny_light.png">
+    <img src="docs/images/Canny_light.png"
+         width="95%"
+         alt="HK NPU STUDIO Canny-guided generation">
+  </picture>
+  <br>
+  <em>Use Canny-guided generation to preserve important edges and structural information from a source image while creating a new AI-generated result. It provides additional control over composition and geometry while keeping the complete workflow local.</em>
 </p>
 
 ---
