@@ -5,7 +5,6 @@
        width="100%"
        alt="HK NPU STUDIO — Local AI for Snapdragon® PCs">
 </p>
----
 
 ## 🛡️ Badges
 
@@ -63,10 +62,11 @@
     <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
     <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
     <img src="assets/brand/phoenix_logo_black.png"
-         width="180"
+         width="320"
          alt="HK NPU STUDIO Phoenix">
   </picture>
 </p>
+
 ## 📖 About the Project
 
 **HK NPU STUDIO** is an independent open-source desktop application for local generative AI on Windows 11 ARM64 PCs.
@@ -169,7 +169,7 @@ This workflow was successfully validated from a clean “not installed” state 
 
 ## 📸 Screenshots
 
-### Main Workspace
+### 🏠 Main Workspace
 
 <p align="center">
   <picture>
@@ -183,7 +183,7 @@ This workflow was successfully validated from a clean “not installed” state 
   <em>The central workspace of HK NPU STUDIO provides quick access to AI image generation, installed models, the gallery, comparison tools, and application settings. System and hardware information is available at a glance.</em>
 </p>
 
-### AI Image Generation
+### 🎨 AI Image Generation
 
 <p align="center">
   <picture>
@@ -197,7 +197,7 @@ This workflow was successfully validated from a clean “not installed” state 
   <em>Create AI-generated images locally with direct control over models, prompts, presets, resolution, generation parameters, and advanced options. The workspace keeps the complete generation workflow accessible from a single view.</em>
 </p>
 
-### Model Management
+### 📦 Model Management
 
 <p align="center">
   <picture>
@@ -211,7 +211,7 @@ This workflow was successfully validated from a clean “not installed” state 
   <em>Install, manage, and review supported AI models directly inside HK NPU STUDIO. Model availability, installation status, and the required components can be handled without leaving the application.</em>
 </p>
 
-### Image Comparison
+### 🔍 Image Comparison
 
 <p align="center">
   <picture>
@@ -225,7 +225,7 @@ This workflow was successfully validated from a clean “not installed” state 
   <em>Compare generated images side by side with synchronized navigation, zoom, and panning. Image information and generation metadata make it easier to evaluate differences between models, prompts, and settings.</em>
 </p>
 
-### Gallery
+### 🖼️ Gallery
 
 <p align="center">
   <picture>
@@ -239,7 +239,7 @@ This workflow was successfully validated from a clean “not installed” state 
   <em>Browse and manage locally generated images in one central gallery. Preview results, inspect generation metadata, open images for closer inspection, and quickly return to previous creations.</em>
 </p>
 
-### Settings
+### ⚙️ Settings
 
 <p align="center">
   <picture>
@@ -253,7 +253,7 @@ This workflow was successfully validated from a clean “not installed” state 
   <em>Configure HK NPU STUDIO to match your system and workflow, including appearance, application behavior, storage locations, and hardware-related options. Settings are kept together in a dedicated configuration workspace.</em>
 </p>
 
-### Phoenix Boost
+### 🔥 Phoenix Boost
 
 <p align="center">
   <picture>
@@ -266,7 +266,8 @@ This workflow was successfully validated from a clean “not installed” state 
   <br>
   <em>Phoenix Boost provides an optimized local AI workflow designed to make supported generation tasks easier and more efficient on Snapdragon® PCs. The dedicated interface brings Phoenix Boost controls and status information together while keeping processing and user data on the local system.</em>
 </p>
-### Canny-Guided Generation
+
+### 🧭 Canny-Guided Generation
 
 <p align="center">
   <picture>
