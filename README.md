@@ -5,16 +5,6 @@
        width="100%"
        alt="HK NPU STUDIO — Local AI for Snapdragon® PCs">
 </p>
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
-    <img src="assets/brand/phoenix_logo_black.png"
-         width="180"
-         alt="HK NPU STUDIO Phoenix">
-  </picture>
-</p>
-
 ---
 
 ## 🛡️ Badges
@@ -68,6 +58,15 @@
 
 ---
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/phoenix_logo_white.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/phoenix_logo_black.png">
+    <img src="assets/brand/phoenix_logo_black.png"
+         width="180"
+         alt="HK NPU STUDIO Phoenix">
+  </picture>
+</p>
 ## 📖 About the Project
 
 **HK NPU STUDIO** is an independent open-source desktop application for local generative AI on Windows 11 ARM64 PCs.
