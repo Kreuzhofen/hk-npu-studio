@@ -73,6 +73,11 @@ The **Phoenix Engine** coordinates model discovery, validation, installation, ac
 
 ---
 
+<p align="center">
+  <img src="assets/brand/about/phoenix_about.png"
+       width="180"
+       alt="Phoenix — HK NPU STUDIO">
+</p>
 ## 🚀 RC2B — Improvements Since RC2A
 
 RC2B builds directly on top of RC2A as the baseline, introducing UI responsiveness optimizations, gallery and comparison enhancements, and additional safety and validation measures.
