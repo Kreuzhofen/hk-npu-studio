@@ -4,11 +4,14 @@ import logging
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from controllers.generation_job import GenerationJob
 from controllers.generation_session import GenerationSessionModel
 from engine.error_diagnostics import diagnose_exception
 from engine.job_lifecycle import JobStatus, get_job_status
+from engine.qnn_dlc_diagnostic_runner import QnnDlcDiagnosticPaths
+from engine.qnn_dlc_runtime_service import QnnDlcRuntimePaths
 from engine.logging_config import (
     LOG_FILE_NAME,
     close_logging,
@@ -77,6 +80,43 @@ class LoggingDiagnosticsTests(unittest.TestCase):
             self.assertEqual(JobStatus.FAILED, get_job_status(job))
             self.assertEqual("Testfehler", job.error_message)
             close_logging()
+
+    def test_qnn_dlc_paths_use_dynamic_app_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            models = root / "managed-models"
+            logs = root / "logs"
+            with patch("engine.qnn_dlc_diagnostic_runner.BASE", root), patch(
+                "engine.qnn_dlc_diagnostic_runner.MODELS_DIR", models
+            ), patch("engine.qnn_dlc_diagnostic_runner.LOG_DIR", logs), patch(
+                "engine.qnn_dlc_runtime_service.BASE", root
+            ), patch("engine.qnn_dlc_runtime_service.LOG_DIR", logs):
+                diagnostic_paths = QnnDlcDiagnosticPaths()
+                runtime_paths = QnnDlcRuntimePaths()
+                self.assertEqual(root, diagnostic_paths.project_root)
+                self.assertEqual(root, runtime_paths.project_root)
+                self.assertEqual(logs / "diagnostics", diagnostic_paths.diagnostics_root)
+                self.assertEqual(logs / "diagnostics", runtime_paths.diagnostics_root)
+                self.assertEqual(
+                    models / "qnn_mobilenet_v2" / "qnn_dlc_w8a8"
+                    / "mobilenet_v2-qnn_dlc-w8a8" / "mobilenet_v2.dlc",
+                    diagnostic_paths.model_path,
+                )
+
+    def test_model_manager_diagnostic_route_uses_runner(self) -> None:
+        from controllers.model_manager_controller import ModelManagerController
+
+        expected = {"status": "not_run"}
+        runner = MagicMock()
+        runner.run.return_value = expected
+        with patch(
+            "controllers.model_manager_controller.QnnDlcDiagnosticRunner",
+            return_value=runner,
+        ):
+            result = ModelManagerController.__new__(ModelManagerController).run_npu_diagnostic()
+
+        self.assertEqual(expected, result)
+        runner.run.assert_called_once_with()
 
 
 if __name__ == "__main__":

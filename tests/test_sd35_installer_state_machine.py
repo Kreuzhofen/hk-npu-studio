@@ -606,7 +606,8 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
         with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir), \
              patch("pathlib.Path.lstat", side_effect=mock_lstat):
-            SD35SetupHelper.safe_cleanup_temp_dir(str(workspace_path))
+            with patch("tools.sd35_setup_helper.TEMP_DIR", self.root):
+                SD35SetupHelper.safe_cleanup_temp_dir(str(workspace_path))
 
         # The clean up should have aborted, leaving isolated_deps and the critical source file intact!
         self.assertTrue(workspace_path.exists())
@@ -938,7 +939,8 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             with patch("tools.sd35_setup_helper.os.rmdir", side_effect=mock_rmdir), \
                  patch("tools.sd35_setup_helper.shutil.rmtree", side_effect=mock_rmtree):
 
-                SD35SetupHelper.safe_cleanup_temp_dir(str(workspace_dir))
+                with patch("tools.sd35_setup_helper.TEMP_DIR", self.root):
+                    SD35SetupHelper.safe_cleanup_temp_dir(str(workspace_dir))
         finally:
             Path.lstat = orig_lstat
             Path.is_dir = orig_is_dir
@@ -1154,6 +1156,54 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         source = inspect.getsource(SD35SetupHelper.run_setup)
         self.assertEqual(source.count("_run_external_sd35_process("), 2)
         self.assertEqual(source.count("_launch_external_sd35_process("), 2)
+
+    def test_cleanup_accepts_expected_workspace_under_managed_temp_root(self) -> None:
+        workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+        workspace.mkdir()
+        (workspace / "staged.tmp").write_text("temporary", encoding="utf-8")
+
+        with patch("tools.sd35_setup_helper.TEMP_DIR", self.root):
+            SD35SetupHelper.safe_cleanup_temp_dir(str(workspace))
+
+        self.assertFalse(workspace.exists())
+
+    def test_cleanup_blocks_external_parent_sibling_and_managed_root(self) -> None:
+        sibling = self.root.parent / f"qai-appbuilder-setup-{self.root.name}"
+        sibling.mkdir(exist_ok=False)
+        (sibling / "keep.txt").write_text("keep", encoding="utf-8")
+        try:
+            with patch("tools.sd35_setup_helper.TEMP_DIR", self.root):
+                SD35SetupHelper.safe_cleanup_temp_dir(str(self.root.parent))
+                SD35SetupHelper.safe_cleanup_temp_dir(str(sibling))
+                SD35SetupHelper.safe_cleanup_temp_dir(str(self.root))
+            self.assertTrue(sibling.exists())
+            self.assertTrue((sibling / "keep.txt").exists())
+            self.assertTrue(self.root.exists())
+        finally:
+            (sibling / "keep.txt").unlink(missing_ok=True)
+            sibling.rmdir()
+
+    def test_cleanup_has_no_historical_snapdragonai_path_exception(self) -> None:
+        source = inspect.getsource(SD35SetupHelper.safe_cleanup_temp_dir)
+        self.assertNotIn("C:/SnapdragonAI", source)
+        self.assertNotIn("C:\\SnapdragonAI", source)
+
+    def test_cleanup_blocks_workspace_symlink_escape(self) -> None:
+        workspace = self.root / SD35SetupHelper.WORKSPACE_NAME
+        with tempfile.TemporaryDirectory() as external_dir:
+            external = Path(external_dir)
+            marker = external / "keep.txt"
+            marker.write_text("keep", encoding="utf-8")
+            try:
+                workspace.symlink_to(external, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"directory symlinks unavailable: {exc}")
+
+            with patch("tools.sd35_setup_helper.TEMP_DIR", self.root):
+                SD35SetupHelper.safe_cleanup_temp_dir(str(workspace))
+
+            self.assertTrue(marker.exists())
+            self.assertTrue(workspace.exists())
 
 
 if __name__ == "__main__":

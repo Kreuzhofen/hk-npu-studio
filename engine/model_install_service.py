@@ -13,7 +13,7 @@ import hashlib
 from dataclasses import dataclass
 from enum import Enum
 
-from config import BASE, MODELS_DIR
+from config import BASE, MODELS_DIR, TEMP_DIR
 from controllers.model_repository import ModelRepository
 from controllers.package_status import PackageStatus
 from engine.download_service import DownloadService, DownloadErrorCode
@@ -425,6 +425,26 @@ class ModelInstallService:
             return sum(f.stat().st_size for f in p.rglob("*") if f.is_file())
         return 0
 
+    @staticmethod
+    def _resolve_managed_model_target(model_id: str) -> Path | None:
+        """Return the app-owned target, rejecting paths that escape MODELS_DIR."""
+        model_id = str(model_id).strip()
+        if not model_id:
+            return None
+        relative_model = Path(model_id)
+        if relative_model.is_absolute() or ".." in relative_model.parts:
+            return None
+
+        try:
+            managed_root = MODELS_DIR.resolve()
+            target = (managed_root / relative_model).resolve()
+            if target == managed_root:
+                return None
+            target.relative_to(managed_root)
+        except (OSError, ValueError):
+            return None
+        return target
+
     def check_available_disk_space(self, path: str) -> int:
         """
         Check the available free space in bytes on the partition containing the given path.
@@ -523,6 +543,11 @@ class ModelInstallService:
         """
         Uninstalls a model by deleting its local files and updating the repository status.
         """
+        managed_target = self._resolve_managed_model_target(model_id)
+        if managed_target is None:
+            logger.error("Uninstallation blocked for unsafe model id: %r", model_id)
+            return False
+
         model = self.repository.get_model(model_id)
         if not model:
             logger.error(f"Uninstallation failed: Model '{model_id}' not found.")
@@ -542,23 +567,20 @@ class ModelInstallService:
 
         model_path = Path(model_path_str)
         try:
-            # Delete model files (either the folder or specific file)
-            # Check if it resides inside our standard models directory before deleting for safety
+            # Delete only the exact app-owned target. Custom paths remain untouched.
             if model_path.exists():
-                if MODELS_DIR.resolve() in model_path.resolve().parents or model_path.resolve() == MODELS_DIR.resolve():
-                    # For safety, if it's the model folder we created (MODELS_DIR / model_id)
-                    target_folder = MODELS_DIR / model_id
-                    if target_folder.exists() and target_folder.is_dir():
-                        shutil.rmtree(target_folder)
-                    elif model_path.is_file():
-                        model_path.unlink()
+                model_path_resolved = model_path.resolve()
+                if model_path_resolved == managed_target:
+                    if managed_target.is_dir():
+                        shutil.rmtree(managed_target)
+                    elif managed_target.is_file():
+                        managed_target.unlink()
                 else:
-                    # If it was installed at a custom external path, just remove the specific file/folder if inside workspace
-                    if Path(r"C:\SnapdragonAI").resolve() in model_path.resolve().parents:
-                        if model_path.is_dir():
-                            shutil.rmtree(model_path)
-                        else:
-                            model_path.unlink()
+                    logger.info(
+                        "Preserving unmanaged model path during uninstall | model=%s path=%s",
+                        model_id,
+                        model_path,
+                    )
 
             # Update repository
             success = self.repository.update_model(
@@ -1126,9 +1148,29 @@ class ModelInstallService:
         The previous package remains available for rollback until the registry commit succeeds.
         """
         logger.info(f"Triggering local package update for '{model_id}' from '{new_source_path}'")
+        managed_target = self._resolve_managed_model_target(model_id)
+        if managed_target is None:
+            logger.error("Package update blocked for unsafe model id: %r", model_id)
+            return False
+
         model = self.repository.get_model(model_id)
         if not model or model.get("installed") is not True:
             logger.error("Package update rejected: '%s' is not installed.", model_id)
+            return False
+
+        stored_path = Path(str(model.get("path") or ""))
+        try:
+            stored_path_resolved = stored_path.resolve()
+        except OSError:
+            logger.error("Package update rejected: installed path cannot be resolved | model=%s", model_id)
+            return False
+        if stored_path_resolved != managed_target:
+            logger.error(
+                "Package update rejected outside managed model target | model=%s path=%s expected=%s",
+                model_id,
+                stored_path,
+                managed_target,
+            )
             return False
 
         source_info = self._validate_local_package_source(model_id, new_source_path)
@@ -1154,7 +1196,7 @@ class ModelInstallService:
             )
             return False
 
-        package_dir = Path(str(model.get("path") or ""))
+        package_dir = managed_target
         if not package_dir.exists() or not package_dir.is_dir():
             logger.error("Package update rejected: installed path is invalid | model=%s", model_id)
             return False
@@ -1162,6 +1204,13 @@ class ModelInstallService:
         operation_id = uuid4().hex
         staging_dir = package_dir.parent / f".{package_dir.name}.update-{operation_id}"
         backup_dir = package_dir.parent / f".{package_dir.name}.backup-{operation_id}"
+        managed_root = MODELS_DIR.resolve()
+        try:
+            staging_dir.resolve().relative_to(managed_root)
+            backup_dir.resolve().relative_to(managed_root)
+        except (OSError, ValueError):
+            logger.error("Package update rejected: staging or backup path escaped managed models root.")
+            return False
         previous = {
             "installed": bool(model.get("installed")),
             "downloaded": bool(model.get("downloaded")),
@@ -1463,6 +1512,8 @@ class ModelInstallService:
             if not path.exists():
                 return False
 
+            managed_root = TEMP_DIR.resolve()
+
             # Find the qai-appbuilder-main directory to delete
             target_dir = None
             if path.name == "qai-appbuilder-main":
@@ -1477,27 +1528,18 @@ class ModelInstallService:
                 logger.warning("Cleanup aborted: no 'qai-appbuilder-main' folder found in path %s", path_str)
                 return False
 
-            # Check for protected directory names
-            invalid_names = {"models", "SnapdragonAI", "Downloads", "Users", "Documents", "Desktop"}
-            if target_dir.name.lower() in (name.lower() for name in invalid_names):
+            if target_dir == managed_root or not target_dir.is_dir():
                 return False
 
-            # Check protected paths
-            protected_paths = [
-                Path("C:/"),
-                Path("C:/SnapdragonAI"),
-                Path("C:/SnapdragonAI/models"),
-                MODELS_DIR,
-                Path(os.path.expanduser("~")),
-                Path(os.path.expanduser("~")) / "Downloads",
-            ]
-            for p in protected_paths:
-                try:
-                    if target_dir == p.resolve() or target_dir in p.resolve().parents:
-                        logger.warning("Cleanup aborted: matches or contains protected path %s", p)
-                        return False
-                except OSError:
-                    continue
+            try:
+                target_dir.relative_to(managed_root)
+            except ValueError:
+                logger.warning(
+                    "Cleanup aborted outside managed temp root | target=%s root=%s",
+                    target_dir,
+                    managed_root,
+                )
+                return False
 
             shutil.rmtree(target_dir)
             return True

@@ -916,6 +916,17 @@ class SD35SetupHelper:
     def safe_cleanup_temp_dir(path_str: str) -> None:
         try:
             path = Path(path_str)
+            managed_root = Path(TEMP_DIR).resolve()
+            resolved_path = path.resolve()
+            if resolved_path == managed_root:
+                logger.warning("Aborting cleanup: refusing to remove managed temp root %s.", managed_root)
+                return
+            try:
+                resolved_path.relative_to(managed_root)
+            except ValueError:
+                logger.warning("Aborting cleanup: path %s is outside managed temp root %s.", resolved_path, managed_root)
+                return
+
             try:
                 st = path.lstat()
             except FileNotFoundError:
@@ -929,7 +940,7 @@ class SD35SetupHelper:
             is_reparse = bool(getattr(st, "st_file_attributes", 0) & 0x400)
 
             if is_reparse:
-                SD35SetupHelper._safe_purge_reparse_and_dir(path)
+                logger.warning("Aborting cleanup: workspace path %s is a reparse point.", path)
                 return
 
             if not is_dir:
@@ -939,31 +950,11 @@ class SD35SetupHelper:
                     pass
                 return
 
-            # Resolve only after we confirm it is a normal directory
-            path = path.resolve()
+            path = resolved_path
 
             if path.name != SD35SetupHelper.WORKSPACE_NAME and not path.name.startswith("qai-appbuilder-setup-"):
                 logger.warning("Aborting cleanup: directory name %s does not match expected temporary pattern.", path.name)
                 return
-
-            invalid_names = {"models", "SnapdragonAI", "Downloads", "Users", "Documents", "Desktop"}
-            if path.name.lower() in (name.lower() for name in invalid_names):
-                return
-
-            protected_paths = [
-                Path("C:/"),
-                Path("C:/SnapdragonAI"),
-                Path("C:/SnapdragonAI/models"),
-                Path(os.path.expanduser("~")),
-                Path(os.path.expanduser("~")) / "Downloads",
-            ]
-            for p in protected_paths:
-                try:
-                    if path == p.resolve():
-                        logger.warning("Aborting cleanup: directory matches protected path %s.", p)
-                        return
-                except OSError:
-                    continue
 
             # Remove any isolated_deps junctions safely before workspace cleanup
             isolated_deps = path / "isolated_deps"

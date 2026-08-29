@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from config import BASE, LOG_DIR
 from engine.onnx_provider_service import OnnxProviderService
 
 
@@ -13,8 +14,8 @@ from engine.onnx_provider_service import OnnxProviderService
 class QnnDlcRuntimePaths:
     """Resolved local Qualcomm QNN DLC runtime paths."""
 
-    project_root: Path = Path(r"C:\SnapdragonAI")
-    ai_stack_root: Path = OnnxProviderService.AI_STACK_ROOT
+    project_root: Path = field(default_factory=lambda: BASE)
+    ai_stack_root: Path = field(default_factory=lambda: OnnxProviderService.AI_STACK_ROOT)
     architecture_dir: str = "aarch64-windows-msvc"
 
     @property
@@ -31,7 +32,7 @@ class QnnDlcRuntimePaths:
 
     @property
     def diagnostics_root(self) -> Path:
-        return self.project_root / "diagnostics"
+        return LOG_DIR / "diagnostics"
 
 
 @dataclass(frozen=True)

@@ -9,8 +9,9 @@ Phoenix Engine
 
 import platform
 import sys
-import shutil
 import ctypes
+
+from engine.backends.backend_discovery_service import BackendDiscoveryService
 
 
 class HardwareManager:
@@ -55,5 +56,12 @@ class HardwareManager:
         return "Unbekannt"
 
     def is_qnn_available(self):
-        qnn_path = r"C:\Qualcomm\AIStack\2.47.0.260601\lib\aarch64-windows-msvc\QnnHtp.dll"
-        return shutil.os.path.exists(qnn_path)
+        try:
+            discovery = BackendDiscoveryService.discover()
+            return bool(
+                discovery.qnn_sdk_found
+                and discovery.qnn_tools_found
+                and discovery.qnn_htp_backend_path
+            )
+        except Exception:
+            return False

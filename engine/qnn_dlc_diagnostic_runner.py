@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from config import BASE, LOG_DIR, MODELS_DIR
 
 try:
     from engine.onnx_provider_service import OnnxProviderService
@@ -20,11 +22,11 @@ except ModuleNotFoundError:
 
 @dataclass(frozen=True)
 class QnnDlcDiagnosticPaths:
-    project_root: Path = Path(r"C:\SnapdragonAI")
-    ai_stack_root: Path = OnnxProviderService.AI_STACK_ROOT
-    model_path: Path = Path(
-        r"C:\SnapdragonAI\models\qnn_mobilenet_v2\qnn_dlc_w8a8"
-        r"\mobilenet_v2-qnn_dlc-w8a8\mobilenet_v2.dlc"
+    project_root: Path = field(default_factory=lambda: BASE)
+    ai_stack_root: Path = field(default_factory=lambda: OnnxProviderService.AI_STACK_ROOT)
+    model_path: Path = field(
+        default_factory=lambda: MODELS_DIR / "qnn_mobilenet_v2" / "qnn_dlc_w8a8"
+        / "mobilenet_v2-qnn_dlc-w8a8" / "mobilenet_v2.dlc"
     )
 
     @property
@@ -33,7 +35,7 @@ class QnnDlcDiagnosticPaths:
 
     @property
     def diagnostics_root(self) -> Path:
-        return self.project_root / "diagnostics"
+        return LOG_DIR / "diagnostics"
 
     @property
     def input_dir(self) -> Path:

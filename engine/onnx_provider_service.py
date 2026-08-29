@@ -6,10 +6,23 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from config import BASE, LOG_DIR
+from engine.backends.backend_discovery_service import BackendDiscoveryService
 from engine.logging_config import get_logger
 
 
 logger = get_logger("OnnxProviderService")
+
+
+def _discover_qnn_runtime() -> Any | None:
+    try:
+        return BackendDiscoveryService.discover()
+    except Exception as exc:
+        logger.debug("[OnnxProviderService] QNN SDK discovery unavailable: %s", exc)
+        return None
+
+
+_QNN_DISCOVERY = _discover_qnn_runtime()
 
 
 class OnnxProviderService:
@@ -20,7 +33,11 @@ class OnnxProviderService:
 
     QNN_PROVIDER = "QNNExecutionProvider"
     CPU_PROVIDER = "CPUExecutionProvider"
-    AI_STACK_ROOT = Path(r"C:\Qualcomm\AIStack\2.47.0.260601")
+    AI_STACK_ROOT = (
+        Path(_QNN_DISCOVERY.qnn_sdk_path)
+        if _QNN_DISCOVERY is not None and _QNN_DISCOVERY.qnn_sdk_path
+        else None
+    )
 
     _initialized = False
     _registration_attempted = False
@@ -30,7 +47,7 @@ class OnnxProviderService:
     _providers_after: list[str] = []
     _qnn_provider_options: dict[str, Any] = {}
     _dll_directories: list[Any] = []
-    _diagnostic_log_dir = Path(r"C:\SnapdragonAI\diagnostics\logs")
+    _diagnostic_log_dir = LOG_DIR / "diagnostics"
     _session_cache: dict[tuple[str, str], Any] = {}
     _session_cache_lock = threading.RLock()
 
@@ -80,8 +97,9 @@ class OnnxProviderService:
             qnn_library_dir = qnn_library_path.parent
 
             cls._add_dll_directory(qnn_library_dir)
-            cls._add_dll_directory(cls.AI_STACK_ROOT / "bin" / "aarch64-windows-msvc")
-            cls._add_dll_directory(cls.AI_STACK_ROOT / "lib" / "aarch64-windows-msvc")
+            if cls.AI_STACK_ROOT is not None:
+                cls._add_dll_directory(cls.AI_STACK_ROOT / "bin" / "aarch64-windows-msvc")
+                cls._add_dll_directory(cls.AI_STACK_ROOT / "lib" / "aarch64-windows-msvc")
 
             ort.register_execution_provider_library(
                 onnxruntime_qnn.get_ep_name(),
@@ -114,10 +132,15 @@ class OnnxProviderService:
     @classmethod
     def _build_qnn_provider_options(cls, onnxruntime_qnn: Any | None) -> dict[str, Any]:
         try:
+            htp_path = None
             if onnxruntime_qnn is not None:
                 htp_path = onnxruntime_qnn.get_qnn_htp_path()
-            else:
-                htp_path = cls.AI_STACK_ROOT / "lib" / "aarch64-windows-msvc" / "QnnHtp.dll"
+            if not htp_path:
+                htp_path = (
+                    _QNN_DISCOVERY.qnn_htp_backend_path
+                    if _QNN_DISCOVERY is not None
+                    else None
+                )
             if htp_path and Path(htp_path).exists():
                 return {"backend_path": str(htp_path)}
         except Exception as exc:
@@ -338,10 +361,10 @@ class OnnxProviderService:
     @classmethod
     def find_local_qnn_test_candidates(
         cls,
-        project_root: str | Path = r"C:\SnapdragonAI",
+        project_root: str | Path | None = None,
         max_size_mb: int = 64,
     ) -> list[dict[str, Any]]:
-        root = Path(project_root)
+        root = Path(project_root) if project_root is not None else BASE
         if not root.exists():
             return []
 
@@ -487,7 +510,6 @@ class OnnxProviderService:
             "provider_registration_status": cls._registration_status,
             "provider_registration_error": cls._registration_error,
             "provider_options": cls.provider_options(),
-            "ai_stack_root": str(cls.AI_STACK_ROOT),
+            "ai_stack_root": str(cls.AI_STACK_ROOT) if cls.AI_STACK_ROOT is not None else None,
             "qnn_registration_attempted": cls._registration_attempted,
         }
-

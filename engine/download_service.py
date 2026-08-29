@@ -116,19 +116,23 @@ class DownloadService:
         target_path = self.download_dir / target_name
         partial_path = target_path.with_suffix(target_path.suffix + ".part")
 
+        headers = {"User-Agent": "HKNPUStudio/2.0"}
+        if authorization_token:
+            headers["Authorization"] = f"Bearer {authorization_token}"
+
         if target_path.exists() and not overwrite:
-            raise DownloadError(
-                DownloadErrorCode.FILE_EXISTS,
-                f"Download target already exists: {target_path}",
+            return self._reuse_existing_target(
+                target_path,
+                urllib.request.Request(url, headers=headers),
+                progress_callback,
+                expected_sha256,
+                require_checksum,
             )
 
         if partial_path.exists() and not resume:
             partial_path.unlink()
 
         existing_bytes = partial_path.stat().st_size if partial_path.exists() else 0
-        headers = {"User-Agent": "HKNPUStudio/2.0"}
-        if authorization_token:
-            headers["Authorization"] = f"Bearer {authorization_token}"
         if existing_bytes:
             headers["Range"] = f"bytes={existing_bytes}-"
         request = urllib.request.Request(url, headers=headers)
@@ -220,6 +224,75 @@ class DownloadService:
             success=True,
             path=target_path,
             bytes_downloaded=final_size,
+            total_bytes=total_bytes,
+            message=tr(
+                "package_downloaded_to",
+                "Paket heruntergeladen nach {path}",
+                path=target_path,
+            ),
+        )
+
+    def _reuse_existing_target(
+        self,
+        target_path: Path,
+        request: urllib.request.Request,
+        progress_callback: ProgressCallback | None,
+        expected_sha256: str | None,
+        require_checksum: bool,
+    ) -> DownloadResult:
+        try:
+            target_path.resolve().relative_to(self.download_dir.resolve())
+        except (OSError, ValueError) as exc:
+            raise DownloadError(
+                DownloadErrorCode.INVALID_FILE,
+                f"Existing download target is outside managed staging: {target_path}",
+            ) from exc
+        if target_path.parent.resolve() != self.download_dir.resolve() or not target_path.is_file():
+            raise DownloadError(
+                DownloadErrorCode.INVALID_FILE,
+                f"Existing download target is not a managed staging file: {target_path}",
+            )
+
+        file_size = target_path.stat().st_size
+        if self._valid_sha256(expected_sha256):
+            actual_sha256 = self._sha256(target_path)
+            if actual_sha256 != expected_sha256.lower():
+                raise DownloadError(
+                    DownloadErrorCode.INVALID_FILE,
+                    f"SHA-256 mismatch: expected {expected_sha256.lower()}, got {actual_sha256}.",
+                )
+            total_bytes = file_size
+        elif require_checksum:
+            raise DownloadError(
+                DownloadErrorCode.INVALID_FILE,
+                "A valid SHA-256 checksum is required before registration.",
+            )
+        else:
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    total_bytes = self._read_content_length(response)
+            except TimeoutError as exc:
+                raise DownloadError(DownloadErrorCode.TIMEOUT, f"Download timed out: {request.full_url}") from exc
+            except urllib.error.URLError as exc:
+                code = DownloadErrorCode.TIMEOUT if isinstance(exc.reason, TimeoutError) else DownloadErrorCode.NETWORK_ERROR
+                raise DownloadError(code, f"Unable to validate existing download {request.full_url}: {exc}") from exc
+            except OSError as exc:
+                raise DownloadError(
+                    DownloadErrorCode.NETWORK_ERROR,
+                    f"Unable to validate existing download {request.full_url}: {exc}",
+                ) from exc
+            if total_bytes is None or file_size <= 0 or file_size != total_bytes:
+                raise DownloadError(
+                    DownloadErrorCode.FILE_EXISTS,
+                    f"Existing download could not be verified as complete: {target_path}",
+                )
+
+        logger.info("Reusing existing completed download: %s", target_path)
+        self._emit_progress(progress_callback, file_size, total_bytes)
+        return DownloadResult(
+            success=True,
+            path=target_path,
+            bytes_downloaded=file_size,
             total_bytes=total_bytes,
             message=tr(
                 "package_downloaded_to",

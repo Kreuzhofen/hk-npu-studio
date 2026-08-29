@@ -20,6 +20,7 @@ LOG_DIR = USER_BASE / "logs"
 ASSET_INDEX_DB = DATA_DIR / "asset_index.sqlite3"
 PREFERENCES_PATH = DATA_DIR / "preferences.json"
 PROMPT_HISTORY_PATH = DATA_DIR / "prompt_history.json"
+PRESETS_DIR = DATA_DIR / "presets"
 PROMPT_TEMPLATES_PATH = BASE / "resources" / "prompt_templates.json"
 TEMP_DIR = USER_BASE / "temp"
 MODELS_DIR = USER_BASE / "models"
@@ -29,11 +30,6 @@ WORKFLOWS_DIR = BASE / "workflows"
 COMFYUI_HOST = "127.0.0.1"
 COMFYUI_PORT = 8188
 COMFYUI_BASE_URL = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"
-
-QNN_BIN = Path(r"C:\Qualcomm\AIStack\2.47.0.260601\bin\aarch64-windows-msvc\qnn-net-run.exe")
-QNN_BACKEND = Path(r"C:\Qualcomm\AIStack\2.47.0.260601\lib\aarch64-windows-msvc\QnnHtp.dll")
-QNN_LIB_DIR = Path(r"C:\Qualcomm\AIStack\2.47.0.260601\lib\aarch64-windows-msvc")
-QNN_BIN_DIR = Path(r"C:\Qualcomm\AIStack\2.47.0.260601\bin\aarch64-windows-msvc")
 
 REALESRGAN_MODEL = MODELS_DIR / "real_esrgan_x4plus.bin"
 

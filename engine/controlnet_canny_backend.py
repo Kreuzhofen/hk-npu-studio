@@ -19,17 +19,13 @@ import time
 from typing import Any
 import numpy as np
 
-# Ensure global site-packages is appended to import PIL if needed
-global_site_packages = r"C:\Program Files\Python311-arm64\Lib\site-packages"
-if global_site_packages not in sys.path:
-    sys.path.append(global_site_packages)
-
 # Add project root to sys.path to resolve controllers and engine packages in subprocess
 project_root = str(Path(__file__).parent.parent.resolve())
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from app.i18n import tr
+from config import TEMP_DIR
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
@@ -37,6 +33,7 @@ from engine.logging_config import get_logger
 
 logger = get_logger("ControlNetCannyQnnBackend")
 DEFAULT_NEGATIVE_PROMPT = "blurry, low quality, distorted"
+CONTROLNET_TEMP_DIR = TEMP_DIR / "controlnet_canny_gate"
 
 
 def _resolve_worker_python() -> str:
@@ -44,7 +41,7 @@ def _resolve_worker_python() -> str:
     configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
     candidates = [
         Path(configured) if configured else None,
-        Path(r"C:\SnapdragonAI\temp\controlnet_canny_gate\venv\Scripts\python.exe"),
+        CONTROLNET_TEMP_DIR / "venv" / "Scripts" / "python.exe",
         Path(sys.executable),
     ]
     for candidate in candidates:
@@ -443,7 +440,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
                 model_name=params.model_name,
             )
 
-        temp_dir = Path(r"C:\SnapdragonAI\temp\controlnet_canny_gate")
+        temp_dir = CONTROLNET_TEMP_DIR
         temp_dir.mkdir(parents=True, exist_ok=True)
         job_id_str = str(job.job_id)[:8]
         input_json_path = temp_dir / f"job_input_{job_id_str}.json"
@@ -649,7 +646,7 @@ class ControlNetCannyQnnBackend(InferenceBackend):
                 "metadata": {}
             }
 
-        temp_dir = Path(r"C:\SnapdragonAI\temp\controlnet_canny_gate")
+        temp_dir = CONTROLNET_TEMP_DIR
         temp_dir.mkdir(parents=True, exist_ok=True)
 
         t_pipeline_start = time.time()

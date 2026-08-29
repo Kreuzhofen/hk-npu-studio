@@ -23,10 +23,29 @@ class ConfigurationManagerTests(unittest.TestCase):
         self.temporary_directory.cleanup()
 
     def test_missing_configuration_uses_validated_defaults(self) -> None:
-        values = self.manager.load()
+        output_dir = self.path.parent / "dynamic-output"
+        models_dir = self.path.parent / "dynamic-models"
+        with patch("config.OUTPUT_DIR", output_dir), patch("config.MODELS_DIR", models_dir):
+            values = self.manager.load()
         self.assertEqual(CURRENT_SCHEMA_VERSION, values["schema_version"])
         self.assertEqual("Auto", values["thread_count"])
         self.assertEqual("QNN EP", values["execution_provider"])
+        self.assertEqual(str(output_dir), values["output_dir"])
+        self.assertEqual(str(models_dir), values["models_dir"])
+
+    def test_stored_custom_paths_are_preserved(self) -> None:
+        custom_output = self.path.parent / "custom-output"
+        custom_models = self.path.parent / "custom-models"
+        self.path.write_text(json.dumps({
+            "schema_version": CURRENT_SCHEMA_VERSION,
+            "output_dir": str(custom_output),
+            "models_dir": str(custom_models),
+        }), encoding="utf-8")
+
+        values = self.manager.load()
+
+        self.assertEqual(str(custom_output), values["output_dir"])
+        self.assertEqual(str(custom_models), values["models_dir"])
 
     def test_legacy_flat_configuration_is_migrated_and_persisted(self) -> None:
         self.path.write_text(

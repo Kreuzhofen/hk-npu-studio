@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from controllers.generation_job import GenerationJob
@@ -69,6 +71,26 @@ class BackendContractTests(unittest.TestCase):
             return_value=(True, "verfügbar"),
         ):
             self.assertIs(backend.is_available(), True)
+
+    def test_onnx_backend_uses_dynamic_diagnostic_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            log_dir = Path(directory) / "logs"
+            with patch("engine.onnx_image_backend.LOG_DIR", log_dir):
+                path = OnnxImageBackend()._build_save_diagnostic_log_path(self.job)
+            self.assertEqual(log_dir / "diagnostics", path.parent)
+            self.assertTrue(path.parent.is_dir())
+
+    def test_onnx_model_discovery_uses_dynamic_models_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            models_dir = Path(directory) / "models"
+            model = models_dir / "custom" / "model.onnx"
+            model.parent.mkdir(parents=True)
+            model.write_bytes(b"onnx")
+            with patch("engine.onnx_image_backend.MODELS_DIR", models_dir), patch(
+                "engine.onnx_image_backend.BASE", Path(directory) / "app"
+            ):
+                discovered = OnnxImageBackend.discover_onnx_models()
+            self.assertEqual(str(model.resolve().as_posix()), discovered[0]["path"])
 
 
 if __name__ == "__main__":

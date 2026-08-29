@@ -9,7 +9,11 @@ from typing import Any
 class PresetManager:
     """Manages creation, loading, saving and deletion of parameter presets."""
 
-    def __init__(self, preset_dir: str | Path = "C:/SnapdragonAI/presets") -> None:
+    def __init__(self, preset_dir: str | Path | None = None) -> None:
+        if preset_dir is None:
+            from config import PRESETS_DIR
+
+            preset_dir = PRESETS_DIR
         self.preset_dir = Path(preset_dir)
         self.preset_dir.mkdir(parents=True, exist_ok=True)
         self._ensure_default_presets()

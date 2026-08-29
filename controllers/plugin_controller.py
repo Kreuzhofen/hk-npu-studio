@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 from uuid import uuid4
 
+from config import PLUGINS_DIR
 from engine.plugin_info import PluginInfo
 
 class PluginMetadata:
@@ -31,7 +32,7 @@ class PluginMetadata:
 class PluginController:
     """Controller for discovering, enabling/disabling, and installing plugins."""
 
-    def __init__(self, plugins_dir: str | Path = r"C:\SnapdragonAI\plugins") -> None:
+    def __init__(self, plugins_dir: str | Path = PLUGINS_DIR) -> None:
         self.plugins_dir = Path(plugins_dir)
         self.config_path = self.plugins_dir / "plugins_config.json"
         self.enabled_states: dict[str, bool] = {}

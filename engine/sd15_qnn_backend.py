@@ -18,17 +18,13 @@ import time
 from typing import Any
 import numpy as np
 
-# Ensure global site-packages is appended to import PIL if needed
-global_site_packages = r"C:\Program Files\Python311-arm64\Lib\site-packages"
-if global_site_packages not in sys.path:
-    sys.path.append(global_site_packages)
-
 # Add project root to sys.path to resolve controllers and engine packages in subprocess
 project_root = str(Path(__file__).parent.parent.resolve())
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from app.i18n import tr
+from config import MODELS_DIR, TEMP_DIR
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
@@ -69,8 +65,8 @@ def _tensor_summary(name: str, value: np.ndarray) -> dict[str, Any]:
 
 # Setup process environment for QNN runtime.
 # Production models live under models/. Temporary virtual environments are optional.
-ROOT = Path(r"C:\SnapdragonAI\temp\sd15_first_npu_image")
-MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v1_5_qnn")
+ROOT = TEMP_DIR / "sd15_first_npu_image"
+MODEL_DIR = MODELS_DIR / "stable_diffusion_v1_5_qnn"
 
 
 def _resolve_worker_python() -> str:
@@ -78,7 +74,7 @@ def _resolve_worker_python() -> str:
     configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
     candidates = [
         Path(configured) if configured else None,
-        Path(r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Scripts\python.exe"),
+        TEMP_DIR / "ort_qnn_245_test" / "venv" / "Scripts" / "python.exe",
         Path(sys.executable),
     ]
     for candidate in candidates:
@@ -342,7 +338,7 @@ class StableDiffusion15QnnBackend(InferenceBackend):
             )
 
         # Create temporary json files for communication
-        temp_dir = Path(r"C:\SnapdragonAI\temp\sd15_first_npu_image")
+        temp_dir = ROOT
         temp_dir.mkdir(parents=True, exist_ok=True)
         job_id_str = str(job.job_id)[:8]
         input_json_path = temp_dir / f"job_input_{job_id_str}.json"

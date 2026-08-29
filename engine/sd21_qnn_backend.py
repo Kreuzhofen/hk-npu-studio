@@ -13,17 +13,14 @@ import logging
 import os
 import platform
 import shutil
+import struct
 import sys
 import tempfile
 from pathlib import Path
 import time
 from typing import Any
+import zlib
 import numpy as np
-
-# Ensure global site-packages is appended to import PIL if needed
-global_site_packages = r"C:\Program Files\Python311-arm64\Lib\site-packages"
-if global_site_packages not in sys.path:
-    sys.path.append(global_site_packages)
 
 # Add project root to sys.path to resolve controllers and engine packages in subprocess
 project_root = str(Path(__file__).parent.parent.resolve())
@@ -31,6 +28,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from app.i18n import tr
+from config import MODELS_DIR, TEMP_DIR
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
@@ -69,17 +67,74 @@ def _tensor_summary(name: str, value: np.ndarray) -> dict[str, Any]:
         "standard_deviation": float(array.std()),
     }
 
-# Setup process environment for QNN runtime
-ROOT = Path(r"C:\SnapdragonAI\temp\sd21_qnn_runtime")
-MODEL_DIR = Path(r"C:\SnapdragonAI\models\stable_diffusion_v2_1")
-qnn_dir = Path(r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Lib\site-packages\onnxruntime_qnn")
-os.environ["PATH"] = str(qnn_dir) + os.pathsep + os.environ.get("PATH", "")
-os.environ["ADSP_LIBRARY_PATH"] = str(qnn_dir)
-if hasattr(os, "add_dll_directory"):
+# Setup process paths for the isolated QNN runtime.
+ROOT = TEMP_DIR / "sd21_qnn_runtime"
+MODEL_DIR = MODELS_DIR / "stable_diffusion_v2_1_qnn"
+_QNN_DLL_DIRECTORY_HANDLES: dict[str, Any] = {}
+
+
+def _resolve_worker_python() -> str:
+    """Resolve the isolated development worker without changing the frozen contract."""
+    configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
+    candidates = [
+        Path(configured) if configured else None,
+        TEMP_DIR / "ort_qnn_245_test" / "venv" / "Scripts" / "python.exe",
+        Path(sys.executable),
+    ]
+    for candidate in candidates:
+        if candidate is not None and candidate.is_file():
+            return str(candidate)
+    raise FileNotFoundError("Kein verwendbarer Python-Interpreter für den QNN-Worker gefunden.")
+
+
+def _qnn_package_dir_for_worker(worker_python: str) -> Path | None:
+    interpreter = Path(worker_python).resolve()
+    if interpreter.parent.name.casefold() != "scripts":
+        return None
+    candidate = interpreter.parent.parent / "Lib" / "site-packages" / "onnxruntime_qnn"
+    return candidate if candidate.is_dir() else None
+
+
+def _configure_active_qnn_runtime_path() -> None:
+    """Expose the active worker's QNN package only while physical sessions run."""
     try:
-        os.add_dll_directory(str(qnn_dir))
+        import importlib.util
+
+        spec = importlib.util.find_spec("onnxruntime_qnn")
+        if spec is None or spec.origin is None:
+            return
+        qnn_dir = Path(spec.origin).resolve().parent
+        qnn_dir_key = os.path.normcase(str(qnn_dir))
+        path_entries = os.environ.get("PATH", "").split(os.pathsep)
+        if qnn_dir_key not in {os.path.normcase(entry) for entry in path_entries if entry}:
+            os.environ["PATH"] = os.pathsep.join((str(qnn_dir), *path_entries))
+        os.environ["ADSP_LIBRARY_PATH"] = str(qnn_dir)
+        if hasattr(os, "add_dll_directory") and qnn_dir_key not in _QNN_DLL_DIRECTORY_HANDLES:
+            try:
+                _QNN_DLL_DIRECTORY_HANDLES[qnn_dir_key] = os.add_dll_directory(str(qnn_dir))
+            except OSError:
+                pass
     except Exception:
-        pass
+        logger.exception("QNN-Laufzeitpfad konnte nicht vorbereitet werden.")
+
+
+def _write_rgb_png(path: Path, image: np.ndarray) -> None:
+    """Write one uint8 RGB array as PNG without GUI or Pillow dependencies."""
+    pixels = np.ascontiguousarray(image)
+    if pixels.dtype != np.uint8 or pixels.ndim != 3 or pixels.shape[2] != 3:
+        raise ValueError("PNG export requires an HxWx3 uint8 RGB array.")
+    height, width, _ = pixels.shape
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        payload = kind + data
+        return struct.pack(">I", len(data)) + payload + struct.pack(">I", zlib.crc32(payload))
+
+    scanlines = b"".join(b"\x00" + pixels[row].tobytes() for row in range(height))
+    png = b"\x89PNG\r\n\x1a\n"
+    png += chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    png += chunk(b"IDAT", zlib.compress(scanlines))
+    png += chunk(b"IEND", b"")
+    path.write_bytes(png)
 
 
 def bytes_to_unicode() -> dict[int, str]:
@@ -256,6 +311,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             self.scheduler = None
 
     def _setup_sessions(self, model_dir: Path) -> tuple[Any, Any, Any, dict[str, Any]]:
+        _configure_active_qnn_runtime_path()
         import onnxruntime as ort
         import onnxruntime_qnn as qnn
 
@@ -367,7 +423,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
                 str(output_json_path)
             ]
         else:
-            venv_python = r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Scripts\python.exe"
+            venv_python = _resolve_worker_python()
             script_path = Path(__file__).resolve()
             cmd = [
                 venv_python,
@@ -382,6 +438,13 @@ class StableDiffusion21QnnBackend(InferenceBackend):
         worker_env["PYTHONPATH"] = os.pathsep.join(
             part for part in (project_root, worker_env.get("PYTHONPATH", "")) if part
         )
+        if not getattr(sys, "frozen", False):
+            qnn_package_dir = _qnn_package_dir_for_worker(venv_python)
+            if qnn_package_dir is not None:
+                worker_env["PATH"] = os.pathsep.join(
+                    (str(qnn_package_dir), worker_env.get("PATH", ""))
+                )
+                worker_env["ADSP_LIBRARY_PATH"] = str(qnn_package_dir)
 
         # Start subprocess and capture stdout/stderr
         process = subprocess.Popen(
@@ -636,11 +699,8 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             image_float = image_quant.astype(np.float32) * 0.000015259021893143654
             image_rgb = np.clip(image_float[0] * 255.0, 0, 255).astype(np.uint8)
 
-            # 6. Save image using Pillow
+            # 6. Save image without adding GUI dependencies to the isolated worker.
             print("Saving image", flush=True)
-            from PIL import Image
-            img = Image.fromarray(image_rgb)
-
             output_dir = Path(job_data.get("output_directory", "output"))
             output_dir.mkdir(parents=True, exist_ok=True)
             prefix = job_data.get("output_prefix", "generate")
@@ -648,7 +708,7 @@ class StableDiffusion21QnnBackend(InferenceBackend):
             filename = f"{prefix}_{timestamp}_{job_data.get('job_id', '')[:8]}.png"
             image_path = output_dir / filename
 
-            img.save(image_path, format="PNG")
+            _write_rgb_png(image_path, image_rgb)
             png_size = image_path.stat().st_size
 
             # Save JSON sidecar

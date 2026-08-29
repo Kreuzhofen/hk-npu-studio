@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 from app.i18n import tr
+from config import BASE, LOG_DIR, MODELS_DIR
 from controllers.generation_job import GenerationJob
 from engine.generation_response import GenerationResponse
 from engine.inference_backend import InferenceBackend
@@ -29,7 +30,7 @@ class OnnxImageBackend(InferenceBackend):
         self.runtime_model = runtime_model
 
     def _build_save_diagnostic_log_path(self, job: GenerationJob) -> Path:
-        logs_dir = Path("C:/SnapdragonAI/diagnostics/logs")
+        logs_dir = LOG_DIR / "diagnostics"
         logs_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         return logs_dir / f"prompt_to_image_save_{timestamp}_{str(job.job_id)[:8]}.log"
@@ -83,16 +84,16 @@ class OnnxImageBackend(InferenceBackend):
         )
 
     @staticmethod
-    def discover_onnx_models(project_root: Path | str = "C:/SnapdragonAI") -> list[dict[str, any]]:
+    def discover_onnx_models(models_root: Path | str | None = None) -> list[dict[str, any]]:
         """
-        Discover ONNX models project-wide, prioritizing specific model folders.
+        Discover ONNX models in the managed model root and bundled model resources.
         Returns a list of dicts with keys: path, filename, size_mb, modified_at.
         """
-        root = Path(project_root)
+        root = Path(models_root) if models_root is not None else MODELS_DIR
         priorities = [
-            root / "resources" / "models",
-            root / "models",
-            root / "assets" / "models"
+            root,
+            BASE / "resources" / "models",
+            BASE / "assets" / "models",
         ]
         
         discovered_paths: set[Path] = set()
@@ -107,18 +108,15 @@ class OnnxImageBackend(InferenceBackend):
                 except Exception as e:
                     logger.debug(f"[OnnxImageBackend] Error scanning prioritised folder '{folder}': {e}")
                     
-        # 2. If nothing is found, search project-wide (excluding standard heavy/system folders)
+        # 2. If nothing is found, search the managed model root recursively.
         if not discovered_paths:
-            logger.info("[OnnxImageBackend] No ONNX models found in prioritized folders. Scanning project-wide...")
-            exclude_folders = {".git", "temp", "venv", ".venv", "__pycache__", "build", "dist", ".gemini"}
+            logger.info("[OnnxImageBackend] No ONNX models found in configured model locations.")
             try:
                 for path in root.rglob("*.onnx"):
                     if path.is_file():
-                        parts = path.parts
-                        if not any(x in exclude_folders for x in parts):
-                            discovered_paths.add(path.resolve())
+                        discovered_paths.add(path.resolve())
             except Exception as e:
-                logger.debug(f"[OnnxImageBackend] Error scanning project-wide: {e}")
+                logger.debug(f"[OnnxImageBackend] Error scanning managed model root: {e}")
                 
         # 3. Compile metadata for found files
         results = []

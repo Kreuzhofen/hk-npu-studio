@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.preset_manager import PresetManager
 
@@ -23,6 +24,15 @@ class PresetManagerTests(unittest.TestCase):
         self.assertIn("default", presets)
         self.assertIn("cyberpunk", presets)
         self.assertIn("photorealistic", presets)
+
+    def test_default_directory_uses_central_writable_path(self) -> None:
+        default_dir = Path(self.temp_dir) / "data" / "presets"
+        with patch("config.PRESETS_DIR", default_dir):
+            manager = PresetManager()
+            self.assertTrue(manager.save_preset("Portable", {"prompt": "test"}))
+
+        self.assertEqual(default_dir, manager.preset_dir)
+        self.assertTrue((default_dir / "portable.json").is_file())
 
     def test_get_preset_loads_correct_data(self) -> None:
         """2. get_preset lädt die korrekten Parameterdaten eines Presets."""

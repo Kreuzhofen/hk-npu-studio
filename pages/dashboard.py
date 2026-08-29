@@ -61,6 +61,7 @@ class DashboardPage(tk.Frame):
         hardware = self.status["hardware"]
 
         qnn_status = "🟢 QNN bereit" if self.status["qnn_available"] else "🟡 QNN nicht gefunden"
+        qnn_backend = "detected" if self.status["qnn_available"] else "not detected"
         arm_status = "🟢 ARM64 erkannt" if self.status["is_arm64"] else "🟡 Nicht ARM64"
 
         tk.Label(
@@ -108,7 +109,7 @@ class DashboardPage(tk.Frame):
             "⚡ Snapdragon / QNN",
             [
                 "Qualcomm AI Stack wird geprüft",
-                r"QNN Backend: C:\Qualcomm\AIStack\2.47.0.260601",
+                f"QNN Backend: {qnn_backend}",
                 "NPU-Ziel: Snapdragon X",
             ],
             qnn_status,

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -9,6 +11,33 @@ from engine.brand_manager import BrandManager
 from engine.release_config import RELEASE, ReleaseConfig
 from tools.build_installer import INSTALLER_SCRIPT, build_command
 from widgets.phoenix import header
+
+
+def test_engine_submodule_import_does_not_require_pillow():
+    script = """
+import builtins
+import sys
+
+original_import = builtins.__import__
+def import_without_pillow(name, *args, **kwargs):
+    if name == "PIL" or name.startswith("PIL."):
+        raise ModuleNotFoundError("Pillow intentionally unavailable")
+    return original_import(name, *args, **kwargs)
+
+builtins.__import__ = import_without_pillow
+import engine.job_lifecycle
+assert "engine.brand_manager" not in sys.modules
+"""
+    subprocess.run([sys.executable, "-c", script], check=True, cwd=Path(__file__).parents[1])
+
+
+def test_engine_brand_reexports_remain_compatible():
+    from engine import BrandManager as ExportedBrandManager
+    from engine import BrandState
+    from engine.brand_manager import BrandState as DirectBrandState
+
+    assert ExportedBrandManager is BrandManager
+    assert BrandState is DirectBrandState
 
 
 def test_release_configuration_is_the_shared_version_source():

@@ -19,11 +19,21 @@ DEFAULT_PREFERENCES: dict[str, Any] = {
     "thread_count": "Auto",
     "execution_provider": "QNN EP",
     "hardware_accel": "True",
-    "output_dir": r"C:\SnapdragonAI\output",
-    "models_dir": r"C:\SnapdragonAI\models",
+    "output_dir": "",
+    "models_dir": "",
     "theme": "Dunkel",
     "language": "Deutsch",
 }
+
+
+def _default_preferences() -> dict[str, Any]:
+    """Resolve path defaults lazily to avoid config's initialization cycle."""
+    from config import MODELS_DIR, OUTPUT_DIR
+
+    defaults = deepcopy(DEFAULT_PREFERENCES)
+    defaults["output_dir"] = str(OUTPUT_DIR)
+    defaults["models_dir"] = str(MODELS_DIR)
+    return defaults
 
 
 @dataclass(frozen=True)
@@ -44,15 +54,15 @@ class ConfigurationManager:
 
     def load(self, *, persist_migration: bool = True) -> dict[str, Any]:
         if not self.path.is_file():
-            return deepcopy(DEFAULT_PREFERENCES)
+            return _default_preferences()
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as error:
             logger.error("Konfiguration konnte nicht gelesen werden: %s", error)
-            return deepcopy(DEFAULT_PREFERENCES)
+            return _default_preferences()
         if not isinstance(raw, dict):
             logger.error("Konfigurationswurzel muss ein JSON-Objekt sein.")
-            return deepcopy(DEFAULT_PREFERENCES)
+            return _default_preferences()
 
         migrated, changed = self.migrate(raw)
         validation = self.validate(migrated)
@@ -69,7 +79,7 @@ class ConfigurationManager:
     def save(self, values: dict[str, Any], *, merge: bool = True) -> bool:
         if not isinstance(values, dict):
             return False
-        current = self.load() if merge else deepcopy(DEFAULT_PREFERENCES)
+        current = self.load() if merge else _default_preferences()
         current.update(values)
         validation = self.validate(current)
         if validation.errors:
@@ -125,12 +135,13 @@ class ConfigurationManager:
 
     @staticmethod
     def validate(values: dict[str, Any]) -> ConfigurationValidation:
+        defaults = _default_preferences()
         validated = deepcopy(values)
         errors: list[str] = []
         validated["schema_version"] = CURRENT_SCHEMA_VERSION
 
         def string_value(key: str, *, allow_empty: bool = True) -> str:
-            value = validated.get(key, DEFAULT_PREFERENCES[key])
+            value = validated.get(key, defaults[key])
             if value is None and key == "active_model_id":
                 return ""
             if not isinstance(value, str):
@@ -139,7 +150,7 @@ class ConfigurationManager:
             value = value.strip()
             if not allow_empty and not value:
                 errors.append(f"{key}: leerer Wert nicht zulässig")
-                return str(DEFAULT_PREFERENCES[key])
+                return str(defaults[key])
             return value
 
         active_model = validated.get("active_model_id")
@@ -170,7 +181,7 @@ class ConfigurationManager:
         allowed_providers = {"QNN EP", "CPU EP", "ONNX Runtime", "CPU", "Auto"}
         if provider not in allowed_providers:
             errors.append("execution_provider: unbekannter Provider")
-            provider = str(DEFAULT_PREFERENCES["execution_provider"])
+            provider = str(defaults["execution_provider"])
         validated["execution_provider"] = provider
 
         hardware_accel = validated.get("hardware_accel", "True")
@@ -178,7 +189,7 @@ class ConfigurationManager:
             hardware_accel = str(hardware_accel)
         if str(hardware_accel).casefold() not in {"true", "false"}:
             errors.append("hardware_accel: boolescher Wert erwartet")
-            hardware_accel = DEFAULT_PREFERENCES["hardware_accel"]
+            hardware_accel = defaults["hardware_accel"]
         validated["hardware_accel"] = (
             "True" if str(hardware_accel).casefold() == "true" else "False"
         )

@@ -322,7 +322,10 @@ class SnapdragonAIStudioV2(BaseWindow):
                 self._log(tr("plugins_folder_open_failed", "Pluginordner konnte nicht geöffnet werden: {error}", error=e))
 
     def show_log(self):
-        log_path = Path(r"C:\SnapdragonAI\logs\app.log")
+        from config import LOG_DIR
+        from engine.logging_config import LOG_FILE_NAME
+
+        log_path = LOG_DIR / LOG_FILE_NAME
         if not log_path.exists():
             log_path.parent.mkdir(parents=True, exist_ok=True)
             with open(log_path, "w", encoding="utf-8") as f:
