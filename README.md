@@ -308,8 +308,24 @@ py -3.11-arm64 -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 
-python gui_v2.py
+start_gui.bat
+# or: python gui_v2.py
 ```
+
+`requirements.txt` installs the complete core source GUI, including drag and drop.
+Install only the additional backend group you need:
+
+```powershell
+python -m pip install -r requirements-onnx.txt  # CPU ONNX
+python -m pip install -r requirements-qnn.txt   # ONNX Runtime QNN
+python -m pip install -r requirements-qai.txt   # QAI AppBuilder workers
+python -m pip install -r requirements-build.txt # Frozen-app build environment
+python -m pip install -r requirements-dev.txt   # Tests
+```
+
+The QNN and QAI groups require compatible Windows ARM64/Qualcomm components.
+These files do not install the Qualcomm QAIRT/QNN SDK, models, DLC/context binaries,
+Qualcomm sample files, or the separately provisioned Windows ARM64 Torch build.
 
 ---
 

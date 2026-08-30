@@ -1,1 +1,3 @@
+-r requirements.txt
+-r requirements-qnn.txt
 pyinstaller==6.21.0

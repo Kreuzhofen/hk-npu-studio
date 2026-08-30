@@ -1,0 +1,12 @@
+-r requirements.txt
+qai-appbuilder
+transformers
+diffusers
+PyYAML
+requests
+huggingface-hub
+qai-hub
+py3-wget
+
+# Windows ARM64 Torch is provisioned separately from the compatible project build.
+# Do not replace it with the generic PyPI torch package.
