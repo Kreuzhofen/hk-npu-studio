@@ -284,12 +284,16 @@ class SnapdragonAIStudioV2(BaseWindow):
     def hardware_info(self):
         import platform
         from tkinter import messagebox
+        from engine.hardware_manager import HardwareManager
+
+        hardware = HardwareManager().get_system_info()
+        unavailable = tr("not_available", "Nicht verfügbar")
         info = [
             tr("hardware_information", "Hardware-Informationen:"),
             tr("operating_system", "Betriebssystem: {value}", value=f"{platform.system()} {platform.machine()}"),
-            tr("processor", "Prozessor: {value}", value="Qualcomm Snapdragon X Elite (ARM64)"),
-            tr("npu_acceleration", "NPU-Beschleunigung: {value}", value="Qualcomm Hexagon NPU (HTP)"),
-            tr("execution_provider_value", "Execution Provider: {value}", value="QNNExecutionProvider / CPU fallback"),
+            tr("processor", "Prozessor: {value}", value=hardware["processor"]),
+            tr("npu_acceleration", "NPU-Beschleunigung: {value}", value="Qualcomm Hexagon / QNN HTP" if hardware["qnn_available"] else unavailable),
+            tr("execution_provider_value", "Execution Provider: {value}", value="QNN / HTP" if hardware["qnn_available"] else unavailable),
         ]
         messagebox.showinfo(tr("hardware_info_title", "Hardware-Info"), "\n".join(info))
 
