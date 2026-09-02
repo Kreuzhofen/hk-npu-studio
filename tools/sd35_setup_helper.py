@@ -125,11 +125,35 @@ def sanitize_pip_line(line: str) -> str:
     return line
 
 
+def _is_python_311(candidate: Path) -> bool:
+    """Return whether candidate identifies itself as a Python 3.11 interpreter."""
+    try:
+        completed = subprocess.run(
+            [
+                str(candidate),
+                "-c",
+                "import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 11) else 1)",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return completed.returncode == 0
+
+
 def resolve_python_executable() -> str:
-    """Return a real Python interpreter, never the frozen Studio executable."""
+    """Return a verified Python 3.11 interpreter, never the frozen Studio executable."""
     current = Path(sys.executable)
     python_names = {"python.exe", "pythonw.exe", "python", "python3"}
-    if not getattr(sys, "frozen", False) and current.name.lower() in python_names:
+    if (
+        not getattr(sys, "frozen", False)
+        and current.name.lower() in python_names
+        and _is_python_311(current)
+    ):
         return str(current)
 
     candidates: list[Path] = []
@@ -153,6 +177,7 @@ def resolve_python_executable() -> str:
             and candidate.is_file()
             and "windowsapps" not in str(candidate).lower()
             and candidate.stat().st_size > 0
+            and _is_python_311(candidate)
         ):
             return str(candidate.resolve())
     raise RuntimeError("A real Python 3.11 interpreter is required for SD3.5 setup.")

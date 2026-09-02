@@ -74,6 +74,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
                  patch("tools.sd35_setup_helper.USER_BASE", self.root), \
                  patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
+                 patch("tools.sd35_setup_helper._is_python_311", return_value=True), \
                  patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=default_mock_run):
                 result = SD35SetupHelper.run_setup(
                     str(archive), installer, events.append, **kwargs
@@ -81,7 +82,8 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         else:
             with patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
                  patch("tools.sd35_setup_helper.USER_BASE", self.root), \
-                 patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)):
+                 patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
+                 patch("tools.sd35_setup_helper._is_python_311", return_value=True):
                 result = SD35SetupHelper.run_setup(
                     str(archive), installer, events.append, **kwargs
                 )
@@ -309,7 +311,9 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         interpreter.write_bytes(b"python")
         with patch.object(sys, "frozen", True, create=True), patch.object(
             sys, "executable", str(self.root / "HKNPUStudio.exe")
-        ), patch.dict("os.environ", {"ProgramFiles": str(program_files)}, clear=False):
+        ), patch.dict("os.environ", {"ProgramFiles": str(program_files)}, clear=False), patch(
+            "tools.sd35_setup_helper._is_python_311", return_value=True
+        ):
             self.assertEqual(resolve_python_executable(), str(interpreter.resolve()))
 
         archive = self.root / "sample.zip"
@@ -342,6 +346,73 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         self.assertEqual(commands[0][:3], [expected_venv_python, "-m", "pip"])
         self.assertEqual(commands[1][:3], [expected_venv_python, "-m", "pip"])
         self.assertEqual(commands[2], [expected_venv_python, "stable_diffusion_v3_5.py"])
+
+    def test_python_resolver_rejects_path_python_313(self) -> None:
+        import sys
+
+        python_313 = self.root / "Python313" / "python.exe"
+        python_313.parent.mkdir(parents=True)
+        python_313.write_bytes(b"python")
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys, "executable", str(self.root / "HKNPUStudio.exe")
+        ), patch.dict(
+            "os.environ",
+            {"ProgramFiles": str(self.root / "missing"), "LOCALAPPDATA": str(self.root / "missing-local")},
+            clear=False,
+        ), patch(
+            "tools.sd35_setup_helper.shutil.which",
+            side_effect=lambda command: str(python_313) if command == "python" else None,
+        ), patch(
+            "tools.sd35_setup_helper._is_python_311", return_value=False
+        ):
+            with self.assertRaisesRegex(RuntimeError, "Python 3.11"):
+                resolve_python_executable()
+
+    def test_python_resolver_accepts_verified_python_311_candidate(self) -> None:
+        import sys
+
+        python_311 = self.root / "Python311" / "python.exe"
+        python_311.parent.mkdir(parents=True)
+        python_311.write_bytes(b"python")
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys, "executable", str(self.root / "HKNPUStudio.exe")
+        ), patch.dict(
+            "os.environ",
+            {"ProgramFiles": str(self.root / "missing"), "LOCALAPPDATA": str(self.root / "missing-local")},
+            clear=False,
+        ), patch(
+            "tools.sd35_setup_helper.shutil.which",
+            side_effect=lambda command: str(python_311) if command == "python3.11" else None,
+        ), patch(
+            "tools.sd35_setup_helper._is_python_311", return_value=True
+        ):
+            self.assertEqual(resolve_python_executable(), str(python_311.resolve()))
+
+    def test_python_resolver_skips_incompatible_environment_override(self) -> None:
+        import sys
+
+        override = self.root / "override" / "python.exe"
+        override.parent.mkdir(parents=True)
+        override.write_bytes(b"python")
+        portable = self.root / "Program Files" / "Python311-arm64" / "python.exe"
+        portable.parent.mkdir(parents=True)
+        portable.write_bytes(b"python")
+
+        def is_python_311(candidate: Path) -> bool:
+            return candidate == portable
+
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys, "executable", str(self.root / "HKNPUStudio.exe")
+        ), patch.dict(
+            "os.environ",
+            {
+                "SNAPDRAGON_AI_PYTHON": str(override),
+                "ProgramFiles": str(self.root / "Program Files"),
+                "LOCALAPPDATA": str(self.root / "missing-local"),
+            },
+            clear=False,
+        ), patch("tools.sd35_setup_helper._is_python_311", side_effect=is_python_311):
+            self.assertEqual(resolve_python_executable(), str(portable.resolve()))
 
     def test_20_pip_failure_self_diagnostics(self) -> None:
         archive = self.root / "sample.zip"
@@ -854,6 +925,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
              patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
              patch("tools.sd35_setup_helper.USER_BASE", self.root), \
              patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
+             patch("tools.sd35_setup_helper._is_python_311", return_value=True), \
              patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run), \
              patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen):
              
@@ -1015,6 +1087,7 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
              patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
              patch("tools.sd35_setup_helper.USER_BASE", self.root), \
              patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
+             patch("tools.sd35_setup_helper._is_python_311", return_value=True), \
              patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run), \
              patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen):
 
