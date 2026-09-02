@@ -1,21 +1,178 @@
-MIT License
+HK NPU STUDIO EVALUATION LICENSE
+Version 2.0
 
-Copyright (c) 2026 Holger Kreuzhofen
+Copyright © 2026 Holger Kreuzhofen
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Scope and Ownership
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+HK NPU STUDIO, including its original source code, application code,
+user interface, documentation, scripts, workflows, original graphics,
+branding elements, and other materials created specifically for
+HK NPU STUDIO, is proprietary software owned by Holger Kreuzhofen,
+except where individual third-party components are subject to their
+own licenses.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+No ownership rights are transferred under this license.
+
+2. Evaluation Right
+
+Subject to the terms of this license, the user is granted a limited,
+non-exclusive, non-transferable and revocable right to download,
+install and use HK NPU STUDIO solely for personal evaluation, testing,
+demonstration and non-commercial assessment.
+
+The software may not be used for commercial exploitation unless a
+separate written license has been granted by the copyright holder.
+
+3. Permitted Technical Copies
+
+Copies that are technically necessary for the permitted installation
+and use of HK NPU STUDIO are allowed.
+
+Any rights that cannot lawfully be excluded or restricted under
+applicable law remain unaffected.
+
+4. Prohibited Uses
+
+Without prior written permission from the copyright holder, the user
+may not:
+
+a) use HK NPU STUDIO or substantial portions of it for commercial
+purposes;
+
+b) use HK NPU STUDIO, its source code, implementation, architecture,
+or substantial portions thereof as the basis for another software
+product, commercial service, competing product, or derivative product;
+
+c) incorporate HK NPU STUDIO source code or substantial portions of it
+into another software product or service;
+
+d) publish, redistribute, sublicense, sell, rent, lease, host for third
+parties, or otherwise make HK NPU STUDIO available to third parties,
+except where expressly permitted in writing;
+
+e) distribute modified or unmodified versions of HK NPU STUDIO;
+
+f) remove, alter, obscure, or replace copyright notices, attribution
+notices, license information, trademarks, logos, or branding;
+
+g) claim authorship, ownership, or exclusive rights over HK NPU STUDIO
+or original materials created by Holger Kreuzhofen;
+
+h) use the HK NPU STUDIO name, Phoenix artwork, logos, branding, or
+other original brand assets in another product, service, or project
+without prior written permission.
+
+5. Source Availability
+
+Public access to the source code does not make HK NPU STUDIO open-source
+software.
+
+Source code is made available solely for transparency, evaluation,
+testing, security review, educational inspection, and contribution to
+the HK NPU STUDIO project itself, subject to this license.
+
+Public availability of the source code does not grant permission to
+reuse that source code in another product or project unless expressly
+permitted by the copyright holder.
+
+6. Mandatory Rights Under Applicable Law
+
+Nothing in this license is intended to exclude or restrict rights that
+cannot lawfully be waived or limited under applicable law.
+
+In particular, statutory rights relating to necessary software use,
+backup copies, observation and testing of program operation, and
+interoperability remain unaffected to the extent required by law.
+
+7. Contributions
+
+Contributions submitted to the HK NPU STUDIO project are subject to
+the terms applicable to those contributions and to any separate
+contributor terms that may be established by the project.
+
+Submission of a contribution does not transfer ownership of the
+HK NPU STUDIO project, existing proprietary source code, trademarks,
+branding, or other intellectual property owned by Holger Kreuzhofen.
+
+8. Third-Party Software, Models and Components
+
+HK NPU STUDIO may use, interface with, download, or distribute
+third-party software, libraries, runtimes, frameworks, drivers,
+models, model weights, or other components.
+
+Such third-party materials remain subject to their respective
+copyright notices, license terms, usage restrictions and attribution
+requirements.
+
+This license applies only to intellectual property for which
+Holger Kreuzhofen holds the necessary rights.
+
+It does not replace, restrict, or supersede third-party licenses.
+
+Users are responsible for complying with all applicable third-party
+license terms.
+
+9. Commercial Licensing
+
+Any commercial use, commercial redistribution, incorporation into
+another commercial product, provision as part of a commercial service,
+or other use not expressly permitted by this evaluation license
+requires a separate written license from the copyright holder.
+
+10. Termination
+
+The rights granted under this license terminate automatically if the
+user materially violates its terms.
+
+Upon termination, the user must cease any use or distribution that is
+not otherwise permitted by applicable law or by a separate written
+agreement.
+
+11. Disclaimer of Warranty
+
+HK NPU STUDIO is provided for evaluation purposes on an "AS IS" basis.
+
+To the extent permitted by applicable law, no warranties or guarantees
+are provided regarding availability, accuracy, reliability, fitness
+for a particular purpose, compatibility, or uninterrupted operation.
+
+Mandatory statutory rights remain unaffected.
+
+12. Liability
+
+Liability is governed by applicable law.
+
+Nothing in this license excludes or limits liability where such
+exclusion or limitation is not legally permitted, including where
+applicable liability for intent, gross negligence, or injury to life,
+body, or health.
+
+To the extent legally permitted, liability for minor negligence is
+limited to breaches of essential contractual obligations and to
+foreseeable damages typical for this type of agreement.
+
+13. Governing Law
+
+This license is governed by the laws of the Federal Republic of
+Germany, excluding its conflict-of-law rules, to the extent such a
+choice of law is legally permissible.
+
+Mandatory consumer protection provisions applicable at the user's
+place of residence remain unaffected.
+
+14. Language
+
+The English version of this license is the governing version.
+
+Any German translation is provided for convenience only.
+
+15. Reservation of Rights
+
+All rights not expressly granted under this license are reserved by
+Holger Kreuzhofen.
+
+Copyright © 2026 Holger Kreuzhofen
+HK NPU STUDIO
+All rights reserved.
