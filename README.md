@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/github/v/release/Kreuzhofen/hk-npu-studio?include_prereleases&style=flat-square&color=0078D4" alt="Release">
   </a>
   <a href="https://github.com/Kreuzhofen/hk-npu-studio/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-808080?style=flat-square" alt="License">
+    <img src="https://img.shields.io/badge/License-Evaluation_2.0-808080?style=flat-square" alt="License">
   </a>
   <a href="https://github.com/Kreuzhofen/hk-npu-studio/releases">
     <img src="https://img.shields.io/github/downloads/Kreuzhofen/hk-npu-studio/total?style=flat-square&color=blueviolet" alt="Downloads">
@@ -68,7 +68,7 @@
 </div>
 <h2>📖 About the Project</h2>
 
-**HK NPU STUDIO** is an independent open-source desktop application for local generative AI on Windows 11 ARM64 PCs.
+**HK NPU STUDIO** is an independent source-available proprietary desktop application for local generative AI on Windows 11 ARM64 PCs.
 
 It is built specifically around Snapdragon X hardware and aims to make local AI image generation approachable without forcing users to understand model package layouts, QNN components, ONNX files, or installation internals.
 
@@ -378,7 +378,7 @@ No manual selection of individual QNN/ONNX model components is required for the 
 ### Holger Kreuzhofen
 *Founder • Lead Developer • Product Owner • Phoenix Engine Architect*
 
-Holger Kreuzhofen is the founder and lead developer of HK NPU STUDIO and the architect of the Phoenix Engine. He is responsible for the product vision, software architecture, engineering direction, user experience and release management of the independent open-source project.
+Holger Kreuzhofen is the founder and lead developer of HK NPU STUDIO and the architect of the Phoenix Engine. He is responsible for the product vision, software architecture, engineering direction, user experience and release management of the independent source-available proprietary project.
 
 ---
 
@@ -515,7 +515,7 @@ RC2B places particular emphasis on validating the real model state instead of re
 
 ### Is HK NPU STUDIO an official Qualcomm product?
 
-No. It is an independent open-source project and is not affiliated with, sponsored by, or endorsed by Qualcomm Technologies, Inc.
+No. It is an independent source-available proprietary project and is not affiliated with, sponsored by, or endorsed by Qualcomm Technologies, Inc.
 
 ### Which processors are the primary target?
 
@@ -584,7 +584,7 @@ When reporting issues, never publish access tokens, credentials or other confide
 
 ## 📄 License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+HK NPU STUDIO is proprietary source-available software and is not open source. Personal evaluation and testing are permitted. Commercial use, redistribution, and reuse of the source code for other products require prior written permission. See [LICENSE](LICENSE) for details.
 
 ---
 
