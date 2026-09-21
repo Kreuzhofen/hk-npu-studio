@@ -38,11 +38,16 @@ SCALE = 4
 OUT_TILE_SIZE = TILE_SIZE * SCALE
 REALESRGAN_OUTPUT_SHAPE = (1, OUT_TILE_SIZE, OUT_TILE_SIZE, 3)
 
+# Photo Restore Models
+PHOTO_RESTORE_MODELS_DIR = MODELS_DIR / "photo_restore"
+PHOTO_RESTORE_NAFNET_DLC = PHOTO_RESTORE_MODELS_DIR / "nafnet_deblur.dlc.bin"
+PHOTO_RESTORE_DDCOLOR_DLC = PHOTO_RESTORE_MODELS_DIR / "ddcolor.dlc.bin"
+PHOTO_RESTORE_DEV_CONTEXT_DIR = TEMP_DIR / "ai_photo_restore_npu_context"
+
 LOG_LEVEL = "INFO"
 LOG_MAX_BYTES = 5 * 1024 * 1024
 LOG_BACKUP_COUNT = 5
 
-import os
 from app.configuration_manager import ConfigurationManager
 
 _PREFERENCES = ConfigurationManager(PREFERENCES_PATH).load()
@@ -50,4 +55,3 @@ HF_TOKEN = str(_PREFERENCES.get("hf_token", ""))
 
 if HF_TOKEN:
     os.environ["HF_TOKEN"] = HF_TOKEN
-

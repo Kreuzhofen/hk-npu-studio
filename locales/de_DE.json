@@ -312,6 +312,8 @@
   "plugins_subtitle": "Verwalte Erweiterungen und Zusatzmodule für HK NPU STUDIO.",
   "nav_home": "Startseite",
   "nav_ai_generate": "KI-Generierung",
+  "nav_photo_restore": "AI Fotorestaurierung",
+  "photo_restore_title": "AI Fotorestaurierung",
   "nav_ai_model_manager": "Modell-Manager",
   "nav_gallery": "Galerie",
   "nav_compare": "Vergleich",
@@ -1013,5 +1015,6 @@
   "model_src_sd35_compatible_help": "Wählen Sie nach Abschluss des Qualcomm-Skripts den erstellten Modellordner aus. HK NPU STUDIO erstellt das Manifest und die Prüfsummen anschließend automatisch.",
   "sd35_zip_not_found_title": "ZIP nicht gefunden",
   "sd35_zip_not_found_text": "Die Datei qai-appbuilder-main.zip wurde in Ihrem Downloads-Ordner nicht automatisch gefunden. Bitte wählen Sie die Datei manuell aus.",
-  "sd35_select_zip": "Qualcomm ZIP-Archiv auswählen"
+  "sd35_select_zip": "Qualcomm ZIP-Archiv auswählen",
+  "clear_mask": "Maske löschen"
 }

@@ -23,6 +23,10 @@ class PhoenixWorkspace(tk.Frame):
         "compare": ("nav_compare", "Vergleich"),
         "prompt": ("nav_ai_generate", "KI-Generierung"),
         "models": ("nav_ai_model_manager", "Modell-Manager"),
+        "photo_restore": ("nav_photo_restore", "AI Fotorestaurierung"),
+        "inpainting": ("nav_phoenix_image_lab", "Phoenix Image Lab"),
+        "image_lab": ("nav_phoenix_image_lab", "Phoenix Image Lab"),
+        "generative_fill": ("image_lab_editor_title", "Generatives Füllen & Retusche"),
     }
 
     def __init__(self, master: tk.Misc, controller: object | None = None) -> None:
@@ -66,6 +70,9 @@ class PhoenixWorkspace(tk.Frame):
         from widgets.phoenix.views.settings_view import PhoenixSettingsView
         from widgets.phoenix.views.prompt_view import PhoenixPromptView
         from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
+        from widgets.phoenix.views.photo_restore_view import PhoenixPhotoRestoreView
+        from widgets.phoenix.views.image_lab_view import PhoenixImageLabView
+        from widgets.phoenix.views.inpainting_view import PhoenixInpaintingView
 
         self._view_factories = {
             "home": lambda master: PhoenixHomeView(
@@ -84,6 +91,16 @@ class PhoenixWorkspace(tk.Frame):
             "compare": PhoenixCompareView,
             "prompt": PhoenixPromptView,
             "models": PhoenixModelManagerView,
+            "photo_restore": PhoenixPhotoRestoreView,
+            "image_lab": lambda master: PhoenixImageLabView(
+                master,
+                on_navigate=self.show_view,
+            ),
+            "inpainting": lambda master: PhoenixImageLabView(
+                master,
+                on_navigate=self.show_view,
+            ),
+            "generative_fill": PhoenixInpaintingView,
         }
 
     def _build_layout(self) -> None:

@@ -23,6 +23,8 @@ class PhoenixSidebar(tk.Frame):
         "models": "#34d399",
         "gallery": "#fbbf24",
         "compare": "#2dd4bf",
+        "inpainting": PHOENIX_THEME.warning,
+        "photo_restore": "#06b6d4",
         "plugins": "#94a3b8",
         "settings": "#f87171",
     }
@@ -32,6 +34,8 @@ class PhoenixSidebar(tk.Frame):
         "models": "#15803D",
         "gallery": "#A16207",
         "compare": "#0F766E",
+        "inpainting": PHOENIX_THEME.warning,
+        "photo_restore": "#0891b2",
         "plugins": "#475569",
         "settings": "#DC2626",
     }
@@ -83,6 +87,7 @@ class PhoenixSidebar(tk.Frame):
 
         self._nav_button("home", tr("nav_home", "Home"))
         self._nav_button("prompt", tr("nav_ai_generate", "AI Generate"))
+        self._nav_button("inpainting", tr("nav_phoenix_image_lab", "Phoenix Image Lab"))
         self._nav_button("models", tr("nav_ai_model_manager", "AI Model Manager"))
         # self._nav_button("image", "Image")
         self._nav_button("gallery", tr("nav_gallery", "Gallery"))
@@ -110,7 +115,7 @@ class PhoenixSidebar(tk.Frame):
             text=text,
             command=lambda: self._navigate(view_name),
             button_type="nav",
-            icon_name=view_name,
+            icon_name="image" if view_name == "inpainting" else ("sparkles" if view_name == "photo_restore" else view_name),
             icon_color=icon_color,
             height=self.BUTTON_HEIGHT,
             bg=PHOENIX_THEME.panel_bg,
@@ -126,6 +131,8 @@ class PhoenixSidebar(tk.Frame):
             self.on_navigate(view_name)
 
     def set_active(self, view_name: str) -> None:
+        if view_name in {"image_lab", "photo_restore", "generative_fill", "retouch"}:
+            view_name = "inpainting"
         for name, button in self._buttons.items():
             if name == view_name:
                 active_color = self._icon_color(name)
@@ -149,6 +156,8 @@ class PhoenixSidebar(tk.Frame):
 
     @classmethod
     def _icon_color(cls, view_name: str) -> str:
+        if view_name == "inpainting":
+            return ThemeManager.palette().warning
         palette = (
             cls.LIGHT_ICON_COLORS
             if ThemeManager.active_theme() == ThemeManager.PROFESSIONAL_LIGHT
