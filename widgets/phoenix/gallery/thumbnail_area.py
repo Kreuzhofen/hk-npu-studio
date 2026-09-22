@@ -210,6 +210,7 @@ class GalleryThumbnailArea(tk.Frame):
                 double_command=self.on_double_click,
                 right_click_command=self._right_click_image,
                 hover_preview_enabled=self.hover_preview_enabled,
+                hover_preview_request=self.provider.get_thumbnail,
             )
             widget.grid(
                 row=row,
@@ -391,8 +392,7 @@ class GalleryThumbnailArea(tk.Frame):
                 curr = curr.nametowidget(parent_name)
 
             if gallery_view:
-                gallery_view.controller.refresh()
-                gallery_view._refresh_ui()
+                gallery_view.refresh()
 
     def _on_free_space_click(self, event: tk.Event) -> None:
         if event.widget in {self.canvas, self.grid_frame}:
@@ -415,8 +415,13 @@ class GalleryThumbnailArea(tk.Frame):
         """Clears all loaded images and explicitly destroys widgets to release memory."""
         self.images = []
         self.selected_paths = set()
-        self.provider.clear_cache()
+        self.provider.cleanup()
         for child in self.grid_frame.winfo_children():
             if child is not self.empty_state:
                 child.destroy()
+
+    def destroy(self) -> None:
+        self.render_generation += 1
+        self.provider.cleanup()
+        super().destroy()
 

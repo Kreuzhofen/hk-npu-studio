@@ -4,13 +4,18 @@ from pathlib import Path
 import tempfile
 import shutil
 import json
+import threading
+import time
 import tkinter as tk
+
+from PIL import Image
 
 from controllers.gallery_model import GalleryImage, GalleryModel
 from controllers.gallery_controller import GalleryController
 from controllers.gallery_image_loader import ImageLoader
 from widgets.phoenix.views.gallery_view import PhoenixGalleryView
 from widgets.phoenix.gallery.toolbar import GalleryToolbar
+from widgets.phoenix.gallery.thumbnail_widget import ThumbnailWidget
 from widgets.phoenix.theme import PHOENIX_THEME, update_phoenix_theme
 from engine.theme_manager import ThemeManager
 
@@ -234,5 +239,200 @@ class TestGalleryAndAssetLibrary(unittest.TestCase):
             self.assertEqual(gallery_view.toolbar.on_open_folder, gallery_view._open_output_directory)
             
             gallery_view.destroy()
+        finally:
+            root.destroy()
+
+
+class TestRealGalleryAsyncPath(unittest.TestCase):
+    def test_real_gallery_shell_does_not_wait_for_initial_folder_scan(self):
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            with patch(
+                "controllers.gallery_image_loader.ImageLoader.load_folder",
+                side_effect=AssertionError("initial scan ran during construction"),
+            ):
+                started = time.perf_counter()
+                view = PhoenixGalleryView(root)
+                elapsed = time.perf_counter() - started
+
+            self.assertLess(elapsed, 0.5)
+            self.assertEqual(view.controller.images, [])
+            view.destroy()
+        finally:
+            root.destroy()
+
+    def test_real_gallery_folder_scan_runs_off_tk_thread(self):
+        class BlockingLoader:
+            def __init__(self):
+                self.started = threading.Event()
+                self.release = threading.Event()
+                self.thread_names = []
+
+            def load_folder(self, _folder):
+                self.thread_names.append(threading.current_thread().name)
+                self.started.set()
+                self.release.wait(timeout=2.0)
+                return []
+
+        root = tk.Tk()
+        root.withdraw()
+        loader = BlockingLoader()
+        try:
+            controller = GalleryController(loader, auto_refresh=False)
+            controller.current_folder = self.temp_dir if hasattr(self, "temp_dir") else Path.cwd()
+            view = PhoenixGalleryView(root, controller=controller)
+            responsive = []
+
+            started = time.perf_counter()
+            view._start_async_refresh()
+
+            def prove_responsive():
+                responsive.append(time.perf_counter() - started)
+                loader.release.set()
+
+            root.after(50, prove_responsive)
+            root.after(350, root.quit)
+            root.mainloop()
+
+            self.assertTrue(loader.started.is_set())
+            self.assertTrue(responsive)
+            self.assertLess(responsive[0], 0.25)
+            self.assertEqual(loader.thread_names, ["PhoenixGalleryLoader"])
+            self.assertEqual(controller.get_status(), "Bereit")
+            view.destroy()
+        finally:
+            loader.release.set()
+            root.destroy()
+
+    def test_destroy_during_folder_scan_does_not_schedule_tk_work(self):
+        class BlockingLoader:
+            def __init__(self):
+                self.started = threading.Event()
+                self.release = threading.Event()
+
+            def load_folder(self, _folder):
+                self.started.set()
+                self.release.wait(timeout=2.0)
+                return []
+
+        root = tk.Tk()
+        root.withdraw()
+        loader = BlockingLoader()
+        try:
+            controller = GalleryController(loader, auto_refresh=False)
+            view = PhoenixGalleryView(root, controller=controller)
+            view._start_async_refresh()
+            self.assertTrue(loader.started.wait(timeout=0.5))
+
+            view.destroy()
+            loader.release.set()
+            root.update_idletasks()
+            self.assertFalse(view.winfo_exists())
+        finally:
+            loader.release.set()
+            root.destroy()
+
+    def test_hover_preview_uses_async_provider_and_ignores_stale_callback(self):
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            with tempfile.TemporaryDirectory() as directory_name:
+                image_path = Path(directory_name) / "hover.png"
+                Image.new("RGB", (16, 16), "navy").save(image_path)
+                image = GalleryImage(
+                    path=image_path,
+                    filename=image_path.name,
+                    extension=image_path.suffix,
+                    width=16,
+                    height=16,
+                    file_size=image_path.stat().st_size,
+                )
+                requests = []
+
+                def request(path, size, callback):
+                    requests.append((path, size, callback, threading.current_thread().name))
+                    return None
+
+                widget = ThumbnailWidget(
+                    root,
+                    image=image,
+                    thumbnail_image=None,
+                    size=124,
+                    selected=False,
+                    command=MagicMock(),
+                    double_command=MagicMock(),
+                    hover_preview_request=request,
+                )
+                event = MagicMock(x_root=100, y_root=100)
+                widget._on_enter(event)
+
+                self.assertEqual(requests[0][0:2], (image_path, 480))
+                self.assertEqual(requests[0][3], "MainThread")
+                widget._on_leave(None)
+                requests[0][2](tk.PhotoImage(master=root, width=10, height=10))
+                self.assertIsNone(widget._hover_preview)
+                widget.destroy()
+        finally:
+            root.destroy()
+
+    def test_actual_gallery_thumbnail_decode_stays_off_tk_thread(self):
+        import widgets.phoenix.gallery.thumbnail_provider as provider_module
+
+        root = tk.Tk()
+        root.withdraw()
+        decode_threads = []
+        photo_threads = []
+        try:
+            with tempfile.TemporaryDirectory() as directory_name:
+                image_path = Path(directory_name) / "large.png"
+                Image.new("RGB", (32, 32), (20, 40, 60)).save(image_path)
+                controller = GalleryController(auto_refresh=False)
+                controller.model.set_images([
+                    GalleryImage(
+                        path=image_path,
+                        filename=image_path.name,
+                        extension=image_path.suffix,
+                        width=5104,
+                        height=4920,
+                        file_size=image_path.stat().st_size,
+                    )
+                ])
+                original_open = provider_module.Image.open
+                original_photo = provider_module.ImageTk.PhotoImage
+
+                def tracked_open(*args, **kwargs):
+                    decode_threads.append(threading.current_thread().name)
+                    return original_open(*args, **kwargs)
+
+                def slow_thumbnail(image, size):
+                    time.sleep(1.0)
+                    result = image.convert("RGB")
+                    result.thumbnail((size, size), Image.Resampling.LANCZOS)
+                    return result
+
+                def tracked_photo(*args, **kwargs):
+                    photo_threads.append(threading.current_thread().name)
+                    return original_photo(*args, **kwargs)
+
+                with patch.object(provider_module.Image, "open", tracked_open), \
+                     patch.object(
+                         provider_module.ThumbnailService,
+                         "prepare_thumbnail_image",
+                         side_effect=slow_thumbnail,
+                     ), \
+                     patch.object(provider_module.ImageTk, "PhotoImage", tracked_photo):
+                    started = time.perf_counter()
+                    view = PhoenixGalleryView(root, controller=controller)
+                    elapsed = time.perf_counter() - started
+                    self.assertLess(elapsed, 0.5)
+
+                    root.after(1400, root.quit)
+                    root.mainloop()
+
+                    self.assertTrue(decode_threads)
+                    self.assertNotIn("MainThread", decode_threads)
+                    self.assertEqual(photo_threads, ["MainThread"])
+                    view.destroy()
         finally:
             root.destroy()

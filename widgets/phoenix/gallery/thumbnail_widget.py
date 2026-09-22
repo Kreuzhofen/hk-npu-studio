@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from collections.abc import Callable
+from pathlib import Path
 
 from controllers.gallery_model import GalleryImage
 from resources.icons import IconManager
@@ -30,6 +31,7 @@ class ThumbnailWidget(tk.Frame):
         double_command: Callable[[GalleryImage], None],
         right_click_command: Callable[[GalleryImage, tk.Event], None] | None = None,
         hover_preview_enabled: Callable[[], bool] | None = None,
+        hover_preview_request: Callable[[Path, int, Callable[[tk.PhotoImage], None]], tk.PhotoImage | None] | None = None,
     ) -> None:
         super().__init__(
             master,
@@ -45,6 +47,8 @@ class ThumbnailWidget(tk.Frame):
         self.size = size
         self.selected = selected
         self.hover_preview_enabled = hover_preview_enabled or (lambda: True)
+        self.hover_preview_request = hover_preview_request
+        self._hover_generation = 0
         self._build()
         self._bind_events(self)
 
@@ -187,10 +191,26 @@ class ThumbnailWidget(tk.Frame):
         except Exception:
             pass
         self._hover_preview = None
+        self._hover_generation = getattr(self, "_hover_generation", 0) + 1
+        generation = self._hover_generation
 
-        if not self.hover_preview_enabled() or self.thumbnail_image is None or not self.image.path.is_file():
+        if (
+            not self.hover_preview_enabled()
+            or getattr(self, "hover_preview_request", None) is None
+            or not self.image.path.is_file()
+        ):
             return
 
+        def show_preview(photo: tk.PhotoImage) -> None:
+            if generation != self._hover_generation or not self.winfo_exists():
+                return
+            self._show_hover_preview(photo, event.x_root, event.y_root)
+
+        thumbnail = self.hover_preview_request(self.image.path, 480, show_preview)
+        if thumbnail is not None:
+            show_preview(thumbnail)
+
+    def _show_hover_preview(self, zoom_photo: tk.PhotoImage, x_root: int, y_root: int) -> None:
         try:
             preview_win = tk.Toplevel(self)
             BrandManager.apply_window_icon(preview_win)
@@ -198,15 +218,11 @@ class ThumbnailWidget(tk.Frame):
             preview_win.overrideredirect(True)
             preview_win.configure(bg=PHOENIX_THEME.border, padx=1, pady=1)
 
-            from PIL import Image, ImageTk
-            with Image.open(self.image.path) as img:
-                img.thumbnail((480, 480))
-                thumb_w, thumb_h = img.size
-                zoom_photo = ImageTk.PhotoImage(img.copy())
-
             preview_win.zoom_photo = zoom_photo
             lbl = tk.Label(preview_win, image=zoom_photo, bg=PHOENIX_THEME.card_bg, bd=0)
             lbl.pack()
+            thumb_w = zoom_photo.width()
+            thumb_h = zoom_photo.height()
 
             # Calculate safe placement within screen boundaries
             screen_w = self.winfo_screenwidth()
@@ -215,18 +231,18 @@ class ThumbnailWidget(tk.Frame):
             win_h = thumb_h + 2
 
             # Offset position relative to cursor
-            x = event.x_root + 20
-            y = event.y_root + 20
+            x = x_root + 20
+            y = y_root + 20
 
             # Wrap horizontally
             if x + win_w > screen_w:
-                x = event.x_root - win_w - 20
+                x = x_root - win_w - 20
             if x < 0:
                 x = 10
 
             # Wrap vertically
             if y + win_h > screen_h:
-                y = event.y_root - win_h - 20
+                y = y_root - win_h - 20
             if y < 0:
                 y = 10
 
@@ -237,6 +253,7 @@ class ThumbnailWidget(tk.Frame):
             pass
 
     def _on_leave(self, _event: tk.Event) -> None:
+        self._hover_generation = getattr(self, "_hover_generation", 0) + 1
         if not self.selected:
             self.configure(highlightbackground=PHOENIX_THEME.border)
 
@@ -280,6 +297,7 @@ class ThumbnailWidget(tk.Frame):
 
     def destroy(self) -> None:
         """Releases the PhotoImage reference immediately to free memory."""
+        self._hover_generation = getattr(self, "_hover_generation", 0) + 1
         try:
             if hasattr(self, "_hover_preview") and self._hover_preview:
                 self._hover_preview.destroy()

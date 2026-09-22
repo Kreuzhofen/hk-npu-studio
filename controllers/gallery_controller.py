@@ -16,7 +16,12 @@ class GalleryController:
         "Sehr groß": 212,
     }
 
-    def __init__(self, image_loader: ImageLoader | None = None) -> None:
+    def __init__(
+        self,
+        image_loader: ImageLoader | None = None,
+        *,
+        auto_refresh: bool = True,
+    ) -> None:
         self.image_loader = image_loader or ImageLoader()
         self.model = GalleryModel()
         from config import OUTPUT_DIR
@@ -24,7 +29,8 @@ class GalleryController:
         self.thumbnail_size_label = "Mittel"
         from app.i18n import tr
         self.status = tr("ready", "Bereit")
-        self.refresh()
+        if auto_refresh:
+            self.refresh()
 
     @property
     def images(self) -> list[GalleryImage]:

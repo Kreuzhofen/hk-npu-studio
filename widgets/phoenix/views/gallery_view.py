@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import tkinter as tk
 import subprocess
+import queue
+import threading
+from pathlib import Path
 
 from config import OUTPUT_DIR
 from controllers.gallery_controller import GalleryController
@@ -27,8 +30,18 @@ class PhoenixGalleryView(WorkspaceFrame):
             subtitle=tr("gallery_subtitle", "Bildkatalog durchsuchen und verwalten"),
             has_inspector=True,
         )
-        self.controller = controller or GalleryController()
+        owns_controller = controller is None
+        self.controller = controller or GalleryController(auto_refresh=False)
         self.hover_preview_enabled = self._load_hover_preview_enabled()
+        self._load_generation = 0
+        self._load_in_progress = False
+        self._load_pending = False
+        self._load_pending_selection: Path | None = None
+        self._load_results: queue.Queue[
+            tuple[int, Path | None, list[GalleryImage] | None, Exception | None, Path | None]
+        ] = queue.Queue()
+        self._load_poll_handle: str | None = None
+        self._initial_load_handle: str | None = None
 
         self.thumbnail_area: GalleryThumbnailArea
         self.toolbar: GalleryToolbar
@@ -37,6 +50,8 @@ class PhoenixGalleryView(WorkspaceFrame):
 
         self._build_shell()
         self._refresh_ui()
+        if owns_controller:
+            self._initial_load_handle = self.after_idle(self._start_initial_refresh)
 
         # Register drag & drop for library view if tkinterdnd2 is available
         app = self.winfo_toplevel()
@@ -69,8 +84,7 @@ class PhoenixGalleryView(WorkspaceFrame):
                     imported_any = True
 
             if imported_any:
-                changed = self.controller.refresh()
-                self._refresh_ui(force=changed)
+                self._start_async_refresh()
         except Exception:
             pass
 
@@ -153,8 +167,7 @@ class PhoenixGalleryView(WorkspaceFrame):
                 
                 # Refresh
                 self.controller.clear_selection()
-                changed = self.controller.refresh()
-                self._refresh_ui(force=changed)
+                self._start_async_refresh()
             except Exception as e:
                 import logging
                 logging.getLogger("PhoenixGalleryView").error(f"Failed to delete image: {e}")
@@ -166,8 +179,8 @@ class PhoenixGalleryView(WorkspaceFrame):
             initialdir=self.controller.current_folder or ""
         )
         if folder:
-            self.controller.open_folder(folder)
-            self._refresh_ui(force=True)
+            self.controller.current_folder = Path(folder)
+            self._start_async_refresh()
 
     def _open_output_directory(self) -> None:
         try:
@@ -180,8 +193,7 @@ class PhoenixGalleryView(WorkspaceFrame):
             )
 
     def _on_refresh(self) -> None:
-        changed = self.controller.refresh()
-        self._refresh_ui(force=changed)
+        self._start_async_refresh()
 
     def _on_thumbnail_size_change(self, size_label: str) -> None:
         self.controller.set_thumbnail_size(size_label)
@@ -235,13 +247,96 @@ class PhoenixGalleryView(WorkspaceFrame):
 
     def refresh(self) -> None:
         """Aktualisiert die Galerie beim Wechseln/Periodisch."""
-        changed = self.controller.refresh()
-        self._refresh_ui(force=changed)
+        self._start_async_refresh()
 
     def show_generated_image(self, image_path: str) -> None:
         """Load the generated image into the Asset Library and select it."""
-        self.controller.show_image(image_path)
-        self._refresh_ui(force=True)
+        path = Path(image_path)
+        if path.is_file():
+            self.controller.current_folder = path.parent
+            self._start_async_refresh(select_path=path)
+
+    def _start_async_refresh(self, select_path: Path | None = None) -> None:
+        """Scan image metadata off the Tk thread and apply one current result."""
+        if self._load_in_progress:
+            self._load_pending = True
+            self._load_pending_selection = select_path
+            return
+
+        folder = self.controller.current_folder
+        self._load_generation += 1
+        generation = self._load_generation
+        self._load_in_progress = True
+        self.controller.status = tr("loading_images", "Lade Bilder")
+        self._refresh_ui()
+
+        def load() -> None:
+            try:
+                images = [] if folder is None else self.controller.image_loader.load_folder(folder)
+                self._load_results.put((generation, folder, images, None, select_path))
+            except Exception as error:
+                self._load_results.put((generation, folder, None, error, select_path))
+
+        threading.Thread(target=load, name="PhoenixGalleryLoader", daemon=True).start()
+        self._schedule_load_poll()
+
+    def _start_initial_refresh(self) -> None:
+        self._initial_load_handle = None
+        self._start_async_refresh()
+
+    def _schedule_load_poll(self) -> None:
+        if self._load_poll_handle is None and self.winfo_exists():
+            self._load_poll_handle = self.after(30, self._poll_load_results)
+
+    def _poll_load_results(self) -> None:
+        self._load_poll_handle = None
+        try:
+            result = self._load_results.get_nowait()
+        except queue.Empty:
+            if self._load_in_progress:
+                self._schedule_load_poll()
+            return
+
+        generation, folder, images, error, select_path = result
+        if generation == self._load_generation and folder == self.controller.current_folder:
+            previous_images = list(self.controller.model.images)
+            if error is None and images is not None:
+                self.controller.model.set_images(images)
+                if select_path is not None:
+                    for image in self.controller.visible_images:
+                        if image.path == select_path:
+                            self.controller.model.select_single(image)
+                            break
+                self.controller.status = tr("ready", "Bereit")
+                self._refresh_ui(force=previous_images != images)
+            else:
+                self.controller.model.set_images([])
+                self.controller.model.clear_selection()
+                self.controller.status = tr("status_failed", "Fehler")
+                self._refresh_ui(force=True)
+
+        self._load_in_progress = False
+        if self._load_pending:
+            pending_selection = self._load_pending_selection
+            self._load_pending = False
+            self._load_pending_selection = None
+            self._start_async_refresh(select_path=pending_selection)
+
+    def destroy(self) -> None:
+        self._load_generation += 1
+        if self._initial_load_handle is not None:
+            try:
+                self.after_cancel(self._initial_load_handle)
+            except Exception:
+                pass
+            self._initial_load_handle = None
+        if self._load_poll_handle is not None:
+            try:
+                self.after_cancel(self._load_poll_handle)
+            except Exception:
+                pass
+            self._load_poll_handle = None
+        super().destroy()
 
     def _refresh_ui(self, force: bool = False) -> None:
         """Aktualisiert die Galerie-Ansicht."""
