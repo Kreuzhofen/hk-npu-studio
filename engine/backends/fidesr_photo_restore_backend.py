@@ -53,12 +53,13 @@ PHOTO_RESTORE_FIDESR_FAILED = "PHOTO_RESTORE_FIDESR_FAILED"
 ROOT = Path(__file__).resolve().parents[2]
 
 MODEL_DIR = ROOT / "models" / "photo_restore"
+CONTEXT_DIR = ROOT / "models" / "photo_restore_context"
 
 FIDESR_REQUIRED = (
-    MODEL_DIR / "fidesr_vae_encoder.dlc",
-    MODEL_DIR / "fidesr_unet_merged.dlc",
-    MODEL_DIR / "fidesr_lrrb.dlc",
-    MODEL_DIR / "fidesr_vae_decoder.dlc",
+    CONTEXT_DIR / "fidesr_vae_encoder" / "fidesr_vae_encoder.serialized.bin.bin",
+    CONTEXT_DIR / "fidesr_unet" / "fidesr_unet_merged.serialized.bin.bin",
+    CONTEXT_DIR / "fidesr_lrrb" / "fidesr_lrrb.serialized.bin.bin",
+    CONTEXT_DIR / "fidesr_vae_decoder" / "fidesr_vae_decoder.serialized.bin.bin",
     MODEL_DIR / "fidesr_empty_prompt_embeds.bin",
     MODEL_DIR / "fidesr_epsilon_seed231.bin",
 )

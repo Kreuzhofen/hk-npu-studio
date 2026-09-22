@@ -21,6 +21,7 @@ except Exception as e:
 
 ROOT = Path(r"C:\SnapdragonAI")
 MODEL_ROOT = ROOT / "models" / "photo_restore"
+CONTEXT_ROOT = ROOT / "models" / "photo_restore_context"
 TEMP_DIR = ROOT / "temp"
 WORK = TEMP_DIR / "photo_restore"
 
@@ -34,12 +35,29 @@ QNN_HEX = QNN_ROOT / "lib" / "hexagon-v73" / "unsigned"
 
 QNN_RUNNER = QNN_BIN / "qnn-net-run.exe"
 QNN_BACKEND = QNN_LIB / "QnnHtp.dll"
-QNN_MODEL_DLC = QNN_LIB / "QnnModelDlc.dll"
+CONTEXT_ENCODER = (
+    CONTEXT_ROOT / "fidesr_vae_encoder" /
+    "fidesr_vae_encoder.serialized.bin.bin"
+)
+CONTEXT_UNET = (
+    CONTEXT_ROOT / "fidesr_unet" /
+    "fidesr_unet_merged.serialized.bin.bin"
+)
+CONTEXT_LRRB = (
+    CONTEXT_ROOT / "fidesr_lrrb" /
+    "fidesr_lrrb.serialized.bin.bin"
+)
+CONTEXT_DECODER = (
+    CONTEXT_ROOT / "fidesr_vae_decoder" /
+    "fidesr_vae_decoder.serialized.bin.bin"
+)
 
-DLC_ENCODER = MODEL_ROOT / "fidesr_vae_encoder.dlc"
-DLC_UNET = MODEL_ROOT / "fidesr_unet_merged.dlc"
-DLC_LRRB = MODEL_ROOT / "fidesr_lrrb.dlc"
-DLC_DECODER = MODEL_ROOT / "fidesr_vae_decoder.dlc"
+STAGE_CONTEXTS = {
+    "VAE_ENCODER": CONTEXT_ENCODER,
+    "UNET": CONTEXT_UNET,
+    "LRRB": CONTEXT_LRRB,
+    "VAE_DECODER": CONTEXT_DECODER,
+}
 
 PROMPT_BIN = MODEL_ROOT / "fidesr_empty_prompt_embeds.bin"
 EPSILON_BIN = MODEL_ROOT / "fidesr_epsilon_seed231.bin"
@@ -106,11 +124,10 @@ required = [
     INPUT_IMAGE,
     QNN_RUNNER,
     QNN_BACKEND,
-    QNN_MODEL_DLC,
-    DLC_ENCODER,
-    DLC_UNET,
-    DLC_LRRB,
-    DLC_DECODER,
+    CONTEXT_ENCODER,
+    CONTEXT_UNET,
+    CONTEXT_LRRB,
+    CONTEXT_DECODER,
     PROMPT_BIN,
     EPSILON_BIN,
 ]
@@ -151,7 +168,18 @@ env["ADSP_LIBRARY_PATH"] = (
 # One online-prepare per graph, multiple Result_N outputs.
 # ============================================================
 
-def run_qnn_stage(stage_name, dlc, input_lines, output_dir):
+def run_qnn_stage(stage_name, input_lines, output_dir):
+
+    context = STAGE_CONTEXTS.get(stage_name)
+
+    if context is None:
+        hard_stop(f"{stage_name}: Kein serialisierter HTP-Kontext konfiguriert.")
+
+    if not context.is_file() or context.stat().st_size <= 0:
+        hard_stop(
+            f"{stage_name}: Serialisierter HTP-Kontext fehlt oder ist leer: "
+            f"{context}"
+        )
 
     output_dir = Path(output_dir)
 
@@ -169,8 +197,7 @@ def run_qnn_stage(stage_name, dlc, input_lines, output_dir):
     args = [
         str(QNN_RUNNER),
         "--backend", str(QNN_BACKEND),
-        "--model", str(QNN_MODEL_DLC),
-        "--dlc_path", str(dlc),
+        "--retrieve_context", str(context),
         "--input_list", str(input_list),
         "--output_dir", str(output_dir),
         "--use_native_input_files",
@@ -270,7 +297,10 @@ def run_qnn_stage(stage_name, dlc, input_lines, output_dir):
     log(f"{stage_name}: QNN_RUNTIME_SEC={dt:.2f}")
 
     if proc.returncode != 0:
-        hard_stop(f"{stage_name}: QNN/HTP fehlgeschlagen.")
+        hard_stop(
+            f"{stage_name}: Abruf/Ausführung des serialisierten "
+            f"QNN/HTP-Kontexts fehlgeschlagen: {context}"
+        )
 
     result_files = []
 
@@ -471,7 +501,6 @@ enc_lines = [
 
 enc_results = run_qnn_stage(
     "VAE_ENCODER",
-    DLC_ENCODER,
     enc_lines,
     enc_dir / "output",
 )
@@ -616,7 +645,6 @@ unet_lines = [
 
 unet_results = run_qnn_stage(
     "UNET",
-    DLC_UNET,
     unet_lines,
     unet_dir / "output",
 )
@@ -699,7 +727,6 @@ gc.collect()
 
 lrrb_results = run_qnn_stage(
     "LRRB",
-    DLC_LRRB,
     lrrb_lines,
     lrrb_dir / "output",
 )
@@ -1310,7 +1337,6 @@ for yi, y in enumerate(lat_y):
 
 dec_results = run_qnn_stage(
     "VAE_DECODER",
-    DLC_DECODER,
     dec_lines,
     dec_dir / "output",
 )
