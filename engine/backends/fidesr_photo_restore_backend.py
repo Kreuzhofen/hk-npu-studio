@@ -542,11 +542,98 @@ class FiDeSRPhotoRestoreBackend:
                 dtype=np.float32,
             )[..., np.newaxis]
 
+            # Quality Tuning Phase 2: Color warmth soft knee, highlight rolloff & skin chroma floor
+            import torch
+            import torch.nn.functional as F
+
+            # 1. Highlight luminance rolloff:
+            # Prevents flash-overexposed skin highlights from blowing out into clipped orange/white
+            l_diff = np.maximum(0.0, orig_l - 50.0)
+            l_mod = orig_l - 0.25 * (l_diff ** 2) / 50.0
+
+            # 2. Soft-knee warmth compression on positive b:
+            # Preserves subtle chroma (b <= 10.0), compresses excessive yellow (b > 10.0)
+            b_knee = 10.0
+            b_up_mod = np.where(
+                b_up > b_knee,
+                b_knee + (b_up - b_knee) * 0.60,
+                b_up,
+            )
+            a_up_mod = a_up.copy()
+
+            # 3. Deterministic skin-adjacent chroma preservation:
+            # Detects confirmed skin seeds and restores chroma to skin-adjacent regions
+            # where low-resolution bilinear upsampling bled desaturation from eyes/teeth.
+            skin_seed = (
+                (l_mod >= 45.0)
+                & (l_mod <= 86.0)
+                & (a_up_mod >= 10.0)
+                & (b_up_mod >= 10.0)
+                & (b_up_mod <= 26.0)
+            )
+            seed_t = torch.tensor(
+                skin_seed.astype(np.float32)
+            ).permute(2, 0, 1).unsqueeze(0)
+
+            skin_adjacent_t = F.max_pool2d(
+                seed_t,
+                kernel_size=17,
+                stride=1,
+                padding=8,
+            )
+            skin_adjacent = (
+                skin_adjacent_t[0, 0].numpy() > 0.5
+            )[..., np.newaxis]
+
+            # Low-chroma skin-adjacent defect mask (eyelids, upper lip margin)
+            defect_mask = (
+                skin_adjacent
+                & (l_mod >= 45.0)
+                & (l_mod <= 88.0)
+                & (a_up_mod > 0.0)
+                & (b_up_mod > 0.0)
+            )
+
+            a_floor = 11.5
+            b_floor = 11.5
+            a_fixed = np.where(
+                defect_mask & (a_up_mod < a_floor),
+                np.maximum(a_up_mod, a_floor),
+                a_up_mod,
+            )
+            b_fixed = np.where(
+                defect_mask & (b_up_mod < b_floor),
+                np.maximum(b_up_mod, b_floor),
+                b_up_mod,
+            )
+
+            # Lip vermilion enhancement for pixels adjacent to higher-redness mouth/lip tissue
+            high_red_seed = (
+                skin_seed & (a_up_mod >= 18.0)
+            ).astype(np.float32)
+            high_red_t = torch.tensor(
+                high_red_seed
+            ).permute(2, 0, 1).unsqueeze(0)
+            high_red_dilated = (
+                F.max_pool2d(
+                    high_red_t,
+                    kernel_size=15,
+                    stride=1,
+                    padding=7,
+                )[0, 0].numpy() > 0.5
+            )[..., np.newaxis]
+
+            a_fixed = np.where(
+                defect_mask & high_red_dilated & (a_fixed < 14.5),
+                14.5,
+                a_fixed,
+            )
+
             out_lab = np.concatenate(
                 [
-                    orig_l,
-                    a_up,
-                    b_up,
+                    l_mod,
+                    a_fixed,
+                    b_fixed,
                 ],
                 axis=-1,
             )

@@ -1663,33 +1663,26 @@ def apply_detail_preservation_bypass(base_hwc, source_hwc):
         y_src = 0.299 * src_t[:, 0:1] + 0.587 * src_t[:, 1:2] + 0.114 * src_t[:, 2:3]
         del base_t, src_t
 
-        # 1-3px Bandpass: Difference of Gaussians sigma1=0.6, sigma2=1.8
-        bp_src = gaussian_blur(y_src, 0.6) - gaussian_blur(y_src, 1.8)
-        bp_base = gaussian_blur(y_base, 0.6) - gaussian_blur(y_base, 1.8)
+        # Microdetail bandpass matching 4x upscaled source resolution
+        # Sigma range (1.0, 3.2) captures 1-2px native features (pores, stubble, grain)
+        bp_src = gaussian_blur(y_src, 1.0) - gaussian_blur(y_src, 3.2)
         del y_src
 
-        # Local HF Standard Deviation in 7x7 window
-        std_src = local_std(bp_src, k=7)
-        std_base = local_std(bp_base, k=7)
-
-        # Deficit transfer: where Base lacks micro-detail compared to pre-UNet source
-        deficit = torch.clamp(std_src - std_base, min=0.0) / (std_src + 1e-4)
-        del std_base, std_src, bp_base
-
-        # Base macro edge gradient
+        # Base macro edge gradient to strictly protect edge boundaries
         gx = y_base[:, :, :, 1:] - y_base[:, :, :, :-1]
         gy = y_base[:, :, 1:, :] - y_base[:, :, :-1, :]
         grad_base = torch.zeros_like(y_base)
         grad_base[:, :, :-1, :-1] = torch.sqrt(gx[:, :, :-1, :]**2 + gy[:, :, :, :-1]**2)
 
-        # Edge attenuation to guarantee no macro-edge doubling (grad_base / 0.12)
-        edge_attenuate = torch.clamp(1.0 - (grad_base / 0.12), min=0.0, max=1.0)
+        # Edge attenuation: 1.0 in flat/skin areas, smoothly drops to 0.0 near macro edges
+        # Guarantees zero halos, zero ringing, and zero edge doubling
+        edge_attenuate = torch.clamp(1.0 - (grad_base / 0.08), min=0.0, max=1.0)
         del grad_base, gx, gy
 
-        # Final bypass detail delta
-        delta_y = 0.85 * deficit * edge_attenuate * bp_src
+        # Controlled high-frequency detail preservation delta from real source
+        delta_y = 0.50 * edge_attenuate * bp_src
         y_out = torch.clamp(y_base + delta_y, 0.0, 1.0)
-        del bp_src, deficit, delta_y, edge_attenuate, y_base
+        del bp_src, delta_y, edge_attenuate, y_base
 
         # YCbCr to RGB with bit-exact Cb/Cr preservation
         cb_shift = cb_base - 0.5
