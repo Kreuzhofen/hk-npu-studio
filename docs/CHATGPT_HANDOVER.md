@@ -1,27 +1,28 @@
 # HK NPU STUDIO – ChatGPT-Handover
 
-Stand: 20. September 2026, Tagesabschluss  
+Stand: 24. September 2026, Tagesabschluss
 Projekt: HK NPU STUDIO – Phoenix Engine  
 Entwickler: Holger Kreuzhofen  
 Entwicklungsrechner: Holger  
 Clean-Testrechner: RC2CleanTest
 
-> **AKTUELLER VORRANG-HINWEIS – 20.09.2026**
+> **AKTUELLER VORRANG-HINWEIS – 24.09.2026**
 >
 > Diese Datei enthält die vollständige historische Projektchronik. Bei Widersprüchen gilt immer der **neueste datierte Abschnitt**.
-> Der verbindliche aktuelle Arbeitsstand steht im Abschnitt **„CHATGPT_HANDOVER – Ergänzung Tagesabschluss 20. September 2026 – FiDeSR Photo Restore, Phoenix Image Lab, SD3.5-NPU-Gap und Übergabe an Gemini/Antigravity“** am Ende dieser Datei.
+> Der verbindliche aktuelle Arbeitsstand steht im Abschnitt **„CHATGPT_HANDOVER – Ergänzung Tagesabschluss 24. September 2026 – VERSION 2.0 RC3 Build-/Packaging-Stand“** am Ende dieser Datei.
 >
-> **Aktueller Übergabestatus 20.09.2026:**
-> - Ab 21.09.2026 wird vorerst mit **Gemini + Antigravity** weitergearbeitet.
-> - **RORem ist endgültig verworfen** und darf nicht wieder aufgenommen werden.
-> - **FiDeSR Photo Restore** läuft neuronenseitig QNN/HTP/NPU-only; 128px-Downscale ist verworfen; Python-RAM-Peak wurde stark reduziert. Qualität ist verbessert, aber noch kein PRODUCT_PASS.
-> - **Phoenix Image Lab** ist der zentrale Bildbearbeitungsbereich; Generatives Füllen / Retusche ist noch nicht produktfertig.
-> - Beim **SD3.5-Inpainting-NPU-Pfad** wurden VAE-Encoder und Time/Text als fehlende NPU-Komponenten identifiziert und nach ONNX exportiert.
-> - Der **SD3.5 VAE Encoder läuft auf HTP**, scheitert aber am numerischen Qualitätsgate wegen hoher kumulativer FP16-Abweichung.
-> - Ein Time/Text-QNN-Compile-Job wurde eingereicht, aber noch nicht lokal validiert.
-> - **Nächster exakter Schritt:** ausschließlich Intermediate-Debug-Spezifikation für den SD3.5-VAE-Encoder; **noch kein neuer Compile**.
-> - Kein Build, Commit oder Push wurde für diesen Tagesabschluss freigegeben.
-
+> **Aktueller Übergabestatus 24.09.2026:**
+> - Release-Kandidat: **VERSION 2.0 RC3** (`display_version=2.0 RC3`, `package_version=2.0.0-rc.3`).
+> - **Phoenix Image Lab = AI Fotorestaurierung**; Colorization, Generatives Füllen, Retusche und Object Removal sind aus dem RC3-Release-UI ausgeschlossen.
+> - Faithful Photo Restore ist technisch/qualitativ für den definierten RC3-Pfad geprüft; neuronale Inferenz QNN/HTP/NPU-only, kein CPU-/GPU-AI-Fallback.
+> - Final Release QA: **164/164 PASS**; kleine und große reale Restore-Läufe PASS.
+> - DE/EN/ES, Versionsanzeige, README, User Guides und RC3 Release Notes sind aktualisiert.
+> - Build-/Packaging-Blocker zu FiDeSR-Pfaden, QNN/HTP-Runtime, Photo-Restore-Ressourcen und Dokumentation wurden behoben.
+> - Test-Harness: Photo-Restore-Contracts, RealESRGAN-Teardown und Tk-Order-Abhängigkeit behoben; letzter kombinierter Precheck-Scope **39/39 PASS**.
+> - **Noch kein Build, Installer, Commit oder Push.**
+> - Verbleibender praktischer Build-Blocker: freier Speicher auf C:. Letzt gemessen `14.639 GiB`; Ziel vor Build **≥17 GiB frei**.
+> - Nächster exakter Schritt: 2–3 GB auf C: freimachen, dann finalen RC3 Build-Precheck erneut ausführen.
+>
 ## Zweck
 
 Diese Datei ist die verbindliche Arbeitsübergabe für die Fortsetzung mit einem anderen ChatGPT-Account. Sie enthält den bestätigten Projektstand, Holgers Arbeitsregeln, die heutigen Änderungen, Testergebnisse und den nächsten sicheren Schritt.
@@ -20379,3 +20380,2317 @@ Die Step-Abweichung entstand durch `int(4 * 0.9999) == 3`. Die ceil-basierte, au
 Der schwarze Rahmenrest war kein Crop-, Padding-, Resize- oder Koordinatenfehler. Die frühere Case3-final_v2-Maske schloss den rechten unteren Rahmen aus; diese unmaskierten Originalpixel wurden vertragsgemäß bitgenau zurückkopiert. Der finale Smoke verwendete eine vollständige temporäre Objektmaske. Keine Case3-Maske und kein Case3-Pfad ist in der Produktlogik hardcodiert.
 
 Für diesen abgeschlossenen Referenzpfad sind keine weiteren Modell-, Compile- oder Precision-Experimente erforderlich.
+
+# CHATGPT_HANDOVER – Ergänzung 22. September 2026 – App-Stabilisierung, Galerie-Freeze behoben und auf GitHub gesichert
+
+> Diese Ergänzung hat für den aktuellen App-Stabilitäts-, Galerie- und Git-Stand Vorrang vor älteren Abschnitten. Die vollständige ältere Chronik bleibt unverändert erhalten.
+
+## Arbeitsmodus und Priorität
+
+Am 22. September 2026 wurde die Arbeit ausschließlich auf die Wiederherstellung einer stabilen, bedienbaren HK-NPU-STUDIO-App konzentriert.
+
+Verbindlich:
+
+```text
+PRIORITY=APP_STABILITY
+NEW_FEATURES_DURING_STABILIZATION=NO
+BUILD=NO
+INSTALLER=NO
+```
+
+Object Removal / RORem und Photo Restore / FiDeSR blieben als bereits gesicherte Produktpfade unangetastet.
+
+## Ausgangslage
+
+Der letzte gesicherte Remote-Stand vor der Stabilisierung war:
+
+```text
+origin/main=49eb1de69f85b258edf7bb0628a6e3e7f0798ac8
+COMMIT=feat: complete NPU image lab integration
+```
+
+Der ursprüngliche lokale Arbeitsbaum war davor divergent und dirty:
+
+```text
+LOCAL_HEAD=186e1c993f123568b0d7417a87d8406be5897a21
+REMOTE_HEAD=49eb1de69f85b258edf7bb0628a6e3e7f0798ac8
+```
+
+Die am 21. September lokal begonnenen UI-/Image-Lab-Arbeiten hatten zu einem vollständigen App-Hang geführt. Windows Error Reporting hatte bestätigt:
+
+```text
+EVENT_ID=1001
+EVENT_NAME=AppHangTransient
+PROCESS=python.exe
+PYTHON_TRACEBACK=NONE
+```
+
+## Sicherheitsbackup vor Rücksetzung
+
+Vor jeder Rücksetzung wurde der lokale Stand gesichert.
+
+Backup-Verzeichnis:
+
+```text
+C:\SnapdragonAI\temp\pre_baseline_reset_20260922_082939
+```
+
+Dort wurden unter anderem gespeichert:
+
+```text
+git_status_short.txt
+git_status_full.txt
+working_tree.patch
+index.patch
+untracked_files.txt
+commit_state.txt
+```
+
+Größe des Working-Tree-Patches:
+
+```text
+WORKING_TREE_PATCH_BYTES=2800751
+```
+
+Zusätzlich wurden die wichtigsten lokalen Image-Lab-/UI-Dateien einzeln kopiert:
+
+```text
+controllers\inpainting_controller.py
+widgets\phoenix\inpainting_canvas.py
+widgets\phoenix\views\inpainting_view.py
+widgets\phoenix\views\image_lab_view.py
+widgets\phoenix\views\home_view.py
+tests\test_phoenix_inpainting_ui.py
+tests\test_home_first_run.py
+```
+
+Es gab keine staged Änderungen:
+
+```text
+STAGED_CHANGES=NO
+```
+
+Die große Zahl untracked Dateien stammte fast vollständig aus lokalen virtuellen Umgebungen:
+
+```text
+UNTRACKED_COUNT=14466
+sd35_venv=13628
+temp_venv=771
+```
+
+Diese wurden nicht gelöscht.
+
+Zusätzlicher Sicherungsbranch:
+
+```text
+backup/pre-baseline-reset-20260922
+```
+
+Dieser Branch zeigt auf den früheren lokalen HEAD:
+
+```text
+186e1c993f123568b0d7417a87d8406be5897a21
+```
+
+## Rückkehr auf stabile Baseline
+
+Nach Backup wurde der getrackte Original-Arbeitsbaum kontrolliert auf:
+
+```text
+49eb1de69f85b258edf7bb0628a6e3e7f0798ac8
+```
+
+zurückgesetzt.
+
+Wichtig:
+
+```text
+git clean=NICHT verwendet
+untracked Dateien=NICHT gelöscht
+```
+
+Ein isolierter Worktree auf derselben Baseline war zuvor bereits manuell stabil gelaufen.
+
+## Erste neue Beobachtung nach Rücksetzung
+
+Der originale Ordner `C:\SnapdragonAI` startete zwar wieder, zeigte aber zunächst weiterhin Bedienungsprobleme. Der Unterschied zum isolierten Worktree lag damit nicht mehr im getrackten Code allein.
+
+Zur Eingrenzung wurden drei untracked Runtime-Dateien aus dem Repo in Quarantäne verschoben:
+
+```text
+engine/backends/sd35_inpainting_backend_adapter.py
+engine/backends/sdxl_inpainting_qnn_context_adapter.py
+engine/experiments/sd35_inpainting_npu.py
+```
+
+Quarantäne:
+
+```text
+C:\SnapdragonAI_UntrackedQuarantine_20260922_084730
+```
+
+Diese Dateien wurden nicht gelöscht. Sie gehören nicht zum späteren Galerie-Fix.
+
+## Galerie-Freeze – entscheidende reale Eingrenzung
+
+Nach Rückkehr auf die stabile Baseline zeigte sich ein klar reproduzierbares Muster:
+
+```text
+APP_START=OK
+CLICK_GALLERY=FREEZE
+WHOLE_UI_UNRESPONSIVE=YES
+```
+
+Die Galerie lief hingegen stabil, sobald der bestehende Inhalt von `C:\SnapdragonAI\output` temporär aus dem Repo verschoben wurde.
+
+Output-Quarantäne:
+
+```text
+C:\SnapdragonAI_OutputQuarantine_20260922_085550
+```
+
+Originalbildanzahl:
+
+```text
+31 Bilder
+```
+
+Mit leerem `output`:
+
+```text
+START=OK
+GALERIE_OEFFNEN=OK
+GALERIE_REAGIERT=JA
+SIDEBAR_NACH_GALERIE=OK
+FREEZE=NEIN
+```
+
+Damit war der Freeze eindeutig an den realen Galerie-Inhalt gekoppelt.
+
+## Bildprofiling – große Photo-Restore-Ausgaben
+
+Die 31 Originalbilder wurden außerhalb der GUI einzeln mit dem relevanten PIL-Thumbnailpfad geprüft.
+
+Sechs große FiDeSR-/Photo-Restore-Ausgaben waren besonders langsam:
+
+```text
+37_faithful_x4.png        5104x4920  25.112 MP  1.3867 s
+45_faithful_x4.png        5048x4724  23.847 MP  1.2721 s
+45_faithful_x4_001.png    5048x4720  23.827 MP  1.3513 s
+45_faithful_x4_002.png    5048x4720  23.827 MP  1.3326 s
+45_faithful_x4_003.png    5048x4720  23.827 MP  1.0552 s
+45_faithful_x4_004.png    5048x4720  23.827 MP  0.6926 s
+```
+
+Diese sechs Bilder verursachten zusammen rund:
+
+```text
+7.09 Sekunden
+```
+
+reine synchrone Thumbnail-Dekodierzeit.
+
+Die Bilder waren nicht beschädigt. Der Fehler lag in der synchronen Verarbeitung im Tk-Hauptthread.
+
+## Erster Galerie-Fix war am falschen Pfad
+
+Zunächst wurde irrtümlich `widgets/phoenix/views/image_view.py` optimiert.
+
+Spätere Runtime-Pfadanalyse bewies:
+
+```text
+PREVIOUS_IMAGE_VIEW_FIX_WAS_ACTIVE_PATH=NO
+```
+
+Die Sidebar-Galerie verwendet nicht `PhoenixImageView`.
+
+`widgets/phoenix/views/image_view.py` wurde deshalb wieder vollständig auf `HEAD` zurückgesetzt und ist nicht Bestandteil des finalen Commits.
+
+## Tatsächlicher produktiver Galeriepfad
+
+Der echte Navigationspfad wurde exakt bestätigt:
+
+```text
+PhoenixSidebar._navigate("gallery")
+→ PhoenixWorkspace.show_view("gallery")
+→ PhoenixGalleryView
+→ GalleryThumbnailArea
+→ GalleryController
+→ ImageLoader
+```
+
+Relevante Dateien:
+
+```text
+controllers/gallery_controller.py
+controllers/gallery_image_loader.py
+widgets/phoenix/views/gallery_view.py
+widgets/phoenix/gallery/thumbnail_area.py
+widgets/phoenix/gallery/thumbnail_widget.py
+```
+
+## Finale Root Cause des Galerie-Hangs
+
+Der reale produktive Galeriepfad lud beim Öffnen synchron Bildmetadaten und Bilddaten im Tk-Mainthread.
+
+Gemessen:
+
+```text
+GalleryController.__init__
+→ refresh
+→ ImageLoader.load_folder
+→ ImageLoader._read_image
+```
+
+Acht `_read_image`-Aufrufe benötigten jeweils etwa:
+
+```text
+0.341–2.127 Sekunden
+```
+
+Gesamtdauer:
+
+```text
+load_folder=12.685732 Sekunden
+```
+
+Zusätzlich dekodierte auch die Hover-Vorschau große Bilder synchron im Tk-Mainthread.
+
+Finale Diagnose:
+
+```text
+ROOT_CAUSE=Synchrones Laden von Bildmetadaten/Bilddaten im echten Galeriepfad
+BLOCKER_ON_TK_MAIN_THREAD=YES
+MODEL_REFRESH_BLOCKER=YES
+HOVER_PREVIEW_BLOCKER=YES
+THUMBNAIL_BLOCKER=NO
+```
+
+## Finaler Galerie-Fix
+
+Der echte Gallery-Pfad wurde auf asynchrones Laden umgestellt.
+
+Ergebnis:
+
+```text
+GALLERY_FIRST_PAINT_SECONDS=0.079395
+REAL_GALLERY_NO_IMAGE_DECODE_ON_TK_MAIN=PASS
+REAL_GALLERY_LARGE_IMAGES_ASYNC=PASS
+HOVER_PREVIEW_NO_MAIN_THREAD_DECODE=PASS
+SIDEBAR_RESPONSIVE_DURING_LOAD=PASS
+```
+
+Die 31 Originalbilder wurden wieder nach:
+
+```text
+C:\SnapdragonAI\output
+```
+
+zurückgestellt.
+
+Der reale manuelle Test mit den Originalbildern bestand:
+
+```text
+START=OK
+GALERIE_OEFFNEN=OK
+ERSTER_AUFBAU=OK
+THUMBNAILS_LADEN=OK
+SIDEBAR_WAEHREND_LADEN=OK
+SCROLLEN=OK
+HOVER_GROSSES_BILD=OK
+FENSTER_REAGIERT=OK
+FREEZE=NEIN
+```
+
+Damit gilt:
+
+```text
+GALLERY_PRODUCT_MANUAL_PASS=YES
+APP_FREEZE_FROM_GALLERY=RESOLVED
+```
+
+## Testbereinigung
+
+Tests aus dem ersten falschen `PhoenixImageView`-Versuch wurden gezielt entfernt.
+
+Bestätigt:
+
+```text
+STALE_IMAGE_VIEW_TESTS_REMOVED=YES
+REAL_GALLERY_TESTS_RETAINED=YES
+PRODUCT_CODE_CHANGED_THIS_CLEANUP=NO
+```
+
+Finale automatische Prüfung:
+
+```text
+PY_COMPILE=PASS
+REAL_GALLERY_FOCUSED_TESTS=PASS
+TEST_COUNT=17/17
+```
+
+Hinweis:
+
+Ein vorheriger Testlauf mit dem globalen Python zeigte zwei rote Tests:
+
+1. `TclError: invalid command name "tcl_findLibrary"`
+2. einen Timingtest für den falschen `PhoenixImageView`-Pfad
+
+Diese gehörten nicht zum finalen echten Galeriepfad. Nach Entfernung der veralteten falschen Tests bestand der relevante Satz vollständig.
+
+## Finaler Commitumfang
+
+Exakt fünf Dateien:
+
+```text
+controllers/gallery_controller.py
+tests/test_gallery.py
+widgets/phoenix/gallery/thumbnail_area.py
+widgets/phoenix/gallery/thumbnail_widget.py
+widgets/phoenix/views/gallery_view.py
+```
+
+Nicht enthalten:
+
+```text
+widgets/phoenix/views/image_view.py
+```
+
+Finale Prüfungen:
+
+```text
+COMMIT_SCOPE=PASS 5 FILES
+PY_COMPILE=PASS
+REAL_GALLERY_FOCUSED_TESTS=17/17
+MANUAL_GALLERY_TEST=PASS
+APP_FREEZE=NO
+```
+
+## Commit und Push – final gesichert
+
+Mit Holgers ausdrücklicher Freigabe wurde erstellt:
+
+```text
+c6757d8aa4743e42f0aa9104c51f84cb33a86cc6
+fix: keep gallery responsive with large images
+```
+
+Commitumfang:
+
+```text
+5 files changed
+354 insertions
+30 deletions
+```
+
+Push:
+
+```text
+49eb1de6..c6757d8a  main -> main
+```
+
+Final verifiziert:
+
+```text
+REMOTE_HEAD_AFTER=c6757d8aa4743e42f0aa9104c51f84cb33a86cc6
+GALLERY_FIX_COMMIT=PASS
+GALLERY_FIX_PUSH=PASS
+REMOTE_MATCH=YES
+```
+
+Neuer verbindlicher Remote-Safe-Point:
+
+```text
+origin/main=c6757d8aa4743e42f0aa9104c51f84cb33a86cc6
+```
+
+## Was durch den Galerie-Fix nicht verändert wurde
+
+Nicht betroffen:
+
+```text
+RORem / Object Removal
+Photo Restore / FiDeSR
+QNN/HTP
+NPU-Backends
+Inpainting Controller
+Modelldateien
+Build-/Installerlogik
+```
+
+Es wurde kein neuer Build oder Installer erstellt.
+
+## Noch vorhandene Sicherungen / Recovery
+
+Wichtig aufbewahren:
+
+```text
+C:\SnapdragonAI\temp\pre_baseline_reset_20260922_082939
+C:\SnapdragonAI\temp\gallery_fix_verified_20260922_103408
+C:\SnapdragonAI_UntrackedQuarantine_20260922_084730
+backup/pre-baseline-reset-20260922
+```
+
+Der frühere lokale Image-Lab-/UI-Stand ist damit weiterhin recoverbar.
+
+## Nächster sicherer Schritt
+
+Nicht sofort alle alten lokalen UX-Änderungen wieder einspielen.
+
+Zuerst vom neuen sicheren Remote-Stand ausgehen:
+
+```text
+c6757d8aa4743e42f0aa9104c51f84cb33a86cc6
+```
+
+Dann gewünschte lokale Image-Lab-Funktionen einzeln zurückholen:
+
+```text
+1. arbitrary-source-size support
+2. Move/Pan
+3. Progress-/Running-Status
+4. Prompt-/Preset-UX
+```
+
+Nach jedem Schritt zwingender manueller Responsiveness-Test:
+
+```text
+APP_START=OK
+STARTSEITE=OK
+SIDEBAR=OK
+GALERIE=OK
+WINDOW_MOVE=OK
+MINIMIZE_RESTORE=OK
+MAXIMIZE=OK
+IMAGE_LAB=OK
+FREEZE=NO
+```
+
+Kein Featureblock darf zusammen mit mehreren anderen ungeprüft wieder eingebaut werden.
+
+## Statusflags – 22. September 2026
+
+```text
+DATE=2026-09-22
+
+REMOTE_MAIN=c6757d8aa4743e42f0aa9104c51f84cb33a86cc6
+REMOTE_SAFE_POINT=c6757d8aa4743e42f0aa9104c51f84cb33a86cc6
+
+GALLERY_REAL_ROUTE_IDENTIFIED=YES
+GALLERY_ROOT_CAUSE_FOUND=YES
+GALLERY_MAINTHREAD_BLOCK_SECONDS_BEFORE=12.685732
+GALLERY_FIRST_PAINT_SECONDS_AFTER=0.079395
+GALLERY_LARGE_IMAGES_ASYNC=YES
+GALLERY_HOVER_MAINTHREAD_DECODE=NO
+GALLERY_MANUAL_TEST=PASS
+GALLERY_FOCUSED_TESTS=17/17
+APP_FREEZE_FROM_GALLERY=RESOLVED
+
+PREVIOUS_IMAGE_VIEW_FIX_INCLUDED=NO
+
+OBJECT_REMOVAL_REMOTE_COMPLETE=YES
+PHOTO_RESTORE_REMOTE_COMPLETE=YES
+CPU_AI_FALLBACK=NO
+
+PRE_BASELINE_BACKUP_EXISTS=YES
+BACKUP_BRANCH_EXISTS=YES
+UNTRACKED_RUNTIME_QUARANTINE_EXISTS=YES
+
+BUILD_22_SEPTEMBER=NO
+INSTALLER_22_SEPTEMBER=NO
+COMMIT_22_SEPTEMBER=c6757d8aa4743e42f0aa9104c51f84cb33a86cc6
+PUSH_22_SEPTEMBER=PASS
+
+NEXT_PRIORITY=REINTRODUCE_IMAGE_LAB_UX_ONE_BLOCK_AT_A_TIME
+```
+
+## Handover-Übernahme
+
+Diese vollständige zentrale Handover-Datei muss weiterhin exakt heißen:
+
+```text
+CHATGPT_HANDOVER.md
+```
+
+Holger übernimmt sie über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Die vollständige historische Chronik muss erhalten bleiben.
+# Ergänzung: später Tagesabschluss 22. September 2026 – FiDeSR-Performance/Qualität, RORem-Grenze und SD2-Inpainting-Ausblick
+
+Diese Ergänzung hat für den aktuellen Git-Stand, Photo-Restore-Performance, Object-Removal-Entscheidungen und den nächsten technischen Einstieg Vorrang vor früheren Abschnitten desselben Tages. Die vollständige ältere Chronik bleibt erhalten.
+
+## Arbeitsregeln – neu ausdrücklich bestätigt
+
+Bei jedem künftigen Codex-/Antigravity-Sprint sichtbar angeben:
+
+```text
+TOOL: Codex / Antigravity
+REASONING: GERING / MEDIUM
+TOKENOPTIMIERT: GEPRÜFT
+```
+
+Zusätzlich weiterhin vor jedem Sprint:
+
+```text
+SPRINT-ZEIT
+WORST CASE
+SPEICHER
+HARD STOP
+```
+
+Codex/Antigravity-Prompts immer als vollständigen integrierten Auftrag liefern, nicht als Nachtrag. So kurz wie möglich, aber vollständig. Holger möchte nach Prüfergebnissen ohne unnötige Rückfrage direkt den nächsten sinnvollen Schritt erhalten.
+
+## Git-Stand am Feierabend
+
+Aktueller bestätigter Remote-Stand:
+
+```text
+main = origin/main = 868516a3e46ce3df268914deb531b6a4c348f5f6
+```
+
+Letzte zwei heute zusätzlich veröffentlichte Commits:
+
+```text
+f059feecabe37e294a852f80a1118d8668f39111
+perf: accelerate FiDeSR photo restore with serialized HTP contexts
+
+868516a3e46ce3df268914deb531b6a4c348f5f6
+quality: improve FiDeSR color fidelity and skin detail
+```
+
+Beide Pushes wurden durch `LOCAL_HEAD == REMOTE_MAIN` verifiziert.
+
+Kein Build und kein Installer nach diesen beiden Commits.
+
+Zuletzt sichtbare weiterhin lokale/getrackte Änderungen außerhalb der FiDeSR-Commits:
+
+```text
+controllers/inpainting_controller.py
+docs/CHATGPT_HANDOVER.md
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Zusätzlich weiterhin bekannte untracked Dateien, darunter:
+
+```text
+tests/test_rorem_serialized_context_runtime.py
+```
+
+sowie die bereits länger bekannten Release-, Brand-, Temp-, Test- und Tool-Dateien. Niemals `git add .`; untracked/unrelated Dateien nicht beiläufig anfassen.
+
+## Image Lab – Arbitrary Source Size lokal wiederhergestellt
+
+Der erste alte UX-/Funktionsblock wurde kontrolliert wiederhergestellt:
+
+```text
+ARBITRARY_SIZE_RESTORED=YES
+SOURCE_600x371=PASS
+SOURCE_371x600=PASS
+SOURCE_2048x1365=PASS
+EDGE_MASK=PASS
+DIRECT_1024_PATH_UNCHANGED=PASS
+MODEL_INPUT_ALWAYS_1024=PASS
+OUTPUT_NATIVE_SIZE=PASS
+OUTSIDE_MASK_BIT_EXACT=PASS
+GLOBAL_STRETCH=NO
+CPU_AI_FALLBACK=NO
+NPU_PRODUCT_PATH=PASS
+PY_COMPILE=PASS
+FOCUSED_TESTS=11/11
+```
+
+Kein UI-/Gallery-Code wurde dabei geändert.
+
+Move/Pan, Progress-/Running-Status und Prompt-/Preset-UX wurden danach bewusst pausiert, weil zuerst die katastrophale Laufzeit von Object Removal und Photo Restore untersucht wurde.
+
+## Object Removal / RORem – Performance-Forensik
+
+Realer problematischer Lauf:
+
+```text
+JOB=C:\SnapdragonAI\temp\rorem_dlc_runtime\rorem_img_993e9e306b
+JOB_CREATED=2026-09-22 11:07:50
+MEASUREMENT=2026-09-22 11:33:42
+JOB_ELAPSED=00:25:51
+```
+
+Dabei:
+
+```text
+vae_encode_source ≈ 3 s
+vae_encode_masked ≈ 3 s
+step_000 Graph A ≈ 6m44s
+step_000 Graph B ≈ 11m29s
+step_001 Graph A lief anschließend erneut minutenlang
+```
+
+Root Cause:
+
+- Graph A und Graph B wurden produktiv als große `.dlc`-Dateien über `qnn-net-run --dlc_path` gestartet.
+- Dadurch fand bei jedem Denoising-Step erneut Online-DLC-Vorbereitung/HTP-Kompilierung statt.
+- Zusätzlich Prozess-Churn und große RAW-Datei-I/O.
+- Nicht die eigentliche NPU-Inferenz war langsam.
+
+### RORem Phase 1 – vorhandene serialized contexts
+
+Vorhandene Kontexte:
+
+```text
+C:\SnapdragonAI\models\rorem_mixed_qnn_context\graph_a\graph_a.serialized.bin
+2523844608 Bytes
+
+C:\SnapdragonAI\models\rorem_mixed_qnn_context\graph_b\graph_b.serialized.bin
+2706165760 Bytes
+```
+
+Produktpfad lokal auf `--retrieve_context` umgestellt.
+
+Messung:
+
+```text
+VAE_ENCODER_SOURCE_SECONDS=4.404
+VAE_ENCODER_MASKED_SECONDS=4.183
+GRAPH_A_CONTEXT_AND_EXEC_SECONDS=28.323
+GRAPH_B_CONTEXT_AND_EXEC_SECONDS=18.093
+VAE_DECODER_SECONDS=7.139
+TOTAL_1_STEP_SECONDS=108.513
+
+PRODUCT_PERFORMANCE_BEFORE_SECONDS_PER_STEP≈1093
+PRODUCT_PERFORMANCE_AFTER_SECONDS_PER_STEP≈46.416
+SPEEDUP≈23.55x
+
+CPU_AI_FALLBACK=NO
+GPU_AI_FALLBACK=NO
+QNN_HTP=YES
+PY_COMPILE=PASS
+FOCUSED_TESTS=12/12
+```
+
+Trotz 23.55× Verbesserung blieb ein vollständiger 1-Step-Lauf mit 108.5 s zu langsam.
+
+### RORem Phase 2 – persistente Kontexte
+
+Experiment: Graph A und Graph B gleichzeitig persistent über In-Process-QNNContext.
+
+Ergebnis:
+
+```text
+GRAPH_A_CONTEXT_CREATED=YES
+GRAPH_B_CONTEXT_CREATED=YES
+GRAPH_A_INFERENCE_STARTED
+GRAPH_A_INFERENCE_COMPLETED=NO
+NATIVE_CRASH=YES
+CRASH_CLASS=NATIVE_MEMORY_ACCESS_ERROR
+PERSISTENT_AB_CONTEXT_SAFE=NO
+```
+
+Einzelkontexte wurden danach separat getestet.
+
+Graph A:
+
+```text
+CONTEXT_CREATE=6.921s
+EXEC=0.828s
+RAM_BEFORE=10174.36 MB
+RAM_AFTER_LOAD=12558.78 MB
+RAM_AFTER_RELEASE=10003.02 MB
+NATIVE_CRASH=NO
+```
+
+Graph B:
+
+```text
+CONTEXT_CREATE=10.210s
+EXEC=0.950s
+RAM_BEFORE=9860.74 MB
+RAM_AFTER_LOAD=12282.40 MB
+RAM_AFTER_RELEASE=9547.23 MB
+NATIVE_CRASH=NO
+```
+
+Damit ist ein einzelner großer Kontext sicher, beide gleichzeitig auf dem 16-GB-System jedoch nicht.
+
+### RORem sequentiell In-Process
+
+Vollständiger 1-Step-Diagnoselauf mit:
+
+```text
+Graph A create -> execute -> release
+Graph B create -> execute -> release
+```
+
+Messung:
+
+```text
+GRAPH_A_CONTEXT_CREATE_SECONDS=10.494
+GRAPH_A_EXEC_SECONDS=1.583
+GRAPH_A_RELEASE_SECONDS=4.601
+
+GRAPH_B_CONTEXT_CREATE_SECONDS=11.791
+GRAPH_B_EXEC_SECONDS=1.940
+GRAPH_B_RELEASE_SECONDS=4.357
+
+SEQUENTIAL_GRAPH_AB_SECONDS=35.205
+TOTAL_1_STEP_SECONDS=65.799
+
+RAM_A_PEAK_MB=12071.06
+RAM_AFTER_A_RELEASE_MB=9328.71
+RAM_B_PEAK_MB=11786.44
+RAM_AFTER_B_RELEASE_MB=8865.82
+AVAILABLE_RAM_MIN_MB=3911.68
+SEVERE_PAGING=NO
+
+FINAL_OUTPUT_VALID=YES
+MEMORY_SAFETY_PASS=YES
+```
+
+Reine A+B-NPU-Inferenz war nur rund 3.5 s; Kontext-Erstellung/-Freigabe dominierte.
+
+Entscheidung:
+
+```text
+RORem_TECH_PASS=YES
+RORem_QUALITY_PASS=YES
+RORem_PRODUCT_PERFORMANCE_PASS=NO
+RORem_CURRENT_ARCHITECTURE_PRODUCT_VIABLE=NO
+```
+
+RORem nicht weiter mit derselben 2-Graph-Rotation optimieren.
+
+## Photo Restore / FiDeSR – Performance-Ursache
+
+Read-only Audit zeigte denselben grundlegenden DLC-Fehler:
+
+- VAE Encoder, UNet, LRRB und VAE Decoder wurden mit `--dlc_path` gestartet.
+- Keine FiDeSR-serialized contexts existierten.
+- `--perf_profile burst` war nicht gesetzt.
+- Hauptzeit ging in Online-DLC-Vorbereitung statt NPU-Ausführung.
+
+Frühere reale Größenordnung:
+
+```text
+~321 s für 169x226 -> 672x904 / 6 Tiles
+```
+
+## FiDeSR – vier serialized HTP contexts erzeugt und bit-exakt validiert
+
+### VAE Encoder
+
+```text
+C:\SnapdragonAI\models\photo_restore_context\fidesr_vae_encoder\fidesr_vae_encoder.serialized.bin.bin
+SIZE=77647872
+SHA256=9a12999304cb34d19c0c7ba03e8593c2df528628d404f6a512fb513f7e657b50
+CONTEXT_RETRIEVE_SECONDS=0.5080
+VAE_ENCODER_EXEC_SECONDS=0.2100
+TOTAL_CONTEXT_TEST_SECONDS=1.5235
+BIT_EXACT=YES
+```
+
+### UNet Merged
+
+```text
+C:\SnapdragonAI\models\photo_restore_context\fidesr_unet\fidesr_unet_merged.serialized.bin.bin
+SIZE=1741705216
+SHA256=3a169a72d76ce949f803d5c49da4efbb2568a7d16668b61e1344134ec28c94ae
+CONTEXT_RETRIEVE_SECONDS=4.2511
+UNET_EXEC_SECONDS=0.2801
+TOTAL_CONTEXT_TEST_SECONDS=6.0313
+BIT_EXACT=YES
+```
+
+### LRRB
+
+```text
+C:\SnapdragonAI\models\photo_restore_context\fidesr_lrrb\fidesr_lrrb.serialized.bin.bin
+SIZE=1548288
+SHA256=1cde7cc8979611168ee81845c4e14702dee636ccc0f683dd76fdd679b97ca9f9
+CONTEXT_RETRIEVE_SECONDS=0.0416
+LRRB_EXEC_SECONDS=0.0069
+TOTAL_CONTEXT_TEST_SECONDS=0.5661
+BIT_EXACT=YES
+```
+
+### VAE Decoder
+
+```text
+C:\SnapdragonAI\models\photo_restore_context\fidesr_vae_decoder\fidesr_vae_decoder.serialized.bin.bin
+SIZE=113999872
+SHA256=c9c78e694a88ef6ea4d5d7fd7af02fe7c5337f097bdacbf5d1547f66692c5d84
+CONTEXT_RETRIEVE_SECONDS=0.7341
+VAE_DECODER_EXEC_SECONDS=0.4558
+TOTAL_CONTEXT_TEST_SECONDS=2.0803
+BIT_EXACT=YES
+```
+
+Alle vier Contexts:
+
+```text
+QNN_HTP=YES
+OUTPUT_VALID=YES
+OUTPUT_FINITE=YES
+BIT_EXACT=YES
+```
+
+WICHTIG FÜR RELEASE/PORTABILITÄT:
+
+Diese großen generierten Context-Dateien wurden als lokale Modellartefakte erzeugt. Die Performance-Commits enthielten nur Runner-/Backend-/Testcode, nicht diese Multi-GB-Modellartefakte. Vor einem neuen Build/Installer/Release muss deshalb ausdrücklich geklärt werden, wie diese Contexts auf Fremdrechnern bereitgestellt, installiert oder erzeugt werden. Ein Remote-Code-Push allein macht Photo Restore auf einem frischen Rechner nicht automatisch vollständig.
+
+## FiDeSR Product Runner – Performance-Fix
+
+Geändert und committed:
+
+```text
+engine/backends/fidesr_strong_runner_template.py
+engine/backends/fidesr_photo_restore_backend.py
+tests/test_fidesr_serialized_context_runtime.py
+```
+
+Commit:
+
+```text
+f059feecabe37e294a852f80a1118d8668f39111
+perf: accelerate FiDeSR photo restore with serialized HTP contexts
+```
+
+Tests:
+
+```text
+PY_COMPILE=PASS
+FOCUSED_TESTS=53/53
+DLC_PATH_USED=NO
+DLC_FALLBACK_PRESENT=NO
+CPU_AI_FALLBACK=NO
+GPU_AI_FALLBACK=NO
+QNN_HTP=YES
+```
+
+Realer End-to-End-Benchmark:
+
+```text
+INPUT=C:\Users\holge\Desktop\Testbilder\Bild1.jpg
+INPUT_SIZE=169x226
+OUTPUT_SIZE=672x904
+TILE_COUNT=6_PER_STAGE
+
+PREPROCESS_SECONDS=0.80
+VAE_ENCODER_STAGE_SECONDS=2.96
+UNET_STAGE_SECONDS=13.68
+LRRB_STAGE_SECONDS=0.60
+VAE_DECODER_STAGE_SECONDS=5.74
+POSTPROCESS_SECONDS=5.99
+TOTAL_SECONDS=29.77
+
+BASELINE_TOTAL_SECONDS=321.02
+TOTAL_SPEEDUP=10.78x
+```
+
+Damit:
+
+```text
+PHOTO_RESTORE_PRODUCT_PERFORMANCE_PASS=YES
+```
+
+## FiDeSR Quality Phase 1 – Farbe, Hauthelligkeit, Mikrodetails
+
+Manueller Vergleich mit einer echten Farbreferenz zeigte:
+
+- vorheriger Restore zu warm/orange,
+- Haut zu hell/glatt,
+- Holz zu orange,
+- Bartstoppeln/Poren schwächer als Referenz.
+
+Ermittelte Ursachen:
+
+- unmoderierte DDColor-Chrominanz,
+- Highlight-Clipping bei hoher Luminanz/Chroma,
+- Wavelet-/Detailpfad verwarf bzw. nutzte echte Quellen-Hochfrequenzen zu schwach.
+
+Minimal korrigiert:
+
+- Soft-Knee/Moderation der warmen Chrominanz,
+- sanfter Highlight-Rolloff,
+- auf 4×-Skala kalibrierte deterministische Mikrodetail-Rückführung,
+- keine Änderung an Neural Models, Contexts, QNN Runtime oder Tiling.
+
+Messung:
+
+```text
+BEFORE_TOTAL_SECONDS=29.77
+AFTER_TOTAL_SECONDS=17.85
+COLOR_WARMTH_REDUCED=YES
+SKIN_BRIGHTNESS_REDUCED=YES
+MICRODETAIL_PRESERVED_BETTER=YES
+HALOS_PRESENT=NO
+RINGING_PRESENT=NO
+TILE_SEAMS_PRESENT=NO
+BLACK_FRAME_PRESENT=NO
+PY_COMPILE=PASS
+FOCUSED_TESTS=27/27
+```
+
+## FiDeSR Quality Phase 2 – graue Oberlider / Oberlippe
+
+Holger bemerkte im Ergebnis:
+
+- Oberlider grau/aschig,
+- Teil der Oberlippe grau/kühl.
+
+Root Cause:
+
+- DDColor 256x256-Chroma-Upsampling ließ die Entsättigung von Sklera/Zähnen in schmale Haut-/Lippenübergänge bluten.
+- Die globale positive-b-Absenkung aus Phase 1 verstärkte dort die lokale Entsättigung.
+
+Korrektur:
+
+- Soft-Knee statt pauschaler b-Absenkung,
+- content-adaptive skin-adjacent Chroma-Floor,
+- content-adaptive Lip-Red-Seed-Dilation,
+- keine festen Pixelkoordinaten,
+- keine filename-/referenzspezifische Logik.
+
+Messung:
+
+```text
+BEFORE_TOTAL_SECONDS=17.85
+AFTER_TOTAL_SECONDS=17.69
+
+EYELID_GRAY_CAST_FIXED=YES
+UPPER_LIP_GRAY_CAST_FIXED=YES
+GLOBAL_ORANGE_CAST_RETURNED=NO
+SKIN_OVERWARMED=NO
+LIP_OVERSATURATED=NO
+HALOS_PRESENT=NO
+RINGING_PRESENT=NO
+TILE_SEAMS_PRESENT=NO
+BLACK_FRAME_PRESENT=NO
+
+PY_COMPILE=PASS
+FOCUSED_TESTS=27/27
+```
+
+Manuelle ChatGPT-Sichtprüfung des `after_phase2.png`:
+
+- Oberlippen-Grauband deutlich/weitgehend behoben,
+- globale Orangefärbung kehrte nicht zurück,
+- Oberlid deutlich besser, aber noch leicht kühl/entsättigt wirkend.
+
+Deshalb visuell nicht als absolut endgültig/perfekt dokumentieren. Technische und Generalisierungsprüfung ist bestanden; ein späterer subtiler visueller Feinschliff bleibt möglich.
+
+## FiDeSR Generalization Check
+
+Read-only statischer Audit:
+
+```text
+FIX_USES_PIXEL_COORDINATES=NO
+FIX_USES_FILENAME_SPECIFIC_LOGIC=NO
+FIX_USES_FIXED_FACE_GEOMETRY=NO
+FIX_USES_REFERENCE_COLOR_HARDCODING=NO
+FIX_IS_CONTENT_ADAPTIVE=YES
+```
+
+Fünf unterschiedliche Porträts wurden durch den aktuellen Product-Pfad geschickt.
+
+Laufzeiten:
+
+```text
+Case 01: 22.53s
+Case 02: 13.27s
+Case 03: 17.69s
+Case 04: 12.90s
+Case 05: 16.37s
+```
+
+Automatisiert/diagnostisch bei allen gültigen Fällen:
+
+```text
+ORANGE_CAST=NO
+SKIN_OVERWARMED=NO
+SKIN_DESATURATED=NO
+HALOS=NO
+TILE_SEAMS=NO
+BLACK_FRAME=NO
+OUTPUT_VALID=YES
+```
+
+Ergebnis:
+
+```text
+GENERALIZATION_PASS=YES
+PERFORMANCE_PATH_CHANGED=NO
+QNN_RUNTIME_CHANGED=NO
+SERIALIZED_CONTEXTS_CHANGED=NO
+CPU_AI_FALLBACK=NO
+GPU_AI_FALLBACK=NO
+QNN_HTP=YES
+```
+
+## FiDeSR Quality Commit und Push
+
+Commit:
+
+```text
+868516a3e46ce3df268914deb531b6a4c348f5f6
+quality: improve FiDeSR color fidelity and skin detail
+```
+
+Scope exakt:
+
+```text
+engine/backends/fidesr_photo_restore_backend.py
+engine/backends/fidesr_strong_runner_template.py
+```
+
+Push verifiziert:
+
+```text
+LOCAL_HEAD=868516a3e46ce3df268914deb531b6a4c348f5f6
+REMOTE_MAIN=868516a3e46ce3df268914deb531b6a4c348f5f6
+REMOTE_MATCH=YES
+FIDESR_QUALITY_PUSH=PASS
+```
+
+## Object Removal – Alternativkandidaten
+
+Read-only Audit identifizierte sieben Kandidaten.
+
+### LaMa-Dilated
+
+Technisch:
+
+```text
+QNN/HTP=YES
+SINGLE_CONTEXT=YES
+NPU_EXEC≈87 ms
+TOTAL_PYTHON_INFERENCE≈97 ms
+MEMORY_RISK=MINIMAL
+```
+
+Qualität früher schlecht: weiße/unscharfe Schmierfüllungen bei großen Personenmasken.
+
+Ein isolierter Mask-Contract-Test prüfte, ob der Fehler nur durch falsches Hole-Filling entstand.
+
+Ergebnis:
+
+```text
+TENSOR_DIFF_A_VS_B=0.000000
+```
+
+Das DLC enthält intern bereits:
+
+```text
+masked_image = image * (1 - mask)
+```
+
+White-hole vs zero-hole extern erzeugt daher bit-identische Tensoren.
+
+Realbilder bestätigten weiterhin:
+
+- smeared/unstructured fill,
+- ghost contours,
+- unplausible large-mask reconstruction.
+
+Entscheidung:
+
+```text
+LAMA_PRODUCT_PATH=REJECTED
+```
+
+### AOT-GAN
+
+Sehr schnell und klein, aber bereits qualitativ verworfen, weil auf einfachen Flächen gesichts-/augenartige Halluzinationen entstanden.
+
+```text
+AOT_GAN_PRODUCT_PATH=REJECTED
+```
+
+### SD3.5
+
+Aktuell kein geeigneter Produktpfad:
+
+- vorhandener DiT ist 16-channel T2I, kein nativer 33-channel Inpainting-DiT,
+- VAE-Encoder-HTP scheiterte früher am Precision-Gate,
+- CPU-VAE wäre wegen NPU-only-Produktziel unzulässig und ~75 s langsam,
+- hoher Speicherbedarf.
+
+```text
+SD35_INPAINTING_PRODUCT_PATH=REJECTED_CURRENTLY
+```
+
+### SDXL Inpainting / RORem
+
+Erbt dieselbe 2-Graph-/Speicherfalle wie RORem.
+
+```text
+SDXL_NATIVE_INPAINTING_CURRENT_16GB_PATH=REJECTED
+```
+
+## Neuer Object-Removal-Kandidat: native SD2 Inpainting 9-channel
+
+Read-only Feasibility Audit:
+
+Lokaler nativer 9-channel UNet:
+
+```text
+LOCAL_NATIVE_9CH_UNET_FOUND=NO
+```
+
+Vorhandener lokaler SD2.1-QNN-UNet:
+
+```text
+C:\SnapdragonAI\models\stable_diffusion_v2_1_qnn\unet.bin
+881569792 Bytes
+CHANNELS=4
+REUSABLE_FOR_TRUE_INPAINTING=NO
+```
+
+Vorhandene Komponenten:
+
+```text
+TEXT_ENCODER_REUSABLE=YES (architecture; final parity still required)
+VAE_ENCODER_AVAILABLE=NO
+VAE_DECODER_AVAILABLE=YES
+VAE_DECODER_REUSABLE=YES (architecture; final parity still required)
+```
+
+Zielmodell:
+
+```text
+native SD2 inpainting
+UNet input  = [1,9,64,64]
+UNet output = [1,4,64,64]
+cross_attention_dim=1024
+pixel resolution=512x512
+```
+
+Erwartung:
+
+- 9-channel UNet bleibt wegen nahezu identischem Backbone wahrscheinlich ein einzelner ~840–900-MB-Kontext,
+- kein 2-Graph-Split erwartet, aber noch unbewiesen,
+- 16-GB-Memory-Risk deutlich niedriger als RORem.
+
+Keine kompatiblen lokalen LCM-Assets; keine ungeprüfte LCM-4-Step-Behauptung verwenden.
+
+## SD2 native Inpainting – Quelle
+
+Der frühere offizielle `stabilityai`-Endpoint lieferte trotz HF-Token 404.
+
+Verwendet wurde deshalb der öffentlich dokumentierte `sd2-community`-Mirror der ursprünglichen Stability-AI-Dateien, gepinnt auf:
+
+```text
+REVISION=5f74973c...
+```
+
+Vertrag verifiziert:
+
+```text
+PIPELINE=StableDiffusionInpaintPipeline
+UNET_IN_CHANNELS=9
+UNET_OUT_CHANNELS=4
+CROSS_ATTENTION_DIM=1024
+SAMPLE_SIZE=64
+SCHEDULER=PNDM
+PREDICTION_TYPE=epsilon (Diffusers default)
+```
+
+Nur minimal benötigte Dateien wurden lokal bezogen; große SHA256-Werte stimmten mit den Repository-Metadaten überein.
+
+Lokaler Source-/Arbeitsbereich:
+
+```text
+C:\SnapdragonAI\models\sd2_inpainting_source\
+C:\SnapdragonAI\temp\sd2_inpainting_export_20260922\
+```
+
+## SD2 Export – lokaler ARM64-CPU-Pfad abgebrochen
+
+Lokaler statischer FP16-Export wurde auf ARM64 gestartet.
+
+Problem:
+
+- PyTorch-FP16-UNet-Ausführung praktisch single-core/langsam,
+- Referenzläufe + Export-Tracing benötigen mehrere vollständige UNet-Durchläufe.
+
+Ein einzelner Exportprozess blieb technisch stabil:
+
+```text
+PID=30360
+PRIVATE_MEMORY≈2.3 GB
+NO_PAGING_FAILURE
+NO_NATIVE_CRASH
+```
+
+Nach mehr als 3.5 Stunden reiner CPU-Zeit existierten noch keine ONNX-/External-Data-Artefakte.
+
+Final vor Abbruch:
+
+```text
+CPU_SECONDS_FINAL=12620.95
+PRIVATE_MB_FINAL=2282.33
+```
+
+Kontrolliert beendet:
+
+```text
+EXPORT_PROCESS_TERMINATED=YES
+FILES_DELETED=NO
+SOURCE_MODELS_DELETED=NO
+PRODUCT_FILES_CHANGED=NO
+BUILD=NO
+COMMIT=NO
+PUSH=NO
+```
+
+Erhaltene Temp-Dateien:
+
+```text
+C:\SnapdragonAI\temp\sd2_inpainting_export_20260922\export_and_validate.py
+C:\SnapdragonAI\temp\sd2_inpainting_export_20260922\validation.json
+```
+
+Wichtig:
+
+```text
+LOCAL_ARM64_EXPORT_PATH=ABGEBROCHEN_WEGEN_LAUFZEIT
+TECHNISCHER_MODELLFEHLER=NICHT_NACHGEWIESEN
+```
+
+## Kaggle / Colab
+
+Kaggle ist für Holger derzeit gesperrt und wird nicht verwendet.
+
+Geplanter Ersatz:
+
+```text
+Google Colab GPU
+```
+
+Nur für Offline-Modellvorbereitung:
+
+- nativen SD2-9ch-UNet statisch FP16 nach ONNX exportieren,
+- passenden deterministischen VAE-Encoder exportieren,
+- PyTorch-vs-ONNX-Parität prüfen,
+- Artefakte als ZIP zurückholen.
+
+Spätere Produktinferenz bleibt ausschließlich QNN/HTP/NPU.
+
+Codex war am Ende des Tages ebenfalls wegen Nutzungslimit nicht mehr verfügbar. Deshalb wurde der Colab-Notebook-Sprint noch nicht ausgeführt.
+
+Vorgesehener Notebook-Pfad nach nächster Codex-Verfügbarkeit:
+
+```text
+C:\SnapdragonAI\temp\sd2_inpainting_colab_export_20260922.ipynb
+```
+
+## Nächster exakter Schritt bei Wiederaufnahme
+
+Priorität 1:
+
+```text
+TOOL: Codex
+REASONING: MEDIUM
+TOKENOPTIMIERT: GEPRÜFT
+```
+
+Codex soll einen vollständigen Google-Colab-GPU-Export-Notebook erstellen für:
+
+```text
+sd2-community/stable-diffusion-2-inpainting
+revision 5f74973c...
+```
+
+Notebook-Ziele:
+
+```text
+/content/sd2_inpainting_export/unet/sd2_inpaint_unet.onnx
+/content/sd2_inpainting_export/unet/sd2_inpaint_unet.data
+
+/content/sd2_inpainting_export/vae_encoder/sd2_vae_encoder.onnx
+(+ external data falls nötig)
+
+/content/sd2_inpainting_export.zip
+```
+
+Pflichten:
+
+1. CUDA/GPU prüfen.
+2. Nur minimal nötige/pinned Pakete und Modellkomponenten.
+3. statischer Batch-1-FP16-Export.
+4. UNet-Vertrag 9->4 / 64x64 / cross-attention 1024 erhalten.
+5. deterministischen VAE-Encoder exportieren, keine zufällige Sampling-Node.
+6. `onnx.checker(..., full_check=True)`.
+7. PyTorch-vs-ONNX-Parität für UNet und VAE.
+8. Größen + SHA256 aller Artefakte ausgeben.
+9. ZIP erzeugen und per Colab Download bereitstellen.
+10. Noch KEIN QNN-Compile.
+
+Nur wenn beide ONNX-Exporte und Referenzparität PASS sind:
+
+Nächster Schritt danach = genau EIN lokaler QNN/HTP-Compile-Versuch des 9-channel UNets. Erst wenn dieser als einzelner Context funktioniert, VAE-Encoder separat kompilieren und die Wiederverwendung des vorhandenen Textencoders/Decoders per Referenzparität bestätigen.
+
+## Tagesabschlussflags – später 22. September 2026
+
+```text
+DATE=2026-09-22
+
+REMOTE_MAIN=868516a3e46ce3df268914deb531b6a4c348f5f6
+REMOTE_MATCH=YES
+
+APP_STABLE=YES
+GALLERY_FREEZE=RESOLVED
+
+PHOTO_RESTORE_PERFORMANCE_PASS=YES
+PHOTO_RESTORE_BASELINE_SECONDS=321.02
+PHOTO_RESTORE_FAST_SECONDS=29.77
+PHOTO_RESTORE_QUALITY_TUNED_SECONDS=17.69
+PHOTO_RESTORE_GENERALIZATION_PASS=YES
+PHOTO_RESTORE_QNN_HTP_ONLY=YES
+PHOTO_RESTORE_CPU_AI_FALLBACK=NO
+PHOTO_RESTORE_GPU_AI_FALLBACK=NO
+PHOTO_RESTORE_CONTEXT_DELIVERY_FOR_FRESH_INSTALL=OPEN
+
+RORem_TECH_PASS=YES
+RORem_QUALITY_PASS=YES
+RORem_PRODUCT_PERFORMANCE_PASS=NO
+RORem_CURRENT_ARCHITECTURE_PRODUCT_VIABLE=NO
+
+LAMA_PRODUCT_PATH=REJECTED
+AOT_GAN_PRODUCT_PATH=REJECTED
+SD35_INPAINTING_PRODUCT_PATH=REJECTED_CURRENTLY
+SDXL_INPAINTING_16GB_PATH=REJECTED
+
+SD2_NATIVE_9CH_CANDIDATE=ACTIVE
+SD2_SOURCE_CONTRACT_VERIFIED=YES
+SD2_LOCAL_ARM64_EXPORT=ABORTED_FOR_RUNTIME
+SD2_TECHNICAL_MODEL_FAILURE=NO
+KAGGLE_AVAILABLE=NO
+NEXT_EXPORT_ENVIRONMENT=GOOGLE_COLAB_GPU
+
+BUILD_AFTER_FIDESR_COMMITS=NO
+INSTALLER_AFTER_FIDESR_COMMITS=NO
+NEXT_PRIORITY=CREATE_AND_RUN_SD2_INPAINTING_COLAB_GPU_EXPORT_NOTEBOOK
+```
+
+## Feierabend
+
+Holger beendet die Arbeit für heute.
+
+Heute keine weiteren:
+
+```text
+Tests
+Exports
+Builds
+Installer
+Commits
+Pushes
+Model-Compiles
+```
+
+ausführen.
+
+# CHATGPT_HANDOVER – Ergänzung Tagesabschluss 23. September 2026 – Object Removal / SD2 / MI-GAN / RORem Performance Rescue
+
+> Diese Ergänzung führt die vollständige bestehende Chronik fort. Ältere Abschnitte bleiben unverändert erhalten. Für Object Removal, SD2 Native Inpainting, MI-GAN, RORem-Performance, Qualcomm-AI-Hub-Artefakte und den nächsten Einstieg hat dieser Abschnitt Vorrang.
+>
+> Holger beendet die Arbeit am 23.09.2026 ausdrücklich für heute. Keine weiteren Tests, Compiles, Modellversuche, Builds, Commits, Pushes oder Integrationen durchführen, bis Holger die Fortsetzung vorgibt.
+
+## Kritische Arbeitsregel nach dem 23.09.2026
+
+- Holger entscheidet, welcher technische Weg weiterverfolgt, integriert oder veröffentlicht wird.
+- ChatGPT darf nicht eigenmächtig festlegen, dass ein Pfad integriert/veröffentlicht wird oder dass die Arbeit beendet wird.
+- Nach mehreren langen technischen Sackgassen gilt für neue Object-Removal-Kandidaten verbindlich: Qualitätsplausibilität zuerst, NPU-Portierung/Compile erst danach.
+- Kein automatischer Wechsel auf einen neuen Modellkandidaten ohne Holgers Auftrag.
+- TECH PASS, QUALITY PASS und PRODUCT PASS strikt trennen.
+- Produktziel bleibt: neuronale Inferenz ausschließlich über Snapdragon NPU / QNN / HTP. CPU nur für nicht-neuronale Orchestrierung, I/O, Masken, Scheduler-/Deterministik-/Compositing-Aufgaben. Kein CPU-/GPU-AI-Produktfallback.
+
+## Git-/Release-Stand
+
+```text
+main = origin/main = 868516a3e46ce3df268914deb531b6a4c348f5f6
+FILES_CHANGED_PRODUCT=NO
+BUILD=NO
+INSTALLER=NO
+COMMIT=NO
+PUSH=NO
+```
+
+Lokale, bereits zuvor bestehende/unveröffentlichte Arbeiten dürfen weiterhin nicht verloren oder pauschal reverted werden, insbesondere soweit vorhanden:
+
+```text
+C:\SnapdragonAI\controllers\inpainting_controller.py
+C:\SnapdragonAI\engine\backends\rorem_dlc_inpainting_adapter.py
+C:\SnapdragonAI\tests\test_rorem_serialized_context_runtime.py
+C:\SnapdragonAI\tests\test_inpainting_arbitrary_size.py
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Kein `git clean`. Niemals `git add .`.
+
+## SD2 Native Inpainting – technischer Erfolg, visuell verworfen
+
+Quelle:
+
+```text
+sd2-community/stable-diffusion-2-inpainting
+revision 5f74973cbb64c8568780732c17f43eb269d63a0d
+StableDiffusionInpaintPipeline
+UNet 9 -> 4
+cross_attention_dim=1024
+sample_size=64
+scheduler=PNDM
+prediction_type=epsilon
+```
+
+Bereitgestelltes FP16-ONNX:
+
+```text
+C:\SnapdragonAI\temp\sd2_inpainting_onnx_audit_20260923\unet\model.onnx
+SIZE=1732953907
+SHA256=A0EBD54F7E4F926B0172B907CB7EE26DDE7ABC19054085159E2375EAC3FBBAA6
+ONNX_FULL_CHECK=PASS
+```
+
+VAE Source:
+
+```text
+C:\SnapdragonAI\temp\sd2_inpainting_onnx_audit_20260923\vae_encoder\model.onnx
+SIZE=68430178
+SHA256=F0DA9070D007DEF0D6A4E7C10A21462BB6172E460EF2587C3FE91191397B4CEA
+```
+
+SD2 9ch UNet QNN Context:
+
+```text
+C:\SnapdragonAI\models\sd2_inpainting_qnn_candidate\unet\sd2_inpaint_unet.serialized.bin
+SIZE=1741692928
+SHA256=713EBACAFC87DDA342851E47F4B2F806143E272A9D65E0CA9F2F0FD23269A62D
+HTP_EXEC=PASS
+UNET_EXEC≈0.359s
+```
+
+Deterministischer VAE Encoder ONNX:
+
+```text
+C:\SnapdragonAI\temp\sd2_inpainting_vae_deterministic_20260923\sd2_vae_encoder_deterministic.onnx
+SIZE=68427282
+SHA256=522A5A15629AC0DD530C563F13F83B270AB34C40BBD2FA65D1783CBD98FA41B5
+RandomNormalLike=0
+ONNX_FULL_CHECK=PASS
+ORT_REPRODUCIBLE=YES
+```
+
+VAE Encoder HTP Context:
+
+```text
+C:\SnapdragonAI\models\sd2_inpainting_qnn_candidate\vae_encoder\sd2_vae_encoder.serialized.bin
+SIZE=76734464
+SHA256=2848AF660D677A19424DBAC0144C5C3C52348905C830649E76C775C5B61B4A3F
+HTP_EXEC=PASS
+```
+
+Kompletter E2E-Pfad:
+
+```text
+Text:        [1,77] int32 -> [1,77,1024]
+VAE Encoder: [1,3,512,512] -> [1,4,64,64]
+UNet:        [1,9,64,64] + timestep + [1,77,1024] -> [1,4,64,64]
+Decoder:     [1,64,64,4] NHWC -> [1,512,512,3]
+LATENT_SCALE=0.18215
+TECH_GATE=PASS
+OUTSIDE_MASK_BIT_EXACT=YES
+CPU_AI_FALLBACK=NO
+GPU_AI_FALLBACK=NO
+```
+
+Qualität:
+
+```text
+8 STEPS=FAIL
+25 STEPS=FAIL
+```
+
+Drei reale Fälle zeigten weiterhin Ghosting, Halluzinationen, Struktur-/Farbfehler und sichtbare Maskennähte. Der Pipelinevertrag wurde separat vollständig auditiert und bestätigt.
+
+```text
+SD2_NATIVE_TECH_PASS=YES
+SD2_NATIVE_PERFORMANCE_PASS=YES
+SD2_NATIVE_QUALITY_PASS=NO
+SD2_NATIVE_PRODUCT_PATH=REJECTED
+```
+
+## MI-GAN 512 Places2 – Quality-first geprüft
+
+```text
+C:\SnapdragonAI\temp\migan_quality_gate_20260923\migan.onnx
+SIZE=29546882
+SHA256=593EBA0B7E04730F1B61C0A3CBCA68D97D8D6A7FF5C6A44A7B9D7FCD880FC5AE
+ONNX_FULL_CHECK=PASS
+CODE_LICENSE=MIT
+WEIGHTS_LICENSE=MIT
+```
+
+Drei reale Fälle:
+
+```text
+CASE1_PERSON=FAIL
+CASE2_OBJECT=FAIL
+CASE3_LARGE_MASK=FAIL
+TOTAL_SECONDS=6.49
+OUTSIDE_MASK_BIT_EXACT=YES
+MIGAN_VISUAL_GATE=FAIL
+READY_FOR_QNN_COMPILE=NO
+```
+
+Kein QNN-Compile durchgeführt.
+
+## RORem – weiterhin einziger qualitativ bestandener Pfad
+
+FP16-Kontexte:
+
+```text
+Graph A:
+C:\SnapdragonAI\models\rorem_mixed_qnn_context\graph_a\graph_a.serialized.bin
+SIZE=2523844608
+
+Graph B:
+C:\SnapdragonAI\models\rorem_mixed_qnn_context\graph_b\graph_b.serialized.bin
+SIZE=2706165760
+```
+
+Bekannter sicherer sequentieller 1-Step-Pfad:
+
+```text
+TOTAL≈65.799s
+GRAPH_A_CREATE≈10.494s
+GRAPH_A_EXEC≈1.583s
+GRAPH_A_RELEASE≈4.601s
+GRAPH_B_CREATE≈11.791s
+GRAPH_B_EXEC≈1.940s
+GRAPH_B_RELEASE≈4.357s
+GRAPH_A+B≈35.205s
+MEMORY_SAFE=YES
+```
+
+Hauptproblem ist nicht die NPU-Inferenz, sondern Context Create/Release/Mapping.
+
+## RORem Phase 3A – W8A16
+
+Graph A scheiterte an HTP-/Conv2D-Datentypvalidierung und CPU Activation Generation / Pagefile-Speicher:
+
+```text
+Tensor 2 and 3 have mismatching datatypes
+Op specific validation failed
+QnnBackend_validateOpConfig failed 3110
+mem alloc failed for *buffer
+The paging file is too small for this operation to complete
+```
+
+```text
+GRAPH_A_W8A16_COMPILE_SUCCESS=NO
+GRAPH_B_W8A16_COMPILE_SUCCESS=NOT_ATTEMPTED
+RORem_W8A16_PRODUCT_GATE=FAIL
+```
+
+## RORem Phase 3B – ein gemeinsamer Multi-Graph-Context
+
+QNN 2.47 unterstützt Multi-Graph grundsätzlich:
+
+```text
+MULTIGRAPH_SUPPORTED_BY_QNN_247=YES
+```
+
+Versuch scheiterte beim Mapping des zweiten persistenten Weight-Buffers:
+
+```text
+Failed to map buffer of size 2667577344
+Failed to map weights buffer to device
+Could not allocate persistent weights buffer
+```
+
+```text
+COMBINED_CONTEXT_CREATED=NO
+RORem_COMBINED_CONTEXT_PRODUCT_GATE=FAIL
+```
+
+## RORem Source-Recovery aus Qualcomm AI Hub
+
+Historische Jobs/Modelle:
+
+```text
+Graph A compile job=jp2wq8l6p
+Graph A source model=mm66w726m
+Graph B compile job=jpyxkww85
+Graph B source model=mnlpx84jm
+Graph B earlier failed job=jp0j8qy9g
+```
+
+Recovered Graph A:
+
+```text
+C:\SnapdragonAI\temp\rorem_onnx_recovery_20260923\graph_a\graph_a.onnx
+SIZE=1651525
+SHA256=795EBD07751AA36FC0DBDB82B0E913ECF4A5B19D9620488F8AB04A67B118D916
+
+C:\SnapdragonAI\temp\rorem_onnx_recovery_20260923\graph_a\graph_a.data
+SIZE=2486762880
+SHA256=6749434BED0A59CDDD92E5C631224E811EEB9FDFD4B4ED500F45AFF1CF138C40
+```
+
+Recovered Graph B:
+
+```text
+C:\SnapdragonAI\temp\rorem_onnx_recovery_20260923\graph_b\graph_b.onnx
+SIZE=1754950
+SHA256=7F832EE699D990FCFB95BAF39605373E4013D1E96486E5F4654E679F077860CA
+
+C:\SnapdragonAI\temp\rorem_onnx_recovery_20260923\graph_b\graph_b.data
+SIZE=2662785288
+SHA256=98C4CBF869DD49DE40B04E91EDE06CD69C452D0B9379D658BE9302217735371B
+```
+
+Beide `onnx.checker(full_check=True)=PASS`.
+
+Die redundanten Recovery-ZIP-Dateien wurden später nach Verifikation auf Holgers Freigabe gelöscht. Die entpackten ONNX-/data-Dateien bleiben erhalten.
+
+## RORem reale A8W8-Kalibrierung
+
+Reale Fälle:
+
+```text
+CASE_1_SOURCE=C:\SnapdragonAI\temp\rorem_validation\case1_input.png
+CASE_1_MASK=C:\SnapdragonAI\temp\rorem_validation\case1_mask.png
+CASE_2_SOURCE=C:\SnapdragonAI\temp\rorem_validation\case2_input.png
+CASE_2_MASK=C:\SnapdragonAI\temp\rorem_validation\case2_mask.png
+CASE_3_SOURCE=C:\SnapdragonAI\temp\rorem_validation\case3_input.png
+CASE_3_MASK=C:\SnapdragonAI\temp\rorem_validation\case3_mask.png
+```
+
+Wiederverwendet:
+
+```text
+RORemDlcRuntime._prepare_inputs
+_encode_prompt
+run_context
+_build_unet_sample
+LATENT_SCALE=0.13025
+CONCAT_ORDER=noisy_latent,latent_mask,masked_image_latent
+SEED=20260830
+GRAPH_A_B_EXECUTED=NO
+```
+
+Kalibrierung:
+
+```text
+CALIBRATION_SAMPLE_COUNT=12
+CALIBRATION_CASE_COUNT=3
+CALIBRATION_TIMESTEPS=951,651,301,1
+CALIBRATION_ALL_DISTINCT=YES
+CALIBRATION_REAL_DATA=YES
+CALIBRATION_FINITE=YES
+CALIBRATION_CONTRACT_PASS=YES
+```
+
+## Qualcomm AI Hub Graph-A A8W8
+
+```text
+QAI_HUB_SDK=0.55.0
+GRAPH_A_A8W8_QUANTIZE_JOB_ID=jg9zm9nqp
+GRAPH_A_A8W8_QUANTIZE_STATUS=SUCCESS
+QUANTIZED_MODEL_ID=mqpkx56on
+QUANTIZED_MODEL_TYPE=SourceModelType.ONNX
+```
+
+Compile:
+
+```text
+COMPILE_JOB_ID=jg9zm93vp
+COMPILE_STATUS=FAILED
+COMPILE_OPTIONS=--target_runtime qnn_dlc
+```
+
+Fehler:
+
+```text
+[ShapeInferenceError]
+DequantizeLinear ... x_scale expects tensor(float),
+but received unsupported tensor(float16)
+```
+
+Quantisiertes Modell lokal:
+
+```text
+MODEL_SIZE_BYTES=1647019877
+MODEL_OPSET=18
+ORIGINAL_ONNX_SHA256=0EF8DAC0EB2332CE7A193C1E6E16D0DF6FE2A78D2BC94BAFCE58FCADBC5C8A4F
+ORIGINAL_DATA_SHA256=AEE35D1E126CA8255FD63CEFE410365179E9B56B259E72C75160445A8ACF6586
+ARCHIVE_SHA256=3893C57A85F3E708290E415BE61C0DAB94A2E05CA4237C50D1B04CAA1D792AB1
+QUANTIZE_LINEAR_COUNT=3390
+DEQUANTIZE_LINEAR_COUNT=3692
+FP16_SCALE_COUNT=6636
+FP32_SCALE_COUNT=446
+DYNAMIC_SCALE_COUNT=0
+```
+
+Scale-only-Fix:
+
+```text
+PATCHED_SCALE_COUNT=3469
+TOPOLOGY_CHANGED=NO
+ZERO_POINTS_CHANGED=NO
+QUANTIZED_VALUES_CHANGED=NO
+ALL_SCALE_VALUES_EXACTLY_PRESERVED_AFTER_CAST=YES
+ONNX_FULL_CHECK=FAIL
+SHAPE_INFERENCE_PASS=FAIL
+```
+
+Verbleibender Blocker:
+
+```text
+QuantizeLinear receives x as tensor(float16);
+opset 18 permits only tensor(float)
+```
+
+Opset-19-Test:
+
+```text
+ORIGINAL_OPSET=18
+NEW_OPSET=19
+Q_FP16_INPUT_LEGAL_OPSET19=YES
+Q_FP16_SCALE_LEGAL_OPSET19=YES
+DQ_FP16_SCALE_LEGAL_OPSET19=YES
+VERSION_CONVERTER_USED=YES
+NODE_COUNT_ORIGINAL=11139
+NODE_COUNT_OPSET19=11139
+TOPOLOGY_SEMANTICS_CHANGED=NO
+WEIGHT_DATA_CHANGED=NO
+SCALE_VALUES_CHANGED=NO
+ZERO_POINTS_CHANGED=NO
+OPSET19_ONNX_FULL_CHECK=FAIL
+OPSET19_SHAPE_INFERENCE_PASS=FAIL
+```
+
+Restfehler:
+
+```text
+QuantizeLinear ... float32 x input + float16 y_scale.
+Opset 19 requires both to use the same T1 type.
+```
+
+Damit:
+
+```text
+ROREM_A8W8_QUANTIZE_STATUS=SUCCESS
+ROREM_A8W8_COMPILE_STATUS=FAILED_QDQ_SCHEMA
+ROREM_A8W8_SCALE_ONLY_FIX=FAIL
+ROREM_A8W8_OPSET19_FIX=FAIL
+```
+
+Kein weiterer QDQ-Umbau automatisch starten.
+
+## RORem Minimum-Step-Quality-Test
+
+1 Schritt:
+
+```text
+CASE1_TOTAL=49.924s
+CASE2_TOTAL=37.915s
+CASE3_TOTAL=37.173s
+AVG=41.671s
+CASE1_PASS=NO
+CASE2_PASS=NO
+CASE3_PASS=NO
+```
+
+2 Schritte:
+
+```text
+CASE1_TOTAL=65.845s
+CASE2_TOTAL=61.853s
+CASE3_TOTAL=61.807s
+AVG=63.169s
+CASE1_PASS=NO
+CASE2_PASS=NO
+CASE3_PASS=NO
+```
+
+3 Schritte:
+
+```text
+CASE1_TOTAL=89.391s
+CASE2_TOTAL=84.694s
+CASE3_TOTAL=89.366s
+AVG=87.817s
+CASE1_PASS=NO
+CASE2_PASS=NO
+CASE3_PASS=NO
+```
+
+3-Step-Ausgaben:
+
+```text
+C:\SnapdragonAI\temp\rorem_min_steps_20260923\3step\case1\case1_3step.png
+C:\SnapdragonAI\temp\rorem_min_steps_20260923\3step\case2\case2_3step.png
+C:\SnapdragonAI\temp\rorem_min_steps_20260923\3step\case3\case3_3step.png
+```
+
+Bekannter bisheriger Qualitätsstand:
+
+```text
+MINIMUM_ACCEPTABLE_STEPS=4_EXISTING_KNOWN_GOOD_BASELINE_NOT_RETESTED
+```
+
+Dieser 4-Step-Stand wurde am Ende des 23.09. nicht erneut gemessen.
+
+## Bestätigte Laufzeitursache
+
+Beispiel 3-Step Case 1:
+
+```text
+TOTAL=89.391s
+GRAPH_A_LOAD_TOTAL=34.456s
+GRAPH_A_EXEC_TOTAL=4.284s
+GRAPH_B_LOAD_TOTAL=26.060s
+GRAPH_B_EXEC_TOTAL=5.490s
+OTHER=19.101s
+```
+
+Die reine Graph-A/B-NPU-Ausführung beträgt zusammen nur ca. 9.8 s; Context Loads ca. 60.5 s. Hauptproblem bleibt die große FP16-Graph-A/B-Context-Rotation.
+
+Getestete Wege:
+
+```text
+dual FP16 residency                FAIL – native memory access
+single multi-graph FP16 context    FAIL – CDSP mapping limit
+W8A16                              FAIL – HTP/Conv2D + activation-generation constraints
+A8W8                               QuantizeJob PASS, QDQ compile schema-invalid
+1-3 denoising steps               QUALITY FAIL
+```
+
+## Object-Removal-Matrix am Tagesende
+
+```text
+RORem:
+TECH PASS
+QUALITY PASS beim bekannten 4-Step-Pfad
+PERFORMANCE weiterhin problematisch
+1-3 Steps QUALITY FAIL
+
+LaMa:
+PERFORMANCE PASS
+QUALITY FAIL
+
+AOT-GAN:
+PERFORMANCE PASS
+QUALITY FAIL
+
+SD2 Native:
+TECH PASS
+PERFORMANCE PASS
+QUALITY FAIL
+
+MI-GAN:
+QUALITY FAIL
+kein QNN-Compile
+
+SD3.5 / SDXL:
+aktuell kein geeigneter 16-GB-Produktpfad
+```
+
+Gesamt:
+
+```text
+OBJECT_REMOVAL_PRODUCT_SOLUTION_FINALIZED=NO
+OBJECT_REMOVAL_RUNTIME_PROBLEM_SOLVED=NO
+```
+
+## Speicherstand
+
+Zuletzt gemeldet:
+
+```text
+FREE_GB_AFTER=14.451
+AVAILABLE_RAM_MB=4298.57
+```
+
+Vor weiteren großen Downloads/Compiles zuerst freien Speicher prüfen.
+
+## Was bei Wiederaufnahme NICHT automatisch geschehen darf
+
+Nicht automatisch:
+
+- RORem integrieren;
+- neuen Modellkandidaten suchen;
+- A8W8-QDQ weiter reparieren;
+- 4-Step-RORem als Releaseentscheidung festlegen;
+- Build/Installer erstellen;
+- Commit/Push durchführen;
+- große Temp-/Modelldateien löschen.
+
+Holger entscheidet den nächsten Weg.
+
+## Finale Statusflags – 23. September 2026
+
+```text
+DATE=2026-09-23
+REMOTE_MAIN=868516a3e46ce3df268914deb531b6a4c348f5f6
+REMOTE_MATCH=YES
+PRODUCT_FILES_CHANGED_TODAY=NO
+BUILD=NO
+INSTALLER=NO
+COMMIT=NO
+PUSH=NO
+SD2_NATIVE_TECH_PASS=YES
+SD2_NATIVE_PERFORMANCE_PASS=YES
+SD2_NATIVE_QUALITY_PASS=NO
+SD2_NATIVE_PRODUCT_PATH=REJECTED
+MIGAN_VISUAL_GATE=FAIL
+MIGAN_QNN_COMPILE_ATTEMPTED=NO
+ROREM_QUALITY_KNOWN_GOOD_4STEP=YES
+ROREM_1STEP_QUALITY_PASS=NO
+ROREM_2STEP_QUALITY_PASS=NO
+ROREM_3STEP_QUALITY_PASS=NO
+ROREM_W8A16_GATE=FAIL
+ROREM_MULTIGRAPH_CONTEXT_GATE=FAIL
+ROREM_SOURCE_GRAPH_A_RECOVERED=YES
+ROREM_SOURCE_GRAPH_B_RECOVERED=YES
+ROREM_A8W8_QUANTIZE_JOB=jg9zm9nqp
+ROREM_A8W8_QUANTIZE_STATUS=SUCCESS
+ROREM_A8W8_MODEL_ID=mqpkx56on
+ROREM_A8W8_COMPILE_JOB=jg9zm93vp
+ROREM_A8W8_COMPILE_STATUS=FAILED_QDQ_SCHEMA
+ROREM_A8W8_SCALE_ONLY_FIX=FAIL
+ROREM_A8W8_OPSET19_FIX=FAIL
+OBJECT_REMOVAL_PRODUCT_SOLUTION_FINALIZED=NO
+OBJECT_REMOVAL_RUNTIME_PROBLEM_SOLVED=NO
+NEXT_PRIORITY=HOLGER_ENTSCHEIDET
+```
+
+## Feierabend 23. September 2026
+
+Holger beendet die Arbeit nach einem langen, erneut erfolglosen Object-Removal-/Performance-Tag ausdrücklich für heute.
+
+Heute keine weiteren Tests, Modelle, Downloads, Exporte, Quantisierungen, QNN-Compiles, Integrationen, Builds, Installer, Commits oder Pushes ausführen.
+
+Bei Wiederaufnahme zuerst diesen neuesten Abschnitt lesen und Holgers Entscheidung zum weiteren Object-Removal-/Release-Weg abwarten.
+
+# Ergänzung: 24. September 2026 – VERSION 2.0 RC3 Dokumentationsstand
+
+## Release-Identität
+
+- Sichtbare Version: `VERSION 2.0 RC3`
+- `display_version`: `2.0 RC3`
+- `package_version`: `2.0.0-rc.3`
+- Referenz-HEAD: `868516a3e46ce3df268914deb531b6a4c348f5f6`
+
+## Phoenix Image Lab im RC3-Release
+
+- Phoenix Image Lab führt direkt zur AI Fotorestaurierung.
+- Der sichtbare Produktpfad verwendet Faithful Restore, Dust Cleanup V4, Detailerhalt, native Multi-Tile-Verarbeitung und 4×-Ausgabe.
+- Neuronale Restaurierung läuft über QNN/HTP auf der Snapdragon® NPU.
+- CPU- und GPU-AI-Fallback sind nicht Bestandteil des Produktpfads.
+- Graustufenbilder bleiben Graustufenbilder; Colorization und DDColor wurden aus der sichtbaren Release-Oberfläche entfernt.
+- Generatives Füllen, Retusche und Object Removal sind aus dem RC3-Release-UI ausgeschlossen.
+- Künstliche Microtexture und Skin-Reinjection sind nicht Bestandteil des RC3-Produktpfads.
+
+## Dokumentation und QA
+
+- README und Benutzerhandbücher in Deutsch, Englisch und Spanisch wurden auf denselben RC3-Funktionsumfang gebracht.
+- Neue Release Notes: `docs/releases/RC3_RELEASE_NOTES.md`.
+- Final Release QA: PASS mit 164 fokussierten Tests und 0 Fehlern.
+- Reale Restaurierungsläufe: kleines Bild 27,42 s; großes Bild 415,14 s.
+- Navigation/UI-Follow-up: 49/49 PASS.
+- Locale-Follow-up: 55/55 fokussierte Tests PASS.
+- Versions-Follow-up: 22/22 PASS.
+- `py_compile`: PASS.
+- `git diff --check`: PASS.
+- Versionsupdate: PASS.
+- Issue #4 ist im Code berücksichtigt; der Status des GitHub-Issues wird nicht als geschlossen behauptet.
+
+## Sicherungen
+
+- `C:\SnapdragonAI_BACKUP_20260924_200739`
+- `C:\SnapdragonAI_BACKUP_20260924_202317`
+- `C:\SnapdragonAI_BACKUP_20260924_203413`
+
+## Status dieses Dokumentationssprints
+
+```text
+BUILD=NO
+COMMIT=NO
+PUSH=NO
+```
+
+# CHATGPT_HANDOVER – Ergänzung Tagesabschluss 24. September 2026 – VERSION 2.0 RC3 Build-/Packaging-Stand
+
+Diese Ergänzung ist der **verbindliche neueste Arbeitsstand**. Bei Widersprüchen mit älteren Abschnitten gilt dieser Abschnitt.
+
+## Datum und Release-Identität
+
+```text
+DATE=2026-09-24
+VERSION=VERSION 2.0 RC3
+DISPLAY_VERSION=2.0 RC3
+PACKAGE_VERSION=2.0.0-rc.3
+HEAD=868516a3e46ce3df268914deb531b6a4c348f5f6
+ORIGIN_MAIN=868516a3e46ce3df268914deb531b6a4c348f5f6
+HEAD_MATCHES_ORIGIN_MAIN=YES
+```
+
+Sichtbare Versionsanzeige rechts oben und About: `VERSION 2.0 RC3`.
+
+## Finaler RC3-Produktumfang
+
+Phoenix Image Lab führt im RC3-Release direkt zu **AI Fotorestaurierung**.
+
+Enthalten:
+- Faithful Photo Restore
+- Dust Cleanup V4
+- Source-Detail-Preservation
+- native Multi-Tile-Verarbeitung
+- 4× Upscaling
+- QNN/HTP/NPU-only für neuronale Inferenz
+- DE / EN / ES
+
+Nicht enthalten:
+- Colorization / DDColor als sichtbare Produktfunktion
+- Generatives Füllen
+- Retusche
+- Object Removal
+- künstliche Microtexture
+- Skin-Reinjection
+
+Verbindlicher deutscher Produkttext:
+
+`Historische und Schwarz-Weiß-Fotos restaurieren, Details bewahren und hochskalieren – lokal auf der Snapdragon® NPU.`
+
+Graustufenbilder bleiben Graustufenbilder. `auto_colorize=False`. Im aktiven RC3-Produktpfad wird kein DDColor-Context geladen und keine DDColor-Inferenz aufgerufen.
+
+## Release-QA und reale Läufe
+
+```text
+FINAL_RELEASE_QA=PASS
+FOCUSED_TESTS=164 passed / 0 failures
+QNN_HTP_ONLY=YES
+CPU_AI_FALLBACK=NO
+GPU_AI_FALLBACK=NO
+
+SMALL_REAL_RUN=PASS
+SMALL_TOTAL_SECONDS=27.42
+
+LARGE_REAL_RUN=PASS
+LARGE_TOTAL_SECONDS=415.14
+
+TILE_SEAMS=NO
+BLACK_FRAME=NO
+OOM=NO
+```
+
+Weitere bestätigte Prüfungen:
+- UI-/Navigation-Follow-up: `49/49 PASS`
+- Locale-Follow-up: `55/55 focused PASS`
+- Versions-Follow-up: `22/22 PASS`
+- Test-Harness-Fix: `60/60 PASS`
+- letzter kombinierter Build-Precheck-Testscope: `39/39 PASS`
+- `py_compile=PASS`
+- `git diff --check=PASS`
+
+## Sprachen, UI und Dokumentation
+
+DE / EN / ES sind auf denselben RC3-Releaseumfang angepasst.
+
+Aktualisiert:
+- `README.md`
+- `docs/CHATGPT_HANDOVER.md`
+- `docs/releases/README.md`
+- `docs/releases/RC3_RELEASE_NOTES.md`
+- `docs/user-guide/USER_GUIDE_DE.md`
+- `docs/user-guide/USER_GUIDE_EN.md`
+- `docs/user-guide/USER_GUIDE_ES.md`
+- `release.json`
+- aktive Versions-/Brand-/Installer-Metadaten
+
+Historische RC2B-Dokumente und RC2B-Bezüge bleiben als Historie erhalten.
+
+Issue-Fixes #1–#4 sind in den RC3 Release Notes dokumentiert. Issue #4 wird nicht fälschlich als geschlossen bezeichnet.
+
+## Build-/Packaging-Arbeit 24.09.2026
+
+Der erste RC3 Build-Precheck war FAIL. Die gefundenen technischen Build-/Packaging-Blocker wurden anschließend gezielt bearbeitet.
+
+### Build-Umgebung
+
+Dedizierte Build-Python:
+
+`C:\Users\holge\AppData\Local\SnapdragonAIStudioBuild\pyinstaller-6.21\Scripts\python.exe`
+
+```text
+BUILD_ENVIRONMENT=DEDICATED_WINDOWS_ARM64_PYTHON_3.11.9
+BUILD_DEPENDENCIES_READY=YES
+```
+
+Die Produkt-Python-Installation wurde nicht als Ersatz-Buildumgebung missbraucht.
+
+### FiDeSR-Portabilität
+
+Behoben:
+- kein aktiver fester Repo-Pfad `C:\SnapdragonAI`
+- kein fester `C:\Qualcomm\AIStack\2.47.0.260601`-Pfad als alleiniger Runtime-Pfad
+- install-/resource-relative Auflösung
+- versionsoffene QNN-Discovery
+- Frozen-App-kompatibler interner Runner-Dispatch statt problematischem `sys.executable runner.py`
+
+Inferenzlogik und Mathematik wurden nicht geändert.
+
+### RC3-Packaging
+
+```text
+PHOTO_RESTORE_PACKAGING_READY=YES
+QNN_RUNTIME_PACKAGING_READY=YES
+DDCOLOR_REQUIRED=NO
+OBJECT_REMOVAL_REQUIRED=NO
+CURRENT_GUIDES_PACKAGED=YES
+RC3_RELEASE_NOTES_PACKAGED=YES
+IMPORT_PRECHECK=PASS
+```
+
+Pakettiert/berücksichtigt:
+- FiDeSR QNN/HTP Contexts und Hilfsressourcen
+- benötigte QNN/HTP-Runtime
+- qnn-net-run / HTP-Komponenten / Hexagon-Skeleton soweit benötigt
+- aktuelle DE/EN/ES User Guides
+- RC3 Release Notes
+- keine zwingende DDColor-Abhängigkeit
+- keine zwingende Object-Removal-Abhängigkeit
+
+Ermittelte Größen:
+
+```text
+PHOTO_RESTORE_PACKAGE_SIZE_GB=1.80
+QNN_RUNTIME_PACKAGE_SIZE_GB=0.022
+ESTIMATED_PAYLOAD_GB=3.39_CONSERVATIVE_UPPER_BOUND
+ESTIMATED_INSTALLER_GB=2.2–3.4
+ESTIMATED_TEMP_BUILD_GB=10.2
+RECOMMENDED_FREE_SPACE_GB=15.0
+```
+
+## Test-Harness-Befunde und Korrekturen
+
+### Photo-Restore-Contracts
+
+14 Fehler waren **keine Produktregression**. Ursache: `qai_appbuilder` fehlte im Test-Python-Pfad, wodurch vorhandene Mock-Kontexte nicht ausgeführt wurden.
+
+Nach Test-Harness-Korrektur:
+
+`PHOTO_RESTORE_CONTRACTS=14 passed / 0 failures`
+
+### RealESRGAN Windows-Teardown
+
+Zwei Fehler:
+- `test_04_realesrgan_2x_path`
+- `test_05_realesrgan_4x_path`
+
+Ursache: offene PIL-Dateihandles verhinderten Temp-Cleanup.
+
+Nach Test-Korrektur:
+
+`REALESRGAN_TESTS=2 passed / 0 failures`
+
+### Tk / About-Dialog Order-Abhängigkeit
+
+Im kombinierten Build-Precheck gab es einen order-dependent Tk-PhotoImage-/Root-Konflikt. Der betroffene Test bestand isoliert.
+
+Es wurde ausschließlich der Test-Harness korrigiert:
+
+```text
+RC3_TK_TEST_ISOLATION=PASS
+PRODUCT_CODE_CHANGED=NO
+COMBINED_PRECHECK_TESTS=39 passed / 0 failures
+ISOLATED_ABOUT_TEST=PASS
+ORDER_DEPENDENCY_REMAINING=NO
+```
+
+## Aktueller Build-Status am Feierabend
+
+Der letzte Build-Precheck-Rerun meldete vor der inzwischen behobenen Tk-Testkorrektur:
+
+```text
+FIDESR_PORTABLE_RESOLUTION=YES
+PHOTO_RESTORE_PACKAGING_READY=YES
+QNN_RUNTIME_PACKAGING_READY=YES
+CURRENT_GUIDES_PACKAGED=YES
+RC3_RELEASE_NOTES_PACKAGED=YES
+DDCOLOR_REQUIRED=NO
+OBJECT_REMOVAL_REQUIRED=NO
+
+FREE_SPACE_C_GB=14.639
+RECOMMENDED_FREE_SPACE_GB=15.0
+CURRENT_FREE_SPACE_SUFFICIENT=NO
+
+READY_TO_BUILD=NO
+```
+
+Der Tk-Testblocker ist danach beseitigt worden. **Verbleibender praktischer Blocker ist der freie Speicher auf C:.**
+
+Vor dem echten Build nicht auf den Minimalpuffer von 15 GiB gehen, sondern **2–3 GB zusätzlich freimachen; Ziel ≥17 GB frei**.
+
+Nichts aus folgenden Bereichen löschen:
+- `C:\SnapdragonAI`
+- Modellordner
+- dokumentierte Backups
+
+## Sicherungen 24.09.2026
+
+```text
+C:\SnapdragonAI_BACKUP_20260924_200739
+C:\SnapdragonAI_BACKUP_20260924_202317
+C:\SnapdragonAI_BACKUP_20260924_203413
+C:\SnapdragonAI_BACKUP_20260924_210305
+C:\SnapdragonAI_BACKUP_20260924_214606
+```
+
+Letzte bestätigte Sicherung:
+
+```text
+BACKUP=C:\SnapdragonAI_BACKUP_20260924_214606
+HEAD=868516a3e46ce3df268914deb531b6a4c348f5f6
+BACKUP_OK=True
+```
+
+## Morgen – exakter Wiedereinstieg
+
+1. `C:` auf mindestens **17 GB freien Speicher** bringen.
+2. Keine Projekt-, Modell- oder Backup-Dateien löschen.
+3. Finalen kurzen RC3 Build-Precheck erneut ausführen.
+4. Erwartung: alle Tests/Packaging-Gates grün und `CURRENT_FREE_SPACE_SUFFICIENT=YES`.
+5. Nur bei `READY_TO_BUILD=YES` den echten RC3 Frozen-App-Build freigeben.
+6. Danach direkter Frozen-App-Test auf dem Entwicklungs-PC.
+7. Danach Installer-Build.
+8. Danach Clean-Test / Installations- und Produkttest.
+9. Erst nach bestandener Abnahme und ausdrücklicher Freigabe gezielt stagen; niemals `git add .`.
+10. Danach Commit, Push und Veröffentlichung separat freigeben.
+
+## Feierabendstatus 24.09.2026
+
+```text
+BUILD=NO
+INSTALLER=NO
+COMMIT=NO
+PUSH=NO
+TECHNICAL_PACKAGING_BLOCKERS_FIXED=YES
+TEST_HARNESS_BLOCKERS_FIXED=YES
+CURRENT_BUILD_BLOCKER=FREE_DISK_SPACE
+TARGET_FREE_SPACE_GB=>=17
+NEXT_EXACT_STEP=FREE_2_TO_3_GB_ON_C_THEN_FINAL_RC3_BUILD_PRECHECK
+```
+
+Heute keine weiteren Builds, Installer, Commits oder Pushes ausführen.

@@ -71,7 +71,6 @@ class PhoenixWorkspace(tk.Frame):
         from widgets.phoenix.views.prompt_view import PhoenixPromptView
         from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
         from widgets.phoenix.views.photo_restore_view import PhoenixPhotoRestoreView
-        from widgets.phoenix.views.image_lab_view import PhoenixImageLabView
         from widgets.phoenix.views.inpainting_view import PhoenixInpaintingView
 
         self._view_factories = {
@@ -92,14 +91,8 @@ class PhoenixWorkspace(tk.Frame):
             "prompt": PhoenixPromptView,
             "models": PhoenixModelManagerView,
             "photo_restore": PhoenixPhotoRestoreView,
-            "image_lab": lambda master: PhoenixImageLabView(
-                master,
-                on_navigate=self.show_view,
-            ),
-            "inpainting": lambda master: PhoenixImageLabView(
-                master,
-                on_navigate=self.show_view,
-            ),
+            "image_lab": PhoenixPhotoRestoreView,
+            "inpainting": PhoenixPhotoRestoreView,
             "generative_fill": PhoenixInpaintingView,
         }
 

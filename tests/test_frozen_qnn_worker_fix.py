@@ -15,6 +15,40 @@ import gui_v2
 
 class FrozenQnnWorkerFixTests(unittest.TestCase):
 
+    def test_dnd_available_uses_tkdnd_on_existing_root(self):
+        root = MagicMock()
+
+        with patch.object(gui_v2, "DND_AVAILABLE", True), \
+             patch.object(gui_v2.TkinterDnD, "require", return_value="2.10.2") as require:
+            self.assertTrue(gui_v2._enable_drag_and_drop(root))
+
+        require.assert_called_once_with(root)
+
+    def test_dnd_unavailable_runtime_error_falls_back(self):
+        root = MagicMock()
+
+        with patch.object(gui_v2, "DND_AVAILABLE", True), \
+             patch.object(gui_v2.TkinterDnD, "require", side_effect=RuntimeError("tkdnd unavailable")):
+            self.assertFalse(gui_v2._enable_drag_and_drop(root))
+
+    def test_startup_uses_normal_tk_when_tkdnd_cannot_load(self):
+        app = gui_v2.SnapdragonAIStudioV2.__new__(gui_v2.SnapdragonAIStudioV2)
+        controller = MagicMock()
+
+        with patch.object(gui_v2.tk.Tk, "__init__", return_value=None), \
+             patch.object(gui_v2, "_enable_drag_and_drop", return_value=False), \
+             patch.object(gui_v2.SnapdragonAIStudioV2, "withdraw"), \
+             patch.object(gui_v2, "install_text_context_menu"), \
+             patch.object(gui_v2, "ApplicationController", return_value=controller) as controller_type:
+            gui_v2.SnapdragonAIStudioV2.__init__(app)
+
+        controller_type.assert_called_once_with(
+            app,
+            dnd_available=False,
+            dnd_files=None,
+        )
+        controller.initialize.assert_called_once_with()
+
     def test_all_generation_worker_launches_suppress_windows_console(self):
         root = Path(__file__).resolve().parents[1]
         worker_files = (

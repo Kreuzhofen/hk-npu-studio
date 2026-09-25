@@ -52,7 +52,7 @@ class PhotoRestoreController:
         image_path: str | Path,
         output_dir: str | Path | None = None,
         upscale_factor: int = 4,
-        auto_colorize: bool = True,
+        auto_colorize: bool = False,
         mode: str = "faithful",
         on_progress: Callable[[str, float, str | None], None] | None = None,
         on_complete: Callable[[PhotoRestoreResult], None] | None = None,

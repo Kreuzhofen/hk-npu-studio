@@ -19,6 +19,7 @@ Important:
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -34,6 +35,7 @@ from PIL import Image
 
 import config
 from engine.file_utils import get_unique_filename
+from engine.backends.backend_discovery_service import BackendDiscoveryService
 from engine.backends.photo_restore_backend import (
     PhotoRestoreResult,
     PHOTO_RESTORE_RUNTIME_UNAVAILABLE,
@@ -50,7 +52,14 @@ from engine.backends.photo_restore_backend import (
 PHOTO_RESTORE_FIDESR_MISSING = "PHOTO_RESTORE_FIDESR_MISSING"
 PHOTO_RESTORE_FIDESR_FAILED = "PHOTO_RESTORE_FIDESR_FAILED"
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = config.BASE
+
+
+def _subprocess_creation_kwargs(platform_name: str | None = None) -> dict[str, int]:
+    platform_name = sys.platform if platform_name is None else platform_name
+    if platform_name == "win32":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
 
 MODEL_DIR = ROOT / "models" / "photo_restore"
 CONTEXT_DIR = ROOT / "models" / "photo_restore_context"
@@ -63,6 +72,58 @@ FIDESR_REQUIRED = (
     MODEL_DIR / "fidesr_empty_prompt_embeds.bin",
     MODEL_DIR / "fidesr_epsilon_seed231.bin",
 )
+
+QNN_RUNTIME_FILES = (
+    "QnnHtp.dll",
+    "QnnSystem.dll",
+    "QnnHtpV73Stub.dll",
+)
+QNN_SKELETON_FILES = (
+    "libQnnHtpV73Skel.so",
+    "libqnnhtpv73.cat",
+)
+
+
+def resolve_fidesr_qnn_runtime() -> tuple[Path, Path, Path]:
+    """Resolve the packaged HTP runtime first, then a discovered development SDK."""
+    packaged = ROOT / "qnn_runtime"
+    packaged_runner = packaged / "bin" / "qnn-net-run.exe"
+    packaged_lib = packaged / "lib"
+    packaged_hex = packaged / "hexagon"
+    packaged_required = (
+        packaged_runner,
+        *(packaged_lib / name for name in QNN_RUNTIME_FILES),
+        *(packaged_hex / name for name in QNN_SKELETON_FILES),
+    )
+    if all(path.is_file() and path.stat().st_size > 0 for path in packaged_required):
+        return packaged_runner, packaged_lib / "QnnHtp.dll", packaged_hex
+
+    discovery = BackendDiscoveryService.discover()
+    runner_text = discovery.qnn_net_run_path if discovery.qnn_tools_found else None
+    backend_text = discovery.qnn_htp_backend_path
+    skeleton_dirs = tuple(Path(path) for path in discovery.qnn_htp_skeleton_dirs)
+    runner = Path(runner_text) if runner_text else None
+    backend = Path(backend_text) if backend_text else None
+    skeleton = next(
+        (
+            path for path in skeleton_dirs
+            if all((path / name).is_file() for name in QNN_SKELETON_FILES)
+        ),
+        None,
+    )
+    required = (
+        *((runner,) if runner is not None else ()),
+        *((backend.parent / name for name in QNN_RUNTIME_FILES) if backend is not None else ()),
+        *((skeleton / name for name in QNN_SKELETON_FILES) if skeleton is not None else ()),
+    )
+    if runner is None or backend is None or skeleton is None or not all(
+        path.is_file() and path.stat().st_size > 0 for path in required
+    ):
+        raise RuntimeError(
+            "FiDeSR QNN/HTP runtime incomplete: qnn-net-run, QNN HTP DLLs "
+            "and the V73 skeleton/catalog pair are required; no fallback is allowed."
+        )
+    return runner, backend, skeleton
 
 
 class FiDeSRPhotoRestoreBackend:
@@ -160,12 +221,6 @@ class FiDeSRPhotoRestoreBackend:
             # repr() produces a valid Python string literal and safely
             # escapes Windows backslashes such as C:\Users\...
             return repr(str(path))
-
-        source = self._replace_required(
-            source,
-            r'ROOT = Path(r"C:\SnapdragonAI")',
-            f"ROOT = Path({py_string(ROOT)})",
-        )
 
         source = self._replace_required(
             source,
@@ -287,23 +342,36 @@ class FiDeSRPhotoRestoreBackend:
             output_path=output_path,
         )
 
-        cmd = [
-            sys.executable,
-            "-u",
-            str(runner_path),
-        ]
+        qnn_runner, qnn_backend, qnn_skeleton = resolve_fidesr_qnn_runtime()
+        runner_env = os.environ.copy()
+        runner_env.update(
+            {
+                "HK_NPU_FIDESR_ROOT": str(ROOT),
+                "HK_NPU_FIDESR_TEMP_DIR": str(config.TEMP_DIR),
+                "HK_NPU_FIDESR_QNN_RUNNER": str(qnn_runner),
+                "HK_NPU_FIDESR_QNN_BACKEND": str(qnn_backend),
+                "HK_NPU_FIDESR_QNN_SKELETON_DIR": str(qnn_skeleton),
+            }
+        )
+        cmd = (
+            [sys.executable, "--fidesr-runner", str(runner_path)]
+            if getattr(sys, "frozen", False)
+            else [sys.executable, "-u", str(runner_path)]
+        )
 
         log_lines: list[str] = []
 
         proc = subprocess.Popen(
             cmd,
-            cwd=str(ROOT),
+            cwd=str(work_dir),
+            env=runner_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             encoding="utf-8",
             errors="replace",
             bufsize=1,
+            **_subprocess_creation_kwargs(),
         )
 
         with self._lock:
@@ -708,7 +776,7 @@ class FiDeSRPhotoRestoreBackend:
         image_path: Path | str,
         output_dir: Path | str | None = None,
         upscale_factor: int = 4,
-        auto_colorize: bool = True,
+        auto_colorize: bool = False,
         mode: str = "faithful",
         progress_callback: Callable[[str, float, str | None], None] | None = None,
     ) -> PhotoRestoreResult:
@@ -792,7 +860,7 @@ class FiDeSRPhotoRestoreBackend:
                 f"FiDeSR Strong wird vorbereitet: {orig_w}x{orig_h}",
             )
 
-            job_root = ROOT / "temp" / "fidesr_studio_jobs"
+            job_root = config.TEMP_DIR / "fidesr_studio_jobs"
             job_root.mkdir(parents=True, exist_ok=True)
 
             job_dir = job_root / (

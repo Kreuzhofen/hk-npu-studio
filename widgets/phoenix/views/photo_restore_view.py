@@ -4,7 +4,7 @@ AI Photo Restore View
 
 Minimal, commercial-grade workspace view for AI Photo Restore.
 Provides input photo selection, upscale factor choice (2x/4x),
-auto-colorization toggle, real-time progress feedback, and result preview.
+real-time progress feedback, and result preview.
 Fully localized via app.i18n.tr.
 """
 
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class PhoenixPhotoRestoreView(WorkspaceFrame):
-    """AI Photo Restore Workspace: FiDeSR Strong + DDColor on Snapdragon NPU."""
+    """AI Photo Restore Workspace: FiDeSR Strong on Snapdragon NPU."""
 
     def __init__(
         self,
@@ -45,7 +45,10 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
         super().__init__(
             master,
             title=tr("photo_restore_title", "AI Photo Restore"),
-            subtitle=tr("photo_restore_subtitle", "Historische & Schwarzweiss-Fotos restaurieren, kolorieren und hochskalieren"),
+            subtitle=tr(
+                "photo_restore_subtitle",
+                "Historische und Schwarz-Weiß-Fotos restaurieren, Details bewahren und hochskalieren – lokal auf der Snapdragon® NPU.",
+            ),
             has_inspector=True,
         )
         self._ui_dispatch_queue: queue.Queue[Callable[[], None]] = queue.Queue()
@@ -264,11 +267,11 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
         )
         self.rb_4x.pack(side="left")
 
-        # Auto-Colorize option
-        self.colorize_var = tk.BooleanVar(value=True)
+        # Auto-Colorize option (disabled/hidden for release)
+        self.colorize_var = tk.BooleanVar(value=False)
         self.cb_colorize = tk.Checkbutton(
             panel,
-            text=tr("photo_restore_auto_color", "Farbrekonstruktion (DDColor bei SW-Fotos)"),
+            text=tr("photo_restore_auto_color", "Legacy-Option (deaktiviert)"),
             variable=self.colorize_var,
             bg=PHOENIX_THEME.card_bg,
             fg=PHOENIX_THEME.text_primary,
@@ -278,7 +281,7 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
             font=PHOENIX_THEME.font_body,
             anchor="w",
         )
-        self.cb_colorize.pack(fill="x", padx=pad_x, pady=(8, 16))
+        # Note: self.cb_colorize is not packed for release (Colorization hidden from UI)
 
         # Action Buttons
         self.start_button = PhoenixButton(
@@ -515,7 +518,7 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
             return
 
         upscale = self.upscale_var.get()
-        auto_color = self.colorize_var.get()
+        auto_color = False
         mode = self.mode_var.get()
         if mode != "faithful":
             mode = "faithful"

@@ -125,7 +125,7 @@ class BrandManager:
         return self.APP_VERSION
 
     def version_string(self) -> str:
-        return f"Version {self.APP_VERSION}"
+        return f"VERSION {self.APP_VERSION}"
 
     def slogan(self) -> str:
         return self.SLOGAN

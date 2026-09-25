@@ -1,5 +1,5 @@
 # HK NPU STUDIO – Phoenix Engine
-## Benutzerhandbuch – Version 2.0 RC2B
+## Benutzerhandbuch – Version 2.0 RC3
 
 > **Unabhängiges Open-Source-Projekt für Windows auf Snapdragon.**  
 > HK NPU STUDIO ist kein offizielles Produkt von Qualcomm Technologies, Inc. und wird nicht von Qualcomm gesponsert oder unterstützt.
@@ -10,7 +10,7 @@
 
 HK NPU STUDIO ist eine Desktop-Anwendung für die lokale KI-Bildgenerierung auf Windows-11-ARM64-PCs mit Snapdragon-Prozessoren. Die **Phoenix Engine** übernimmt dabei Modellverwaltung, Vorbereitung und Ausführung der unterstützten KI-Pipelines.
 
-RC2B legt besonderen Wert auf einen geführten Ablauf: **Installieren → Modell auswählen → Bild erzeugen.** Technische Details sollen für die normale Nutzung möglichst im Hintergrund bleiben.
+RC3 legt besonderen Wert auf einen geführten Ablauf: **Installieren → Modell auswählen → Bild erzeugen.** Technische Details sollen für die normale Nutzung möglichst im Hintergrund bleiben.
 
 Die Bildgenerierung selbst läuft lokal auf dem PC. Nach der erforderlichen Einrichtung eines Modells ist für die eigentliche Generierung grundsätzlich keine Cloud-Bildgenerierung erforderlich.
 
@@ -35,10 +35,10 @@ Eine Internetverbindung wird benötigt, wenn erforderliche Komponenten oder Mode
 
 ---
 
-## 3. RC2B installieren
+## 3. RC3 installieren
 
 1. Lade den aktuellen ARM64-Installer aus dem offiziellen GitHub-Release von HK NPU STUDIO herunter.
-2. Starte `HKNPUStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
+2. Starte `HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe`.
 3. Folge dem Windows-Installationsassistenten.
 4. Starte anschließend **HK NPU STUDIO** über das Startmenü oder die angelegte Verknüpfung.
 
@@ -50,7 +50,7 @@ Für die normale Installation über den veröffentlichten Installer muss Python 
 
 ## 4. Der erste Start
 
-RC2B führt neue Benutzer wesentlich stärker durch die Ersteinrichtung als frühere Release Candidates.
+RC3 führt neue Benutzer wesentlich stärker durch die Ersteinrichtung als frühere Release Candidates.
 
 Auf der Startseite zeigt HK NPU STUDIO den aktuellen Einrichtungszustand an. Ist noch kein verwendbares Modell eingerichtet, führt die Anwendung zum Modell-Manager. Nach erfolgreicher Einrichtung wird der Bereitschaftsstatus aktualisiert und der Benutzer kann direkt zur ersten Bildgenerierung wechseln.
 
@@ -96,7 +96,7 @@ Diese Modelle gehören nicht zum gleichen stabilen Benutzerpfad wie die freigege
 
 ## 6. Modelle installieren
 
-RC2B verwendet je nach Modell unterschiedliche Quellen und Installationswege. Der Modell-Manager versucht, diese Unterschiede vor dem Benutzer zu verbergen und einen geführten Ablauf anzubieten.
+RC3 verwendet je nach Modell unterschiedliche Quellen und Installationswege. Der Modell-Manager versucht, diese Unterschiede vor dem Benutzer zu verbergen und einen geführten Ablauf anzubieten.
 
 ### Stable Diffusion 1.5
 
@@ -108,7 +108,7 @@ Stable Diffusion 2.1 steht ebenfalls als Snapdragon-/Qualcomm-orientierter Bildg
 
 ### Stable Diffusion 3.5 Medium
 
-RC2B enthält einen deutlich stärker automatisierten Einrichtungsweg für **Stable Diffusion 3.5 Medium über Qualcomm QAI AppBuilder**. Dieser Ablauf wird im nächsten Kapitel gesondert beschrieben.
+RC3 enthält einen deutlich stärker automatisierten Einrichtungsweg für **Stable Diffusion 3.5 Medium über Qualcomm QAI AppBuilder**. Dieser Ablauf wird im nächsten Kapitel gesondert beschrieben.
 
 ---
 
@@ -146,7 +146,7 @@ Während dieses Vorgangs HK NPU STUDIO nicht beenden und den Installationsprozes
 
 ### Abschluss
 
-Nach erfolgreicher Einrichtung werden die Modelldateien geprüft und das Modell wird für HK NPU STUDIO verfügbar gemacht. Der erfolgreiche RC2B-Anwenderflow wurde als vollständige Kette getestet:
+Nach erfolgreicher Einrichtung werden die Modelldateien geprüft und das Modell wird für HK NPU STUDIO verfügbar gemacht. Der erfolgreiche RC3-Anwenderflow wurde als vollständige Kette getestet:
 
 **nicht installiert → Einrichtung beim ersten Versuch → Qualcomm-Download → Import/Validierung → Aktivierung → echte Bildgenerierung.**
 
@@ -229,7 +229,7 @@ Der lokale deterministische Boost arbeitet ohne zusätzliches Sprachmodell. Er e
 
 Der optionale AI Boost verwendet ein lokal laufendes Sprachmodell, um den Prompt intelligenter zu überarbeiten.
 
-RC2B verwendet dafür:
+RC3 verwendet dafür:
 
 - **Ollama** als lokalen Modelldienst
 - **Qwen2.5 3B** als vorgesehenes lokales Sprachmodell
@@ -270,34 +270,33 @@ ControlNet ist nicht für jede Modellvariante verfügbar. Die Oberfläche richte
 
 ---
 
-## 13. RealESRGAN NPU Upscaling
+## 13. Phoenix Image Lab – AI Fotorestaurierung
 
-HK NPU STUDIO unterstützt lokales **RealESRGAN-Upscaling auf der NPU**, um vorhandene Bilder in höherer Auflösung auszugeben.
+Historische und Schwarz-Weiß-Fotos restaurieren, Details bewahren und hochskalieren – lokal auf der Snapdragon® NPU.
 
-### 2× Upscaling
+**Phoenix Image Lab** öffnet in VERSION 2.0 RC3 direkt die AI Fotorestaurierung. Eine vorgelagerte Funktionsauswahl gibt es in diesem Release nicht.
 
-Beim **2×-Upscaling** werden Breite und Höhe des Ausgangsbildes jeweils verdoppelt. Ein Bild mit 512×512 Pixeln wird beispielsweise als 1024×1024-Pixel-Bild ausgegeben.
+### Faithful Restore und 4×-Ausgabe
 
-Dieser Modus eignet sich für eine moderate Vergrößerung, wenn das Ausgangsbild möglichst nah am Original erhalten bleiben soll.
+Der sichtbare Produktpfad verwendet **Faithful Restore**. Er bleibt am Ausgangsbild orientiert, bewahrt vorhandene Details und erzeugt eine 4× hochskalierte Ausgabe. Große Bilder werden nativ in überlappenden Kacheln verarbeitet und anschließend ohne globale Verkleinerung wieder zusammengesetzt.
 
-### 4× Upscaling
+**Dust Cleanup V4** entfernt konservativ erkannte Staubpunkte, Flecken und kleine Defekte. Die Funktion soll keine künstliche Mikrotextur erzeugen. Haut-Reinjection ist nicht Bestandteil von RC3.
 
-Beim **4×-Upscaling** werden Breite und Höhe des Ausgangsbildes jeweils vervierfacht. Ein Bild mit 512×512 Pixeln wird beispielsweise als 2048×2048-Pixel-Bild ausgegeben.
-
-Der 4×-Modus verwendet den vorgesehenen RealESRGAN-4×-Pfad und verarbeitet größere Bilder intern kachelweise. Die einzelnen Kacheln werden anschließend wieder zu einem vollständigen Ausgabebild zusammengesetzt.
+Graustufenbilder bleiben Graustufenbilder. Colorization und DDColor sind in RC3 keine sichtbaren Produktfunktionen.
 
 ### Verwendung
 
-1. Öffne die Upscaling-Funktion in HK NPU STUDIO.
-2. Wähle das gewünschte Ausgangsbild.
-3. Wähle **2×** oder **4×** als Vergrößerungsfaktor.
-4. Starte das Upscaling.
-5. Warte, bis die lokale Verarbeitung abgeschlossen ist.
-6. Prüfe anschließend das erzeugte Bild.
+1. Öffne **Phoenix Image Lab**.
+2. Lade das historische, beschädigte oder detailarme Foto.
+3. Prüfe den sichtbaren Faithful-Restore-Modus und die 4×-Ausgabe.
+4. Starte die Restaurierung.
+5. Prüfe das Ergebnis und speichere es bei Bedarf.
 
-Das Upscaling läuft auf unterstützten Snapdragon-PCs lokal über den vorgesehenen NPU/QNN-Pfad. Das Ausgangsbild wird dabei nicht an einen externen Bildverarbeitungsdienst übertragen.
+Alle neuronalen Restaurierungsstufen laufen über QNN/HTP auf der Snapdragon® NPU. Die CPU übernimmt nur deterministische Aufgaben wie Ein-/Ausgabe, Kachelung, Masken, Compositing und Nachbearbeitung. Es gibt keinen CPU- oder GPU-AI-Fallback.
 
-> **Hinweis:** Upscaling erhöht die Bildauflösung und rekonstruiert Details. Es ist keine neue Prompt-basierte Bildgenerierung. Ziel ist eine hochauflösende Version des vorhandenen Bildes bei möglichst gutem Erhalt des ursprünglichen Bildinhalts.
+Die benötigten FiDeSR-Photo-Restore-Modelle sind im RC3-Installer enthalten. Für die AI Fotorestaurierung ist kein separater Modell-Download erforderlich.
+
+Generatives Füllen, Retusche und Object Removal sind nicht Bestandteil der RC3-Oberfläche.
 
 ---
 
@@ -466,11 +465,11 @@ Nur wenn du den optionalen **Phoenix AI Boost** verwenden möchtest. Die normale
 
 ### Welches Sprachmodell verwendet Phoenix AI Boost?
 
-RC2B verwendet **Qwen2.5 3B** über Ollama.
+RC3 verwendet **Qwen2.5 3B** über Ollama.
 
 ### Muss ich für SD3.5 einzelne Qualcomm-Dateien selbst zusammensuchen?
 
-Der RC2B-Ablauf ist darauf ausgelegt, die Qualcomm-Einrichtung weitgehend automatisch durchzuführen. Der Benutzer soll keine einzelnen internen Modellkomponenten manuell auswählen müssen.
+Der RC3-Ablauf ist darauf ausgelegt, die Qualcomm-Einrichtung weitgehend automatisch durchzuführen. Der Benutzer soll keine einzelnen internen Modellkomponenten manuell auswählen müssen.
 
 ### Kann ich Modelle einfach aus ihren Ordnern löschen?
 
@@ -508,9 +507,9 @@ Die Verwendung dieser Namen beschreibt technische Plattformen bzw. Kompatibilit�
 
 ---
 
-## 23. RC2B auf einen Blick
+## 23. RC3 auf einen Blick
 
-RC2B konzentriert sich auf einen zuverlässigen und verständlichen Anwenderflow sowie eine modernisierte Oberfläche:
+RC3 konzentriert sich auf einen zuverlässigen und verständlichen Anwenderflow sowie eine modernisierte Oberfläche:
 
 - **Geführte Ersteinrichtung:** Strukturierter Einstieg für neue Benutzer direkt beim ersten Start.
 - **Einsteigerfreundlicher Modell-Manager:** Der Inspector bleibt scrollbar, während die Modellinstallationsleiste und ihre Aktionen erreichbar bleiben.
@@ -518,7 +517,7 @@ RC2B konzentriert sich auf einen zuverlässigen und verständlichen Anwenderflow
 - **Automatische Aktivierung:** Aktivierung des Modells unmittelbar nach erfolgreicher Installation und Validierung.
 - **Status- und Fortschrittsanzeigen:** Klare Rückmeldungen während der Einrichtung und Generierung.
 - **Phoenix Boost mit optionalem AI Boost:** Intelligente Prompt-Erweiterung über lokales Ollama/Qwen mit einer kompakten Boost-Vorschau (maximierbar/wiederherstellbar, nebeneinander liegende Prompts, feste Aktionsleiste und Scroll-Fallback).
-- **RealESRGAN NPU Upscaling:** Lokales 2×- und 4×-Upscaling vorhandener Bilder über den vorgesehenen NPU/QNN-Pfad.
+- **Phoenix Image Lab:** Direkter Einstieg in die AI Fotorestaurierung mit Faithful Restore, Dust Cleanup V4, Detailerhalt und 4×-Ausgabe auf der Snapdragon® NPU.
 - **Lokale Bildgenerierung:** Vollständig offline-fähige Ausführung auf Windows 11 ARM64 / Snapdragon.
 - **Responsive Oberfläche:** Optimiert für Windows-Skalierungen von 100 % bis 175 % mit flexiblem Umbruch und lokalen Scrollbereichen.
 - **Zuverlässiger Ausgabeordner:** Direktes Öffnen des Laufzeitpfades und sicheres automatisches Anlegen, falls dieser fehlt.

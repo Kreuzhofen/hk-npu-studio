@@ -38,20 +38,29 @@ from gui.controllers.application_controller import ApplicationController
 from widgets.text_context_menu import install_text_context_menu
 
 
-BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
+def _enable_drag_and_drop(root):
+    if not DND_AVAILABLE:
+        return False
+
+    try:
+        TkinterDnD.require(root)
+    except (RuntimeError, tk.TclError):
+        return False
+    return True
 
 
-class SnapdragonAIStudioV2(BaseWindow):
+class SnapdragonAIStudioV2(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.dnd_available = _enable_drag_and_drop(self)
         self.withdraw()
         install_text_context_menu(self)
 
         self.application_controller = ApplicationController(
             self,
-            dnd_available=DND_AVAILABLE,
-            dnd_files=DND_FILES,
+            dnd_available=self.dnd_available,
+            dnd_files=DND_FILES if self.dnd_available else None,
         )
         self.application_controller.initialize()
 
@@ -347,6 +356,15 @@ class SnapdragonAIStudioV2(BaseWindow):
 
 
 def main():
+    if "--fidesr-runner" in sys.argv:
+        import runpy
+
+        idx = sys.argv.index("--fidesr-runner")
+        runner_path = sys.argv[idx + 1]
+        sys.argv = [runner_path]
+        runpy.run_path(runner_path, run_name="__main__")
+        return 0
+
     if "--qai-appbuilder-probe" in sys.argv:
         from engine.sd15_qai_appbuilder_backend import worker_probe_main
 

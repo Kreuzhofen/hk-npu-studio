@@ -1,5 +1,5 @@
 # HK NPU STUDIO – Phoenix Engine
-## Manual de usuario – Versión 2.0 RC2B
+## Manual de usuario – Versión 2.0 RC3
 
 > **Proyecto independiente de código abierto para Windows en Snapdragon.**  
 > HK NPU STUDIO no es un producto oficial de Qualcomm Technologies, Inc. y no está patrocinado ni respaldado por Qualcomm.
@@ -10,7 +10,7 @@
 
 HK NPU STUDIO es una aplicación de escritorio para la generación local de imágenes con IA en equipos Windows 11 ARM64 con procesadores Snapdragon. **Phoenix Engine** se encarga de la gestión de modelos, la preparación y la ejecución de las canalizaciones de IA compatibles.
 
-RC2B pone especial énfasis en un flujo guiado: **Instalar → seleccionar un modelo → generar una imagen.** Los detalles técnicos deben permanecer en segundo plano tanto como sea posible durante el uso normal.
+RC3 pone especial énfasis en un flujo guiado: **Instalar → seleccionar un modelo → generar una imagen.** Los detalles técnicos deben permanecer en segundo plano tanto como sea posible durante el uso normal.
 
 La generación de imágenes se ejecuta localmente en el PC. Una vez configurado el modelo necesario, la generación propiamente dicha no requiere, por regla general, un servicio de generación de imágenes en la nube.
 
@@ -35,10 +35,10 @@ Se necesita una conexión a Internet cuando se descargan por primera vez los com
 
 ---
 
-## 3. Instalar RC2B
+## 3. Instalar RC3
 
 1. Descarga el instalador ARM64 actual desde la versión oficial de HK NPU STUDIO en GitHub.
-2. Ejecuta `HKNPUStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
+2. Ejecuta `HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe`.
 3. Sigue el asistente de instalación de Windows.
 4. Inicia **HK NPU STUDIO** desde el menú Inicio o desde el acceso directo creado.
 
@@ -50,7 +50,7 @@ Para el uso normal del instalador publicado no es necesario instalar Python por 
 
 ## 4. Primer inicio
 
-RC2B guía a los nuevos usuarios durante la configuración inicial de forma mucho más clara que los candidatos de versión anteriores.
+RC3 guía a los nuevos usuarios durante la configuración inicial de forma mucho más clara que los candidatos de versión anteriores.
 
 La página de inicio muestra el estado actual de configuración. Si todavía no hay ningún modelo utilizable configurado, la aplicación te guía hasta el Gestor de modelos. Tras completar correctamente la configuración, se actualiza el estado de disponibilidad y puedes pasar directamente a la primera generación de imágenes.
 
@@ -96,7 +96,7 @@ Estos modelos no forman parte del mismo flujo estable que los modelos publicados
 
 ## 6. Instalar modelos
 
-RC2B utiliza distintas fuentes y métodos de instalación según el modelo. El Gestor de modelos intenta ocultar estas diferencias y ofrecer un flujo guiado.
+RC3 utiliza distintas fuentes y métodos de instalación según el modelo. El Gestor de modelos intenta ocultar estas diferencias y ofrecer un flujo guiado.
 
 ### Stable Diffusion 1.5
 
@@ -108,7 +108,7 @@ Stable Diffusion 2.1 también está disponible como vía de generación orientad
 
 ### Stable Diffusion 3.5 Medium
 
-RC2B incluye un proceso de configuración mucho más automatizado para **Stable Diffusion 3.5 Medium mediante Qualcomm QAI AppBuilder**. Este flujo se describe por separado en el siguiente capítulo.
+RC3 incluye un proceso de configuración mucho más automatizado para **Stable Diffusion 3.5 Medium mediante Qualcomm QAI AppBuilder**. Este flujo se describe por separado en el siguiente capítulo.
 
 ---
 
@@ -146,7 +146,7 @@ No cierres HK NPU STUDIO durante este proceso y deja que la instalación termine
 
 ### Finalización
 
-Después de la configuración, se validan los archivos del modelo y este queda disponible para HK NPU STUDIO. El flujo de usuario correcto de RC2B se ha probado como una cadena completa:
+Después de la configuración, se validan los archivos del modelo y este queda disponible para HK NPU STUDIO. El flujo de usuario correcto de RC3 se ha probado como una cadena completa:
 
 **no instalado → configuración correcta en el primer intento → descarga de Qualcomm → importación/validación → activación → generación real de una imagen.**
 
@@ -229,7 +229,7 @@ El boost determinista local funciona sin un modelo de lenguaje adicional. Amplí
 
 El AI Boost opcional utiliza un modelo de lenguaje ejecutado localmente para mejorar el prompt de forma más inteligente.
 
-RC2B utiliza:
+RC3 utiliza:
 
 - **Ollama** como servicio local de modelos
 - **Qwen2.5 3B** como modelo de lenguaje local previsto
@@ -270,34 +270,33 @@ ControlNet no está disponible para todas las variantes de modelos. La interfaz 
 
 ---
 
-## 13. Upscaling NPU con RealESRGAN
+## 13. Phoenix Image Lab – Restauración de fotos con IA
 
-HK NPU STUDIO admite **upscaling local con RealESRGAN en la NPU** para producir versiones de mayor resolución de imágenes existentes.
+Restaura fotos históricas y en blanco y negro, conserva los detalles y amplíalas – localmente en la NPU Snapdragon®.
 
-### Upscaling 2×
+En VERSION 2.0 RC3, **Phoenix Image Lab** abre directamente la restauración de fotos con IA. Esta versión no muestra una página intermedia de selección de funciones.
 
-Con el **upscaling 2×**, tanto la anchura como la altura de la imagen de origen se duplican. Por ejemplo, una imagen de 512×512 píxeles se genera como una imagen de 1024×1024 píxeles.
+### Restauración fiel y salida 4×
 
-Este modo es adecuado para una ampliación moderada cuando se desea conservar la imagen de origen lo más fielmente posible.
+La ruta visible del producto utiliza **Restauración fiel**. Se mantiene vinculada a la imagen de origen, conserva los detalles disponibles y crea una salida ampliada 4×. Las imágenes grandes se procesan de forma nativa en mosaicos superpuestos y se reconstruyen sin reducir globalmente la resolución de origen.
 
-### Upscaling 4×
+**Dust Cleanup V4** elimina de forma conservadora el polvo, las motas y los pequeños defectos detectados. No está diseñado para generar microtextura artificial. La reinyección de textura de piel no forma parte de RC3.
 
-Con el **upscaling 4×**, tanto la anchura como la altura de la imagen de origen se cuadruplican. Por ejemplo, una imagen de 512×512 píxeles se genera como una imagen de 2048×2048 píxeles.
-
-El modo 4× utiliza la ruta RealESRGAN 4× prevista y procesa internamente las imágenes grandes por mosaicos. Los mosaicos individuales se vuelven a combinar posteriormente para formar la imagen de salida completa.
+Las imágenes en escala de grises permanecen en escala de grises. La colorización y DDColor no son funciones visibles del producto en RC3.
 
 ### Uso
 
-1. Abre la función de upscaling en HK NPU STUDIO.
-2. Selecciona la imagen de origen.
-3. Selecciona **2×** o **4×** como factor de ampliación.
-4. Inicia el proceso de upscaling.
-5. Espera a que finalice el procesamiento local.
-6. Revisa la imagen resultante.
+1. Abre **Phoenix Image Lab**.
+2. Carga la foto histórica, dañada o con pocos detalles.
+3. Confirma el modo visible Restauración fiel y la salida 4×.
+4. Inicia la restauración.
+5. Revisa el resultado y guárdalo si es necesario.
 
-En equipos Snapdragon compatibles, el upscaling se ejecuta localmente mediante la ruta NPU/QNN prevista. La imagen de origen no se envía a ningún servicio externo de procesamiento de imágenes.
+Todas las etapas neuronales de restauración se ejecutan mediante QNN/HTP en la NPU Snapdragon®. La CPU se limita a tareas deterministas de entrada/salida, división en mosaicos, máscaras, composición y posprocesamiento. No existe alternativa de IA en CPU o GPU.
 
-> **Nota:** El upscaling aumenta la resolución de la imagen y reconstruye detalles. No es una nueva generación de imágenes basada en prompts. El objetivo es obtener una versión de mayor resolución de la imagen existente conservando su contenido original lo mejor posible.
+Los modelos FiDeSR necesarios para la restauración de fotos están incluidos en el instalador RC3. La restauración de fotos con IA no requiere una descarga de modelos por separado.
+
+Relleno generativo, Retoque y Eliminación de objetos no están incluidos en la interfaz de RC3.
 
 ---
 
@@ -466,11 +465,11 @@ Solo si quieres utilizar el **Phoenix AI Boost** opcional. La generación normal
 
 ### ¿Qué modelo de lenguaje utiliza Phoenix AI Boost?
 
-RC2B utiliza **Qwen2.5 3B** mediante Ollama.
+RC3 utiliza **Qwen2.5 3B** mediante Ollama.
 
 ### ¿Tengo que recopilar manualmente archivos individuales de Qualcomm para SD3.5?
 
-El flujo de RC2B está diseñado para automatizar la configuración de Qualcomm en la medida de lo posible. El usuario no debería tener que seleccionar manualmente componentes internos individuales del modelo.
+El flujo de RC3 está diseñado para automatizar la configuración de Qualcomm en la medida de lo posible. El usuario no debería tener que seleccionar manualmente componentes internos individuales del modelo.
 
 ### ¿Puedo eliminar los modelos directamente de sus carpetas?
 
@@ -508,9 +507,9 @@ El uso de estos nombres describe plataformas técnicas o compatibilidad y no imp
 
 ---
 
-## 23. RC2B de un vistazo
+## 23. RC3 de un vistazo
 
-RC2B se centra en un flujo de usuario fiable y comprensible, junto con una interfaz modernizada:
+RC3 se centra en un flujo de usuario fiable y comprensible, junto con una interfaz modernizada:
 
 - **Configuración inicial guiada:** Inicio estructurado para nuevos usuarios directamente desde el primer arranque.
 - **Gestor de modelos apto para principiantes:** El inspector sigue siendo desplazable mientras la barra de instalación de modelos y sus acciones permanecen accesibles.
@@ -518,7 +517,7 @@ RC2B se centra en un flujo de usuario fiable y comprensible, junto con una inter
 - **Activación automática:** Activación del modelo inmediatamente después de una instalación y validación correctas.
 - **Indicadores de estado y progreso:** Comentarios claros durante la configuración y la generación.
 - **Phoenix Boost con AI Boost opcional:** Expansión inteligente de prompts a través de Ollama/Qwen local con una vista previa compacta (maximizable/restaurable, prompts uno al lado del otro, barra de acciones fija y scroll-fallback).
-- **Upscaling NPU con RealESRGAN:** Upscaling local 2× y 4× de imágenes existentes mediante la ruta NPU/QNN prevista.
+- **Phoenix Image Lab:** Acceso directo a la restauración de fotos con IA con Restauración fiel, Dust Cleanup V4, conservación de detalles y salida 4× en la NPU Snapdragon®.
 - **Generación local de imágenes:** Tras la configuración necesaria, la generación se ejecuta localmente en Windows 11 ARM64/Snapdragon. La configuración y las descargas aún pueden requerir Internet.
 - **Interfaz responsive:** Optimizada para el escalado de Windows del 100 % al 175 % con ajuste dinámico y áreas de desplazamiento local.
 - **Carpeta de salida fiable:** Abre directamente la carpeta de salida configurada y la crea de forma segura si no existe.

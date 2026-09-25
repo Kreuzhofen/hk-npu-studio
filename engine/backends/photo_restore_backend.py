@@ -317,7 +317,7 @@ class AIPhotoRestoreBackend:
         image_path: Path | str,
         output_dir: Path | str | None = None,
         upscale_factor: int = 4,
-        auto_colorize: bool = True,
+        auto_colorize: bool = False,
         progress_callback: Callable[[str, float, str | None], None] | None = None,
         mode: str = "legacy",
         **kwargs: Any,

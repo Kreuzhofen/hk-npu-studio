@@ -3,11 +3,8 @@ import unittest
 from types import SimpleNamespace
 
 from app.i18n import set_language
-from widgets.phoenix.controls.button import PhoenixButton
 from widgets.phoenix.sidebar import PhoenixSidebar
 from widgets.phoenix.theme import update_phoenix_theme
-from widgets.phoenix.views.image_lab_view import PhoenixImageLabView
-from widgets.phoenix.views.inpainting_view import PhoenixInpaintingView
 from widgets.phoenix.views.photo_restore_view import PhoenixPhotoRestoreView
 from widgets.phoenix.workspace import PhoenixWorkspace
 
@@ -28,7 +25,7 @@ class ImageLabNavigationTests(unittest.TestCase):
         self.root.destroy()
         update_phoenix_theme("dark")
 
-    def test_hub_buttons_reach_real_screens_in_both_themes(self):
+    def test_image_lab_opens_photo_restore_directly_in_both_themes(self):
         for theme in ("dark", "light"):
             with self.subTest(theme=theme):
                 update_phoenix_theme(theme)
@@ -44,31 +41,42 @@ class ImageLabNavigationTests(unittest.TestCase):
                 workspace._register_views()
                 self.assertNotIn("photo_restore", workspace.sidebar._buttons)
                 workspace.sidebar._buttons["inpainting"].invoke()
-                hub = workspace._views[workspace.current_view]
-                self.assertIsInstance(hub, PhoenixImageLabView)
-                labels = [w.cget("text") for w in descendants(hub) if isinstance(w, tk.Label)]
-                for title in ("AI Fotorestaurierung", "Generatives Füllen", "Retusche"):
-                    self.assertIn(title, labels)
-                buttons = {w.text: w for w in descendants(hub) if isinstance(w, PhoenixButton)}
-                for label, target, view_type in (
-                    ("Fotorestaurierung öffnen", "photo_restore", PhoenixPhotoRestoreView),
-                    ("Generatives Füllen öffnen", "generative_fill", PhoenixInpaintingView),
-                    ("Retusche öffnen", "generative_fill", PhoenixInpaintingView),
+                restore = workspace._views[workspace.current_view]
+                self.assertEqual(workspace.current_view, "inpainting")
+                self.assertIsInstance(restore, PhoenixPhotoRestoreView)
+                self.assertEqual(workspace.sidebar._buttons["inpainting"].button_type, "nav_active")
+                visible_text = [
+                    str(widget.cget("text"))
+                    for widget in descendants(restore)
+                    if isinstance(widget, (tk.Label, tk.Button))
+                ]
+                joined = "\n".join(visible_text)
+                self.assertIn(
+                    "Historische und Schwarz-Weiß-Fotos restaurieren, Details bewahren und hochskalieren – lokal auf der Snapdragon® NPU.",
+                    joined,
+                )
+                for excluded in (
+                    "Generatives Füllen",
+                    "Retusche öffnen",
+                    "Object Removal",
+                    "Farbrekonstruktion",
                 ):
-                    buttons[label].invoke()
-                    self.assertEqual(workspace.current_view, target)
-                    self.assertIsInstance(workspace._views[target], view_type)
-                    self.assertEqual(workspace.sidebar._buttons["inpainting"].button_type, "nav_active")
-                    workspace.sidebar._buttons["inpainting"].invoke()
-                    self.assertIs(workspace._views[workspace.current_view], hub)
+                    self.assertNotIn(excluded, joined)
+                self.assertNotIn("generative_fill", workspace._views)
+                workspace._view_factories["home"] = tk.Frame
+                workspace.sidebar._buttons["home"].invoke()
+                self.assertEqual(workspace.current_view, "home")
+                workspace.sidebar._buttons["inpainting"].invoke()
+                self.assertEqual(workspace.current_view, "inpainting")
+                self.assertIs(workspace._views["inpainting"], restore)
                 workspace.destroy()
 
-    def test_image_lab_alias_opens_hub(self):
+    def test_image_lab_aliases_open_photo_restore(self):
         state = SimpleNamespace(controller=None, show_view=lambda target: None)
         PhoenixWorkspace._register_views(state)
         for route in ("image_lab", "inpainting"):
             view = state._view_factories[route](self.root)
-            self.assertIsInstance(view, PhoenixImageLabView)
+            self.assertIsInstance(view, PhoenixPhotoRestoreView)
             view.destroy()
 
 

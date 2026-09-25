@@ -33,7 +33,7 @@ def test_clean_release_staging_has_no_runtime_output(tmp_path):
 
 def test_installer_excludes_runtime_output_from_recursive_staging():
     installer_script = Path(__file__).resolve().parents[1] / "installer" / "snapdragon_ai_studio.iss"
-    assert 'Excludes: "output\\*"' in installer_script.read_text(encoding="utf-8")
+    assert 'Excludes: "output\\*,' in installer_script.read_text(encoding="utf-8")
 
 def test_migration_legacy_folder_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "frozen", True, raising=False)

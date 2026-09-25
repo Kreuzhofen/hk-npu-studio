@@ -23,10 +23,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import tempfile
 import threading
 import time
 import tkinter as tk
+import types
 import unittest
 from pathlib import Path
 from typing import Any
@@ -92,15 +94,28 @@ class PhotoRestoreContractTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        mock_qai_appbuilder = types.ModuleType("qai_appbuilder")
+        mock_qai_appbuilder.PerfProfile = types.SimpleNamespace(BURST="BURST")
+        cls.qai_appbuilder_patch = patch.dict(
+            sys.modules,
+            {"qai_appbuilder": mock_qai_appbuilder},
+        )
+        cls.qai_appbuilder_patch.start()
         if tk._default_root is not None:
             cls.tk_root = tk._default_root
+            cls.owns_tk_root = False
         else:
             cls.tk_root = tk.Tk()
             cls.tk_root.withdraw()
+            cls.owns_tk_root = True
 
     @classmethod
     def tearDownClass(cls) -> None:
-        pass
+        try:
+            if cls.owns_tk_root and cls.tk_root.winfo_exists():
+                cls.tk_root.destroy()
+        finally:
+            cls.qai_appbuilder_patch.stop()
 
     def setUp(self) -> None:
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -225,8 +240,8 @@ class PhotoRestoreContractTests(unittest.TestCase):
     def test_04_realesrgan_2x_path(self) -> None:
         """Verify 2x upscale profile outputs exactly (width*2, height*2)."""
         backend = self._create_backend()
-        in_img = Image.open(self.gray_l_path)
-        orig_w, orig_h = in_img.size
+        with Image.open(self.gray_l_path) as in_img:
+            orig_w, orig_h = in_img.size
 
         result = backend.restore(
             self.gray_l_path,
@@ -237,8 +252,8 @@ class PhotoRestoreContractTests(unittest.TestCase):
         self.assertEqual(result.upscale_factor, 2)
         self.assertEqual(result.metadata["upscale_factor"], 2)
 
-        out_img = Image.open(result.output_path)
-        self.assertEqual(out_img.size, (orig_w * 2, orig_h * 2))
+        with Image.open(result.output_path) as out_img:
+            self.assertEqual(out_img.size, (orig_w * 2, orig_h * 2))
 
     # -----------------------------------------------------------------
     # Contract 5: RealESRGAN 4x Path
@@ -246,8 +261,8 @@ class PhotoRestoreContractTests(unittest.TestCase):
     def test_05_realesrgan_4x_path(self) -> None:
         """Verify 4x upscale profile outputs exactly (width*4, height*4)."""
         backend = self._create_backend()
-        in_img = Image.open(self.gray_l_path)
-        orig_w, orig_h = in_img.size
+        with Image.open(self.gray_l_path) as in_img:
+            orig_w, orig_h = in_img.size
 
         result = backend.restore(
             self.gray_l_path,
@@ -258,8 +273,8 @@ class PhotoRestoreContractTests(unittest.TestCase):
         self.assertEqual(result.upscale_factor, 4)
         self.assertEqual(result.metadata["upscale_factor"], 4)
 
-        out_img = Image.open(result.output_path)
-        self.assertEqual(out_img.size, (orig_w * 4, orig_h * 4))
+        with Image.open(result.output_path) as out_img:
+            self.assertEqual(out_img.size, (orig_w * 4, orig_h * 4))
 
     # -----------------------------------------------------------------
     # Contract 6: No CPU Model Fallback (HTP Enforcement)
@@ -334,13 +349,13 @@ class PhotoRestoreContractTests(unittest.TestCase):
         """Verify unique filename generation and non-overwriting collision avoidance."""
         backend = self._create_backend()
 
-        # Run 1: Grayscale -> produces _restored_color_x4.png
-        res1 = backend.restore(self.gray_l_path, output_dir=self.out_dir, upscale_factor=4)
+        # Run 1: Grayscale with auto_colorize=True -> produces _restored_color_x4.png
+        res1 = backend.restore(self.gray_l_path, output_dir=self.out_dir, upscale_factor=4, auto_colorize=True)
         self.assertTrue(res1.success)
         self.assertIn("test_gray_l_restored_color_x4.png", res1.output_path)
 
         # Run 2: Same input -> produces unique _001 suffix without collision
-        res2 = backend.restore(self.gray_l_path, output_dir=self.out_dir, upscale_factor=4)
+        res2 = backend.restore(self.gray_l_path, output_dir=self.out_dir, upscale_factor=4, auto_colorize=True)
         self.assertTrue(res2.success)
         self.assertIn("test_gray_l_restored_color_x4_001.png", res2.output_path)
         self.assertTrue(Path(res1.output_path).exists())

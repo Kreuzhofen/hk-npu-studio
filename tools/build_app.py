@@ -11,12 +11,97 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from engine.release_config import RELEASE
+from engine.backends.backend_discovery_service import BackendDiscoveryService
 
 
 BUILD_ROOT = PROJECT_ROOT / "build" / "release"
 DIST_ROOT = PROJECT_ROOT / "dist"
 APP_DIST = DIST_ROOT / "HKNPUStudio"
 REALESRGAN_PRODUCT_MODEL = PROJECT_ROOT / "models" / "real_esrgan_x4plus.bin"
+FIDESR_PRODUCT_FILES = (
+    (
+        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_vae_encoder" / "fidesr_vae_encoder.serialized.bin.bin",
+        "models/photo_restore_context/fidesr_vae_encoder",
+    ),
+    (
+        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_unet" / "fidesr_unet_merged.serialized.bin.bin",
+        "models/photo_restore_context/fidesr_unet",
+    ),
+    (
+        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_lrrb" / "fidesr_lrrb.serialized.bin.bin",
+        "models/photo_restore_context/fidesr_lrrb",
+    ),
+    (
+        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_vae_decoder" / "fidesr_vae_decoder.serialized.bin.bin",
+        "models/photo_restore_context/fidesr_vae_decoder",
+    ),
+    (
+        PROJECT_ROOT / "models" / "photo_restore" / "fidesr_empty_prompt_embeds.bin",
+        "models/photo_restore",
+    ),
+    (
+        PROJECT_ROOT / "models" / "photo_restore" / "fidesr_epsilon_seed231.bin",
+        "models/photo_restore",
+    ),
+    (
+        PROJECT_ROOT / "engine" / "backends" / "fidesr_strong_runner_template.py",
+        "engine/backends",
+    ),
+)
+RELEASE_DOCUMENTS = (
+    (PROJECT_ROOT / "README.md", "."),
+    (PROJECT_ROOT / "LICENSE", "."),
+    (PROJECT_ROOT / "docs" / "user-guide" / "USER_GUIDE_DE.md", "docs/user-guide"),
+    (PROJECT_ROOT / "docs" / "user-guide" / "USER_GUIDE_EN.md", "docs/user-guide"),
+    (PROJECT_ROOT / "docs" / "user-guide" / "USER_GUIDE_ES.md", "docs/user-guide"),
+    (PROJECT_ROOT / "docs" / "releases" / "RC3_RELEASE_NOTES.md", "docs/releases"),
+)
+
+
+def _resolve_fidesr_qnn_runtime_files() -> tuple[tuple[Path, str], ...]:
+    discovery = BackendDiscoveryService.discover()
+    runner_text = discovery.qnn_net_run_path if discovery.qnn_tools_found else None
+    backend_text = discovery.qnn_htp_backend_path
+    runner = Path(runner_text) if runner_text else None
+    backend = Path(backend_text) if backend_text else None
+    skeleton = next(
+        (
+            Path(path) for path in discovery.qnn_htp_skeleton_dirs
+            if (Path(path) / "libQnnHtpV73Skel.so").is_file()
+            and (Path(path) / "libqnnhtpv73.cat").is_file()
+        ),
+        None,
+    )
+    if runner is None or backend is None or skeleton is None:
+        raise FileNotFoundError(
+            "FiDeSR QNN/HTP runtime discovery is incomplete; no packaged runtime can be built."
+        )
+    files = (
+        (runner, "qnn_runtime/bin"),
+        (backend.parent / "QnnHtp.dll", "qnn_runtime/lib"),
+        (backend.parent / "QnnSystem.dll", "qnn_runtime/lib"),
+        (backend.parent / "QnnHtpV73Stub.dll", "qnn_runtime/lib"),
+        (skeleton / "libQnnHtpV73Skel.so", "qnn_runtime/hexagon"),
+        (skeleton / "libqnnhtpv73.cat", "qnn_runtime/hexagon"),
+    )
+    missing = [path for path, _destination in files if not path.is_file() or path.stat().st_size <= 0]
+    if missing:
+        raise FileNotFoundError(
+            "FiDeSR QNN/HTP runtime files missing: "
+            + ", ".join(str(path) for path in missing)
+        )
+    return files
+
+
+def _required_add_data_files() -> tuple[tuple[Path, str], ...]:
+    required = (*FIDESR_PRODUCT_FILES, *RELEASE_DOCUMENTS)
+    missing = [path for path, _destination in required if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "Required RC3 release files missing: "
+            + ", ".join(str(path) for path in missing)
+        )
+    return required
 
 
 def _find_optional_qai_appbuilder() -> tuple[Path, Path] | None:
@@ -112,6 +197,8 @@ def build_arguments() -> list[str]:
         raise FileNotFoundError(
             f"Produktgebundenes RealESRGAN-Modell fehlt: {REALESRGAN_PRODUCT_MODEL}"
         )
+    required_files = _required_add_data_files()
+    fidesr_qnn_runtime = _resolve_fidesr_qnn_runtime_files()
     resources = _prepare_release_resources()
     plugins = BUILD_ROOT / "release_data" / "plugins"
     shutil.copytree(
@@ -126,14 +213,14 @@ def build_arguments() -> list[str]:
     except ImportError:
         raise RuntimeError("Das Paket 'onnxruntime_qnn' ist im aktuellen Python-Environment nicht installiert.")
 
-    required_files = [
+    qnn_provider_required_files = [
         "onnxruntime_providers_qnn.dll",
         "QnnHtp.dll",
         "QnnSystem.dll",
         "QnnHtpV73Stub.dll",
         "libQnnHtpV73Skel.so",
     ]
-    for filename in required_files:
+    for filename in qnn_provider_required_files:
         filepath = qnn_path / filename
         if not filepath.is_file():
             raise FileNotFoundError(
@@ -186,6 +273,8 @@ def build_arguments() -> list[str]:
         "--add-data",
         f"{REALESRGAN_PRODUCT_MODEL}{os.pathsep}models",
     ]
+    for source, destination in (*required_files, *fidesr_qnn_runtime):
+        arguments.extend(["--add-data", f"{source}{os.pathsep}{destination}"])
     if qai_runtime is not None:
         qai_package, _ = qai_runtime
         qai_site_packages = qai_package.parent

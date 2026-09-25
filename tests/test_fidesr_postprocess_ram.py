@@ -94,7 +94,7 @@ def legacy_wavelet(image, levels=5):
     return high, current
 
 
-def legacy_detail(base, source):
+def current_detail_reference(base, source):
     import torch
     import torch.nn.functional as functional
 
@@ -115,21 +115,13 @@ def legacy_detail(base, source):
         kernel = (gaussian.unsqueeze(1) * gaussian.unsqueeze(0)).unsqueeze(0).unsqueeze(0)
         return functional.conv2d(tensor, kernel, padding=size // 2)
 
-    def local_std(tensor, size=7):
-        mean = functional.avg_pool2d(tensor, size, stride=1, padding=size // 2)
-        mean_sq = functional.avg_pool2d(tensor**2, size, stride=1, padding=size // 2)
-        return torch.sqrt(torch.clamp(mean_sq - mean**2, min=0.0))
-
-    bp_source = blur(y_source, 0.6) - blur(y_source, 1.8)
-    bp_base = blur(y_base, 0.6) - blur(y_base, 1.8)
-    std_source = local_std(bp_source)
-    deficit = torch.clamp(std_source - local_std(bp_base), min=0.0) / (std_source + 1e-4)
+    bp_source = blur(y_source, 1.0) - blur(y_source, 3.2)
     gx = y_base[:, :, :, 1:] - y_base[:, :, :, :-1]
     gy = y_base[:, :, 1:, :] - y_base[:, :, :-1, :]
     gradient = torch.zeros_like(y_base)
     gradient[:, :, :-1, :-1] = torch.sqrt(gx[:, :, :-1, :]**2 + gy[:, :, :, :-1]**2)
-    attenuation = torch.clamp(1.0 - gradient / 0.12, min=0.0, max=1.0)
-    y_out = torch.clamp(y_base + 0.85 * deficit * attenuation * bp_source, 0.0, 1.0)
+    attenuation = torch.clamp(1.0 - gradient / 0.08, min=0.0, max=1.0)
+    y_out = torch.clamp(y_base + 0.50 * attenuation * bp_source, 0.0, 1.0)
     cb -= 0.5
     cr -= 0.5
     result = torch.clamp(
@@ -168,7 +160,7 @@ class FiDeSRPostprocessRamTests(unittest.TestCase):
         rng = np.random.default_rng(20260920)
         base = rng.random((273, 37, 3), dtype=np.float32)
         source = rng.random((273, 37, 3), dtype=np.float32)
-        expected = legacy_detail(base.copy(), source)
+        expected = current_detail_reference(base.copy(), source)
         actual = self.optimized["apply_detail_preservation_bypass"](base.copy(), source)
         np.testing.assert_array_equal(actual, expected)
 

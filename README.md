@@ -25,7 +25,7 @@
   <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Hardware-Snapdragon_X_Elite-D00000?style=flat-square" alt="Snapdragon X Elite">
   <img src="https://img.shields.io/badge/NPU-Qualcomm_Hexagon-EA272A?style=flat-square" alt="Qualcomm Hexagon NPU">
-  <img src="https://img.shields.io/badge/Status-2.0_RC2B-success?style=flat-square" alt="RC2B Status">
+  <img src="https://img.shields.io/badge/Status-2.0_RC3-success?style=flat-square" alt="RC3 Status">
 </p>
 
 ---
@@ -33,7 +33,8 @@
 ## 📋 Table of Contents
 
 - [About the Project](#-about-the-project)
-- [RC2B — Improvements Since RC2A](#-rc2b--improvements-since-rc2a)
+- [RC3 — Improvements Since RC2B](#-rc3--improvements-since-rc2b)
+- [AI Photo Restoration](#-ai-photo-restoration)
 - [Phoenix Boost](#-phoenix-boost)
 - [Stable Diffusion 3.5 Medium](#-stable-diffusion-35-medium--qai-appbuilder)
 - [Features](#-features)
@@ -80,9 +81,9 @@ The **Phoenix Engine** coordinates model discovery, validation, installation, ac
 
 ---
 
-## 🚀 RC2B — Improvements Since RC2A
+## 🚀 RC3 — Improvements Since RC2B
 
-RC2B builds directly on top of RC2A as the baseline, introducing UI responsiveness optimizations, gallery and comparison enhancements, and additional safety and validation measures.
+RC3 builds directly on top of RC2B as the baseline, introducing UI responsiveness optimizations, gallery and comparison enhancements, and additional safety and validation measures.
 
 ### 🎨 Responsive Phoenix UI & DPI Scaling
 - **Windows Scaling Support:** The affected Phoenix views have been responsively optimized for Windows scaling from 100% to 175%. Wrapping and local scroll areas keep content and critical actions accessible.
@@ -111,6 +112,20 @@ RC2B builds directly on top of RC2A as the baseline, introducing UI responsivene
 
 ---
 
+## 🛠️ AI Photo Restoration
+
+In VERSION 2.0 RC3, **Phoenix Image Lab opens AI Photo Restoration directly**. The FiDeSR Strong release path restores historical, damaged, and black-and-white photos, preserves available detail, removes conservative dust and speck defects with Dust Cleanup V4, and produces a 4× upscaled result.
+
+- **Faithful restoration:** Keeps the restored image anchored to the source instead of adding artificial microtexture.
+- **Native multi-tile processing:** Large sources are processed at native resolution in overlapping tiles and reconstructed at the requested output size.
+- **Local NPU execution:** All FiDeSR neural restoration stages use Qualcomm QNN/HTP on the Snapdragon® Hexagon NPU. CPU processing is limited to deterministic orchestration, I/O, tiling, compositing, and image mathematics; there is no CPU- or GPU-AI fallback for Photo Restore.
+- **Bundled restore models:** The required Photo Restore models are included in the RC3 installer. No separate Photo Restore model download is required.
+- **Grayscale remains grayscale:** RC3 does not expose Colorization or DDColor as a product function.
+
+Generative Fill, Retouch, and Object Removal are not included in the RC3 release interface.
+
+---
+
 ## 🔥 Phoenix Boost
 
 Phoenix Boost improves or expands prompts before image generation.
@@ -134,7 +149,7 @@ Once installed, prompt enhancement runs locally. Phoenix shows the enhanced prom
 
 ## 🧠 Stable Diffusion 3.5 Medium — QAI AppBuilder
 
-RC2B continues the automated path for Stable Diffusion 3.5 Medium.
+RC3 continues the automated path for Stable Diffusion 3.5 Medium.
 
 Instead of asking the user to manually assemble individual technical model components, Phoenix coordinates the QAI AppBuilder preparation, model download, import, validation and activation.
 
@@ -146,7 +161,7 @@ This workflow was successfully validated from a clean “not installed” state 
 
 ## ⚡ Features
 
-| Feature Group | Component | RC2B Status | Description |
+| Feature Group | Component | RC3 Status | Description |
 |---|---|---:|---|
 | **Platform** | Native Windows ARM64 | ✅ Supported | Designed for Windows 11 ARM64. |
 | **Hardware** | Snapdragon X Plus / X Elite | ✅ Primary target | Optimized around Windows on Snapdragon systems. |
@@ -159,8 +174,11 @@ This workflow was successfully validated from a clean “not installed” state 
 | **Prompting** | Phoenix Boost | ✅ Supported | Deterministic boost plus optional local AI Boost. |
 | **Prompting** | Ollama + Qwen2.5 3B | ✅ Optional | Local AI-powered prompt enhancement. |
 | **Control** | ControlNet Canny | ✅ Supported where compatible | Structural image guidance for supported model/backend combinations. |
-| **UX** | Guided First Run | ✅ RC2B Improved | Clearer path from first launch to first image. |
-| **Management** | Model Manager | ✅ RC2B Improved | Guided installation, validation and activation. |
+| **Phoenix Image Lab** | AI Photo Restoration | ✅ RC3 Included | Faithful restoration, Dust Cleanup V4, detail preservation, and 4× upscaling on the Snapdragon® NPU. |
+| **Phoenix Image Lab** | FiDeSR Strong / QNN HTP | ✅ Integrated | Neural Photo Restore stages execute locally on the Qualcomm Hexagon NPU. |
+| **Installer** | Photo Restore models | ✅ Bundled | Required FiDeSR Photo Restore payload is included; no separate restore-model download is needed. |
+| **UX** | Guided First Run | ✅ RC3 Improved | Clearer path from first launch to first image. |
+| **Management** | Model Manager | ✅ RC3 Improved | Guided installation, validation and activation. |
 | **Localization** | EN / DE / ES | ✅ Supported | English, German and Spanish interface. |
 | **Privacy** | Local generation | ✅ Core design | Supported generation runs locally after required setup/downloads. |
 
@@ -180,6 +198,20 @@ This workflow was successfully validated from a clean “not installed” state 
   </picture>
   <br>
   <em>The central workspace of HK NPU STUDIO provides quick access to AI image generation, installed models, the gallery, comparison tools, and application settings. System and hardware information is available at a glance.</em>
+</p>
+
+### 🛠️ AI Photo Restoration
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/photo-restore-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/photo-restore-light.png">
+    <img src="docs/images/photo-restore-light.png"
+         width="95%"
+         alt="HK NPU STUDIO AI Photo Restoration">
+  </picture>
+  <br>
+  <em>Restore historical and damaged photographs locally on supported Snapdragon PCs using the Qualcomm Hexagon NPU, with detail-preserving 4× restoration and the required Photo Restore models bundled with the application.</em>
 </p>
 
 ### 🎨 AI Image Generation
@@ -287,12 +319,13 @@ This workflow was successfully validated from a clean “not installed” state 
 ### Option A: Release Installer — Recommended
 
 1. Open the HK NPU STUDIO **Releases** page.
-2. Download `HKNPUStudio-2.0.0-rc.2b-ARM64-Setup.exe`.
+2. Download `HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe`.
 3. Run the installer and follow the Windows setup wizard.
 4. Start HK NPU STUDIO from the Start menu or shortcut.
 5. Use the guided Model Manager to set up your first model.
 
 A separate Python installation is not required for normal use of the published installer.
+The installer is approximately **2.015 GB** and already includes the required Photo Restore models, so AI Photo Restoration does not require a separate model download.
 
 ### Option B: Development / Source
 
@@ -331,13 +364,13 @@ Qualcomm sample files, or the separately provisioned Windows ARM64 Torch build.
 
 ## 📚 User Guides / Documentation
 
-RC2B includes dedicated user documentation in three languages:
+RC3 includes dedicated user documentation in three languages:
 
 - 🇩🇪 **Deutsch:** [Benutzerhandbuch](docs/user-guide/USER_GUIDE_DE.md)
 - 🇬🇧 **English:** [User Guide](docs/user-guide/USER_GUIDE_EN.md)
 - 🇪🇸 **Español:** [Manual de usuario](docs/user-guide/USER_GUIDE_ES.md)
 
-The user guides cover first-run setup, model installation, Stable Diffusion 3.5 Medium, Phoenix Boost, ControlNet Canny, local data, privacy and troubleshooting.
+The user guides cover AI Photo Restoration, first-run setup, model installation, Stable Diffusion 3.5 Medium, Phoenix Boost, ControlNet Canny, local data, privacy and troubleshooting.
 
 ---
 
@@ -353,6 +386,7 @@ The user guides cover first-run setup, model installation, Stable Diffusion 3.5 
 | **Runtime** | Bundled/managed by the published application where applicable |
 
 Large models require additional disk space. Stable Diffusion 3.5 Medium downloads approximately 3.24 GB of Qualcomm model data during setup, plus temporary/setup files.
+The Photo Restore models are bundled with the RC3 installer and do not require a separate download.
 
 ---
 
@@ -370,6 +404,8 @@ Large models require additional disk space. Stable Diffusion 3.5 Medium download
 10. Click **Generate**.
 
 No manual selection of individual QNN/ONNX model components is required for the normal guided workflow.
+
+For AI Photo Restoration, open **Phoenix Image Lab**, select a source photograph, and start Faithful Restore. The required FiDeSR models are already included with RC3.
 
 ---
 
@@ -398,7 +434,7 @@ Its responsibilities include:
 - diagnostics and progress reporting,
 - output handling.
 
-RC2/RC2A/RC2B increasingly move technical setup complexity behind this orchestration layer so users can focus on selecting a model and creating images.
+RC2/RC2A/RC2B/RC3 increasingly move technical setup complexity behind this orchestration layer so users can focus on selecting a model and creating images.
 
 ---
 
@@ -428,10 +464,11 @@ The diagram is intentionally high-level. Individual model pipelines can use diff
 
 ## Supported AI Backends
 
-| Backend / Path | Target | RC2B Status | Notes |
+| Backend / Path | Target | RC3 Status | Notes |
 |---|---|---:|---|
-| **ONNX Runtime CPU** | Snapdragon CPU | ✅ Supported | Local compatibility and validation path where supported. |
+| **ONNX Runtime CPU** | Snapdragon CPU | ✅ Supported where applicable | Local compatibility and validation path for other supported workflows; it is not a Photo Restore AI fallback. |
 | **Qualcomm QNN** | Hexagon NPU | ✅ Integrated | Hardware-accelerated execution for compatible QNN model pipelines. |
+| **FiDeSR Strong** | Qualcomm QNN / Hexagon HTP | ✅ Photo Restore production path | All neural Photo Restore stages execute on the Snapdragon® NPU. |
 | **Qualcomm QAI AppBuilder** | Qualcomm model workflow | ✅ SD3.5 path validated | Used by the guided Stable Diffusion 3.5 Medium setup path. |
 | **Additional backends / models** | Model-dependent | 🧪 Experimental | Research continues without presenting experimental paths as production-ready. |
 
@@ -447,7 +484,7 @@ hk-npu-studio/
 ├── data/                 # Local application data/metadata
 ├── dialogs/              # Dialog windows
 ├── docs/                 # Project and user documentation
-│   └── user-guide/       # RC2B user guides (DE / EN / ES)
+│   └── user-guide/       # RC3 user guides (DE / EN / ES)
 ├── engine/               # Phoenix Engine and inference/install services
 ├── installer/            # Windows installer configuration
 ├── locales/              # EN / DE / ES localization
@@ -489,7 +526,7 @@ For development:
 python -m pytest
 ```
 
-For release-critical model workflows, automated tests alone are not sufficient. RC2B development also uses real Windows-on-Snapdragon user-flow tests, including clean model installation and actual image generation.
+For release-critical model workflows, automated tests alone are not sufficient. RC3 development also uses real Windows-on-Snapdragon user-flow tests, including clean installation, actual image generation, and small and large Photo Restore runs.
 
 ---
 
@@ -507,7 +544,8 @@ Depending on the active model/backend, diagnostics can expose:
 - pipeline timing and error information,
 - log output for reproducible troubleshooting.
 
-RC2B places particular emphasis on validating the real model state instead of relying only on previously stored installation metadata.
+RC3 places particular emphasis on validating the real model state instead of relying only on previously stored installation metadata.
+Photo Restore diagnostics report the FiDeSR NPU stages and keep input, context, and runtime failures distinguishable without introducing a CPU- or GPU-AI fallback.
 
 ---
 
@@ -529,21 +567,25 @@ Initial application/model/component downloads require internet access. After suc
 
 Not for normal use of the published Windows installer. Python 3.11 ARM64 is primarily relevant for development and source execution.
 
+### Do I need to download a model for AI Photo Restoration?
+
+No. The required FiDeSR Photo Restore models are bundled with the RC3 installer.
+
 ### Do I need Ollama?
 
 Only for the optional **Phoenix AI Boost**. Normal image generation and deterministic Phoenix Boost do not depend on Ollama.
 
 ### Which model does Phoenix AI Boost use?
 
-RC2B uses **Qwen2.5 3B** through Ollama.
+RC3 uses **Qwen2.5 3B** through Ollama.
 
 ### How is Stable Diffusion 3.5 Medium installed?
 
-RC2B provides a guided Qualcomm QAI AppBuilder workflow that prepares the source, runs the Qualcomm setup, downloads the required model data, imports it into HK NPU STUDIO, validates it and activates it.
+RC3 provides a guided Qualcomm QAI AppBuilder workflow that prepares the source, runs the Qualcomm setup, downloads the required model data, imports it into HK NPU STUDIO, validates it and activates it.
 
 ### Is SD3.5 actually tested beyond installation?
 
-Yes. The RC2B flow was validated from a clean not-installed state through successful setup, model validation/activation and a real generated image.
+Yes. The RC3 flow was validated from a clean not-installed state through successful setup, model validation/activation and a real generated image.
 
 ### Which interface languages are available?
 

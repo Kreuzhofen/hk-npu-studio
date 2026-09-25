@@ -19,22 +19,20 @@ except Exception as e:
 # PATHS
 # ============================================================
 
-ROOT = Path(r"C:\SnapdragonAI")
+ROOT = Path(os.environ["HK_NPU_FIDESR_ROOT"]).resolve()
 MODEL_ROOT = ROOT / "models" / "photo_restore"
 CONTEXT_ROOT = ROOT / "models" / "photo_restore_context"
-TEMP_DIR = ROOT / "temp"
+TEMP_DIR = Path(os.environ.get("HK_NPU_FIDESR_TEMP_DIR", ROOT / "temp"))
 WORK = TEMP_DIR / "photo_restore"
 
 INPUT_IMAGE = ROOT / "input" / "photo_restore_input.png"
 OUTPUT_IMAGE = WORK / "photo_restore_output.png"
 
-QNN_ROOT = Path(r"C:\Qualcomm\AIStack\2.47.0.260601")
-QNN_BIN = QNN_ROOT / "bin" / "aarch64-windows-msvc"
-QNN_LIB = QNN_ROOT / "lib" / "aarch64-windows-msvc"
-QNN_HEX = QNN_ROOT / "lib" / "hexagon-v73" / "unsigned"
-
-QNN_RUNNER = QNN_BIN / "qnn-net-run.exe"
-QNN_BACKEND = QNN_LIB / "QnnHtp.dll"
+QNN_RUNNER = Path(os.environ["HK_NPU_FIDESR_QNN_RUNNER"]).resolve()
+QNN_BACKEND = Path(os.environ["HK_NPU_FIDESR_QNN_BACKEND"]).resolve()
+QNN_BIN = QNN_RUNNER.parent
+QNN_LIB = QNN_BACKEND.parent
+QNN_HEX = Path(os.environ["HK_NPU_FIDESR_QNN_SKELETON_DIR"]).resolve()
 CONTEXT_ENCODER = (
     CONTEXT_ROOT / "fidesr_vae_encoder" /
     "fidesr_vae_encoder.serialized.bin.bin"
@@ -92,6 +90,32 @@ VAE_PIXEL_TILE = 512
 
 CPU_POST_STRIPE_ROWS = 256
 
+# Conservative source-anchored scan-speck cleanup. These thresholds operate
+# on normalized [0, 1] luminance and deliberately accept only compact,
+# isolated source defects that FiDeSR has amplified substantially.
+DUST_RING_RADIUS = 4
+DUST_SOURCE_CONTRAST_MIN = 24.0 / 255.0
+DUST_RESTORED_CONTRAST_MIN = 60.0 / 255.0
+DUST_AMPLIFICATION_MIN = 28.0 / 255.0
+DUST_COMPONENT_MAX_PIXELS = 64
+DUST_COMPONENT_MAX_SPAN = 16
+DUST_COMPONENT_MIN_FILL = 0.16
+DUST_PROTECTION_MARGIN = 12
+DUST_TEXTURE_GRADIENT_MIN = 18.0 / 255.0
+DUST_TEXTURE_DENSITY_MAX = 0.10
+DUST_SOURCE_DETAIL_DENSITY_MAX = 0.055
+DUST_STRUCTURE_GRADIENT_MIN = 10.0 / 255.0
+DUST_STRUCTURE_COHERENCE_MAX = 0.72
+DUST_OUTPUT_BRIGHT_MIN = 0.74
+DUST_OUTPUT_DARK_MAX = 0.16
+DUST_RECONSTRUCTION_MARGIN = 5
+DUST_RECONSTRUCTION_HALO = 4
+DUST_RECONSTRUCTION_BORDER = 1
+DUST_RECONSTRUCTION_HALO_CONTRAST_MIN = 25.0 / 255.0
+DUST_RECONSTRUCTION_HALO_AMPLIFICATION_MIN = 12.0 / 255.0
+DUST_RECONSTRUCTION_SOURCE_OUTPUT_DELTA_MIN = 20.0 / 255.0
+DUST_RECONSTRUCTION_EDGE_ENERGY_MIN = 1.0 / 255.0
+DUST_RECONSTRUCTION_EDGE_COHERENCE_MIN = 0.60
 
 # ============================================================
 # LOGGING / TIMER
@@ -114,6 +138,13 @@ def hard_stop(msg):
     print("=== HARD STOP ===")
     print(msg)
     raise SystemExit(1)
+
+
+def _subprocess_creation_kwargs(platform_name=None):
+    platform_name = sys.platform if platform_name is None else platform_name
+    if platform_name == "win32":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
 
 
 # ============================================================
@@ -168,7 +199,40 @@ env["ADSP_LIBRARY_PATH"] = (
 # One online-prepare per graph, multiple Result_N outputs.
 # ============================================================
 
-def run_qnn_stage(stage_name, input_lines, output_dir):
+def prepare_qnn_input_staging(stage_name, input_sets, stage_dir):
+    stage_dir = Path(stage_dir)
+    if stage_dir.exists():
+        shutil.rmtree(stage_dir)
+    stage_dir.mkdir(parents=True, exist_ok=True)
+
+    input_list = stage_dir / "input_list.txt"
+    with open(input_list, "w", encoding="ascii", newline="\n") as f:
+        for set_index, input_set in enumerate(input_sets):
+            assignments = []
+            for input_index, (tensor_name, source_value) in enumerate(input_set.items()):
+                if not tensor_name or any(char.isspace() for char in tensor_name):
+                    hard_stop(f"{stage_name}: Ungültiger QNN-Inputname: {tensor_name!r}")
+
+                source = Path(source_value)
+                if not source.is_file():
+                    hard_stop(f"{stage_name}: QNN-Inputdatei fehlt: {source}")
+
+                staged_name = (
+                    f"set_{set_index:04d}_{input_index:02d}_{tensor_name}"
+                    f"{source.suffix}"
+                )
+                staged = stage_dir / staged_name
+                try:
+                    os.link(source, staged)
+                except OSError:
+                    shutil.copy2(source, staged)
+                assignments.append(f"{tensor_name}:={staged_name}")
+            f.write(" ".join(assignments) + "\n")
+
+    return input_list
+
+
+def run_qnn_stage(stage_name, input_sets, output_dir):
 
     context = STAGE_CONTEXTS.get(stage_name)
 
@@ -188,40 +252,38 @@ def run_qnn_stage(stage_name, input_lines, output_dir):
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    input_list = output_dir.parent / f"{stage_name}_input_list.txt"
-
-    with open(input_list, "w", encoding="ascii", newline="\n") as f:
-        for line in input_lines:
-            f.write(line + "\n")
+    input_stage = output_dir.parent / f".{stage_name.lower()}_qnn_inputs"
+    input_list = prepare_qnn_input_staging(stage_name, input_sets, input_stage)
 
     args = [
         str(QNN_RUNNER),
         "--backend", str(QNN_BACKEND),
         "--retrieve_context", str(context),
-        "--input_list", str(input_list),
+        "--input_list", input_list.name,
         "--output_dir", str(output_dir),
         "--use_native_input_files",
         "--use_native_output_files",
         "--log_level", "error",
     ]
 
-    total_tiles = len(input_lines)
+    total_tiles = len(input_sets)
     log(f"{stage_name}: QNN/HTP START ({total_tiles} inference sets)")
     log(f"STAGE_START: stage={stage_name} total={total_tiles}")
 
     start = time.perf_counter()
 
-    proc = subprocess.Popen(
-        args,
-        env=env,
-        cwd=str(WORK),
-        stdout=sys.stdout,
-        stderr=sys.stderr,
-    )
-
+    proc = None
     completed = 0
     clean_exit = False
     try:
+        proc = subprocess.Popen(
+            args,
+            env=env,
+            cwd=str(input_stage),
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            **_subprocess_creation_kwargs(),
+        )
         while True:
             target_dir = output_dir / f"Result_{completed}"
             if target_dir.is_dir():
@@ -264,7 +326,7 @@ def run_qnn_stage(stage_name, input_lines, output_dir):
         clean_exit = False
         raise
     finally:
-        if not clean_exit and proc.poll() is None:
+        if proc is not None and not clean_exit and proc.poll() is None:
             try:
                 proc.terminate()
                 try:
@@ -273,6 +335,7 @@ def run_qnn_stage(stage_name, input_lines, output_dir):
                     proc.kill()
             except Exception:
                 pass
+        shutil.rmtree(input_stage, ignore_errors=True)
 
     if proc.poll() is None:
         proc.wait()
@@ -304,7 +367,7 @@ def run_qnn_stage(stage_name, input_lines, output_dir):
 
     result_files = []
 
-    for i in range(len(input_lines)):
+    for i in range(len(input_sets)):
 
         rdir = output_dir / f"Result_{i}"
 
@@ -494,14 +557,14 @@ for yi, y in enumerate(enc_y):
             }
         )
 
-enc_lines = [
-    f"image:={r['raw']} epsilon:={EPSILON_BIN}"
+enc_inputs = [
+    {"image": r["raw"], "epsilon": EPSILON_BIN}
     for r in enc_records
 ]
 
 enc_results = run_qnn_stage(
     "VAE_ENCODER",
-    enc_lines,
+    enc_inputs,
     enc_dir / "output",
 )
 
@@ -569,7 +632,7 @@ for rec in enc_records:
     rec["raw"].unlink(missing_ok=True)
 for result in enc_results:
     result.unlink(missing_ok=True)
-del enc_acc, enc_wacc, enc_lines, enc_results, enc_records, epsilon, tile
+del enc_acc, enc_wacc, enc_inputs, enc_results, enc_records, epsilon, tile
 gc.collect()
 
 
@@ -634,18 +697,18 @@ for yi, y in enumerate(lat_y):
             }
         )
 
-unet_lines = [
-    (
-        f"sample:={r['raw']} "
-        f"timestep:={timestep_raw} "
-        f"encoder_hidden_states:={PROMPT_BIN}"
-    )
+unet_inputs = [
+    {
+        "sample": r["raw"],
+        "timestep": timestep_raw,
+        "encoder_hidden_states": PROMPT_BIN,
+    }
     for r in unet_records
 ]
 
 unet_results = run_qnn_stage(
     "UNET",
-    unet_lines,
+    unet_inputs,
     unet_dir / "output",
 )
 
@@ -685,7 +748,7 @@ log("LRRB_TILING: PREPARE")
 lrrb_dir = WORK / "lrrb"
 lrrb_dir.mkdir(parents=True, exist_ok=True)
 
-lrrb_lines = []
+lrrb_inputs = []
 
 for i, rec in enumerate(unet_records):
 
@@ -718,16 +781,14 @@ for i, rec in enumerate(unet_records):
 
     rec["lrrb_input"] = raw
 
-    lrrb_lines.append(
-        f"latent_cat:={raw}"
-    )
+    lrrb_inputs.append({"latent_cat": raw})
 
 del sample, unet_pred, latent_cat
 gc.collect()
 
 lrrb_results = run_qnn_stage(
     "LRRB",
-    lrrb_lines,
+    lrrb_inputs,
     lrrb_dir / "output",
 )
 
@@ -800,8 +861,8 @@ for rec in unet_records:
     rec["lrrb_input"].unlink(missing_ok=True)
 for result in lrrb_results:
     result.unlink(missing_ok=True)
-del delta, lrrb_lines, lrrb_results, model_pred_tile, pred_acc, pred_wacc
-del pred, result, unet_lines, unet_results, unet_pred, unet_records
+del delta, lrrb_inputs, lrrb_results, model_pred_tile, pred_acc, pred_wacc
+del pred, result, unet_inputs, unet_results, unet_pred, unet_records
 gc.collect()
 
 
@@ -1302,7 +1363,7 @@ dec_dir = WORK / "decoder"
 dec_dir.mkdir(parents=True, exist_ok=True)
 
 dec_records = []
-dec_lines = []
+dec_inputs = []
 
 for yi, y in enumerate(lat_y):
     for xi, x in enumerate(lat_x):
@@ -1331,13 +1392,11 @@ for yi, y in enumerate(lat_y):
             }
         )
 
-        dec_lines.append(
-            f"latent:={raw}"
-        )
+        dec_inputs.append({"latent": raw})
 
 dec_results = run_qnn_stage(
     "VAE_DECODER",
-    dec_lines,
+    dec_inputs,
     dec_dir / "output",
 )
 
@@ -1423,7 +1482,7 @@ for rec in dec_records:
 for result in dec_results:
     result.unlink(missing_ok=True)
 del decoded, img_acc, img_wacc, out
-del dec_lines, dec_results, dec_records, tile
+del dec_inputs, dec_results, dec_records, tile
 gc.collect()
 
 log("VAE_DECODER_FULL=PASS")
@@ -1632,9 +1691,9 @@ def apply_detail_preservation_bypass(base_hwc, source_hwc):
         var = torch.clamp(mean_sq - mean**2, min=0.0)
         return torch.sqrt(var)
 
-    # DoG radius 5 plus local-STD radius 3: eight source rows are
-    # sufficient for mathematically identical interior stripe results.
-    halo = 8
+    # The sigma-3.2 Gaussian uses a 21x21 kernel (radius 10). Preserve
+    # that full dependency range for mathematically identical stripes.
+    halo = 10
     height = base_hwc.shape[0]
     previous_base_tail = None
 
@@ -1703,6 +1762,510 @@ def apply_detail_preservation_bypass(base_hwc, source_hwc):
 
 
 final01 = apply_detail_preservation_bypass(final01, source_hwc)
+
+
+def apply_source_anchored_dust_cleanup(restored_hwc, source_hwc, diagnostics=None):
+    """Attenuate only compact source defects that restoration amplifies.
+
+    Detection is source anchored. Output-only highlights are never candidates.
+    The returned boolean mask contains every pixel that was actually changed;
+    all pixels outside it remain bit-identical in the float image.
+    """
+
+    if restored_hwc.shape != source_hwc.shape:
+        raise ValueError(
+            "Dust cleanup requires source and restored images with identical shapes."
+        )
+    if restored_hwc.ndim != 3 or restored_hwc.shape[2] != 3:
+        raise ValueError(
+            f"Dust cleanup expects HWC RGB input, got {restored_hwc.shape}."
+        )
+
+    height, width, _ = restored_hwc.shape
+    changed_mask = np.zeros((height, width), dtype=bool)
+    detected_components = 0
+    corrected_components = 0
+    if height < 2 * DUST_RING_RADIUS + 1 or width < 2 * DUST_RING_RADIUS + 1:
+        if diagnostics is not None:
+            diagnostics.update(
+                detected_component_count=0,
+                corrected_component_count=0,
+            )
+        return restored_hwc.copy(), changed_mask
+
+    def luma(image):
+        return (
+            0.299 * image[..., 0]
+            + 0.587 * image[..., 1]
+            + 0.114 * image[..., 2]
+        ).astype(np.float32, copy=False)
+
+    def ring_median(values, radius):
+        padded = np.pad(values, radius, mode="edge")
+        result = np.empty_like(values, dtype=np.float32)
+        for y0 in range(0, height, CPU_POST_STRIPE_ROWS):
+            y1 = min(y0 + CPU_POST_STRIPE_ROWS, height)
+            ring = []
+            for offset in range(-radius, radius + 1):
+                ring.append(
+                    padded[
+                        y0:y1,
+                        radius + offset:radius + offset + width,
+                    ]
+                )
+                ring.append(
+                    padded[
+                        y0 + 2 * radius:y1 + 2 * radius,
+                        radius + offset:radius + offset + width,
+                    ]
+                )
+            for offset in range(-radius + 1, radius):
+                ring.append(
+                    padded[
+                        y0 + radius + offset:y1 + radius + offset,
+                        0:width,
+                    ]
+                )
+                ring.append(
+                    padded[
+                        y0 + radius + offset:y1 + radius + offset,
+                        2 * radius:2 * radius + width,
+                    ]
+                )
+            result[y0:y1] = np.median(
+                np.stack(ring, axis=0),
+                axis=0,
+            )
+        return result
+
+    reconstruction_directions = (
+        (0, 1),
+        (1, -3), (1, -2), (1, -1), (1, 0), (1, 1), (1, 2), (1, 3),
+        (2, -3), (2, -1), (2, 1), (2, 3),
+        (3, -2), (3, -1), (3, 1), (3, 2),
+    )
+
+    def reconstruct_small_roi(region, defect_mask, edge_direction):
+        """Reconstruct a confirmed tiny defect from clean boundary pixels."""
+
+        reconstructed = region.copy()
+        known = ~defect_mask
+        region_h, region_w = defect_mask.shape
+
+        def robust_local_estimate(y, x):
+            samples = []
+            coordinates = []
+            weights = []
+            search_radius = min(6, max(region_h, region_w))
+            for sample_y in range(
+                max(0, y - search_radius),
+                min(region_h, y + search_radius + 1),
+            ):
+                for sample_x in range(
+                    max(0, x - search_radius),
+                    min(region_w, x + search_radius + 1),
+                ):
+                    if not known[sample_y, sample_x]:
+                        continue
+                    delta_y = sample_y - y
+                    delta_x = sample_x - x
+                    distance_sq = delta_y * delta_y + delta_x * delta_x
+                    if distance_sq == 0:
+                        continue
+                    samples.append(region[sample_y, sample_x])
+                    coordinates.append((delta_x, delta_y))
+                    weights.append(1.0 / distance_sq)
+            if not samples:
+                return region[y, x]
+
+            sample_values = np.asarray(samples, dtype=np.float32)
+            sample_weights = np.asarray(weights, dtype=np.float32)
+            channel_median = np.median(sample_values, axis=0)
+            deviations = np.mean(np.abs(sample_values - channel_median), axis=1)
+            keep = deviations <= np.quantile(deviations, 0.70)
+            kept_values = sample_values[keep]
+            kept_weights = sample_weights[keep]
+            kept_coordinates = np.asarray(coordinates, dtype=np.float32)[keep]
+            if len(kept_values) < 3:
+                return np.average(
+                    kept_values,
+                    axis=0,
+                    weights=kept_weights,
+                )
+
+            design = np.column_stack(
+                (
+                    np.ones(len(kept_coordinates), dtype=np.float32),
+                    kept_coordinates,
+                )
+            )
+            weighted_design = design * np.sqrt(kept_weights)[:, None]
+            weighted_values = kept_values * np.sqrt(kept_weights)[:, None]
+            coefficients = np.linalg.lstsq(
+                weighted_design,
+                weighted_values,
+                rcond=None,
+            )[0]
+            return np.clip(coefficients[0], 0.0, 1.0)
+
+        for y, x in zip(*np.nonzero(defect_mask)):
+            directional = []
+            for dy, dx in ((edge_direction,) if edge_direction else ()):
+                endpoints = []
+                distances = []
+                for sign in (-1, 1):
+                    for distance in range(1, max(region_h, region_w) + 1):
+                        sample_y = y + sign * dy * distance
+                        sample_x = x + sign * dx * distance
+                        if not (0 <= sample_y < region_h and 0 <= sample_x < region_w):
+                            break
+                        if known[sample_y, sample_x]:
+                            endpoints.append(region[sample_y, sample_x])
+                            distances.append(distance)
+                            break
+                if len(endpoints) != 2:
+                    continue
+                left, right = endpoints
+                left_distance, right_distance = distances
+                estimate = (
+                    left * right_distance + right * left_distance
+                ) / (left_distance + right_distance)
+                boundary_difference = float(np.mean(np.abs(left - right)))
+                directional.append((boundary_difference, estimate))
+
+            if directional:
+                _, reconstructed[y, x] = min(
+                    directional,
+                    key=lambda item: item[0],
+                )
+                continue
+
+            reconstructed[y, x] = robust_local_estimate(y, x)
+
+        return reconstructed
+
+    source_luma = luma(source_hwc)
+    restored_luma = luma(restored_hwc)
+    source_local = ring_median(source_luma, DUST_RING_RADIUS)
+    restored_local = ring_median(restored_luma, DUST_RING_RADIUS)
+    source_delta = source_luma - source_local
+    restored_delta = restored_luma - restored_local
+
+    same_polarity = source_delta * restored_delta > 0.0
+    source_candidates = (
+        (np.abs(source_delta) >= DUST_SOURCE_CONTRAST_MIN)
+        & (np.abs(restored_delta) >= DUST_RESTORED_CONTRAST_MIN)
+        & (
+            np.abs(restored_delta) - np.abs(source_delta)
+            >= DUST_AMPLIFICATION_MIN
+        )
+        & same_polarity
+    )
+
+    legacy_candidates = (
+        (np.abs(source_delta) >= 35.0 / 255.0)
+        & (np.abs(restored_delta) >= 70.0 / 255.0)
+        & (
+            np.abs(restored_delta) - np.abs(source_delta)
+            >= 30.0 / 255.0
+        )
+        & same_polarity
+    )
+
+    # Connected components are evaluated individually. Dense or elongated
+    # groups represent real texture, hair, stubble, contours, or fabric.
+    visited = np.zeros_like(source_candidates)
+    cleaned = restored_hwc.copy()
+    for start_y, start_x in zip(*np.nonzero(source_candidates)):
+        if visited[start_y, start_x]:
+            continue
+        stack = [(int(start_y), int(start_x))]
+        visited[start_y, start_x] = True
+        component = []
+        while stack:
+            cy, cx = stack.pop()
+            component.append((cy, cx))
+            for ny in range(max(0, cy - 1), min(height, cy + 2)):
+                for nx in range(max(0, cx - 1), min(width, cx + 2)):
+                    if source_candidates[ny, nx] and not visited[ny, nx]:
+                        visited[ny, nx] = True
+                        stack.append((ny, nx))
+
+        ys = [point[0] for point in component]
+        xs = [point[1] for point in component]
+        y_min, y_max = min(ys), max(ys)
+        x_min, x_max = min(xs), max(xs)
+        component_h = y_max - y_min + 1
+        component_w = x_max - x_min + 1
+        detected_components += 1
+        if (
+            len(component) > DUST_COMPONENT_MAX_PIXELS
+            or component_h > DUST_COMPONENT_MAX_SPAN
+            or component_w > DUST_COMPONENT_MAX_SPAN
+        ):
+            continue
+
+        component_fill = len(component) / max(component_h * component_w, 1)
+        if component_fill < DUST_COMPONENT_MIN_FILL:
+            continue
+        if (
+            len(component) > 32
+            and max(component_h, component_w) / max(min(component_h, component_w), 1) < 1.5
+        ):
+            continue
+
+        component_output_mean = float(np.mean(restored_luma[ys, xs]))
+        if (
+            component_output_mean < DUST_OUTPUT_BRIGHT_MIN
+            and component_output_mean > DUST_OUTPUT_DARK_MAX
+        ):
+            continue
+
+        py0 = max(0, y_min - DUST_PROTECTION_MARGIN)
+        py1 = min(height, y_max + DUST_PROTECTION_MARGIN + 1)
+        px0 = max(0, x_min - DUST_PROTECTION_MARGIN)
+        px1 = min(width, x_max + DUST_PROTECTION_MARGIN + 1)
+        source_patch = source_luma[py0:py1, px0:px1]
+        restored_patch = restored_luma[py0:py1, px0:px1]
+
+        texture_densities = []
+        for texture_patch in (source_patch, restored_patch):
+            gx = np.abs(texture_patch[:, 1:] - texture_patch[:, :-1])
+            gy = np.abs(texture_patch[1:, :] - texture_patch[:-1, :])
+            edge_samples = gx.size + gy.size
+            textured_samples = int(
+                np.count_nonzero(gx >= DUST_TEXTURE_GRADIENT_MIN)
+            )
+            textured_samples += int(
+                np.count_nonzero(gy >= DUST_TEXTURE_GRADIENT_MIN)
+            )
+            texture_densities.append(
+                textured_samples / max(edge_samples, 1)
+            )
+        if max(texture_densities) > DUST_TEXTURE_DENSITY_MAX:
+            continue
+
+        legacy_component = (
+            len(component) <= 16
+            and component_h <= 6
+            and component_w <= 6
+            and (
+                float(np.max(restored_luma[ys, xs])) >= 0.94
+                or float(np.min(restored_luma[ys, xs])) <= 0.06
+            )
+        )
+        if legacy_component:
+            legacy_local = legacy_candidates[py0:py1, px0:px1]
+            component_legacy_count = sum(
+                bool(legacy_candidates[cy, cx]) for cy, cx in component
+            )
+            legacy_component = (
+                int(np.count_nonzero(legacy_local)) - component_legacy_count <= 4
+            )
+
+        # Protect repeated source microstructure even when FiDeSR does not
+        # amplify every point enough for it to enter source_candidates.
+        source_detail = (
+            np.abs(source_delta[py0:py1, px0:px1])
+            >= 0.75 * DUST_SOURCE_CONTRAST_MIN
+        )
+        component_local = np.zeros_like(source_detail)
+        for cy, cx in component:
+            component_local[cy - py0, cx - px0] = True
+        source_detail_count = int(np.count_nonzero(source_detail & ~component_local))
+        source_detail_density = source_detail_count / max(source_detail.size, 1)
+        if (
+            not legacy_component
+            and source_detail_density > DUST_SOURCE_DETAIL_DENSITY_MAX
+        ):
+            continue
+
+        # Coherent gradients outside the candidate identify contours, hair,
+        # eyebrows, fabric seams, grass blades, and leaf edges. The candidate
+        # itself is excluded so a genuinely anisotropic dust fleck can pass.
+        gx = np.zeros_like(source_patch)
+        gy = np.zeros_like(source_patch)
+        gx[:, 1:-1] = 0.5 * (source_patch[:, 2:] - source_patch[:, :-2])
+        gy[1:-1, :] = 0.5 * (source_patch[2:, :] - source_patch[:-2, :])
+        structure_valid = np.ones_like(source_patch, dtype=bool)
+        ly0 = max(0, y_min - py0 - 2)
+        ly1 = min(structure_valid.shape[0], y_max - py0 + 3)
+        lx0 = max(0, x_min - px0 - 2)
+        lx1 = min(structure_valid.shape[1], x_max - px0 + 3)
+        structure_valid[ly0:ly1, lx0:lx1] = False
+        valid_gx = gx[structure_valid]
+        valid_gy = gy[structure_valid]
+        gradient_energy = float(np.mean(np.hypot(valid_gx, valid_gy)))
+        sxx = float(np.mean(valid_gx * valid_gx))
+        syy = float(np.mean(valid_gy * valid_gy))
+        sxy = float(np.mean(valid_gx * valid_gy))
+        coherence = np.sqrt((sxx - syy) ** 2 + 4.0 * sxy * sxy) / max(
+            sxx + syy,
+            1e-12,
+        )
+        if (
+            not legacy_component
+            and gradient_energy >= DUST_STRUCTURE_GRADIENT_MIN
+            and coherence > DUST_STRUCTURE_COHERENCE_MAX
+        ):
+            continue
+
+        # Expand only across the matching amplified output spot. This catches
+        # the few output pixels created from one source scan speck without
+        # touching unrelated nearby detail.
+        ry0 = max(0, y_min - DUST_RECONSTRUCTION_MARGIN)
+        ry1 = min(height, y_max + DUST_RECONSTRUCTION_MARGIN + 1)
+        rx0 = max(0, x_min - DUST_RECONSTRUCTION_MARGIN)
+        rx1 = min(width, x_max + DUST_RECONSTRUCTION_MARGIN + 1)
+        polarity = 1.0 if float(np.mean(source_delta[ys, xs])) > 0.0 else -1.0
+        restored_region_delta = restored_delta[ry0:ry1, rx0:rx1]
+        roi = (
+            restored_region_delta * polarity >= DUST_RESTORED_CONTRAST_MIN
+        ) & (
+            np.abs(restored_region_delta)
+            - np.abs(source_delta[ry0:ry1, rx0:rx1])
+            >= DUST_RECONSTRUCTION_HALO_AMPLIFICATION_MIN
+        )
+        if not np.any(roi):
+            continue
+
+        # Retain only the connected output lobe reached from the source
+        # component. Nearby detail with the same polarity remains untouched.
+        connected_roi = np.zeros_like(roi)
+        roi_stack = []
+        for cy, cx in component:
+            local_y, local_x = cy - ry0, cx - rx0
+            if roi[local_y, local_x] and not connected_roi[local_y, local_x]:
+                connected_roi[local_y, local_x] = True
+                roi_stack.append((local_y, local_x))
+        while roi_stack:
+            local_y, local_x = roi_stack.pop()
+            for next_y in range(max(0, local_y - 1), min(roi.shape[0], local_y + 2)):
+                for next_x in range(max(0, local_x - 1), min(roi.shape[1], local_x + 2)):
+                    if roi[next_y, next_x] and not connected_roi[next_y, next_x]:
+                        connected_roi[next_y, next_x] = True
+                        roi_stack.append((next_y, next_x))
+        roi = connected_roi
+        if not np.any(roi):
+            continue
+
+        # Include the small scan halo around the confirmed output lobe.
+        # This is correction-only: candidate detection and selection remain
+        # unchanged, and unchanged reconstructed pixels are not reported.
+        repair_support = roi.copy()
+        for _ in range(DUST_RECONSTRUCTION_HALO):
+            padded_roi = np.pad(
+                repair_support,
+                1,
+                mode="constant",
+                constant_values=False,
+            )
+            expanded = np.zeros_like(repair_support)
+            for offset_y in range(3):
+                for offset_x in range(3):
+                    expanded |= padded_roi[
+                        offset_y:offset_y + repair_support.shape[0],
+                        offset_x:offset_x + repair_support.shape[1],
+                    ]
+            repair_support = expanded
+
+        source_region_delta = source_delta[ry0:ry1, rx0:rx1]
+        halo_evidence = (
+            repair_support
+            & (
+                np.abs(restored_region_delta)
+                >= DUST_RECONSTRUCTION_HALO_CONTRAST_MIN
+            )
+            & (
+                np.abs(restored_region_delta) - np.abs(source_region_delta)
+                >= DUST_RECONSTRUCTION_HALO_AMPLIFICATION_MIN
+            )
+            & (
+                np.abs(
+                    restored_luma[ry0:ry1, rx0:rx1]
+                    - source_luma[ry0:ry1, rx0:rx1]
+                )
+                >= DUST_RECONSTRUCTION_SOURCE_OUTPUT_DELTA_MIN
+            )
+        )
+        repair_mask = roi | halo_evidence
+        for _ in range(DUST_RECONSTRUCTION_BORDER):
+            padded_roi = np.pad(
+                repair_mask,
+                1,
+                mode="constant",
+                constant_values=False,
+            )
+            expanded = np.zeros_like(repair_mask)
+            for offset_y in range(3):
+                for offset_x in range(3):
+                    expanded |= padded_roi[
+                        offset_y:offset_y + repair_mask.shape[0],
+                        offset_x:offset_x + repair_mask.shape[1],
+                    ]
+            repair_mask = expanded
+
+        region = cleaned[ry0:ry1, rx0:rx1]
+        edge_aware_reconstruction = (
+            gradient_energy >= DUST_RECONSTRUCTION_EDGE_ENERGY_MIN
+            and coherence >= DUST_RECONSTRUCTION_EDGE_COHERENCE_MIN
+        )
+        edge_direction = None
+        if edge_aware_reconstruction:
+            normal_angle = 0.5 * np.arctan2(
+                2.0 * sxy,
+                sxx - syy,
+            )
+            tangent_dx = -np.sin(normal_angle)
+            tangent_dy = np.cos(normal_angle)
+            edge_direction = max(
+                reconstruction_directions,
+                key=lambda direction: abs(
+                    (
+                        direction[0] * tangent_dy
+                        + direction[1] * tangent_dx
+                    )
+                    / np.hypot(direction[0], direction[1])
+                ),
+            )
+        corrected = reconstruct_small_roi(
+            region,
+            repair_mask,
+            edge_direction,
+        )
+        pixel_changes = repair_mask & np.any(corrected != region, axis=2)
+        if np.any(pixel_changes):
+            region[pixel_changes] = corrected[pixel_changes]
+            changed_mask[ry0:ry1, rx0:rx1] |= pixel_changes
+            corrected_components += 1
+
+    if diagnostics is not None:
+        diagnostics.update(
+            detected_component_count=detected_components,
+            corrected_component_count=corrected_components,
+        )
+    return cleaned, changed_mask
+
+
+
+dust_cleanup_diagnostics = {}
+final01, dust_changed_mask = apply_source_anchored_dust_cleanup(
+    final01,
+    source_hwc,
+    dust_cleanup_diagnostics,
+)
+
+dust_changed_pixels = int(np.count_nonzero(dust_changed_mask))
+log(
+    "SOURCE_ANCHORED_DUST_DETECTED_COMPONENTS="
+    f"{dust_cleanup_diagnostics['detected_component_count']}"
+)
+log(
+    "SOURCE_ANCHORED_DUST_CORRECTED_COMPONENTS="
+    f"{dust_cleanup_diagnostics['corrected_component_count']}"
+)
+log(f"SOURCE_ANCHORED_DUST_CHANGED_PIXELS={dust_changed_pixels}")
+del dust_changed_mask, dust_cleanup_diagnostics
 
 del source_hwc
 gc.collect()
