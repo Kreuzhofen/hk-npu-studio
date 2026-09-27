@@ -22,10 +22,18 @@
     <img src="https://img.shields.io/github/stars/Kreuzhofen/hk-npu-studio?style=flat-square&color=gold" alt="Stars">
   </a>
   <br>
-  <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
-  <img src="https://img.shields.io/badge/Hardware-Snapdragon_X_Elite-D00000?style=flat-square" alt="Snapdragon X Elite">
-  <img src="https://img.shields.io/badge/NPU-Qualcomm_Hexagon-EA272A?style=flat-square" alt="Qualcomm Hexagon NPU">
-  <img src="https://img.shields.io/badge/Status-2.0_RC3-success?style=flat-square" alt="RC3 Status">
+  <a href="https://learn.microsoft.com/windows/arm/">
+    <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
+  </a>
+  <a href="https://www.qualcomm.com/products/mobile/snapdragon/pcs-and-tablets/snapdragon-x-elite">
+    <img src="https://img.shields.io/badge/Hardware-Snapdragon_X_Elite-D00000?style=flat-square" alt="Snapdragon X Elite">
+  </a>
+  <a href="https://www.qualcomm.com/products/features/ai">
+    <img src="https://img.shields.io/badge/NPU-Qualcomm_Hexagon-EA272A?style=flat-square" alt="Qualcomm Hexagon NPU">
+  </a>
+  <a href="https://github.com/Kreuzhofen/hk-npu-studio/releases/tag/v2.0.0-rc.3">
+    <img src="https://img.shields.io/badge/Status-2.0_RC3-success?style=flat-square" alt="RC3 Status">
+  </a>
 </p>
 
 ---
