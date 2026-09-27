@@ -9,7 +9,12 @@ import pytest
 from engine.release_config import RELEASE
 from tools import build_app
 from tools.build_app import BUILD_ROOT, build_arguments
-from tools.build_installer import build_command
+from tools.build_installer import (
+    GITHUB_RELEASE_ASSET_LIMIT_BYTES,
+    TARGET_INSTALLER_MAX_BYTES,
+    build_command,
+    validate_installer_size_bytes,
+)
 
 
 def test_packaging_uses_arm64_release_identity_and_required_resources():
@@ -214,7 +219,7 @@ def test_installer_command_uses_final_executable_and_package_version():
     assert f"/DAppVersion={RELEASE.package_version}" in command
 
 
-def test_installer_keeps_fidesr_contexts_but_does_not_recompress_them():
+def test_installer_compresses_fidesr_contexts_without_removing_payload():
     installer = build_app.PROJECT_ROOT / "installer" / "snapdragon_ai_studio.iss"
     text = installer.read_text(encoding="utf-8")
     file_lines = [line.strip() for line in text.splitlines() if line.startswith("Source:")]
@@ -237,8 +242,18 @@ def test_installer_keeps_fidesr_contexts_but_does_not_recompress_them():
     assert 'DestDir: "{app}\\models\\photo_restore_context"' in contexts
     assert "recursesubdirs" in contexts
     assert "createallsubdirs" in contexts
-    assert "nocompression" in contexts
+    assert "nocompression" not in contexts
     assert "qnn_runtime" not in general.partition("Excludes:")[2]
+
+
+def test_installer_size_gate_keeps_margin_below_github_limit():
+    assert TARGET_INSTALLER_MAX_BYTES == 2_100_000_000
+    assert TARGET_INSTALLER_MAX_BYTES < GITHUB_RELEASE_ASSET_LIMIT_BYTES
+    validate_installer_size_bytes(TARGET_INSTALLER_MAX_BYTES)
+    with pytest.raises(RuntimeError, match="release size gate"):
+        validate_installer_size_bytes(TARGET_INSTALLER_MAX_BYTES + 1)
+    with pytest.raises(RuntimeError, match="GitHub limit"):
+        validate_installer_size_bytes(GITHUB_RELEASE_ASSET_LIMIT_BYTES)
 
 
 def test_development_launcher_targets_the_phoenix_entrypoint_without_legacy_gui():

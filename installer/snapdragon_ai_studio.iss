@@ -61,7 +61,7 @@ spanish.FinishedLabel=HK NPU STUDIO 2.0 RC3 se ha instalado correctamente.%n%nGr
 
 [Files]
 Source: "..\dist\HKNPUStudio\*"; DestDir: "{app}"; Excludes: "output\*,models\photo_restore_context\*"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\dist\HKNPUStudio\models\photo_restore_context\*"; DestDir: "{app}\models\photo_restore_context"; Flags: ignoreversion recursesubdirs createallsubdirs nocompression
+Source: "..\dist\HKNPUStudio\models\photo_restore_context\*"; DestDir: "{app}\models\photo_restore_context"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExecutableName}"
