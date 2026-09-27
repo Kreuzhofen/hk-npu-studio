@@ -10,18 +10,83 @@ import logging
 import json
 import inspect
 import threading
+import time
 from pathlib import Path
 from typing import Callable, Any
 
 import re
 
 from config import TEMP_DIR, USER_BASE
+from engine.download_service import DownloadResult, DownloadService
 from engine.model_install_service import SD35InstallState, SD35SourceInspection
 
 logger = logging.getLogger("SD35SetupHelper")
 
 
 _EXTERNAL_SD35_PROCESS_LOCK = threading.RLock()
+
+
+def _qualcomm_download_metadata(script_path: Path) -> dict[str, str]:
+    """Read Qualcomm's filename-to-URL constants without importing its script."""
+    import ast
+
+    tree = ast.parse(script_path.read_text(encoding="utf-8"), filename=str(script_path))
+    result: dict[str, str] = {}
+
+    def visit_block(statements: list[ast.stmt]) -> None:
+        values: dict[str, str] = {}
+        for statement in statements:
+            if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Constant):
+                for target in statement.targets:
+                    if isinstance(target, ast.Name) and target.id in {
+                        "MODEL_DOWNLOAD_URL", "MODEL_ZIP_NAME"
+                    } and isinstance(statement.value.value, str):
+                        values[target.id] = statement.value.value
+            if isinstance(statement, ast.If):
+                visit_block(statement.body)
+                visit_block(statement.orelse)
+        if "MODEL_DOWNLOAD_URL" in values and "MODEL_ZIP_NAME" in values:
+            result[values["MODEL_ZIP_NAME"]] = values["MODEL_DOWNLOAD_URL"]
+
+    visit_block(tree.body)
+    return result
+
+
+def _select_qualcomm_download(
+    downloads: dict[str, str],
+    processor_identifier: str | None = None,
+) -> tuple[str, str]:
+    """Select the same SD3.5 package family as Qualcomm's device branch."""
+    if len(downloads) == 1:
+        return next(iter(downloads.items()))
+    processor = (processor_identifier or os.environ.get("PROCESSOR_IDENTIFIER", "")).lower()
+    package_marker = "8480" if "family 8 model 2" in processor or "x2" in processor else "8380"
+    matches = [(name, url) for name, url in downloads.items() if package_marker in name]
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"Could not select Qualcomm SD3.5 download for processor '{processor or 'unknown'}'."
+        )
+    return matches[0]
+
+
+def _download_qualcomm_archive(
+    script_path: Path,
+    working_dir: Path,
+    progress_callback: Callable[..., None],
+) -> DownloadResult | None:
+    """Download Qualcomm's selected archive through the Studio download service."""
+    downloads = _qualcomm_download_metadata(script_path)
+    if not downloads:
+        return None
+    filename, url = _select_qualcomm_download(downloads)
+    return DownloadService(download_dir=working_dir).download(
+        url,
+        filename=filename,
+        progress_callback=progress_callback,
+        overwrite=True,
+        resume=True,
+        require_checksum=False,
+    )
 
 
 def _is_frozen_windows_process() -> bool:
@@ -38,6 +103,7 @@ def _external_sd35_process_environment() -> dict[str, str]:
     environment = os.environ.copy()
     environment.pop("PYTHONPATH", None)
     environment.pop("PYTHONHOME", None)
+    environment["PYTHONUNBUFFERED"] = "1"
 
     bundle_dir = getattr(sys, "_MEIPASS", None)
     if _is_frozen_windows_process() and bundle_dir and "PATH" in environment:
@@ -195,6 +261,93 @@ class SD35SetupHelper:
         zip_path = os.path.join(downloads, "qai-appbuilder-main.zip")
         if os.path.exists(zip_path):
             return zip_path
+    @staticmethod
+    def _parse_size_bytes(val_str: str, unit_str: str | None, default_unit: str = "MB") -> float:
+        val = float(val_str)
+        unit = (unit_str or default_unit).lower().strip()
+        if unit in ("b", "bytes"):
+            return val
+        elif unit in ("k", "kb", "kib"):
+            return val * 1024.0
+        elif unit in ("m", "mb", "mib"):
+            return val * 1024.0 * 1024.0
+        elif unit in ("g", "gb", "gib"):
+            return val * 1024.0 * 1024.0 * 1024.0
+        elif unit in ("t", "tb", "tib"):
+            return val * 1024.0 * 1024.0 * 1024.0 * 1024.0
+        return val
+
+    @staticmethod
+    def _parse_speed_mbs(val_str: str | None, unit_str: str | None) -> float | None:
+        if not val_str:
+            return None
+        try:
+            val = float(val_str)
+        except ValueError:
+            return None
+        unit = (unit_str or "MB/s").lower().replace("/s", "").strip()
+        if unit in ("g", "gb", "gib"):
+            return val * 1024.0
+        elif unit in ("m", "mb", "mib"):
+            return val
+        elif unit in ("k", "kb", "kib"):
+            return val / 1024.0
+        elif unit in ("b", "bytes"):
+            return val / (1024.0 * 1024.0)
+        return val
+
+    @staticmethod
+    def parse_download_progress(line: str, known_total: float | None = None) -> dict[str, Any] | None:
+        import re
+
+        # Match Qualcomm script format:
+        # "Download progress: 12% (400/3321 MB) 15.4 MB/s"
+        # "Download progress: 12% (400/3321 MB) [15.4 MB/s]"
+        # "Download progress: 12% (400/3321 MB)"
+        # "Download progress: 100% (100/100 MB)"
+        qc_pattern = re.compile(
+            r"Download progress:\s*([\d.]+)%\s*\(\s*([\d.]+)\s*/\s*([\d.]+)\s*([a-zA-Z]+)?\s*\)(?:[,\s\[]*([\d.]+)\s*([a-zA-Z/]+)\]?)?"
+        )
+        m = qc_pattern.search(line)
+        if m:
+            percent = float(m.group(1))
+            unit = m.group(4) or "MB"
+            downloaded_bytes = SD35SetupHelper._parse_size_bytes(m.group(2), unit, default_unit="MB")
+            total_bytes = SD35SetupHelper._parse_size_bytes(m.group(3), unit, default_unit="MB")
+            speed = SD35SetupHelper._parse_speed_mbs(m.group(5), m.group(6))
+            if total_bytes <= 0 and known_total:
+                total_bytes = known_total
+            return {
+                "download_percent": percent,
+                "downloaded_bytes": downloaded_bytes,
+                "total_bytes": total_bytes,
+                "speed": speed,
+            }
+
+        # Match py3-wget / tqdm format:
+        # "sd3.5_qnn_for_windows-8380.zip:   5%|4         | 157M/3.48G [00:00<00:02, 1.53GiB/s]"
+        # "sd3.5_qnn_for_windows-8380.zip:  50%|#####     | 1.74G/3.48G [00:01<00:01, 1.20GiB/s]"
+        # "  5%|4         | 157M/3.48G [00:00<00:02, 24.5MiB/s]"
+        tqdm_pattern = re.compile(
+            r"(?:^|\s)([\d.]+)%\|[^|]*\|\s*([\d.]+)\s*([a-zA-Z]+)?\s*/\s*([\d.]+)\s*([a-zA-Z]+)?\s*(?:\[[^,\]]*,?\s*([\d.]+)\s*([a-zA-Z/]+)\])?"
+        )
+        m = tqdm_pattern.search(line)
+        if m:
+            percent = float(m.group(1))
+            d_unit = m.group(3) or (m.group(5) if m.group(5) else "bytes")
+            t_unit = m.group(5) or "bytes"
+            downloaded_bytes = SD35SetupHelper._parse_size_bytes(m.group(2), d_unit, default_unit="bytes")
+            total_bytes = SD35SetupHelper._parse_size_bytes(m.group(4), t_unit, default_unit="bytes")
+            speed = SD35SetupHelper._parse_speed_mbs(m.group(6), m.group(7))
+            if total_bytes <= 0 and known_total:
+                total_bytes = known_total
+            return {
+                "download_percent": percent,
+                "downloaded_bytes": downloaded_bytes,
+                "total_bytes": total_bytes,
+                "speed": speed,
+            }
+
         return None
 
     @staticmethod
@@ -470,7 +623,12 @@ class SD35SetupHelper:
                         / "dist"
                         / "HKNPUStudio"
                     )
-                    if (dev_candidate / "torch").is_dir():
+                    if (
+                        (dev_candidate / "torch").is_dir()
+                        and (dev_candidate / "torchgen").is_dir()
+                        and (dev_candidate / "functorch").is_dir()
+                        and (dev_candidate / "yaml").is_dir()
+                    ):
                         bundled_libs_path = dev_candidate
 
                 if is_frozen and not bundled_libs_path:
@@ -652,6 +810,38 @@ class SD35SetupHelper:
             run_cmd = [str(venv_python), "stable_diffusion_v3_5.py"]
             logger.info("Running Qualcomm sample script: %s", " ".join(run_cmd))
 
+            download_started = time.monotonic()
+
+            def on_download_progress(
+                bytes_downloaded: int,
+                total_bytes: int | None,
+                percent: float,
+            ) -> None:
+                elapsed = max(time.monotonic() - download_started, 1e-6)
+                emit({
+                    "phase": "sd35_downloading_weights",
+                    "percent": 50.0 + (float(percent) * 0.30),
+                    "download_percent": float(percent),
+                    "downloaded_bytes": int(bytes_downloaded),
+                    "total_bytes": total_bytes,
+                    "speed": (float(bytes_downloaded) / (1024 * 1024)) / elapsed,
+                })
+
+            download_result = _download_qualcomm_archive(
+                working_dir / "stable_diffusion_v3_5.py",
+                working_dir,
+                on_download_progress,
+            )
+            if download_result is not None and not download_result.success:
+                return fail(
+                    "download_failed",
+                    download_result.message or str(download_result.error_code or "download failed"),
+                    50.0,
+                    3,
+                )
+            if download_result is not None:
+                emit("download_complete", 80.0)
+
             process = _launch_external_sd35_process(
                 run_cmd,
                 cwd=str(working_dir),
@@ -662,11 +852,6 @@ class SD35SetupHelper:
                 creationflags=creationflags,
                 encoding="utf-8",
                 errors="replace"
-            )
-
-            import re
-            progress_pattern = re.compile(
-                r"Download progress:\s*(\d+)%\s*\((\d+)/(\d+)\s*MB\)(?:\s*([\d.]+)\s*MB/s)?"
             )
 
             qualcomm_output_buffer = []
@@ -692,28 +877,6 @@ class SD35SetupHelper:
                         qualcomm_error_lines.append(sanitized)
                         if len(qualcomm_error_lines) > 5:
                             qualcomm_error_lines.pop(0)
-
-                # Match progress
-                match = progress_pattern.search(striped)
-                if match:
-                    percent = float(match.group(1))
-                    downloaded_mb = float(match.group(2))
-                    total_mb = float(match.group(3))
-                    speed_mbs = match.group(4)
-                    speed = float(speed_mbs) if speed_mbs else None
-
-                    downloaded_bytes = downloaded_mb * 1024 * 1024
-                    total_bytes = total_mb * 1024 * 1024
-                    scaled_percent = 50.0 + (percent * 0.30)
-
-                    emit({
-                        "phase": "sd35_downloading_weights",
-                        "percent": scaled_percent,
-                        "download_percent": percent,
-                        "downloaded_bytes": downloaded_bytes,
-                        "total_bytes": total_bytes,
-                        "speed": speed,
-                    })
 
             buffer_chars = []
             while True:

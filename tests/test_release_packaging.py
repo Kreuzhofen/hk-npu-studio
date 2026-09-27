@@ -45,14 +45,13 @@ def test_packaging_uses_arm64_release_identity_and_required_resources():
     hidden_indices = [i for i, x in enumerate(arguments) if x == "--hidden-import"]
     hidden_packages = [arguments[i + 1] for i in hidden_indices]
 
-    if build_app._find_optional_qai_appbuilder() is None:
-        assert "qai_appbuilder" not in collected_packages
-        assert "qai_appbuilder" not in hidden_packages
-        return
+    assert build_app._find_optional_qai_appbuilder() is not None
 
     for pkg in expected_packages:
         assert pkg in collected_packages
         assert pkg in hidden_packages
+    for module_name in build_app.SD35_FROZEN_MODULES:
+        assert module_name in hidden_packages
 
 
 def test_packaged_model_metadata_does_not_leak_local_install_paths():
@@ -103,11 +102,82 @@ def test_packaging_includes_fidesr_qnn_runtime_and_current_documentation():
         assert f"{source}{os.pathsep}{destination}" in add_data_values
     for source, destination in build_app._resolve_fidesr_qnn_runtime_files():
         assert f"{source}{os.pathsep}{destination}" in add_data_values
+    for source, destination in build_app._resolve_sd35_dependency_files():
+        assert f"{source}{os.pathsep}{destination}" in add_data_values
+
+    sd35_dependencies = build_app._resolve_sd35_dependency_files()
+    dependency_destinations = {
+        source.name: destination for source, destination in sd35_dependencies
+    }
+    for package_name in build_app.SD35_DEPENDENCY_DIRS:
+        assert dependency_destinations[package_name] == package_name
+    assert not any(
+        source.name == "types.py" and destination == "."
+        for source, destination in sd35_dependencies
+    )
 
     joined = "\n".join(add_data_values).lower()
     assert "ddcolor" not in joined
     assert "rorem" not in joined
     assert "rc3_release_notes.md" in joined
+
+
+def test_sd35_dependency_payload_preserves_package_namespaces():
+    dependencies = build_app._resolve_sd35_dependency_files()
+    package_mappings = {
+        source.name: (source, Path(destination))
+        for source, destination in dependencies
+        if source.name in build_app.SD35_DEPENDENCY_DIRS
+    }
+
+    expected_entries = (
+        ("torch", "types.py"),
+        ("torch", "__init__.py"),
+        ("torchgen", "__init__.py"),
+        ("functorch", "__init__.py"),
+        ("yaml", "__init__.py"),
+    )
+    staged_paths = set()
+    for package_name, relative_entry in expected_entries:
+        source, destination = package_mappings[package_name]
+        assert destination == Path(package_name)
+        assert (source / relative_entry).is_file()
+        staged_paths.add(destination / relative_entry)
+
+    assert Path("torch/types.py") in staged_paths
+    assert Path("types.py") not in staged_paths
+    assert Path("torch/__init__.py") in staged_paths
+    assert Path("torchgen/__init__.py") in staged_paths
+    assert Path("functorch/__init__.py") in staged_paths
+    assert Path("yaml/__init__.py") in staged_paths
+    assert not any(path.parent == Path(".") for path in staged_paths)
+
+
+def test_sd35_qai_payload_and_helper_keep_frozen_namespaces():
+    arguments = build_app.build_arguments()
+    add_data_values = {
+        arguments[index + 1]
+        for index, argument in enumerate(arguments[:-1])
+        if argument == "--add-data"
+    }
+    qai_package, qai_common = build_app._find_optional_qai_appbuilder()
+
+    assert f"{qai_package}{os.pathsep}qai_appbuilder" in add_data_values
+    assert f"{qai_common}{os.pathsep}qai_appbuilder_common" in add_data_values
+    for relative_path in build_app.QAI_APPBUILDER_REQUIRED_FILES:
+        assert (qai_package / relative_path).is_file()
+        assert Path("qai_appbuilder") / relative_path != Path(relative_path)
+    assert (qai_common / "_stable_diffusion.py").is_file()
+    assert Path("qai_appbuilder_common/_stable_diffusion.py") != Path(
+        "_stable_diffusion.py"
+    )
+
+
+def test_release_build_fails_without_sd35_qai_payload(monkeypatch):
+    monkeypatch.setattr(build_app, "_find_optional_qai_appbuilder", lambda: None)
+
+    with pytest.raises(FileNotFoundError, match="SD3.5 release backend"):
+        build_app.build_arguments()
 
 
 def test_fidesr_runner_uses_portable_resource_and_qnn_runtime_contracts():

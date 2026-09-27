@@ -18,6 +18,21 @@ BUILD_ROOT = PROJECT_ROOT / "build" / "release"
 DIST_ROOT = PROJECT_ROOT / "dist"
 APP_DIST = DIST_ROOT / "HKNPUStudio"
 REALESRGAN_PRODUCT_MODEL = PROJECT_ROOT / "models" / "real_esrgan_x4plus.bin"
+SD35_DEPENDENCY_DIRS = ("torch", "torchgen", "functorch", "yaml")
+SD35_FROZEN_MODULES = (
+    "engine.sd35_qai_appbuilder_backend",
+    "engine.backends.sd35_qai_appbuilder_backend_adapter",
+)
+QAI_APPBUILDER_REQUIRED_FILES = (
+    "__init__.py",
+    "appbuilder.cp311-win_arm64.pyd",
+    "libappbuilder.dll",
+    "QAIAppSvc.exe",
+    "libs/QnnHtp.dll",
+    "libs/QnnSystem.dll",
+    "libs/QnnHtpV73Stub.dll",
+    "libs/libQnnHtpV73Skel.so",
+)
 FIDESR_PRODUCT_FILES = (
     (
         PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_vae_encoder" / "fidesr_vae_encoder.serialized.bin.bin",
@@ -56,6 +71,41 @@ RELEASE_DOCUMENTS = (
     (PROJECT_ROOT / "docs" / "user-guide" / "USER_GUIDE_ES.md", "docs/user-guide"),
     (PROJECT_ROOT / "docs" / "releases" / "RC3_RELEASE_NOTES.md", "docs/releases"),
 )
+
+
+def _resolve_sd35_dependency_files() -> tuple[tuple[Path, str], ...]:
+    configured = os.environ.get("SNAPDRAGON_SD35_DEPENDENCY_ROOT", "").strip()
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    candidates = (
+        Path(configured).expanduser() if configured else None,
+        PROJECT_ROOT.parent / "QAI-AppBuilder-Test" / ".venv" / "Lib" / "site-packages",
+        local_app_data / "HK NPU STUDIO" / "sd35_venv" / "Lib" / "site-packages",
+    )
+    dependency_root = next(
+        (
+            candidate.resolve()
+            for candidate in candidates
+            if candidate is not None
+            and candidate.is_dir()
+            and all((candidate / name).is_dir() for name in SD35_DEPENDENCY_DIRS)
+            and any(candidate.glob("torch-*.dist-info"))
+            and any(candidate.glob("pyyaml-*.dist-info"))
+        ),
+        None,
+    )
+    if dependency_root is None:
+        raise FileNotFoundError("Complete offline SD3.5 Torch/PyYAML dependency payload is missing.")
+    torch_metadata = next(dependency_root.glob("torch-*.dist-info"))
+    pyyaml_metadata = next(dependency_root.glob("pyyaml-*.dist-info"))
+    package_directories = tuple(
+        (dependency_root / name, name)
+        for name in SD35_DEPENDENCY_DIRS
+    )
+    metadata_directories = (
+        (torch_metadata, "."),
+        (pyyaml_metadata, "."),
+    )
+    return (*package_directories, *metadata_directories)
 
 
 def _resolve_fidesr_qnn_runtime_files() -> tuple[tuple[Path, str], ...]:
@@ -106,6 +156,7 @@ def _required_add_data_files() -> tuple[tuple[Path, str], ...]:
 
 def _find_optional_qai_appbuilder() -> tuple[Path, Path] | None:
     configured = os.environ.get("SNAPDRAGON_QAI_APPBUILDER_PACKAGE", "").strip()
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
     candidates = [
         Path(configured).expanduser() if configured else None,
         PROJECT_ROOT.parent
@@ -114,31 +165,50 @@ def _find_optional_qai_appbuilder() -> tuple[Path, Path] | None:
         / "Lib"
         / "site-packages"
         / "qai_appbuilder",
+        local_app_data
+        / "HK NPU STUDIO"
+        / "sd35_venv"
+        / "Lib"
+        / "site-packages"
+        / "qai_appbuilder",
     ]
     package = next((path.resolve() for path in candidates if path and path.is_dir()), None)
     if package is None:
         return None
-    required = (
-        "__init__.py",
-        "appbuilder.cp311-win_arm64.pyd",
-        "libappbuilder.dll",
-        "QAIAppSvc.exe",
-        "libs/QnnHtp.dll",
-        "libs/QnnSystem.dll",
-        "libs/QnnHtpV73Stub.dll",
-        "libs/libQnnHtpV73Skel.so",
-    )
-    missing = [name for name in required if not (package / name).is_file()]
+    missing = [
+        name for name in QAI_APPBUILDER_REQUIRED_FILES
+        if not (package / name).is_file()
+    ]
     if missing:
         raise FileNotFoundError(
             "QAI AppBuilder package is incomplete: " + ", ".join(missing)
         )
-    common = package.parents[2] / "samples" / "common"
-    if not (common / "_stable_diffusion.py").is_file():
-        common = PROJECT_ROOT.parent / "QAI-AppBuilder-Test" / "samples" / "common"
-    if not (common / "_stable_diffusion.py").is_file():
+    common_candidates = (
+        package.parents[2] / "samples" / "common",
+        local_app_data
+        / "HK NPU STUDIO"
+        / "temp"
+        / "sd35-qai-setup"
+        / "qai-appbuilder-main"
+        / "samples"
+        / "shared"
+        / "python",
+        PROJECT_ROOT
+        / "temp"
+        / "sd35-qai-setup"
+        / "qai-appbuilder-main"
+        / "samples"
+        / "shared"
+        / "python",
+        PROJECT_ROOT.parent / "QAI-AppBuilder-Test" / "samples" / "common",
+    )
+    common = next(
+        (path.resolve() for path in common_candidates if (path / "_stable_diffusion.py").is_file()),
+        None,
+    )
+    if common is None:
         raise FileNotFoundError("QAI Stable Diffusion helper '_stable_diffusion.py' is missing")
-    return package, common.resolve()
+    return package, common
 
 
 def _prepare_release_resources() -> Path:
@@ -198,6 +268,7 @@ def build_arguments() -> list[str]:
             f"Produktgebundenes RealESRGAN-Modell fehlt: {REALESRGAN_PRODUCT_MODEL}"
         )
     required_files = _required_add_data_files()
+    sd35_dependency_files = _resolve_sd35_dependency_files()
     fidesr_qnn_runtime = _resolve_fidesr_qnn_runtime_files()
     resources = _prepare_release_resources()
     plugins = BUILD_ROOT / "release_data" / "plugins"
@@ -229,6 +300,10 @@ def build_arguments() -> list[str]:
 
     version_file = _write_version_file()
     qai_runtime = _find_optional_qai_appbuilder()
+    if qai_runtime is None:
+        raise FileNotFoundError(
+            "QAI AppBuilder package required for the SD3.5 release backend is missing."
+        )
     data_directories = {
         resources: "resources",
         PROJECT_ROOT / "assets": "assets",
@@ -273,7 +348,7 @@ def build_arguments() -> list[str]:
         "--add-data",
         f"{REALESRGAN_PRODUCT_MODEL}{os.pathsep}models",
     ]
-    for source, destination in (*required_files, *fidesr_qnn_runtime):
+    for source, destination in (*required_files, *fidesr_qnn_runtime, *sd35_dependency_files):
         arguments.extend(["--add-data", f"{source}{os.pathsep}{destination}"])
     if qai_runtime is not None:
         qai_package, _ = qai_runtime
@@ -334,6 +409,8 @@ def build_arguments() -> list[str]:
                 "py3_wget",
             ]
         )
+        for module_name in SD35_FROZEN_MODULES:
+            arguments.extend(["--hidden-import", module_name])
         for distribution in (
             "requests",
             "filelock",

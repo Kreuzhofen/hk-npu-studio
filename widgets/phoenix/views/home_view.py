@@ -21,6 +21,12 @@ from app.i18n import tr
 from app.settings_manager import SettingsManager
 
 
+# RC3 exposes AI Photo Restoration as the Image Lab product.  Generation-model
+# setup remains available as legacy code, but must not be a first-run action.
+RC3_PRIMARY_PRODUCT_VIEW = "inpainting"
+RC3_AUTOMATIC_GENERATION_MODEL_SETUP = False
+
+
 @dataclass(frozen=True)
 class GenerationInfo:
     path: Path
@@ -450,6 +456,9 @@ class PhoenixHomeView(tk.Frame):
             self._on_navigate(target)
 
     def _on_readiness_action(self) -> None:
+        if not RC3_AUTOMATIC_GENERATION_MODEL_SETUP:
+            self._navigate(RC3_PRIMARY_PRODUCT_VIEW)
+            return
         self._navigate("prompt" if self._model_ready else "models")
 
     def refresh(self, force: bool = False) -> None:

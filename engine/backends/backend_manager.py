@@ -227,6 +227,10 @@ class BackendManager:
                 if qai_adapter is not None and qai_adapter.is_available():
                     self._active_backend_name = qai_adapter.get_backend_name()
                     return qai_adapter
+                logger.error(
+                    "SD3.5 QAI AppBuilder backend is unavailable; refusing incompatible backend fallback"
+                )
+                return None
         
         if model is not None:
             if isinstance(model, dict):

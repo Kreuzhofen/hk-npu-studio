@@ -9,11 +9,13 @@ from unittest.mock import MagicMock, call, patch
 
 from controllers.model_repository import ModelRepository
 from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
+from engine.download_service import DownloadResult
 from engine.model_install_service import ModelInstallService, SD35InstallState
 from tools.sd35_setup_helper import (
     SD35SetupHelper,
     _external_sd35_process_environment,
     _launch_external_sd35_process,
+    _qualcomm_download_metadata,
     resolve_python_executable,
 )
 
@@ -890,7 +892,12 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             "stable_diffusion_v3_5/python/stable_diffusion_v3_5.py"
         )
         with zipfile.ZipFile(archive, "w") as package:
-            package.writestr(script_rel, "print('Hello')")
+            package.writestr(
+                script_rel,
+                "MODEL_DOWNLOAD_URL = 'https://example.invalid/model.zip'\n"
+                "MODEL_ZIP_NAME = 'model.zip'\n"
+                "print('Hello')\n",
+            )
 
         def mock_run(cmd, *args, **kwargs):
             if "venv" in cmd:
@@ -920,6 +927,19 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
             mock_proc.wait.return_value = 0
             return mock_proc
 
+        def mock_download(_service, _url, **kwargs):
+            callback = kwargs["progress_callback"]
+            callback(120, 1000, 12.0)
+            callback(370, 1000, 37.0)
+            callback(680, 1000, 68.0)
+            return DownloadResult(
+                success=True,
+                path=workspace / "model.zip",
+                bytes_downloaded=1000,
+                total_bytes=1000,
+            )
+
+        events = []
         with patch("sys.frozen", True, create=True), \
              patch("sys.executable", str(self.root / "HKNPUStudio.exe")), \
              patch("tools.sd35_setup_helper.TEMP_DIR", self.root), \
@@ -927,13 +947,25 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
              patch("tools.sd35_setup_helper.tempfile.gettempdir", return_value=str(self.root)), \
              patch("tools.sd35_setup_helper._is_python_311", return_value=True), \
              patch("tools.sd35_setup_helper._run_external_sd35_process", side_effect=mock_run), \
-             patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen):
+             patch("tools.sd35_setup_helper.subprocess.Popen", side_effect=mock_popen), \
+             patch("tools.sd35_setup_helper.DownloadService.download", autospec=True, side_effect=mock_download):
              
              result = SD35SetupHelper.run_setup(
-                 str(archive), _Installer(self.service), lambda *args: None, allow_redownload=True
+                 str(archive), _Installer(self.service), events.append, allow_redownload=True
              )
              
              self.assertTrue(result)
+             phases = [event["phase"] for event in events]
+             self.assertLess(phases.index("download_complete"), phases.index("sd35_importing"))
+             live = [
+                 event for event in events
+                 if event.get("phase") == "sd35_downloading_weights"
+                 and event.get("downloaded_bytes")
+             ]
+             self.assertEqual([event["download_percent"] for event in live], [12.0, 37.0, 68.0])
+             self.assertEqual([event["downloaded_bytes"] for event in live], [120, 370, 680])
+             self.assertTrue(all(event["total_bytes"] == 1000 for event in live))
+             self.assertTrue(all(event["speed"] > 0 for event in live))
              
              # Verify sd35_venv is the interpreter/runtime
              venv_dir = self.root / "sd35_venv"
@@ -1277,6 +1309,168 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
 
             self.assertTrue(marker.exists())
             self.assertTrue(workspace.exists())
+
+    def test_parse_download_progress_real_qualcomm_formats(self) -> None:
+        # Multi-threaded Qualcomm format with speed
+        qc_line_speed = "  Download progress: 12% (400/3321 MB) 15.4 MB/s"
+        res = SD35SetupHelper.parse_download_progress(qc_line_speed)
+        self.assertIsNotNone(res)
+        self.assertEqual(res["download_percent"], 12.0)
+        self.assertEqual(res["downloaded_bytes"], 400 * 1024 * 1024)
+        self.assertEqual(res["total_bytes"], 3321 * 1024 * 1024)
+        self.assertEqual(res["speed"], 15.4)
+
+        # Qualcomm format with bracketed speed
+        qc_line_brackets = "Download progress: 12% (400/3321 MB) [15.4 MB/s]"
+        res_b = SD35SetupHelper.parse_download_progress(qc_line_brackets)
+        self.assertIsNotNone(res_b)
+        self.assertEqual(res_b["speed"], 15.4)
+
+        # Single-threaded Qualcomm fallback without speed
+        qc_line_nospeed = "  Download progress: 50% (1660/3321 MB)"
+        res2 = SD35SetupHelper.parse_download_progress(qc_line_nospeed)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2["download_percent"], 50.0)
+        self.assertEqual(res2["downloaded_bytes"], 1660 * 1024 * 1024)
+        self.assertEqual(res2["total_bytes"], 3321 * 1024 * 1024)
+        self.assertIsNone(res2["speed"])
+
+        # Initial zero progress
+        qc_zero = "Download progress: 0% (0/3321 MB) 0.0 MB/s"
+        res_zero = SD35SetupHelper.parse_download_progress(qc_zero)
+        self.assertIsNotNone(res_zero)
+        self.assertEqual(res_zero["download_percent"], 0.0)
+        self.assertEqual(res_zero["downloaded_bytes"], 0.0)
+        self.assertEqual(res_zero["total_bytes"], 3321 * 1024 * 1024)
+
+        # Legacy test format
+        qc_legacy = "Download progress: 100% (100/100 MB)"
+        res_leg = SD35SetupHelper.parse_download_progress(qc_legacy)
+        self.assertIsNotNone(res_leg)
+        self.assertEqual(res_leg["download_percent"], 100.0)
+
+    def test_qualcomm_download_metadata_comes_from_script_constants(self) -> None:
+        script = self.root / "stable_diffusion_v3_5.py"
+        script.write_text(
+            "if device == 'x2':\n"
+            "    MODEL_DOWNLOAD_URL = 'https://example.invalid/8480.zip'\n"
+            "    MODEL_ZIP_NAME = 'model-8480.zip'\n"
+            "else:\n"
+            "    MODEL_DOWNLOAD_URL = 'https://example.invalid/8380.zip'\n"
+            "    MODEL_ZIP_NAME = 'model-8380.zip'\n",
+            encoding="utf-8",
+        )
+
+        self.assertEqual(
+            _qualcomm_download_metadata(script),
+            {
+                "model-8480.zip": "https://example.invalid/8480.zip",
+                "model-8380.zip": "https://example.invalid/8380.zip",
+            },
+        )
+
+    def test_parse_download_progress_real_py3wget_tqdm_formats(self) -> None:
+        # Initial py3-wget output before download starts
+        tqdm_init = "sd3.5_qnn_for_windows-8380.zip:   0%|          | 0.00/3.48G [00:00<?, ?iB/s]"
+        res0 = SD35SetupHelper.parse_download_progress(tqdm_init)
+        self.assertIsNotNone(res0)
+        self.assertEqual(res0["download_percent"], 0.0)
+        self.assertEqual(res0["downloaded_bytes"], 0.0)
+        self.assertAlmostEqual(res0["total_bytes"], 3.48 * 1024 * 1024 * 1024, delta=100)
+        self.assertIsNone(res0["speed"])
+
+        # Real py3-wget progress with GiB/s speed
+        tqdm_gib = "sd3.5_qnn_for_windows-8380.zip:   5%|4         | 157M/3.48G [00:00<00:02, 1.53GiB/s]"
+        res1 = SD35SetupHelper.parse_download_progress(tqdm_gib)
+        self.assertIsNotNone(res1)
+        self.assertEqual(res1["download_percent"], 5.0)
+        self.assertEqual(res1["downloaded_bytes"], 157.0 * 1024 * 1024)
+        self.assertAlmostEqual(res1["total_bytes"], 3.48 * 1024 * 1024 * 1024, delta=100)
+        self.assertAlmostEqual(res1["speed"], 1.53 * 1024, places=2)
+
+        # Real py3-wget progress with MiB/s speed
+        tqdm_mib = "  5%|4         | 157M/3.48G [00:00<00:02, 24.5MiB/s]"
+        res2 = SD35SetupHelper.parse_download_progress(tqdm_mib)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2["download_percent"], 5.0)
+        self.assertEqual(res2["speed"], 24.5)
+
+        # Real py3-wget completed progress
+        tqdm_done = "sd3.5_qnn_for_windows-8380.zip: 100%|##########| 3.48G/3.48G [00:02<00:00, 1.35GiB/s]"
+        res3 = SD35SetupHelper.parse_download_progress(tqdm_done)
+        self.assertIsNotNone(res3)
+        self.assertEqual(res3["download_percent"], 100.0)
+
+    def test_dialog_removes_zero_kb_false_display_and_shows_real_metrics(self) -> None:
+        from dialogs.model_direct_download_dialog import ModelDirectDownloadDialog
+        dialog = ModelDirectDownloadDialog.__new__(ModelDirectDownloadDialog)
+        dialog.progress_var = MagicMock()
+        dialog.progress = MagicMock()
+        dialog.progress.winfo_exists.return_value = True
+        dialog.progress.cget.return_value = "determinate"
+        dialog.status_label = MagicMock()
+        dialog.download_desc_label = MagicMock()
+        dialog.download_metrics_label = MagicMock()
+        dialog.download_metrics_label.winfo_manager.return_value = True
+        dialog._operation = "sd35_auto"
+        dialog._logged_phases = set()
+        dialog._update_step_states = MagicMock()
+
+        # Step 1: initial download state where downloaded_bytes is 0
+        dialog._set_progress({
+            "phase": "sd35_downloading_weights",
+            "percent": 50.0,
+            "downloaded_bytes": 0,
+            "total_bytes": 0,
+        })
+        dialog.progress.configure.assert_called_with(mode="indeterminate")
+        dialog.progress.start.assert_called_with(10)
+        metrics_call = dialog.download_metrics_label.configure.call_args[1]["text"]
+        self.assertNotIn("0.0 MB", metrics_call)
+        self.assertNotIn("0 KB", metrics_call)
+        self.assertNotIn("Total size is being determined", metrics_call)
+        self.assertIn("Downloading model files", metrics_call)
+
+        # Step 2: real values arrive from py3-wget / Qualcomm
+        dialog.progress.cget.return_value = "indeterminate"
+        dialog._set_progress({
+            "phase": "sd35_downloading_weights",
+            "percent": 51.5,
+            "download_percent": 5.0,
+            "downloaded_bytes": 157.0 * 1024 * 1024,
+            "total_bytes": 3.48 * 1024 * 1024 * 1024,
+            "speed": 24.5,
+        })
+        dialog.progress.stop.assert_called()
+        dialog.progress.configure.assert_called_with(mode="determinate", variable=dialog.progress_var)
+        real_metrics = dialog.download_metrics_label.configure.call_args[1]["text"]
+        self.assertIn("5%", real_metrics)
+        self.assertIn("157.0 MB", real_metrics)
+        self.assertIn("3.48 GB", real_metrics)
+        self.assertIn("24.5 MB/s", real_metrics)
+        self.assertNotIn("0 KB", real_metrics)
+
+        # Step 3: later polls continuously replace the live values.
+        dialog._set_progress({
+            "phase": "sd35_downloading_weights",
+            "percent": 61.1,
+            "download_percent": 37.0,
+            "downloaded_bytes": 1.20 * 1024 * 1024 * 1024,
+            "total_bytes": 3.24 * 1024 * 1024 * 1024,
+            "speed": 18.75,
+        })
+        later_metrics = dialog.download_metrics_label.configure.call_args[1]["text"]
+        self.assertIn("37%", later_metrics)
+        self.assertIn("63%", later_metrics)
+        self.assertIn("1.20 GB", later_metrics)
+        self.assertIn("3.24 GB", later_metrics)
+        self.assertIn("2.04 GB", later_metrics)
+        self.assertIn("18.8 MB/s", later_metrics)
+
+        # Step 4: the existing download-complete phase replaces the download status.
+        dialog._set_progress({"phase": "download_complete", "percent": 80.0})
+        complete_status = dialog.status_label.configure.call_args[1]["text"]
+        self.assertEqual(complete_status, "Download complete – preparing installation …")
 
 
 if __name__ == "__main__":

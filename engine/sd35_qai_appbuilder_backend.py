@@ -16,11 +16,24 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from config import MODELS_DIR
+from config import MODELS_DIR, USER_BASE
 from engine.sd15_qai_appbuilder_backend import (
     StableDiffusion15QaiAppBuilderBackend,
-    _worker_python,
+    _qai_root,
 )
+
+
+def _worker_python() -> Path:
+    configured = os.environ.get("SNAPDRAGON_QAI_APPBUILDER_PYTHON", "").strip()
+    if configured:
+        return Path(configured).expanduser().resolve()
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve()
+    venv_python = USER_BASE / "sd35_venv" / "Scripts" / "python.exe"
+    if venv_python.is_file():
+        return venv_python
+    return _qai_root() / ".venv" / "Scripts" / "python.exe"
+
 
 
 BACKEND_NAME = "Qualcomm SD3.5 Medium QAI AppBuilder (HTP)"

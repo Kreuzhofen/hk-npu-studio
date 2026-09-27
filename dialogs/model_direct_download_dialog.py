@@ -426,7 +426,10 @@ class ModelDirectDownloadDialog(StudioDialog):
         messages = {
             "download_preparing": tr("direct_model_preparing_download", "Download is being prepared …"),
             "downloading": tr("direct_model_downloading_percent", "Model is being downloaded … {percent:.0f}%", percent=value),
-            "download_complete": tr("direct_model_download_complete", "Download completed."),
+            "download_complete": (
+                tr("sd35_download_complete_preparing", "Download complete – preparing installation …")
+                if guided_sd35 else tr("direct_model_download_complete", "Download completed.")
+            ),
             "checking": tr("direct_model_checking", "Model package is being checked …"),
             "preparing": tr("sd35_model_preparing", "Model is being prepared …") if guided_sd35 else tr("direct_model_preparing", "Model is being prepared …"),
             "installing": tr("direct_model_installing", "Model is being installed …"),
@@ -471,7 +474,10 @@ class ModelDirectDownloadDialog(StudioDialog):
                 "dependency_failed": (tr("sd35_dependency_failed", "The required components could not be prepared."), "error"),
                 "download_preparing": (tr("direct_model_preparing_download", "Download is being prepared …"), "info"),
                 "downloading": (tr("direct_model_downloading", "Model is being downloaded …"), "info"),
-                "download_complete": (tr("direct_model_download_complete", "Download completed."), "success"),
+                "download_complete": ((
+                    tr("sd35_download_complete_preparing", "Download complete – preparing installation …")
+                    if guided_sd35 else tr("direct_model_download_complete", "Download completed.")
+                ), "success"),
                 "preparing": ((tr("sd35_model_preparing", "Model is being prepared …") if guided_sd35 else tr("direct_model_preparing", "Model is being prepared …")), "info"),
                 "validating": (tr("direct_model_validating", "Model is being validated …"), "info"),
                 "validation_failed": (tr("direct_model_validation_failed", "The downloaded model package could not be verified."), "error"),
@@ -521,24 +527,11 @@ class ModelDirectDownloadDialog(StudioDialog):
                 )
 
         # Handle live download metrics in UI
-        if phase in ("downloading", "sd35_downloading_weights") and isinstance(update, dict):
-            if hasattr(self, "progress") and self.progress.winfo_exists() and self.progress.cget("mode") == "indeterminate":
-                self.progress.stop()
-                self.progress.configure(mode="determinate", variable=self.progress_var)
-
-            downloaded = float(update.get("downloaded_bytes", 0))
-            total = float(update.get("total_bytes", 0))
-            speed = update.get("speed")
-            download_percent = float(update.get("download_percent", 0.0))
-
-            def format_size(bytes_val):
-                if bytes_val >= 1024*1024*1024:
-                    return f"{bytes_val / (1024*1024*1024):.2f} GB"
-                return f"{bytes_val / (1024*1024):.1f} MB"
-
-            downloaded_str = format_size(downloaded)
-            raw_kb = int(downloaded / 1024)
-            raw_kb_str = f"{raw_kb:,}".replace(",", ".")
+        if phase in ("downloading", "sd35_downloading_weights"):
+            downloaded = float(update.get("downloaded_bytes", 0)) if isinstance(update, dict) else 0.0
+            total = float(update.get("total_bytes", 0)) if isinstance(update, dict) else 0.0
+            speed = update.get("speed") if isinstance(update, dict) else None
+            download_percent = float(update.get("download_percent", 0.0)) if isinstance(update, dict) else 0.0
 
             if hasattr(self, "download_desc_label"):
                 self.download_desc_label.configure(
@@ -546,39 +539,68 @@ class ModelDirectDownloadDialog(StudioDialog):
                     if guided_sd35 else tr("direct_model_downloading", "Model is being downloaded …")
                 )
 
-            if total > 0:
-                total_str = format_size(total)
-                remaining = max(0.0, total - downloaded)
-                remaining_str = format_size(remaining)
+            # If no real byte values are available yet, keep indeterminate and show downloading message
+            if downloaded <= 0 and (total <= 0 or (download_percent <= 0 and speed is None)):
+                if hasattr(self, "progress") and self.progress.winfo_exists():
+                    if str(self.progress.cget("mode")) != "indeterminate":
+                        self.progress.configure(mode="indeterminate")
+                        self.progress.start(10)
 
-                percent_val = max(0.0, min(100.0, download_percent))
-                remaining_percent = max(0.0, 100.0 - percent_val)
-
-                percent_key = "sd35_metric_percent" if guided_sd35 else "direct_model_metric_percent"
-                bytes_key = "sd35_metric_bytes" if guided_sd35 else "direct_model_metric_bytes"
-                percent_str = tr(percent_key, "{percent:.0f}% downloaded\n{remaining:.0f}% remaining", percent=percent_val, remaining=remaining_percent)
-                bytes_str = tr(bytes_key, "{downloaded} of {total} downloaded\n{remaining} remaining", downloaded=downloaded_str, total=total_str, remaining=remaining_str)
+                downloading_files_text = (
+                    tr("sd35_downloading_files", "Downloading model files …")
+                    if guided_sd35 else tr("direct_model_downloading_files", "Downloading model files …")
+                )
+                if hasattr(self, "download_metrics_label"):
+                    self.download_metrics_label.configure(text=downloading_files_text)
+                    if not self.download_metrics_label.winfo_manager():
+                        self.download_metrics_label.pack(fill="x", pady=(PHOENIX_THEME.space_sm, 0))
             else:
-                downloaded_key = "sd35_downloaded_only" if guided_sd35 else "direct_model_downloaded_only"
-                total_key = "sd35_total_size_unknown" if guided_sd35 else "direct_model_total_size_unknown"
-                percent_str = tr(downloaded_key, "{downloaded} downloaded", downloaded=downloaded_str)
-                bytes_str = tr(total_key, "Total size is being determined …")
+                if hasattr(self, "progress") and self.progress.winfo_exists() and str(self.progress.cget("mode")) == "indeterminate":
+                    self.progress.stop()
+                    self.progress.configure(mode="determinate", variable=self.progress_var)
 
-            if speed is not None and speed > 0:
-                speed_key = "sd35_metric_speed" if guided_sd35 else "direct_model_metric_speed"
-                raw_str = tr(speed_key, "{raw_kb} KB received • {speed:.1f} MB/s", raw_kb=raw_kb_str, speed=speed)
-            else:
-                raw_key = "sd35_metric_raw_kb" if guided_sd35 else "direct_model_metric_raw_kb"
-                raw_str = tr(raw_key, "{raw_kb} KB received", raw_kb=raw_kb_str)
+                def format_size(bytes_val):
+                    if bytes_val >= 1024*1024*1024:
+                        return f"{bytes_val / (1024*1024*1024):.2f} GB"
+                    return f"{bytes_val / (1024*1024):.1f} MB"
 
-            metrics_text = f"{percent_str}\n\n{bytes_str}\n\n{raw_str}"
-            if hasattr(self, "download_metrics_label"):
-                self.download_metrics_label.configure(text=metrics_text)
-                if not self.download_metrics_label.winfo_manager():
-                    self.download_metrics_label.pack(fill="x", pady=(PHOENIX_THEME.space_sm, 0))
+                downloaded_str = format_size(downloaded)
+                raw_kb = int(downloaded / 1024)
+                raw_kb_str = f"{raw_kb:,}".replace(",", ".")
+
+                if total > 0:
+                    total_str = format_size(total)
+                    remaining = max(0.0, total - downloaded)
+                    remaining_str = format_size(remaining)
+
+                    percent_val = max(0.0, min(100.0, download_percent if download_percent > 0 else (downloaded / total * 100.0)))
+                    remaining_percent = max(0.0, 100.0 - percent_val)
+
+                    percent_key = "sd35_metric_percent" if guided_sd35 else "direct_model_metric_percent"
+                    bytes_key = "sd35_metric_bytes" if guided_sd35 else "direct_model_metric_bytes"
+                    percent_str = tr(percent_key, "{percent:.0f}% downloaded\n{remaining:.0f}% remaining", percent=percent_val, remaining=remaining_percent)
+                    bytes_str = tr(bytes_key, "{downloaded} of {total} downloaded\n{remaining} remaining", downloaded=downloaded_str, total=total_str, remaining=remaining_str)
+                else:
+                    downloaded_key = "sd35_downloaded_only" if guided_sd35 else "direct_model_downloaded_only"
+                    total_key = "sd35_total_size_unknown" if guided_sd35 else "direct_model_total_size_unknown"
+                    percent_str = tr(downloaded_key, "{downloaded} downloaded", downloaded=downloaded_str)
+                    bytes_str = tr(total_key, "Total size is being determined …")
+
+                if speed is not None and speed > 0:
+                    speed_key = "sd35_metric_speed" if guided_sd35 else "direct_model_metric_speed"
+                    raw_str = tr(speed_key, "{raw_kb} KB received • {speed:.1f} MB/s", raw_kb=raw_kb_str, speed=speed)
+                else:
+                    raw_key = "sd35_metric_raw_kb" if guided_sd35 else "direct_model_metric_raw_kb"
+                    raw_str = tr(raw_key, "{raw_kb} KB received", raw_kb=raw_kb_str)
+
+                metrics_text = f"{percent_str}\n\n{bytes_str}\n\n{raw_str}"
+                if hasattr(self, "download_metrics_label"):
+                    self.download_metrics_label.configure(text=metrics_text)
+                    if not self.download_metrics_label.winfo_manager():
+                        self.download_metrics_label.pack(fill="x", pady=(PHOENIX_THEME.space_sm, 0))
         else:
             if phase in ("download_preparing", "sd35_find_zip", "sd35_extracting", "checking", "sd35_installing_deps"):
-                if hasattr(self, "progress") and self.progress.winfo_exists() and self.progress.cget("mode") == "determinate":
+                if hasattr(self, "progress") and self.progress.winfo_exists() and str(self.progress.cget("mode")) == "determinate":
                     self.progress.configure(mode="indeterminate")
                     self.progress.start(10)
 
@@ -598,7 +620,7 @@ class ModelDirectDownloadDialog(StudioDialog):
                     if not self.download_metrics_label.winfo_manager():
                         self.download_metrics_label.pack(fill="x", pady=(PHOENIX_THEME.space_sm, 0))
             else:
-                if hasattr(self, "progress") and self.progress.winfo_exists() and self.progress.cget("mode") == "indeterminate":
+                if hasattr(self, "progress") and self.progress.winfo_exists() and str(self.progress.cget("mode")) == "indeterminate":
                     self.progress.stop()
                     self.progress.configure(mode="determinate", variable=self.progress_var)
 

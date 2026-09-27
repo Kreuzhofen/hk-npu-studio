@@ -1,12 +1,19 @@
 import json
+import subprocess
+import sys
 import tkinter as tk
+import textwrap
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from app.i18n import set_language, tr
-from widgets.phoenix.views.home_view import PhoenixHomeView
+from widgets.phoenix.views.home_view import (
+    PhoenixHomeView,
+    RC3_AUTOMATIC_GENERATION_MODEL_SETUP,
+    RC3_PRIMARY_PRODUCT_VIEW,
+)
 
 
 class HomeFirstRunTests(unittest.TestCase):
@@ -142,15 +149,120 @@ class HomeFirstRunTests(unittest.TestCase):
         self.assertEqual(len(first_positions), 4)
         self.assertEqual(first_positions, last_positions)
 
-    def test_readiness_navigation(self) -> None:
+    def test_rc3_readiness_navigation_opens_photo_restore(self) -> None:
         navigate = MagicMock()
         view = SimpleNamespace(_model_ready=False, _navigate=navigate)
         PhoenixHomeView._on_readiness_action(view)
-        navigate.assert_called_once_with("models")
+        navigate.assert_called_once_with("inpainting")
         navigate.reset_mock()
         view._model_ready = True
         PhoenixHomeView._on_readiness_action(view)
-        navigate.assert_called_once_with("prompt")
+        navigate.assert_called_once_with("inpainting")
+
+    def test_rc3_clean_start_does_not_offer_automatic_generation_model_setup(self) -> None:
+        self.assertFalse(RC3_AUTOMATIC_GENERATION_MODEL_SETUP)
+        self.assertEqual(RC3_PRIMARY_PRODUCT_VIEW, "inpainting")
+
+        navigate = MagicMock()
+        clean_start = SimpleNamespace(_model_ready=False, _navigate=navigate)
+        PhoenixHomeView._on_readiness_action(clean_start)
+
+        navigate.assert_called_once_with("inpainting")
+        self.assertNotIn(
+            navigate.call_args.args[0],
+            {"models", "prompt", "generative_fill", "retouch"},
+        )
+
+    def test_missing_sd35_model_does_not_trigger_legacy_installer(self) -> None:
+        from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
+
+        navigate = MagicMock()
+        clean_start = SimpleNamespace(_model_ready=False, _navigate=navigate)
+        with patch.object(PhoenixModelManagerView, "_on_install_selected") as install:
+            PhoenixHomeView._on_readiness_action(clean_start)
+
+        navigate.assert_called_once_with("inpainting")
+        install.assert_not_called()
+
+    def test_real_normal_and_first_run_keep_sd35_dialog_closed(self) -> None:
+        script_template = textwrap.dedent(
+            """
+            import tkinter as tk
+            from types import SimpleNamespace
+            from unittest.mock import MagicMock, patch
+
+            from widgets.phoenix.views.photo_restore_view import PhoenixPhotoRestoreView
+            from widgets.phoenix.workspace import PhoenixWorkspace
+            from tools.build_app import FIDESR_PRODUCT_FILES
+
+            assert all(path.is_file() for path, _destination in FIDESR_PRODUCT_FILES)
+
+            root = tk.Tk()
+            root.withdraw()
+            model_controller = MagicMock()
+            model_controller.get_all_models.return_value = __MODELS__
+            model_controller.get_active_model_id.return_value = __ACTIVE_MODEL__
+            model_controller.get_discovery_result.return_value = SimpleNamespace(
+                qnn_sdk_found=True,
+                qnn_tools_found=True,
+                onnx_available=False,
+                onnx_version=None,
+            )
+            model_controller.reconcile_installed_packages.return_value = []
+            try:
+                with patch(
+                    "widgets.phoenix.views.home_view.ModelManagerController",
+                    return_value=model_controller,
+                ), patch(
+                    "widgets.phoenix.views.home_view.SettingsManager.get_execution_provider",
+                    return_value="QNNExecutionProvider",
+                ), patch(
+                    "widgets.phoenix.views.model_manager_view.PhoenixModelManagerView._on_install_selected"
+                ) as auto_install, patch(
+                    "dialogs.model_source_dialog.ModelSourceDialog"
+                ) as source_dialog, patch(
+                    "dialogs.model_direct_download_dialog.ModelDirectDownloadDialog"
+                ) as direct_dialog, patch(
+                    "tools.sd35_setup_helper.SD35SetupHelper.run_setup"
+                ) as sd35_setup:
+                    workspace = PhoenixWorkspace(root)
+                    root.update_idletasks()
+                    root.update()
+                    workspace._refresh_views()
+                    root.update_idletasks()
+                    assert workspace.current_view == "home"
+                    assert "models" not in workspace._views
+                    assert auto_install.call_count == 0
+                    assert source_dialog.call_count == 0
+                    assert direct_dialog.call_count == 0
+                    assert sd35_setup.call_count == 0
+                    workspace.show_view("inpainting")
+                    assert isinstance(
+                        workspace._views["inpainting"], PhoenixPhotoRestoreView
+                    )
+                    workspace.destroy()
+            finally:
+                root.destroy()
+            """
+        )
+        scenarios = (
+            ("normal", [{"id": "stable_diffusion_v1_5_qnn", "installed": True}], "stable_diffusion_v1_5_qnn"),
+            ("first_run", [], None),
+        )
+        for name, models, active_model in scenarios:
+            with self.subTest(scenario=name):
+                script = script_template.replace("__MODELS__", repr(models)).replace(
+                    "__ACTIVE_MODEL__", repr(active_model)
+                )
+                result = subprocess.run(
+                    [sys.executable, "-c", script],
+                    cwd=Path(__file__).resolve().parents[1],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_home_content_uses_its_own_scroll_container(self) -> None:
         root = tk.Tk()
