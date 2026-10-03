@@ -233,12 +233,13 @@ class PhoenixWorkspace(tk.Frame):
             refresh()
 
     def _refresh_views(self) -> None:
-        for view in self._views.values():
+        view = self._views.get(self.current_view) if self.current_view else None
+        if view is not None:
             refresh = getattr(view, "refresh", None)
             if callable(refresh):
                 refresh()
 
-        if self.right_panel is not None:
+        if self.right_panel is not None and self.right_panel.winfo_ismapped():
             refresh = getattr(self.right_panel, "refresh", None)
             if callable(refresh):
                 refresh()

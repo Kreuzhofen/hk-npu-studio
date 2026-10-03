@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import Any
@@ -59,6 +60,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         self.selected_model_id: str | None = None
         self._last_rendered_signature: tuple | None = None
+        self._last_repository_refresh_at = 0.0
         
         # Proportional weights for Model List (60%) and Model Inspector (40%)
         self.grid_columnconfigure(0, weight=6, uniform="model_cols")
@@ -337,10 +339,13 @@ class PhoenixModelManagerView(WorkspaceFrame):
         controller_model = getattr(self.controller, "model", None) if self.controller else None
         repository = getattr(controller_model, "repository", None)
         if repository is not None:
-            try:
-                repository.load_repository()
-            except Exception as e:
-                logger.error("Failed to reload model repository: %s", e)
+            now = time.monotonic()
+            if now - self._last_repository_refresh_at >= 5.0:
+                self._last_repository_refresh_at = now
+                try:
+                    repository.load_repository()
+                except Exception as e:
+                    logger.error("Failed to reload model repository: %s", e)
 
         models = []
         if repository is not None:
@@ -542,6 +547,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             if self.selected_model_id != m_id:
                 self.selected_model_id = m_id
                 self._last_rendered_signature = None
+                self._last_repository_refresh_at = 0.0
                 self.refresh()
 
 
@@ -709,6 +715,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
         if repository and hasattr(repository, "set_active_model_id"):
             repository.set_active_model_id(self.selected_model_id)
             self._last_rendered_signature = None
+            self._last_repository_refresh_at = 0.0
             messagebox.showinfo(
                 tr("model_manager_title", "Modell-Manager"),
                 tr("model_activated_msg", "Modell '{id}' erfolgreich als aktives NPU-Modell gesetzt.", id=self.selected_model_id)
@@ -756,6 +763,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
             def _installed() -> None:
                 self._last_rendered_signature = None
+                self._last_repository_refresh_at = 0.0
                 self.refresh()
 
             from controllers.workflow_controller import WorkflowController
@@ -819,6 +827,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
                 def _installed() -> None:
                     self._last_rendered_signature = None
+                    self._last_repository_refresh_at = 0.0
                     self.refresh()
 
                 ModelDirectDownloadDialog(
@@ -872,6 +881,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
                 def _installed() -> None:
                     self._last_rendered_signature = None
+                    self._last_repository_refresh_at = 0.0
                     self.refresh()
 
                 ModelDirectDownloadDialog(
@@ -909,6 +919,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
 
         if install_and_activate(self.selected_model_id, source_path):
             self._last_rendered_signature = None
+            self._last_repository_refresh_at = 0.0
             self.refresh()
             from controllers.workflow_controller import WorkflowController
             from dialogs.model_ready_dialog import ModelReadyDialog
