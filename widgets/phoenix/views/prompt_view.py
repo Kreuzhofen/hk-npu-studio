@@ -194,6 +194,7 @@ class PhoenixPromptView(WorkspaceFrame):
     BOOST_PREVIEW_MIN_SIZE = (640, 520)
     INSPECTOR_PREVIEW_MIN_HEIGHT = 180
     COMPACT_PREVIEW_MODE = False
+    REPOSITORY_REFRESH_INTERVAL_SECONDS = 5.0
 
     def __init__(self, master: tk.Misc, controller: PromptWorkspaceController | None = None) -> None:
         super().__init__(
@@ -204,6 +205,8 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.controller = controller or PromptWorkspaceController()
         self._generation_running = False
+        self._last_repository_refresh_at = 0.0
+        self._preview_render_key = None
         self._generation_thread: threading.Thread | None = None
         self._generation_events: queue.Queue[tuple[str, object]] = queue.Queue()
         self._progress_after_id: str | None = None
@@ -2318,7 +2321,10 @@ class PhoenixPromptView(WorkspaceFrame):
 
     def refresh(self) -> None:
         if hasattr(self.controller, "repository") and self.controller.repository is not None:
-            self.controller.repository.load_repository()
+            now = time.monotonic()
+            if now - self._last_repository_refresh_at >= self.REPOSITORY_REFRESH_INTERVAL_SECONDS:
+                self._last_repository_refresh_at = now
+                self.controller.repository.load_repository()
 
         state = self.controller.get_state()
         if not self._generation_running:
@@ -2385,11 +2391,9 @@ class PhoenixPromptView(WorkspaceFrame):
         self.env_status_label.configure(text=env_text)
         self.qnn_status_label.configure(text=qnn_text)
 
-        for widget in self.preview_center.winfo_children():
-            widget.destroy()
-
         last_resp = getattr(self.controller, "last_response", None)
         has_preview = False
+        img_path = None
         if last_resp and last_resp.success and last_resp.image_path:
             img_path = Path(last_resp.image_path)
             self._current_preview_image_path = img_path
@@ -2400,54 +2404,81 @@ class PhoenixPromptView(WorkspaceFrame):
                     h = self.preview_center.winfo_height()
                     if w < 50 or h < 50:
                         w, h = 250, 250
-                    with Image.open(img_path) as pil_img:
-                        img_w, img_h = pil_img.size
-                        scale = min(w / img_w, h / img_h)
-                        new_w = max(10, int(img_w * scale))
-                        new_h = max(10, int(img_h * scale))
-                        resized_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-                        self._preview_photo = ImageTk.PhotoImage(resized_img)
+                    img_stat = img_path.stat()
+                    render_key = (str(img_path), img_stat.st_mtime_ns, img_stat.st_size, w, h)
+                    existing_labels = [
+                        child
+                        for child in self.preview_center.winfo_children()
+                        if getattr(child, "is_image_label", False)
+                    ]
+                    if (
+                        getattr(self, "_preview_render_key", None) == render_key
+                        and existing_labels
+                    ):
+                        has_preview = True
+                    else:
+                        for widget in self.preview_center.winfo_children():
+                            widget.destroy()
 
-                    img_label = tk.Label(
-                        self.preview_center,
-                        image=self._preview_photo,
-                        bg=PHOENIX_THEME.content_bg,
-                        cursor="hand2"
-                    )
-                    img_label.is_image_label = True
-                    img_label.image = self._preview_photo
-                    img_label.place(relx=0.5, rely=0.5, anchor="center")
-                    img_label.bind("<Button-1>", lambda e: self._open_lightbox_preview(img_path))
+                        with Image.open(img_path) as pil_img:
+                            img_w, img_h = pil_img.size
+                            scale = min(w / img_w, h / img_h)
+                            new_w = max(10, int(img_w * scale))
+                            new_h = max(10, int(img_h * scale))
+                            resized_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                            self._preview_photo = ImageTk.PhotoImage(resized_img)
 
-                    def _on_img_enter(e):
-                        img_label.configure(bg=PHOENIX_THEME.accent)
-                    def _on_img_leave(e):
-                        img_label.configure(bg=PHOENIX_THEME.content_bg)
+                        img_label = tk.Label(
+                            self.preview_center,
+                            image=self._preview_photo,
+                            bg=PHOENIX_THEME.content_bg,
+                            cursor="hand2"
+                        )
+                        img_label.is_image_label = True
+                        img_label.image = self._preview_photo
+                        img_label.place(relx=0.5, rely=0.5, anchor="center")
+                        img_label.bind("<Button-1>", lambda e: self._open_lightbox_preview(img_path))
 
-                    img_label.bind("<Enter>", _on_img_enter)
-                    img_label.bind("<Leave>", _on_img_leave)
+                        def _on_img_enter(e):
+                            img_label.configure(bg=PHOENIX_THEME.accent)
+                        def _on_img_leave(e):
+                            img_label.configure(bg=PHOENIX_THEME.content_bg)
 
-                    has_preview = True
+                        img_label.bind("<Enter>", _on_img_enter)
+                        img_label.bind("<Leave>", _on_img_leave)
+                        self._preview_render_key = render_key
+
+                        has_preview = True
                 except Exception as e:
                     logger.error(f"Failed to load preview image: {e}")
 
         if not has_preview:
             self._current_preview_image_path = None
-            from resources.icons import IconManager
-            placeholder_container = tk.Frame(self.preview_center, bg=PHOENIX_THEME.content_bg)
-            placeholder_container.place(relx=0.5, rely=0.5, anchor="center")
+            self._preview_render_key = None
+            children = self.preview_center.winfo_children()
+            has_placeholder = any(
+                getattr(child, "is_preview_placeholder", False) for child in children
+            )
+            if not has_placeholder:
+                for widget in children:
+                    widget.destroy()
+                from resources.icons import IconManager
+                placeholder_container = tk.Frame(self.preview_center, bg=PHOENIX_THEME.content_bg)
+                placeholder_container.is_preview_placeholder = True
+                placeholder_container.place(relx=0.5, rely=0.5, anchor="center")
 
-            tk.Label(
-                placeholder_container, text=IconManager.get_symbol("image"),
-                bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.accent,
-                font=(PHOENIX_THEME.font_title[0], 20, "bold"),
-            ).pack(anchor="center", pady=(0, 2))
+                tk.Label(
+                    placeholder_container, text=IconManager.get_symbol("image"),
+                    bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.accent,
+                    font=(PHOENIX_THEME.font_title[0], 20, "bold"),
+                ).pack(anchor="center", pady=(0, 2))
 
-            tk.Label(
-                placeholder_container, text=tr("home_no_images_generated", "No image generated"),
-                bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_muted,
-                font=PHOENIX_THEME.font_small, justify="center"
-            ).pack(anchor="center")
+                tk.Label(
+                    placeholder_container, text=tr("home_no_images_generated", "No image generated"),
+                    bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_muted,
+                    font=PHOENIX_THEME.font_small, justify="center"
+                ).pack(anchor="center")
+
 
         self._enable_action_buttons(has_preview)
         if has_preview and img_path != getattr(self, "_last_scrolled_preview_path", None):

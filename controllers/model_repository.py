@@ -178,7 +178,7 @@ class ModelRepository:
             if model_id
         )
 
-        logger.info(
+        logger.debug(
             "[MODEL PATH] Search started | model=%s | definitions_dir=%s | "
             "declared_path=%s | preferences_file=%s | config_default_models_dir=%s | "
             "installation_roots=%s",
@@ -194,7 +194,7 @@ class ModelRepository:
             exists = resolved.exists()
             is_directory = resolved.is_dir() if exists else False
             productive = self._is_productive_installation_path(resolved)
-            logger.info(
+            logger.debug(
                 "[MODEL PATH] Candidate %s/%s | model=%s | source=%s | path=%s | "
                 "exists=%s | directory=%s | productive=%s",
                 index, len(candidates), model_id, source, resolved, exists, is_directory,
@@ -219,13 +219,13 @@ class ModelRepository:
                         model["status"] = "Not Installed"
                     else:
                         model["status"] = "Invalid"
-                logger.info(
+                logger.debug(
                     "[MODEL PATH] First match | model=%s | source=%s | path=%s | status=%s",
                     model_id, source, resolved, model["status"],
                 )
                 return resolved
 
-        logger.info(
+        logger.debug(
             "[MODEL PATH] No installation found | model=%s | checked_paths=%s",
             model_id,
             [str(path.resolve(strict=False)) for _, path in candidates],
