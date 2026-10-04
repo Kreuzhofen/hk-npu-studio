@@ -223,7 +223,7 @@ def preprocess_image_aspect_ratio(img, target_size=(512, 512)):
 
     return img.resize(target_size, Image.Resampling.LANCZOS)
 
-def canny_edge_detector(img_path, low_threshold=50, high_threshold=150):
+def canny_edge_detector(img_path, low_threshold=15, high_threshold=45):
     from PIL import Image, ImageOps
     with Image.open(img_path) as source:
         img = ImageOps.exif_transpose(source).convert('L')
@@ -712,8 +712,8 @@ class ControlNetCannyQnnBackend(InferenceBackend):
 
             # 4. Canny Edge Preprocessing (CPU)
             print("Computing Canny edge image...", flush=True)
-            low_threshold = int(job_data.get("canny_low_threshold", 50))
-            high_threshold = int(job_data.get("canny_high_threshold", 150))
+            low_threshold = int(job_data.get("canny_low_threshold", 15))
+            high_threshold = int(job_data.get("canny_high_threshold", 45))
             conditioning_scale = float(job_data.get("controlnet_conditioning_scale", 1.0))
             canny_edges = canny_edge_detector(input_image_path, low_threshold=low_threshold, high_threshold=high_threshold)
 
