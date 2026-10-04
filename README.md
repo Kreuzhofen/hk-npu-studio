@@ -92,15 +92,17 @@ The **Phoenix Engine** coordinates model discovery, validation, installation, ac
 
 ## See HK NPU STUDIO in Action
 
-Real examples generated locally on Snapdragon® NPU hardware.
-
-*Phoenix Boost • Photo Restoration • ControlNet Canny*
+Real-world examples running locally on Snapdragon® NPU hardware.
 
 ### 🔥 Phoenix Boost
 
 Turn simple prompts into richer image prompts while preserving the original intent.
 
-![HK NPU STUDIO Phoenix Boost prompt enhancement comparison](docs/images/examples/phoenix-boost/phoenix_boost_comparison.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/examples/phoenix-boost/phoenix_boost_comparison.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/examples/phoenix-boost/phoenix_boost_comparison_light.png">
+  <img alt="HK NPU STUDIO Phoenix Boost prompt enhancement comparison" src="docs/images/examples/phoenix-boost/phoenix_boost_comparison.png">
+</picture>
 
 ---
 
@@ -108,7 +110,11 @@ Turn simple prompts into richer image prompts while preserving the original inte
 
 Recover fine detail and natural texture from low-quality source images.
 
-![HK NPU STUDIO AI Photo Restoration before and after comparison](docs/images/examples/photo-restoration/photo_restoration_comparison_16x9.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/examples/photo-restoration/photo_restoration_comparison_16x9.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/examples/photo-restoration/photo_restoration_comparison_16x9_light.png">
+  <img alt="HK NPU STUDIO AI Photo Restoration before and after comparison" src="docs/images/examples/photo-restoration/photo_restoration_comparison_16x9.png">
+</picture>
 
 ---
 
@@ -116,7 +122,11 @@ Recover fine detail and natural texture from low-quality source images.
 
 Guide image generation using structural edge information.
 
-![HK NPU STUDIO ControlNet Canny input edge map and generated result](docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9_light.png">
+  <img alt="HK NPU STUDIO ControlNet Canny input edge map and generated result" src="docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9.png">
+</picture>
 
 ---
 
