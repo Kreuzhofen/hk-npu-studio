@@ -1929,6 +1929,7 @@ class PhoenixPromptView(WorkspaceFrame):
             canny_low_threshold=canny_low,
             canny_high_threshold=canny_high,
             controlnet_conditioning_scale=cond_scale,
+            phoenix_boost_enabled=bool(getattr(self, "_phoenix_boost_enabled", False)),
         )
 
         is_valid, msg = self.controller.generation_controller.validate_session()
@@ -4759,17 +4760,10 @@ class PhoenixPromptView(WorkspaceFrame):
         suggestion = self._boost_suggestion
         self.prompt_text.delete("1.0", "end")
         self.prompt_text.insert("1.0", suggestion.optimized_prompt)
+        self._phoenix_boost_enabled = False
         if self._boost_apply_negative_var.get():
             self.neg_prompt_text.delete("1.0", "end")
             self.neg_prompt_text.insert("1.0", suggestion.recommended_negative_prompt)
-        self.steps_var.set(suggestion.recommended_steps)
-        self.cfg_var.set(suggestion.recommended_cfg)
-        if not self._controlnet_active():
-            self.sampler_var.set(self._boost_recommended_sampler)
-            self.scheduler_var.set(self._boost_recommended_scheduler)
-        if self._boost_apply_resolution_var.get() and self._boost_resolution_allowed(suggestion):
-            self.width_var.set(str(suggestion.recommended_resolution[0]))
-            self.height_var.set(str(suggestion.recommended_resolution[1]))
         self._update_prompt_counters()
         canny_low, canny_high, conditioning = self._get_controlnet_params()
         try:
@@ -4786,6 +4780,7 @@ class PhoenixPromptView(WorkspaceFrame):
             input_image_path=self.controller.model.state.input_image_path,
             controlnet_enabled=self._controlnet_active(), canny_low_threshold=canny_low,
             canny_high_threshold=canny_high, controlnet_conditioning_scale=conditioning,
+            phoenix_boost_enabled=False,
         )
         self._boost_popup.destroy()
 

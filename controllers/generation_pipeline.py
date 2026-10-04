@@ -119,6 +119,30 @@ class ImageGenerationPipeline:
                     sidecar_path = image_path.with_suffix(".json")
 
                     params = self.job.parameters
+                    if params.phoenix_boost_enabled:
+                        from PIL import Image
+                        from engine.phoenix_boost_quality import PhoenixBoostQualityPass
+
+                        with Image.open(image_path) as opened:
+                            decoded_original = opened.copy()
+                        quality = PhoenixBoostQualityPass.apply(
+                            decoded_original,
+                            params.prompt,
+                        )
+                        temporary_path = image_path.with_name(
+                            f".{image_path.stem}.phoenix-boost{image_path.suffix}"
+                        )
+                        try:
+                            quality.image.save(temporary_path, format="PNG")
+                            temporary_path.replace(image_path)
+                        finally:
+                            temporary_path.unlink(missing_ok=True)
+                        result.metadata.update({
+                            "phoenix_boost_enabled": True,
+                            "phoenix_boost_profile": quality.profile,
+                            "phoenix_boost_raw_sha256": quality.raw_sha256,
+                            "phoenix_boost_final_sha256": quality.boosted_sha256,
+                        })
                     controlnet_enabled = bool(params.controlnet_enabled)
 
                     # Prepare ControlNet fields
@@ -142,6 +166,11 @@ class ImageGenerationPipeline:
                     data["canny_high_threshold"] = canny_high_threshold
                     data["controlnet_conditioning_scale"] = controlnet_conditioning_scale
                     data["reference_image_path"] = reference_image_path
+                    data.update({
+                        key: value
+                        for key, value in result.metadata.items()
+                        if key.startswith("phoenix_boost_")
+                    })
 
                     # Write back to sidecar
                     atomic_write_json(sidecar_path, data)

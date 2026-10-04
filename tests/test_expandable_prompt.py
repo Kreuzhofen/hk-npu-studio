@@ -270,7 +270,8 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertEqual(int(first_pair[2].grid_info()["row"]), first_row)
         self.assertEqual(int(first_pair[2].grid_info()["column"]), 2)
 
-        self.view._layout_generation_inspector(320)
+        narrow_width = min(320, self.view._inspector_pair_required_width(first_pair) - 1)
+        self.view._layout_generation_inspector(narrow_width)
         self.assertEqual(int(first_pair[2].grid_info()["row"]), first_row + 1)
         self.assertEqual(int(first_pair[2].grid_info()["column"]), 0)
         self.assertLessEqual(int(self.view.insp_queue.cget("wraplength")), 288)
@@ -939,11 +940,10 @@ class ExpandablePromptTests(unittest.TestCase):
     @patch("engine.boost_ai_service.urlopen")
     def test_boost_ai_successful_structured_response(self, open_url) -> None:
         structured = {
-            "main_object": "giraffe", "count": 1, "action": "holding",
-            "relationships": ["holding a balloon string in its mouth"],
-            "environment": "savanna", "style": "realistic photography",
-            "optimized_prompt": "one giraffe holding a red balloon string in its mouth",
-            "negative_prompt": "extra animals, distorted anatomy",
+            "quality_enhancements": [
+                "verfeinerte feine Details", "ausgewogener Kontrast",
+            ],
+            "summary": ["Details und Kontrast verfeinert"],
         }
         open_url.side_effect = [
             self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
@@ -953,8 +953,8 @@ class ExpandablePromptTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.main_object, "giraffe")
         self.assertEqual(result.count, 1)
-        self.assertIn("balloon string", result.relationships[0])
-        self.assertEqual(result.negative_prompt, "extra animals, distorted anatomy")
+        self.assertTrue(result.optimized_prompt.startswith("Eine Giraffe hält einen Ballon"))
+        self.assertIn("verfeinerte feine Details", result.optimized_prompt)
 
     @patch("engine.boost_ai_service.urlopen")
     def test_boost_ai_invalid_response_does_not_raise(self, open_url) -> None:
@@ -979,11 +979,8 @@ class ExpandablePromptTests(unittest.TestCase):
     @patch("engine.boost_ai_service.urlopen")
     def test_boost_ai_accepts_response_between_60s_and_120s(self, open_url) -> None:
         structured = {
-            "main_object": "giraffe", "count": 1, "action": "holding",
-            "relationships": ["holding a balloon string in its mouth"],
-            "environment": "savanna", "style": "realistic photography",
-            "optimized_prompt": "one giraffe holding a red balloon",
-            "negative_prompt": "extra animals",
+            "quality_enhancements": ["verfeinerte feine Details"],
+            "summary": ["Details verfeinert"],
         }
         open_url.side_effect = [
             self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
@@ -998,7 +995,10 @@ class ExpandablePromptTests(unittest.TestCase):
             run_result = BoostAIService.optimize_with_status("Eine Giraffe")
             self.assertIsNotNone(run_result.result)
             self.assertEqual(run_result.outcome, "success")
-            self.assertEqual(run_result.result.optimized_prompt, "one giraffe holding a red balloon")
+            self.assertEqual(
+                run_result.result.optimized_prompt,
+                "Eine Giraffe, verfeinerte feine Details",
+            )
 
     @patch("engine.boost_ai_service.urlopen")
     def test_boost_ai_timeout_graceful_fallback(self, open_url) -> None:
@@ -1060,13 +1060,33 @@ class ExpandablePromptTests(unittest.TestCase):
         self.view.prompt_text.insert("1.0", "A portrait photograph")
         self.view.neg_prompt_text.insert("1.0", "existing negative")
         self.view.seed_var.set("12345")
+        self.view.steps_var.set("17")
+        self.view.cfg_var.set("5.5")
+        self.view.width_var.set("640")
+        self.view.height_var.set("768")
+        self.view.sampler_var.set("DDIM")
+        self.view.scheduler_var.set("Karras")
+        before = (
+            self.view.seed_var.get(), self.view.width_var.get(), self.view.height_var.get(),
+            self.view.model_var.get(), self.view.steps_var.get(), self.view.cfg_var.get(),
+            self.view.sampler_var.get(), self.view.scheduler_var.get(),
+        )
         self.view._open_boost_preview()
         self.view._boost_apply_negative_var.set(False)
         self.view._apply_boost_suggestion()
-        self.assertEqual(self.view.seed_var.get(), "12345")
+        after = (
+            self.view.seed_var.get(), self.view.width_var.get(), self.view.height_var.get(),
+            self.view.model_var.get(), self.view.steps_var.get(), self.view.cfg_var.get(),
+            self.view.sampler_var.get(), self.view.scheduler_var.get(),
+        )
+        self.assertEqual(after, before)
         self.assertEqual(self.controller.model.state.seed, 12345)
         self.assertEqual(self.view.neg_prompt_text.get("1.0", "end-1c"), "existing negative")
-        self.assertIn("realistic photography", self.view.prompt_text.get("1.0", "end-1c"))
+        self.assertEqual(
+            self.view.prompt_text.get("1.0", "end-1c"),
+            self.view._boost_suggestion.optimized_prompt,
+        )
+        self.assertFalse(self.controller.generation_controller.session.phoenix_boost_enabled)
 
     def test_boost_extracts_giraffe_relationships_in_three_languages(self) -> None:
         prompts = (
@@ -1080,18 +1100,163 @@ class ExpandablePromptTests(unittest.TestCase):
             self.assertEqual(suggestion.analysis.count, 1)
             self.assertIn("holding", suggestion.analysis.actions)
             self.assertIn("red", suggestion.analysis.colors)
-            self.assertIn("one giraffe in the foreground", suggestion.optimized_prompt)
-            self.assertIn("holding the string in its mouth", suggestion.optimized_prompt)
-            self.assertIn("one red helium balloon floating above", suggestion.optimized_prompt)
+            self.assertTrue(suggestion.optimized_prompt.startswith(prompt.rstrip(".")))
+            self.assertNotIn("in the foreground", suggestion.optimized_prompt)
 
     def test_boost_preserves_multiple_objects_and_background_relation(self) -> None:
         prompt = "One giraffe holds a red balloon, two people laughing in the background."
         suggestion = PhoenixBoostEngine.suggest(prompt, "", "sdxl", 20, 7, 512, 512)
-        self.assertIn("one giraffe in the foreground", suggestion.optimized_prompt)
+        self.assertTrue(suggestion.optimized_prompt.startswith(prompt.rstrip(".")))
         self.assertIn("two people laughing in the background", suggestion.optimized_prompt)
         self.assertIn("people laughing in the background", suggestion.analysis.relationships)
         self.assertEqual(suggestion.analysis.environment, "in the background")
         self.assertEqual(suggestion.analysis.style, "realistic photography")
+
+    def test_boost_refine_not_reinvent_contract_cases(self) -> None:
+        cases = (
+            (
+                "A woman in a photo studio, realistic photo, sharp focus",
+                ("soft studio lighting", "balanced exposure"),
+                ("hands", "pose", "clothing", "props", "outdoor"),
+            ),
+            (
+                "A woman in a sunflower field, realistic photo",
+                ("natural skin texture", "fine facial detail", "realistic hair detail"),
+                ("hands", "arms", "dress", "pose"),
+            ),
+            (
+                "Mona Lisa, Renaissance painting",
+                ("refined brushwork", "nuanced tonal transitions", "faithful surface detail"),
+                ("Monica Lisa", "portrait photography", "smooth skin", "photo studio", "cinematic", "fashion", "beauty"),
+            ),
+            (
+                "A red sports car on a mountain road",
+                ("refined fine detail", "balanced contrast", "refined material detail"),
+                ("person", "driver", "hands"),
+            ),
+        )
+        for original, required, forbidden in cases:
+            with self.subTest(original=original):
+                boosted = PhoenixBoostEngine.suggest(
+                    original, "", "stable_diffusion_v3_5_qai", 20, 7, 512, 512
+                ).optimized_prompt
+                self.assertTrue(boosted.startswith(original))
+                for value in required:
+                    self.assertIn(value, boosted)
+                for value in forbidden:
+                    self.assertNotIn(value.casefold(), boosted.casefold())
+
+    def test_boost_detailed_prompt_deduplicates_quality_terms(self) -> None:
+        original = (
+            "A woman in a photo studio, realistic photo, sharp focus, natural skin texture, "
+            "balanced exposure, refined fine detail, clean local contrast, realistic tonal range"
+        )
+        boosted = PhoenixBoostEngine.suggest(
+            original, "", "stable_diffusion_v3_5_qai", 20, 7, 512, 512
+        ).optimized_prompt
+        for phrase in (
+            "natural skin texture", "balanced exposure", "refined fine detail",
+            "clean local contrast", "realistic tonal range", "sharp focus",
+        ):
+            self.assertEqual(boosted.casefold().count(phrase), 1, phrase)
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_invented_semantics_are_discarded(self, open_url) -> None:
+        unsafe = {
+            "quality_enhancements": ["natural skin texture", "hands visible"],
+            "summary": ["Added detail and a pose"],
+        }
+        open_url.side_effect = [
+            self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
+            self._url_response({"response": json.dumps(unsafe)}),
+        ]
+        original = "A woman in a photo studio, realistic photo"
+        self.assertIsNone(BoostAIService.optimize(original))
+        fallback = PhoenixBoostEngine.suggest(
+            original, "", "stable_diffusion_v3_5_qai", 20, 7, 512, 512
+        ).optimized_prompt
+        self.assertTrue(fallback.startswith(original))
+        self.assertNotIn("hands", fallback.casefold())
+
+    @patch("engine.boost_ai_service.urlopen")
+    def test_boost_ai_cannot_change_proper_name(self, open_url) -> None:
+        rewritten = {
+            "optimized_prompt": "Monica Lisa, Renaissance painting",
+            "quality_enhancements": ["refined brushwork"],
+            "summary": ["Renamed subject"],
+        }
+        open_url.side_effect = [
+            self._url_response({"models": [{"name": "qwen2.5:3b"}]}),
+            self._url_response({"response": json.dumps(rewritten)}),
+        ]
+        original = "Mona Lisa, Renaissance painting"
+        self.assertIsNone(BoostAIService.optimize(original))
+        self.assertTrue(
+            PhoenixBoostEngine.suggest(original, "", "sd35", 20, 7, 512, 512)
+            .optimized_prompt.startswith(original)
+        )
+
+    def test_boost_model_matrix_preserves_semantics_and_quality(self) -> None:
+        original = "A woman in a photo studio, realistic photo, sharp focus"
+        profiles = (
+            ("stable_diffusion_v3_5_qai", "sd35"),
+            ("stable_diffusion_v2_5", "sd25"),
+            ("stable_diffusion_v1_5", "sd15"),
+        )
+        for model_id, profile in profiles:
+            with self.subTest(model_id=model_id):
+                suggestion = PhoenixBoostEngine.suggest(
+                    original, "", model_id, 19, 5.5, 640, 768
+                )
+                self.assertEqual(suggestion.model_profile, profile)
+                self.assertTrue(suggestion.optimized_prompt.startswith(original))
+                self.assertIn("balanced exposure", suggestion.optimized_prompt)
+                self.assertNotIn("hands", suggestion.optimized_prompt.casefold())
+
+    def test_boost_model_matrix_does_not_override_parameters_on_apply(self) -> None:
+        original = "A woman in a photo studio, realistic photo, sharp focus"
+        for model_id in (
+            "stable_diffusion_v3_5_qai", "stable_diffusion_v2_5", "stable_diffusion_v1_5",
+        ):
+            with self.subTest(model_id=model_id), patch.object(
+                self.view.controller, "update_parameters"
+            ) as update_parameters:
+                self.view.model_var.set(model_id)
+                self.view.prompt_text.delete("1.0", "end")
+                self.view.prompt_text.insert("1.0", original)
+                self.view.neg_prompt_text.delete("1.0", "end")
+                self.view.neg_prompt_text.insert("1.0", "existing negative")
+                self.view.seed_var.set("4567")
+                self.view.steps_var.set("19")
+                self.view.cfg_var.set("5.5")
+                self.view.width_var.set("640")
+                self.view.height_var.set("768")
+                self.view.sampler_var.set("DDIM")
+                self.view.scheduler_var.set("Karras")
+                self.view._boost_suggestion = PhoenixBoostEngine.suggest(
+                    original, "existing negative", model_id, 19, 5.5, 640, 768
+                )
+                self.view._boost_apply_negative_var = tk.BooleanVar(value=False)
+                self.view._boost_apply_resolution_var = tk.BooleanVar(value=False)
+                self.view._boost_popup = MagicMock()
+
+                self.view._apply_boost_suggestion()
+
+                self.assertEqual(self.view.seed_var.get(), "4567")
+                self.assertEqual(self.view.steps_var.get(), 19)
+                self.assertEqual(self.view.cfg_var.get(), 5.5)
+                self.assertEqual(self.view.width_var.get(), "640")
+                self.assertEqual(self.view.height_var.get(), "768")
+                self.assertEqual(self.view.model_var.get(), model_id)
+                self.assertEqual(self.view.sampler_var.get(), "DDIM")
+                self.assertEqual(self.view.scheduler_var.get(), "Karras")
+                call = update_parameters.call_args.kwargs
+                self.assertEqual(call["seed"], 4567)
+                self.assertEqual(call["steps"], 19)
+                self.assertEqual(call["cfg"], 5.5)
+                self.assertEqual(call["selected_model"], model_id)
+                self.assertEqual(call["sampler"], "DDIM")
+                self.assertEqual(call["scheduler"], "Karras")
 
     def test_controlnet_prevents_boost_resolution_change(self) -> None:
         self.view.width_var.set("512")

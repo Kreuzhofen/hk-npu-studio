@@ -26,6 +26,7 @@ class PipelineParameters:
     canny_low_threshold: int
     canny_high_threshold: int
     controlnet_conditioning_scale: float
+    phoenix_boost_enabled: bool
 
     @classmethod
     def from_session(cls, session: "GenerationSessionModel") -> "PipelineParameters":
@@ -33,6 +34,9 @@ class PipelineParameters:
 
     def to_worker_dict(self, job_id: Any) -> dict[str, Any]:
         values = asdict(self)
+        # Phoenix Boost is a shared post-decode quality pass. It must never enter
+        # a model worker or change generative conditioning.
+        values.pop("phoenix_boost_enabled", None)
         values["job_id"] = str(job_id)
         return values
 
@@ -61,6 +65,7 @@ class GenerationSessionModel:
     canny_low_threshold: int = 50
     canny_high_threshold: int = 150
     controlnet_conditioning_scale: float = 1.0
+    phoenix_boost_enabled: bool = False
 
     def reset(self) -> None:
         """Reset all parameters to default values."""
@@ -82,6 +87,7 @@ class GenerationSessionModel:
         self.canny_low_threshold = 50
         self.canny_high_threshold = 150
         self.controlnet_conditioning_scale = 1.0
+        self.phoenix_boost_enabled = False
 
     def update(self, **kwargs: Any) -> None:
         """Update fields dynamically."""

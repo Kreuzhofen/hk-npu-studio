@@ -89,6 +89,7 @@ class PromptWorkspaceController:
         canny_low_threshold: int = 50,
         canny_high_threshold: int = 150,
         controlnet_conditioning_scale: float = 1.0,
+        phoenix_boost_enabled: bool = False,
     ) -> None:
         effective_controlnet_enabled = (
             self.model.state.controlnet_enabled
@@ -113,6 +114,7 @@ class PromptWorkspaceController:
             canny_low_threshold=canny_low_threshold,
             canny_high_threshold=canny_high_threshold,
             controlnet_conditioning_scale=controlnet_conditioning_scale,
+            phoenix_boost_enabled=bool(phoenix_boost_enabled),
         )
         # Update central generation session parameters
         self.generation_controller.update_session(
@@ -132,6 +134,7 @@ class PromptWorkspaceController:
             canny_low_threshold=canny_low_threshold,
             canny_high_threshold=canny_high_threshold,
             controlnet_conditioning_scale=controlnet_conditioning_scale,
+            phoenix_boost_enabled=bool(phoenix_boost_enabled),
         )
 
 
