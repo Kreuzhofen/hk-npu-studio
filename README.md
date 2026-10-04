@@ -41,6 +41,7 @@
 ## 📋 Table of Contents
 
 - [About the Project](#-about-the-project)
+- [See HK NPU STUDIO in Action](#see-hk-npu-studio-in-action)
 - [RC3 — Improvements Since RC2B](#-rc3--improvements-since-rc2b)
 - [AI Photo Restoration](#-ai-photo-restoration)
 - [Phoenix Boost](#-phoenix-boost)
@@ -86,6 +87,36 @@ The product goal is deliberately simple:
 > **Install HK NPU STUDIO → select a model → generate an image.**
 
 The **Phoenix Engine** coordinates model discovery, validation, installation, activation and inference while keeping supported generation workflows local on the PC.
+
+---
+
+## See HK NPU STUDIO in Action
+
+Real examples generated locally on Snapdragon® NPU hardware.
+
+*Phoenix Boost • Photo Restoration • ControlNet Canny*
+
+### 🔥 Phoenix Boost
+
+Turn simple prompts into richer image prompts while preserving the original intent.
+
+![HK NPU STUDIO Phoenix Boost prompt enhancement comparison](docs/images/examples/phoenix-boost/phoenix_boost_comparison.png)
+
+---
+
+### 🖼️ AI Photo Restoration
+
+Recover fine detail and natural texture from low-quality source images.
+
+![HK NPU STUDIO AI Photo Restoration before and after comparison](docs/images/examples/photo-restoration/photo_restoration_comparison_16x9.png)
+
+---
+
+### 🎯 ControlNet Canny
+
+Guide image generation using structural edge information.
+
+![HK NPU STUDIO ControlNet Canny input edge map and generated result](docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9.png)
 
 ---
 
