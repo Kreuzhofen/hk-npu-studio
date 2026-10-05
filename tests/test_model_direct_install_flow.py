@@ -218,6 +218,30 @@ class DirectModelInstallTests(unittest.TestCase):
         browser.assert_called_once_with(dialog.source_url)
         dialog.close.assert_not_called()
 
+    def test_sd35_guided_mode_uses_exact_model_id_and_folder_choice(self) -> None:
+        self.assertTrue(
+            ModelSourceDialog._is_sd35_guided(
+                "local_only", "stable_diffusion_v3_5_qai"
+            )
+        )
+        self.assertFalse(
+            ModelSourceDialog._is_sd35_guided(
+                "local_only", "another_local_model"
+            )
+        )
+
+        sd35_dialog = ModelSourceDialog.__new__(ModelSourceDialog)
+        sd35_dialog.sd35_guided = True
+        sd35_dialog.close = MagicMock()
+        sd35_dialog._on_install()
+        self.assertEqual(sd35_dialog.choice, "install_folder")
+
+        regular_dialog = ModelSourceDialog.__new__(ModelSourceDialog)
+        regular_dialog.sd35_guided = False
+        regular_dialog.close = MagicMock()
+        regular_dialog._on_install()
+        self.assertEqual(regular_dialog.choice, "install")
+
     def test_local_only_success_uses_same_ready_completion(self) -> None:
         repository = _Repository({
             "id": "local_model", "display_name": "Local Model", "installed": False,
@@ -639,6 +663,49 @@ class DirectModelInstallTests(unittest.TestCase):
         # It must open the direct download dialog for the special Qualcomm flow, NOT the file picker or generic error
         direct_dialog.assert_called_once()
         askfile.assert_not_called()
+
+    def test_sd35_folder_selection_is_reachable_from_model_identifier(self) -> None:
+        model = {
+            "id": "stable_diffusion_v3_5_qai",
+            "display_name": "Stable Diffusion 3.5 Medium",
+            "installed": False,
+            "source_type": "local_only",
+            "reference_url": "https://github.com/qualcomm/qai-appbuilder",
+            "package_format": "smp_or_zip",
+            "requires_hf_token": False,
+        }
+        repository = _Repository(model)
+        controller = SimpleNamespace(
+            model=SimpleNamespace(repository=repository),
+            install_and_activate_sd35_qualcomm_folder=MagicMock(),
+        )
+        view = SimpleNamespace(
+            selected_model_id=model["id"],
+            controller=controller,
+            winfo_toplevel=lambda: SimpleNamespace(brand=None),
+            _display_title=lambda item: item["display_name"],
+            _requires_hf_auth=lambda *_args: False,
+        )
+        with patch(
+            "dialogs.model_source_dialog.ModelSourceDialog",
+            return_value=SimpleNamespace(choice="install_folder"),
+        ) as source_dialog, patch(
+            "widgets.phoenix.views.model_manager_view.filedialog.askdirectory",
+            return_value=r"C:\temp\sd35-models",
+        ) as ask_directory, patch(
+            "widgets.phoenix.views.model_manager_view.filedialog.askopenfilename"
+        ) as ask_file, patch(
+            "dialogs.model_direct_download_dialog.ModelDirectDownloadDialog"
+        ) as install_dialog, patch(
+            "controllers.workflow_controller.WorkflowController.get_instance",
+            return_value=SimpleNamespace(open_generate=lambda: None),
+        ):
+            PhoenixModelManagerView._on_install_selected(view)
+
+        self.assertEqual(source_dialog.call_args.kwargs["model_id"], model["id"])
+        ask_directory.assert_called_once()
+        ask_file.assert_not_called()
+        self.assertEqual(install_dialog.call_args.kwargs["operation"], "sd35_folder")
 
     def test_model_action_states(self) -> None:
         # test: installed=True, active=True -> "active"

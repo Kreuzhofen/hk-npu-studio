@@ -776,8 +776,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
             from dialogs.model_source_dialog import ModelSourceDialog
             brand = getattr(self.winfo_toplevel(), "brand", None)
 
-            # Hardcoded fallback for reference_url to ensure SD3.5 guided routing works
-            # without modifying catalog files/contracts.
+            # Keep the official guidance link available when the catalog omits it.
             ref_url = (selected_model or {}).get("reference_url")
             if self.selected_model_id == "stable_diffusion_v3_5_qai" and not ref_url:
                 ref_url = "https://github.com/qualcomm/qai-appbuilder/tree/main/samples/GenerativeAI/Image_Generation/stable_diffusion_v3_5"
@@ -792,6 +791,7 @@ class PhoenixModelManagerView(WorkspaceFrame):
                 required_variant=(selected_model or {}).get("required_variant"),
                 requires_hf_token=PhoenixModelManagerView._requires_hf_auth(selected_model or {}),
                 brand=brand,
+                model_id=self.selected_model_id,
             )
 
             if dialog.choice == "install_sd35_auto":

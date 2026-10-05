@@ -13,6 +13,7 @@ from widgets.phoenix.theme import PHOENIX_THEME
 class ModelSourceDialog(StudioDialog):
     """Explain OFFICIAL_EXTERNAL and LOCAL_ONLY acquisition before file selection."""
 
+    SD35_MODEL_ID = "stable_diffusion_v3_5_qai"
     OFFICIAL_SIZE = (720, 660)
     OFFICIAL_MIN_SIZE = (640, 600)
     SD35_SIZE = (740, 800)
@@ -29,12 +30,14 @@ class ModelSourceDialog(StudioDialog):
         required_variant: str | None = None,
         requires_hf_token: bool = False,
         brand: BrandManager | None = None,
+        model_id: str | None = None,
     ) -> None:
         self.choice: str | None = None
+        self.model_id = str(model_id or "").strip()
         self.source_type = source_type
         self.source_url = source_url if source_type == "official_external" else None
         self.reference_url = str(reference_url or "").strip() or None
-        self.sd35_guided = source_type == "local_only" and "stable_diffusion_v3_5" in str(self.reference_url or "")
+        self.sd35_guided = self._is_sd35_guided(source_type, self.model_id)
         self.model_name = model_name
         self.package_format = package_format
         self.required_variant = str(required_variant or "").strip()
@@ -50,6 +53,10 @@ class ModelSourceDialog(StudioDialog):
         self._build_ui()
         self.center(master)
         self.wait_window(self)
+
+    @classmethod
+    def _is_sd35_guided(cls, source_type: str, model_id: str | None) -> bool:
+        return source_type == "local_only" and model_id == cls.SD35_MODEL_ID
 
     @staticmethod
     def package_format_text(package_format: str) -> str:
