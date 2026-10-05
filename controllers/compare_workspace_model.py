@@ -14,9 +14,14 @@ class CompareImageMetadata:
     image_format: str
     color_mode: str
     file_size: str
+    model: str = "-"
     prompt: str = "-"
+    negative_prompt: str = "-"
     seed: str = "-"
+    steps: str = "-"
+    cfg: str = "-"
     sampler: str = "-"
+    scheduler: str = "-"
 
 
 @dataclass(frozen=True)

@@ -44,6 +44,16 @@ from widgets.phoenix.controls.card import PhoenixCard
 class ComparePanel(PhoenixCard):
     """Panel shell for compare sources, managing placeholder, image canvas slots, and metadata."""
     MIN_IMAGE_HEIGHT = 160
+    GENERATION_METADATA_FIELDS = (
+        ("model", "Model:"),
+        ("prompt", "Prompt:"),
+        ("negative_prompt", "Negative Prompt:"),
+        ("seed", "Seed:"),
+        ("steps", "Steps:"),
+        ("cfg", "CFG:"),
+        ("sampler", "Sampler:"),
+        ("scheduler", "Scheduler:"),
+    )
 
     def __init__(
         self,
@@ -179,7 +189,7 @@ class ComparePanel(PhoenixCard):
         self.meta_card.columnconfigure(1, weight=1)
         
         # Helper to create label pair
-        def create_meta_row(row_idx, label_text):
+        def create_meta_row(row_idx, label_text, *, long_text=False):
             lbl_key = tk.Label(
                 self.meta_card,
                 text=label_text,
@@ -198,14 +208,32 @@ class ComparePanel(PhoenixCard):
                 font=PHOENIX_THEME.font_small,
                 anchor="w",
                 justify="left",
-                wraplength=350,
+                wraplength=350 if long_text else 0,
             )
-            lbl_val.grid(row=row_idx, column=1, sticky="w", padx=10, pady=4)
+            lbl_val.grid(row=row_idx, column=1, sticky="ew", padx=10, pady=4)
             return lbl_val
 
-        self.meta_prompt_val = create_meta_row(0, "Prompt:")
-        self.meta_seed_val = create_meta_row(1, "Seed:")
-        self.meta_sampler_val = create_meta_row(2, "Sampler:")
+        self.metadata_value_labels = {}
+        for row_index, (field, label) in enumerate(self.GENERATION_METADATA_FIELDS):
+            self.metadata_value_labels[field] = create_meta_row(
+                row_index,
+                label,
+                long_text=field in {"prompt", "negative_prompt"},
+            )
+        self.meta_model_val = self.metadata_value_labels["model"]
+        self.meta_prompt_val = self.metadata_value_labels["prompt"]
+        self.meta_negative_prompt_val = self.metadata_value_labels["negative_prompt"]
+        self.meta_seed_val = self.metadata_value_labels["seed"]
+        self.meta_steps_val = self.metadata_value_labels["steps"]
+        self.meta_cfg_val = self.metadata_value_labels["cfg"]
+        self.meta_sampler_val = self.metadata_value_labels["sampler"]
+        self.meta_scheduler_val = self.metadata_value_labels["scheduler"]
+        self.meta_card.bind("<Configure>", self._resize_metadata_wrap, add="+")
+
+    def _resize_metadata_wrap(self, event: tk.Event) -> None:
+        available_width = max(120, event.width - 150)
+        self.meta_prompt_val.configure(wraplength=available_width)
+        self.meta_negative_prompt_val.configure(wraplength=available_width)
 
     def _on_combobox_changed(self, event) -> None:
         val = self.combobox.get()

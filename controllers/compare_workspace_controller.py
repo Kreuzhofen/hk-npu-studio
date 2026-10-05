@@ -86,13 +86,18 @@ class CompareWorkspaceController:
             )
             return set()
         fields = (
+            "model",
+            "prompt",
+            "negative_prompt",
+            "seed",
+            "steps",
+            "cfg",
+            "sampler",
+            "scheduler",
             "resolution",
             "image_format",
             "color_mode",
             "file_size",
-            "prompt",
-            "seed",
-            "sampler",
         )
         differences = {
             field
@@ -171,15 +176,29 @@ class CompareWorkspaceController:
             display_image = image.convert("RGB")
 
         # Check for sidecar JSON
-        prompt = "-"
-        seed = "-"
-        sampler = "-"
+        generation_values = {
+            "model": "-",
+            "prompt": "-",
+            "negative_prompt": "-",
+            "seed": "-",
+            "steps": "-",
+            "cfg": "-",
+            "sampler": "-",
+            "scheduler": "-",
+        }
         sidecar = path.with_suffix(".json")
         data, metadata_error = read_asset_metadata(sidecar)
         if not metadata_error:
-            prompt = str(data.get("prompt", "-"))
-            seed = str(data.get("seed", "-"))
-            sampler = str(data.get("sampler", "-"))
+            generation_values = {
+                "model": self._metadata_value(data, "model", "model_id"),
+                "prompt": self._metadata_value(data, "prompt"),
+                "negative_prompt": self._metadata_value(data, "negative_prompt"),
+                "seed": self._metadata_value(data, "seed"),
+                "steps": self._metadata_value(data, "steps"),
+                "cfg": self._metadata_value(data, "cfg", "cfg_scale"),
+                "sampler": self._metadata_value(data, "sampler"),
+                "scheduler": self._metadata_value(data, "scheduler"),
+            }
 
         metadata = CompareImageMetadata(
             path=path,
@@ -188,11 +207,17 @@ class CompareWorkspaceController:
             image_format=image_format,
             color_mode=color_mode,
             file_size=self._format_file_size(path.stat().st_size),
-            prompt=prompt,
-            seed=seed,
-            sampler=sampler,
+            **generation_values,
         )
         return display_image, metadata
+
+    @staticmethod
+    def _metadata_value(data: dict, primary: str, *fallbacks: str) -> str:
+        """Return the first present metadata value without treating numeric zero as missing."""
+        for key in (primary, *fallbacks):
+            if key in data and data[key] is not None:
+                return str(data[key])
+        return "-"
 
     def _metadata_lines(self, metadata: CompareImageMetadata | None) -> tuple[str, ...]:
         if metadata is None:

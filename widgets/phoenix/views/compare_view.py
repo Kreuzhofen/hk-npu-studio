@@ -239,41 +239,47 @@ class PhoenixCompareView(WorkspaceFrame):
         orig_meta = state.original_metadata
         out_meta = state.output_metadata
         
-        # Left Panel metadata (Prompt, Seed, Sampler)
+        metadata_fields = tuple(
+            field for field, _label in ComparePanel.GENERATION_METADATA_FIELDS
+        )
+
+        # Left Panel metadata
         if orig_meta:
-            self.original_panel.meta_prompt_val.configure(text=getattr(orig_meta, "prompt", "-"))
-            self.original_panel.meta_seed_val.configure(text=getattr(orig_meta, "seed", "-"))
-            self.original_panel.meta_sampler_val.configure(text=getattr(orig_meta, "sampler", "-"))
+            for field in metadata_fields:
+                self.original_panel.metadata_value_labels[field].configure(
+                    text=getattr(orig_meta, field, "-")
+                )
             if orig_meta.filename in self.original_panel.combobox.cget("values"):
                 self.original_panel.combobox.set(orig_meta.filename)
         else:
-            self.original_panel.meta_prompt_val.configure(text="-")
-            self.original_panel.meta_seed_val.configure(text="-")
-            self.original_panel.meta_sampler_val.configure(text="-")
+            for field in metadata_fields:
+                self.original_panel.metadata_value_labels[field].configure(text="-")
             self.original_panel.combobox.set(tr("no_selection", "Keine Auswahl"))
             
         # Right Panel metadata
         if out_meta:
-            self.result_panel.meta_prompt_val.configure(text=getattr(out_meta, "prompt", "-"))
-            self.result_panel.meta_seed_val.configure(text=getattr(out_meta, "seed", "-"))
-            self.result_panel.meta_sampler_val.configure(text=getattr(out_meta, "sampler", "-"))
+            for field in metadata_fields:
+                self.result_panel.metadata_value_labels[field].configure(
+                    text=getattr(out_meta, field, "-")
+                )
             if out_meta.filename in self.result_panel.combobox.cget("values"):
                 self.result_panel.combobox.set(out_meta.filename)
         else:
-            self.result_panel.meta_prompt_val.configure(text="-")
-            self.result_panel.meta_seed_val.configure(text="-")
-            self.result_panel.meta_sampler_val.configure(text="-")
+            for field in metadata_fields:
+                self.result_panel.metadata_value_labels[field].configure(text="-")
             self.result_panel.combobox.set(tr("no_selection", "Keine Auswahl"))
             
         # Reset colors
-        for val_lbl in (self.original_panel.meta_prompt_val, self.original_panel.meta_seed_val, self.original_panel.meta_sampler_val,
-                        self.result_panel.meta_prompt_val, self.result_panel.meta_seed_val, self.result_panel.meta_sampler_val):
+        for val_lbl in (
+            *self.original_panel.metadata_value_labels.values(),
+            *self.result_panel.metadata_value_labels.values(),
+        ):
             val_lbl.configure(fg=PHOENIX_THEME.text_primary)
 
     def _compare_metadata(self) -> None:
         differences = self.controller.compare_metadata()
         state = self.controller.get_state()
-        fields = ("prompt", "seed", "sampler")
+        fields = tuple(field for field, _label in ComparePanel.GENERATION_METADATA_FIELDS)
         has_original = state.original_metadata and any(getattr(state.original_metadata, field, "-") not in ("", "-") for field in fields)
         has_output = state.output_metadata and any(getattr(state.output_metadata, field, "-") not in ("", "-") for field in fields)
         if not has_original and not has_output:
@@ -288,15 +294,10 @@ class PhoenixCompareView(WorkspaceFrame):
         self.controller.model.set_status(tr("compare_metadata_status", "Metadaten geprüft"))
         if differences:
             diff_color = PHOENIX_THEME.accent
-            if "prompt" in differences:
-                self.original_panel.meta_prompt_val.configure(fg=diff_color)
-                self.result_panel.meta_prompt_val.configure(fg=diff_color)
-            if "seed" in differences:
-                self.original_panel.meta_seed_val.configure(fg=diff_color)
-                self.result_panel.meta_seed_val.configure(fg=diff_color)
-            if "sampler" in differences:
-                self.original_panel.meta_sampler_val.configure(fg=diff_color)
-                self.result_panel.meta_sampler_val.configure(fg=diff_color)
+            for field in fields:
+                if field in differences:
+                    self.original_panel.metadata_value_labels[field].configure(fg=diff_color)
+                    self.result_panel.metadata_value_labels[field].configure(fg=diff_color)
         self.status_bar.update_values(self.controller.status_items())
 
     def _on_original_selected(self, filename: str) -> None:

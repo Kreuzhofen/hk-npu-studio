@@ -23,9 +23,14 @@ def test_compare_loads_shared_nested_sidecar_metadata(tmp_path):
         json.dumps(
             {
                 "metadata": {
+                    "model": "stable_diffusion_v3_5_qai",
                     "prompt": "release prompt",
+                    "negative_prompt": "blur, artifacts",
                     "seed": 42,
+                    "steps": 20,
+                    "cfg": 4.5,
                     "sampler": "Euler",
+                    "scheduler": "Normal",
                 }
             }
         ),
@@ -36,9 +41,52 @@ def test_compare_loads_shared_nested_sidecar_metadata(tmp_path):
     controller.load_output(image)
 
     metadata = controller.get_state().output_metadata
+    assert metadata.model == "stable_diffusion_v3_5_qai"
     assert metadata.prompt == "release prompt"
+    assert metadata.negative_prompt == "blur, artifacts"
     assert metadata.seed == "42"
+    assert metadata.steps == "20"
+    assert metadata.cfg == "4.5"
     assert metadata.sampler == "Euler"
+    assert metadata.scheduler == "Normal"
+
+
+def test_compare_uses_model_and_cfg_aliases_without_losing_zero(tmp_path):
+    image = tmp_path / "aliases.png"
+    create_image(image, "blue")
+    image.with_suffix(".json").write_text(
+        json.dumps({"model_id": "sd15", "cfg_scale": 0, "seed": 0, "steps": 0}),
+        encoding="utf-8",
+    )
+    controller = CompareWorkspaceController()
+
+    controller.load_output(image)
+
+    metadata = controller.get_state().output_metadata
+    assert metadata.model == "sd15"
+    assert metadata.cfg == "0"
+    assert metadata.seed == "0"
+    assert metadata.steps == "0"
+
+
+def test_compare_missing_sidecar_defaults_all_generation_metadata(tmp_path):
+    image = tmp_path / "plain.png"
+    create_image(image, "blue")
+    controller = CompareWorkspaceController()
+
+    controller.load_original(image)
+
+    metadata = controller.get_state().original_metadata
+    assert {
+        field: getattr(metadata, field)
+        for field in (
+            "model", "prompt", "negative_prompt", "seed",
+            "steps", "cfg", "sampler", "scheduler",
+        )
+    } == {
+        "model": "-", "prompt": "-", "negative_prompt": "-", "seed": "-",
+        "steps": "-", "cfg": "-", "sampler": "-", "scheduler": "-",
+    }
 
 
 def test_compare_reports_metadata_differences_deterministically(tmp_path):
@@ -49,11 +97,19 @@ def test_compare_reports_metadata_differences_deterministically(tmp_path):
     create_image(original, "blue")
     create_image(output, "red")
     original.with_suffix(".json").write_text(
-        json.dumps({"prompt": "same", "seed": 1, "sampler": "Euler"}),
+        json.dumps({
+            "model": "sd15", "prompt": "first", "negative_prompt": "blur",
+            "seed": 1, "steps": 10, "cfg": 5.0, "sampler": "Euler",
+            "scheduler": "Normal",
+        }),
         encoding="utf-8",
     )
     output.with_suffix(".json").write_text(
-        json.dumps({"prompt": "same", "seed": 2, "sampler": "DDIM"}),
+        json.dumps({
+            "model": "sd35", "prompt": "second", "negative_prompt": "noise",
+            "seed": 2, "steps": 20, "cfg": 7.0, "sampler": "DDIM",
+            "scheduler": "Karras",
+        }),
         encoding="utf-8",
     )
     controller = CompareWorkspaceController()
@@ -62,7 +118,10 @@ def test_compare_reports_metadata_differences_deterministically(tmp_path):
 
     differences = controller.compare_metadata()
 
-    assert differences == {"file_size", "seed", "sampler"}
+    assert differences == {
+        "model", "prompt", "negative_prompt", "seed", "steps", "cfg",
+        "sampler", "scheduler", "file_size",
+    }
     assert "Unterschiede" in controller.get_state().status
 
 
@@ -149,3 +208,32 @@ def test_compare_canvas_preserves_image_height_after_toolbar_wrap(tk_root):
         view.destroy()
     finally:
         tk_root.withdraw()
+
+
+def test_compare_panel_exposes_all_generation_metadata_rows(tk_root, tmp_path):
+    image = tmp_path / "ui-output.png"
+    create_image(image, "blue")
+    expected_values = {
+        "model": "sd35", "prompt": "full prompt", "negative_prompt": "blur",
+        "seed": "23", "steps": "18", "cfg": "6.5", "sampler": "Euler",
+        "scheduler": "Normal",
+    }
+    image.with_suffix(".json").write_text(
+        json.dumps(expected_values), encoding="utf-8"
+    )
+    controller = CompareWorkspaceController()
+    controller.load_output(image)
+    view = PhoenixCompareView(tk_root, controller=controller)
+    try:
+        assert set(view.original_panel.metadata_value_labels) == set(expected_values)
+        assert set(view.result_panel.metadata_value_labels) == set(expected_values)
+        assert {
+            field: label.cget("text")
+            for field, label in view.result_panel.metadata_value_labels.items()
+        } == expected_values
+        view.original_panel.meta_card.event_generate("<Configure>", width=520, height=200)
+        tk_root.update_idletasks()
+        assert int(view.original_panel.meta_prompt_val.cget("wraplength")) >= 120
+        assert int(view.original_panel.meta_negative_prompt_val.cget("wraplength")) >= 120
+    finally:
+        view.destroy()
