@@ -86,6 +86,22 @@ class ApplicationController:
         )
         builder.build()
 
+    def open_update_dialog(self):
+        existing = getattr(self.app, "_update_dialog", None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.lift()
+                    existing.focus_force()
+                    return existing
+            except Exception:
+                pass
+        from dialogs.update_dialog import UpdateDialog
+
+        dialog = UpdateDialog(self.app, exit_app=self.app.exit_app)
+        self.app._update_dialog = dialog
+        return dialog
+
     def _show_startup_overlay(self):
         self.app.startup_overlay = StartupOverlay(self.app, self.app.brand)
         self.app.startup_overlay.show()

@@ -22,7 +22,6 @@ from widgets.plugin_card import PluginCard
 from widgets.job_card import JobCard
 from widgets.thumbnail_gallery import ThumbnailGallery
 from widgets.queue_card import QueueCard
-from widgets.status_bar import StatusBar
 
 
 class UIBuilder:
@@ -64,6 +63,7 @@ class UIBuilder:
         )
 
     def _build_menu_bar(self):
+        application_controller = getattr(self.app, "application_controller", None)
         self.app.menu_bar = MenuBar(
             self.app,
             callbacks={
@@ -78,6 +78,9 @@ class UIBuilder:
                 "open_plugins_dir": self.app.open_plugins_dir,
                 "show_log": self.app.show_log,
                 "about": self.app.open_about_dialog,
+                "update": getattr(
+                    application_controller, "open_update_dialog", None
+                ),
             },
         )
 
@@ -199,9 +202,6 @@ class UIBuilder:
 
         self.app.log_card = LogCard(main)
         self.app.log_card.pack(fill="x", pady=(0, Theme.spacing("medium")))
-
-        self.app.status_bar = StatusBar(main)
-        self.app.status_bar.pack(fill="x")
 
     def _log_runtime_capabilities(self):
         if self.dnd_available:

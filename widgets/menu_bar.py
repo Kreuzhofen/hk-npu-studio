@@ -34,6 +34,7 @@ class MenuBar:
         self._create_plugins_menu()
         self._create_tools_menu()
         self._create_help_menu()
+        self._create_update_entry()
 
         # Bind hotkeys to master window
         self.master.bind("<F11>", self._on_f11)
@@ -159,3 +160,9 @@ class MenuBar:
         )
 
         self.menu.add_cascade(label=tr("menu_help", "Hilfe"), menu=menu)
+
+    def _create_update_entry(self) -> None:
+        self.menu.add_command(
+            label=tr("menu_update", "Update"),
+            command=lambda: self._callback("update"),
+        )
