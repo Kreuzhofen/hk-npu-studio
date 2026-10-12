@@ -85,11 +85,23 @@ QNN_SKELETON_FILES = (
 
 
 def resolve_fidesr_qnn_runtime() -> tuple[Path, Path, Path]:
-    """Resolve the packaged HTP runtime first, then a discovered development SDK."""
+    """Resolve the FiDeSR runner and a complete, matched HTP support set."""
     packaged = ROOT / "qnn_runtime"
     packaged_runner = packaged / "bin" / "qnn-net-run.exe"
     packaged_lib = packaged / "lib"
     packaged_hex = packaged / "hexagon"
+    packaged_ort_qnn = ROOT / "onnxruntime_qnn"
+    packaged_ort_required = (
+        *(packaged_ort_qnn / name for name in QNN_RUNTIME_FILES),
+        *(packaged_ort_qnn / name for name in QNN_SKELETON_FILES),
+    )
+    if (
+        packaged_runner.is_file()
+        and packaged_runner.stat().st_size > 0
+        and all(path.is_file() and path.stat().st_size > 0 for path in packaged_ort_required)
+    ):
+        return packaged_runner, packaged_ort_qnn / "QnnHtp.dll", packaged_ort_qnn
+
     packaged_required = (
         packaged_runner,
         *(packaged_lib / name for name in QNN_RUNTIME_FILES),
@@ -327,6 +339,27 @@ class FiDeSRPhotoRestoreBackend:
 
         return None
 
+    @staticmethod
+    def _runner_failure_message(return_code: int, log_text: str) -> str:
+        diagnostic = re.search(
+            r"FIDESR_DIAG_FAILURE\s+stage=(\S+)\s+qnn_exit=(-?\d+)\s+"
+            r"diagnostic_log=([^\r\n]+)",
+            log_text,
+        )
+        if diagnostic:
+            stage, qnn_exit, diagnostic_log = diagnostic.groups()
+            return (
+                "FiDeSR Strong failed; "
+                f"stage={stage}; qnn_exit={qnn_exit}; "
+                f"diagnostic_log={diagnostic_log.strip()}"
+            )
+
+        useful_tail = "\n".join(
+            line for line in log_text.splitlines()[-8:] if line.strip()
+        )
+        message = f"FiDeSR Strong runner failed with exit code {return_code}."
+        return f"{message}\n{useful_tail}" if useful_tail else message
+
     def _run_strong(
         self,
         *,
@@ -411,10 +444,7 @@ class FiDeSRPhotoRestoreBackend:
         log_text = "\n".join(log_lines)
 
         if return_code != 0:
-            raise RuntimeError(
-                f"FiDeSR Strong runner failed with exit code {return_code}.\n"
-                f"{log_text[-6000:]}"
-            )
+            raise RuntimeError(self._runner_failure_message(return_code, log_text))
 
         if "ALL_FIDESR_AI_INFERENCE_QNN_HTP=PASS" not in log_text:
             raise RuntimeError(

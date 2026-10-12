@@ -232,6 +232,57 @@ def prepare_qnn_input_staging(stage_name, input_sets, stage_dir):
     return input_list
 
 
+def _qnn_result_counts(output_dir):
+    result_dirs = sorted(
+        path for path in Path(output_dir).glob("Result_*") if path.is_dir()
+    )
+    valid_output_files = []
+    valid_result_dirs = 0
+    for result_dir in result_dirs:
+        valid_in_dir = [
+            path for path in result_dir.glob("*.raw")
+            if path.is_file() and path.stat().st_size > 0
+        ]
+        if valid_in_dir:
+            valid_result_dirs += 1
+            valid_output_files.extend(valid_in_dir)
+    return len(result_dirs), len(valid_output_files), valid_result_dirs
+
+
+def _qnn_log_tail(log_path, max_lines=20):
+    try:
+        lines = [
+            line.strip()
+            for line in Path(log_path).read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines()
+            if line.strip()
+        ]
+    except OSError as exc:
+        return [f"QNN log unavailable: {exc}"]
+    return lines[-max_lines:] or ["QNN log contained no output."]
+
+
+def _preserve_qnn_failure_artifacts(
+    stage_name, input_list, qnn_log_path, output_dir
+):
+    diagnostic_dir = Path(output_dir).parent / "fidesr_failure_diagnostics"
+    diagnostic_dir.mkdir(parents=True, exist_ok=True)
+    diagnostic_log = diagnostic_dir / f"{stage_name.lower()}_qnn.log"
+    diagnostic_inputs = diagnostic_dir / f"{stage_name.lower()}_input_list.txt"
+
+    if Path(qnn_log_path).is_file():
+        shutil.copy2(qnn_log_path, diagnostic_log)
+    else:
+        diagnostic_log.write_text(
+            "qnn-net-run produced no captured output.\n",
+            encoding="utf-8",
+        )
+    if Path(input_list).is_file():
+        shutil.copy2(input_list, diagnostic_inputs)
+    return diagnostic_log
+
+
 def run_qnn_stage(stage_name, input_sets, output_dir):
 
     context = STAGE_CONTEXTS.get(stage_name)
@@ -254,6 +305,7 @@ def run_qnn_stage(stage_name, input_sets, output_dir):
 
     input_stage = output_dir.parent / f".{stage_name.lower()}_qnn_inputs"
     input_list = prepare_qnn_input_staging(stage_name, input_sets, input_stage)
+    qnn_log_path = input_stage / "qnn-net-run.log"
 
     args = [
         str(QNN_RUNNER),
@@ -263,25 +315,40 @@ def run_qnn_stage(stage_name, input_sets, output_dir):
         "--output_dir", str(output_dir),
         "--use_native_input_files",
         "--use_native_output_files",
-        "--log_level", "error",
+        "--log_level", "info",
     ]
 
     total_tiles = len(input_sets)
     log(f"{stage_name}: QNN/HTP START ({total_tiles} inference sets)")
     log(f"STAGE_START: stage={stage_name} total={total_tiles}")
+    log(
+        "FIDESR_DIAG_STAGE_START "
+        f"stage={stage_name} tile_count={total_tiles} "
+        f"context_file={context.name} "
+        f"qnn_runner={QNN_RUNNER.resolve()} "
+        f"qnn_backend={QNN_BACKEND.resolve()} "
+        f"qnn_skeleton_dir={QNN_HEX.resolve()}"
+    )
 
     start = time.perf_counter()
 
     proc = None
+    qnn_log_handle = None
     completed = 0
     clean_exit = False
     try:
+        qnn_log_handle = open(
+            qnn_log_path,
+            "w",
+            encoding="utf-8",
+            errors="replace",
+        )
         proc = subprocess.Popen(
             args,
             env=env,
             cwd=str(input_stage),
-            stdout=sys.stdout,
-            stderr=sys.stderr,
+            stdout=qnn_log_handle,
+            stderr=subprocess.STDOUT,
             **_subprocess_creation_kwargs(),
         )
         while True:
@@ -324,6 +391,32 @@ def run_qnn_stage(stage_name, input_sets, output_dir):
             clean_exit = False
     except BaseException:
         clean_exit = False
+        if qnn_log_handle is not None:
+            qnn_log_handle.flush()
+            qnn_log_handle.close()
+            qnn_log_handle = None
+        diagnostic_log = _preserve_qnn_failure_artifacts(
+            stage_name, input_list, qnn_log_path, output_dir
+        )
+        result_dir_count, valid_output_count, _valid_result_dirs = (
+            _qnn_result_counts(output_dir)
+        )
+        dt = time.perf_counter() - start
+        log(
+            "FIDESR_DIAG_STAGE_END "
+            f"stage={stage_name} qnn_exit=-1 "
+            f"result_dirs={result_dir_count} "
+            f"valid_outputs={valid_output_count} "
+            f"elapsed_seconds={dt:.2f}"
+        )
+        log(
+            "FIDESR_DIAG_FAILURE "
+            f"stage={stage_name} qnn_exit=-1 "
+            f"diagnostic_log={diagnostic_log}"
+        )
+        for tail_line in _qnn_log_tail(qnn_log_path):
+            log(f"FIDESR_DIAG_QNN_TAIL stage={stage_name} {tail_line}")
+        shutil.rmtree(input_stage, ignore_errors=True)
         raise
     finally:
         if proc is not None and not clean_exit and proc.poll() is None:
@@ -335,7 +428,8 @@ def run_qnn_stage(stage_name, input_sets, output_dir):
                     proc.kill()
             except Exception:
                 pass
-        shutil.rmtree(input_stage, ignore_errors=True)
+        if qnn_log_handle is not None:
+            qnn_log_handle.close()
 
     if proc.poll() is None:
         proc.wait()
@@ -355,15 +449,38 @@ def run_qnn_stage(stage_name, input_sets, output_dir):
             break
 
     dt = time.perf_counter() - start
+    result_dir_count, valid_output_count, valid_result_dirs = (
+        _qnn_result_counts(output_dir)
+    )
 
     log(f"{stage_name}: QNN_EXIT_CODE={proc.returncode}")
     log(f"{stage_name}: QNN_RUNTIME_SEC={dt:.2f}")
+    log(
+        "FIDESR_DIAG_STAGE_END "
+        f"stage={stage_name} qnn_exit={proc.returncode} "
+        f"result_dirs={result_dir_count} "
+        f"valid_outputs={valid_output_count} "
+        f"elapsed_seconds={dt:.2f}"
+    )
 
-    if proc.returncode != 0:
-        hard_stop(
-            f"{stage_name}: Abruf/Ausführung des serialisierten "
-            f"QNN/HTP-Kontexts fehlgeschlagen: {context}"
+    if proc.returncode != 0 or valid_result_dirs < total_tiles:
+        diagnostic_log = _preserve_qnn_failure_artifacts(
+            stage_name, input_list, qnn_log_path, output_dir
         )
+        log(
+            "FIDESR_DIAG_FAILURE "
+            f"stage={stage_name} qnn_exit={proc.returncode} "
+            f"diagnostic_log={diagnostic_log}"
+        )
+        for tail_line in _qnn_log_tail(qnn_log_path):
+            log(f"FIDESR_DIAG_QNN_TAIL stage={stage_name} {tail_line}")
+        shutil.rmtree(input_stage, ignore_errors=True)
+        hard_stop(
+            f"{stage_name}: QNN/HTP stage failed; "
+            f"qnn_exit={proc.returncode}; diagnostic_log={diagnostic_log}"
+        )
+
+    shutil.rmtree(input_stage, ignore_errors=True)
 
     result_files = []
 
