@@ -28,12 +28,14 @@ def update_manifest() -> ApplicationUpdateManifest:
         asset_name="HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe",
         asset_size=1024,
         release_name="VERSION 2.0 RC4",
+        release_notes="## Highlights\n- Faster startup\n- Clearer update status",
     )
 
 
 class WorkflowService:
     def __init__(self, check, *, stage_success=True, launch_success=True):
         self.check = check
+        self.current_version = "2.0.0-rc.3"
         self.stage_success = stage_success
         self.launch_success = launch_success
         self.stage_calls = 0
@@ -99,12 +101,18 @@ class UpdateDialogStateHarness:
     _cancel = UpdateDialog._cancel
     _format_bytes = staticmethod(UpdateDialog._format_bytes)
     _localized_error = staticmethod(UpdateDialog._localized_error)
+    _manifest_installable = staticmethod(UpdateDialog._manifest_installable)
+    _display_version = staticmethod(UpdateDialog._display_version)
+    _version_details = classmethod(UpdateDialog._version_details.__func__)
+    _release_highlights = staticmethod(UpdateDialog._release_highlights)
+    _set_highlights = UpdateDialog._set_highlights
 
     def __init__(self):
         self._manifest = None
         self._running = False
         self.status_label = FakeDialogWidget()
         self.details_label = FakeDialogWidget()
+        self.highlights_title_label = FakeDialogWidget(visible=False)
         self.notes_label = FakeDialogWidget()
         self.progress = FakeDialogWidget(visible=False)
         self.progress_label = FakeDialogWidget(visible=False)
@@ -119,12 +127,18 @@ class UpdateDialogStateHarness:
 
 def test_checking_transitions_to_up_to_date():
     workflow, states, exits = make_workflow(
-        WorkflowService(ApplicationUpdateCheck(False, "current"))
+        WorkflowService(
+            ApplicationUpdateCheck(
+                False, "current", latest_version="2.0.0-rc.3"
+            )
+        )
     )
 
     workflow.run_check()
 
     assert [state for state, _ in states] == ["CHECKING", "UP_TO_DATE"]
+    assert states[-1][1]["installed_version"] == "2.0.0-rc.3"
+    assert states[-1][1]["latest_version"] == "2.0.0-rc.3"
     assert exits == []
 
 
@@ -138,6 +152,7 @@ def test_checking_transitions_to_available():
 
     assert [state for state, _ in states] == ["CHECKING", "AVAILABLE"]
     assert states[-1][1]["manifest"] is manifest
+    assert states[-1][1]["installed_version"] == "2.0.0-rc.3"
 
 
 def test_up_to_date_state_hides_checking_progress_and_closes():
@@ -145,12 +160,22 @@ def test_up_to_date_state_hides_checking_progress_and_closes():
     dialog = UpdateDialogStateHarness()
     try:
         dialog._show_progress()
-        dialog._on_state("UP_TO_DATE", {})
+        dialog._on_state(
+            "UP_TO_DATE",
+            {
+                "installed_version": "2.0.0-rc.3",
+                "latest_version": "2.0.0-rc.3",
+            },
+        )
 
         assert dialog.status_label.options["text"] == "HK NPU STUDIO is up to date."
         assert "Checking" not in dialog.status_label.options["text"]
         assert dialog.progress.visible is False
         assert dialog.progress_label.visible is False
+        assert "Installed version:  v2.0.0-rc.3" in dialog.details_label.options["text"]
+        assert "Latest version:  v2.0.0-rc.3" in dialog.details_label.options["text"]
+        assert dialog.highlights_title_label.visible is False
+        assert dialog.notes_label.visible is False
         assert dialog.install_button.options["state"] == "disabled"
         assert dialog.cancel_button.options["text"] == "Close"
 
@@ -168,10 +193,25 @@ def test_checking_and_available_states_keep_expected_controls():
         assert dialog.status_label.options["text"] == "Checking for updates..."
         assert dialog.progress.visible is False
 
-        dialog._on_state("AVAILABLE", {"manifest": update_manifest()})
-        assert dialog.status_label.options["text"] == "Update available"
+        dialog._on_state(
+            "AVAILABLE",
+            {
+                "manifest": update_manifest(),
+                "installed_version": "2.0.0-rc.3",
+            },
+        )
+        assert dialog.status_label.options["text"] == (
+            "A new version of HK NPU STUDIO is available."
+        )
+        assert "Installed version:  v2.0.0-rc.3" in dialog.details_label.options["text"]
+        assert "Available version:  v2.0.0-rc.4" in dialog.details_label.options["text"]
+        assert dialog.highlights_title_label.visible is True
+        assert dialog.notes_label.options["text"].splitlines() == [
+            "• Faster startup",
+            "• Clearer update status",
+        ]
         assert dialog.install_button.options["state"] == "normal"
-        assert dialog.cancel_button.options["text"] == "Cancel"
+        assert dialog.cancel_button.options["text"] == "Close"
     finally:
         set_language("de_DE")
 
@@ -189,6 +229,67 @@ def test_error_state_hides_running_progress_and_uses_close():
         assert dialog.cancel_button.options["text"] == "Close"
     finally:
         set_language("de_DE")
+
+
+def test_missing_versions_and_release_notes_have_safe_fallbacks():
+    set_language("en_US")
+    dialog = UpdateDialogStateHarness()
+    try:
+        dialog._on_state(
+            "UP_TO_DATE", {"installed_version": "", "latest_version": None}
+        )
+        assert dialog.details_label.options["text"].count("Unknown") == 2
+
+        manifest = update_manifest()
+        object.__setattr__(manifest, "release_notes", "")
+        dialog._on_state(
+            "AVAILABLE", {"manifest": manifest, "installed_version": None}
+        )
+        assert "Unknown" in dialog.details_label.options["text"]
+        assert dialog.highlights_title_label.visible is False
+        assert dialog.notes_label.visible is False
+    finally:
+        set_language("de_DE")
+
+
+def test_release_highlights_are_markdown_safe_deduplicated_and_bounded():
+    notes = """# Release notes
+- **Faster** startup
+- [Cleaner UI](https://example.test/details)
+- Faster startup
+- Umlauts: äöü
+- Fourth item
+- Fifth item
+- Sixth item
+- {long_line}
+```python
+ignored = True
+```
+""".format(long_line="x" * 200)
+
+    highlights = UpdateDialog._release_highlights(notes)
+
+    assert highlights == [
+        "Faster startup",
+        "Cleaner UI",
+        "Umlauts: äöü",
+        "Fourth item",
+        "Fifth item",
+    ]
+    assert len(highlights) == 5
+    assert len(UpdateDialog._release_highlights("x" * 200)[0]) <= 140
+
+
+def test_uninstallable_available_manifest_keeps_download_disabled():
+    dialog = UpdateDialogStateHarness()
+    manifest = update_manifest()
+    object.__setattr__(manifest, "package_url", "")
+
+    dialog._on_state(
+        "AVAILABLE", {"manifest": manifest, "installed_version": "2.0.0-rc.3"}
+    )
+
+    assert dialog.install_button.options["state"] == "disabled"
 
 
 def test_verified_download_progress_launches_then_exits_once():

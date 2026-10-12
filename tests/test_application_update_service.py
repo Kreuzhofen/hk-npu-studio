@@ -213,6 +213,7 @@ def test_github_ignores_drafts_same_and_older_releases():
 
     assert result.available is False
     assert result.error_code is None
+    assert result.latest_version == "2.0.0-rc.3"
 
     stable_service = ApplicationUpdateService(current_version="2.0.0")
     assert stable_service.check_github_releases(

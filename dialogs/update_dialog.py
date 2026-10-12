@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import threading
 import tkinter as tk
 from queue import Empty, Queue
@@ -40,12 +41,24 @@ class ApplicationUpdateWorkflow:
     def run_check(self) -> None:
         self._emit("CHECKING")
         result = self.service.fetch_latest_github_release()
+        installed_version = getattr(
+            self.service, "current_version", RELEASE.package_version
+        )
         if result.available and result.manifest is not None:
-            self._emit("AVAILABLE", manifest=result.manifest)
+            self._emit(
+                "AVAILABLE",
+                manifest=result.manifest,
+                installed_version=installed_version,
+            )
         elif result.error_code:
             self._emit("ERROR", message=result.message, error_code=result.error_code)
         else:
-            self._emit("UP_TO_DATE", message=result.message)
+            self._emit(
+                "UP_TO_DATE",
+                message=result.message,
+                installed_version=installed_version,
+                latest_version=result.latest_version,
+            )
 
     def install_async(self, manifest: ApplicationUpdateManifest) -> None:
         self._cancelled = False
@@ -157,6 +170,15 @@ class UpdateDialog(StudioDialog):
             wraplength=520,
         )
         self.details_label.pack(fill="x", pady=(PHOENIX_THEME.space_md, 0))
+        self.highlights_title_label = tk.Label(
+            content,
+            text=tr("update_highlights", "Neu in diesem Update"),
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title,
+            anchor="w",
+            justify="left",
+        )
         self.progress = ttk.Progressbar(
             content,
             mode="determinate",
@@ -181,7 +203,7 @@ class UpdateDialog(StudioDialog):
             justify="left",
             wraplength=520,
         )
-        self.notes_label.pack(fill="both", expand=True, pady=(PHOENIX_THEME.space_md, 0))
+        content.bind("<Configure>", self._on_content_configure, add="+")
 
         self.cancel_button = PhoenixButton(
             self.footer,
@@ -205,9 +227,9 @@ class UpdateDialog(StudioDialog):
         message = str(payload.get("message", ""))
         if state == "CHECKING":
             self._hide_progress()
+            self._set_highlights([])
             self.status_label.configure(text=tr("update_checking", "Suche nach Updates..."))
             self.details_label.configure(text="")
-            self.notes_label.configure(text="")
             self.install_button.configure(state="disabled")
             self.cancel_button.configure(text=tr("cancel", "Abbrechen"))
         elif state == "UP_TO_DATE":
@@ -216,8 +238,15 @@ class UpdateDialog(StudioDialog):
             self.status_label.configure(
                 text=tr("update_up_to_date", "HK NPU STUDIO ist auf dem neuesten Stand.")
             )
-            self.details_label.configure(text="")
-            self.notes_label.configure(text="")
+            self.details_label.configure(
+                text=self._version_details(
+                    payload.get("installed_version"),
+                    payload.get("latest_version"),
+                    remote_key="update_latest_version",
+                    remote_fallback="Neueste Version",
+                )
+            )
+            self._set_highlights([])
             self.install_button.configure(state="disabled")
             self.cancel_button.configure(text=tr("close", "Schließen"))
         elif state == "AVAILABLE":
@@ -225,20 +254,34 @@ class UpdateDialog(StudioDialog):
             self._hide_progress()
             self._manifest = payload["manifest"]
             manifest = self._manifest
-            self.status_label.configure(text=tr("update_available", "Update verfügbar"))
+            installable = self._manifest_installable(manifest)
+            self.status_label.configure(
+                text=tr(
+                    "update_available_message",
+                    "Eine neue Version von HK NPU STUDIO ist verfügbar.",
+                )
+            )
             self.details_label.configure(
-                text="\n".join(
+                text="\n\n".join(
                     (
-                        f"{tr('update_current_version', 'Aktuelle Version')}: {RELEASE.package_version}",
-                        f"{tr('update_new_version', 'Neue Version')}: {manifest.version}",
-                        manifest.release_name,
+                        self._version_details(
+                            payload.get("installed_version"),
+                            manifest.version,
+                            remote_key="update_new_version",
+                            remote_fallback="Verfügbare Version",
+                        ),
                         f"{tr('update_download_size', 'Downloadgröße')}: {self._format_bytes(manifest.asset_size)}",
+                        tr(
+                            "update_install_target",
+                            "Mit Download & Installieren wird HK NPU STUDIO auf {version} aktualisiert.",
+                            version=self._display_version(manifest.version),
+                        ),
                     )
                 )
             )
-            self.notes_label.configure(text=manifest.release_notes[:1200])
-            self.install_button.configure(state="normal")
-            self.cancel_button.configure(text=tr("cancel", "Abbrechen"))
+            self._set_highlights(self._release_highlights(manifest.release_notes))
+            self.install_button.configure(state="normal" if installable else "disabled")
+            self.cancel_button.configure(text=tr("close", "Schließen"))
         elif state in ("DOWNLOADING", "VERIFYING"):
             self._running = True
             self._show_progress()
@@ -263,6 +306,8 @@ class UpdateDialog(StudioDialog):
         elif state == "ERROR":
             self._running = False
             self._hide_progress()
+            self.details_label.configure(text="")
+            self._set_highlights([])
             self.status_label.configure(
                 text=self._localized_error(message, payload.get("error_code"))
             )
@@ -274,13 +319,13 @@ class UpdateDialog(StudioDialog):
             self.progress.pack(
                 fill="x",
                 pady=(PHOENIX_THEME.space_lg, 0),
-                before=self.notes_label,
+                after=self.details_label,
             )
         if not self.progress_label.winfo_manager():
             self.progress_label.pack(
                 fill="x",
                 pady=(PHOENIX_THEME.space_xs, 0),
-                before=self.notes_label,
+                after=self.progress,
             )
 
     def _hide_progress(self) -> None:
@@ -288,6 +333,33 @@ class UpdateDialog(StudioDialog):
         self.progress_label.pack_forget()
         self.progress.configure(value=0)
         self.progress_label.configure(text="")
+
+    def _set_highlights(self, highlights: list[str]) -> None:
+        if highlights:
+            self.highlights_title_label.configure(
+                text=tr("update_highlights", "Neu in diesem Update")
+            )
+            self.notes_label.configure(
+                text="\n".join(f"• {highlight}" for highlight in highlights)
+            )
+            if not self.highlights_title_label.winfo_manager():
+                self.highlights_title_label.pack(
+                    fill="x", pady=(PHOENIX_THEME.space_lg, 0)
+                )
+            if not self.notes_label.winfo_manager():
+                self.notes_label.pack(
+                    fill="x", pady=(PHOENIX_THEME.space_sm, 0)
+                )
+        else:
+            self.highlights_title_label.pack_forget()
+            self.notes_label.pack_forget()
+            self.notes_label.configure(text="")
+
+    def _on_content_configure(self, event: tk.Event) -> None:
+        wraplength = max(240, int(event.width) - 2 * PHOENIX_THEME.space_sm)
+        self.status_label.configure(wraplength=wraplength)
+        self.details_label.configure(wraplength=wraplength)
+        self.notes_label.configure(wraplength=wraplength)
 
     def _install(self) -> None:
         if self._manifest is None or self._running:
@@ -299,6 +371,67 @@ class UpdateDialog(StudioDialog):
             self.workflow.cancel()
         else:
             self.close()
+
+    @staticmethod
+    def _manifest_installable(manifest: ApplicationUpdateManifest) -> bool:
+        return bool(manifest.version and manifest.package_url and manifest.sha256)
+
+    @staticmethod
+    def _display_version(value: object) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return tr("update_unknown", "Unbekannt")
+        return text if text.casefold().startswith("v") else f"v{text}"
+
+    @classmethod
+    def _version_details(
+        cls,
+        installed_version: object,
+        remote_version: object,
+        *,
+        remote_key: str,
+        remote_fallback: str,
+    ) -> str:
+        installed_label = tr("update_current_version", "Installierte Version")
+        remote_label = tr(remote_key, remote_fallback)
+        return "\n".join(
+            (
+                f"{installed_label}:  {cls._display_version(installed_version)}",
+                f"{remote_label}:  {cls._display_version(remote_version)}",
+            )
+        )
+
+    @staticmethod
+    def _release_highlights(release_notes: object, limit: int = 5) -> list[str]:
+        text = str(release_notes or "").replace("\r", "\n")
+        highlights: list[str] = []
+        seen: set[str] = set()
+        in_code_block = False
+        for raw_line in text.split("\n"):
+            line = raw_line.strip()
+            if line.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block or not line or line.startswith("#"):
+                continue
+            line = re.sub(r"^(?:[-*+•]|\d+[.)])\s+", "", line)
+            line = re.sub(r"!\[[^]]*]\([^)]*\)", "", line)
+            line = re.sub(r"\[([^]]+)]\([^)]*\)", r"\1", line)
+            line = re.sub(r"<[^>]+>", "", line)
+            line = re.sub(r"[*_`~]+", "", line)
+            line = " ".join(line.split()).strip()
+            if not line:
+                continue
+            if len(line) > 140:
+                line = line[:137].rstrip() + "…"
+            key = line.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            highlights.append(line)
+            if len(highlights) >= limit:
+                break
+        return highlights
 
     def _poll_events(self) -> None:
         try:

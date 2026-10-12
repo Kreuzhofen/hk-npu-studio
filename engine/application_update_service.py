@@ -53,6 +53,7 @@ class ApplicationUpdateCheck:
     message: str
     manifest: ApplicationUpdateManifest | None = None
     error_code: str | None = None
+    latest_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -147,17 +148,30 @@ class ApplicationUpdateService:
                 error_code="invalid_response",
             )
 
+        releases: list[tuple[str, dict[str, Any]]] = []
         candidates: list[tuple[str, dict[str, Any]]] = []
         for release in raw:
             if not isinstance(release, dict) or release.get("draft") is True:
                 continue
             version = self._normalize_tag(release.get("tag_name"))
-            if version and self._compare_versions(version, self.current_version) > 0:
+            if not version:
+                continue
+            releases.append((version, release))
+            if self._compare_versions(version, self.current_version) > 0:
                 candidates.append((version, release))
+
+        latest_version: str | None = None
+        for version, _release in releases:
+            if latest_version is None or self._compare_versions(
+                version, latest_version
+            ) > 0:
+                latest_version = version
 
         if not candidates:
             return ApplicationUpdateCheck(
-                False, "HK NPU STUDIO ist auf dem neuesten Stand."
+                False,
+                "HK NPU STUDIO ist auf dem neuesten Stand.",
+                latest_version=latest_version,
             )
 
         best_version, best_release = candidates[0]
@@ -209,7 +223,10 @@ class ApplicationUpdateService:
             release_url=str(best_release.get("html_url") or "").strip(),
         )
         return ApplicationUpdateCheck(
-            True, f"Update {best_version} ist verfügbar.", manifest
+            True,
+            f"Update {best_version} ist verfügbar.",
+            manifest,
+            latest_version=best_version,
         )
 
     def fetch_and_check(self, manifest_url: str) -> ApplicationUpdateCheck:
