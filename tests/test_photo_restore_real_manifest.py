@@ -155,3 +155,61 @@ def test_validate_package_rejects_path_traversal() -> None:
 
         assert result["success"] is False
         assert any("ungültigen Pfad" in issue for issue in result["issues"])
+
+
+PACKAGE_DIR = ROOT / "resources" / "packages" / "photo_restore"
+APACHE_LICENSE_PATH = PACKAGE_DIR / "LICENSE-APACHE-2.0.txt"
+OPENRAIL_LICENSE_PATH = PACKAGE_DIR / "LICENSE-CREATIVEML-OPENRAIL-M.txt"
+THIRD_PARTY_NOTICES_PATH = PACKAGE_DIR / "THIRD_PARTY_NOTICES.md"
+
+
+def test_photo_restore_license_payload_files_exist_and_non_empty() -> None:
+    for path in (APACHE_LICENSE_PATH, OPENRAIL_LICENSE_PATH, THIRD_PARTY_NOTICES_PATH):
+        assert path.is_file(), f"Expected license/notice file missing: {path}"
+        content = path.read_text(encoding="utf-8")
+        assert len(content.strip()) > 100, f"File {path.name} is unexpectedly small or empty"
+        assert "C:\\SnapdragonAI" not in content, f"Hardcoded repo path in {path.name}"
+
+
+def test_apache_license_content() -> None:
+    content = APACHE_LICENSE_PATH.read_text(encoding="utf-8")
+    assert "Apache License" in content
+    assert "Version 2.0" in content
+    assert "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION" in content
+
+
+def test_openrail_license_content() -> None:
+    content = OPENRAIL_LICENSE_PATH.read_text(encoding="utf-8")
+    assert "CreativeML Open RAIL++-M" in content
+    assert "Section I: PREAMBLE" in content
+    assert "Attachment A" in content
+    assert "Use Restrictions" in content
+
+
+def test_third_party_notices_content() -> None:
+    content = THIRD_PARTY_NOTICES_PATH.read_text(encoding="utf-8")
+    assert "FiDeSR" in content
+    assert "Apache License 2.0" in content
+    assert "Stable Diffusion 2.1" in content
+    assert "CreativeML Open RAIL++-M" in content
+    assert "Qualcomm" in content
+    assert "does not claim or imply endorsement" in content
+    assert "HK NPU STUDIO" in content
+
+
+def test_package_validation_succeeds_with_license_files_in_package_root() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        service, package_root = _create_synthetic_package(Path(directory))
+        (package_root / "LICENSE-APACHE-2.0.txt").write_text(
+            APACHE_LICENSE_PATH.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        (package_root / "LICENSE-CREATIVEML-OPENRAIL-M.txt").write_text(
+            OPENRAIL_LICENSE_PATH.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        (package_root / "THIRD_PARTY_NOTICES.md").write_text(
+            THIRD_PARTY_NOTICES_PATH.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+
+        result = service.validate_package("photo_restore")
+        assert result["success"] is True
+        assert result["is_fully_ready"] is True
