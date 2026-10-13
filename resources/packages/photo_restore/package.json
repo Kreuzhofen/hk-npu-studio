@@ -1,0 +1,44 @@
+{
+  "package_id": "photo_restore",
+  "package_version": "1.0.0",
+  "architecture": "arm64",
+  "app_min_version": "2.0.0-rc.3",
+  "runtime": "QNN",
+  "capabilities": {
+    "photo_restore": true,
+    "img2img": true,
+    "qnn_runtime": true
+  },
+  "components": {
+    "empty_prompt_embeddings": {
+      "path": "models/fidesr_empty_prompt_embeds.bin",
+      "runtime": "QNN",
+      "sha256": "26E5E7D387699FDF4BB52EBD914A3BC686801604CC1C11CBCDD7FD6FE28B5604"
+    },
+    "epsilon_seed": {
+      "path": "models/fidesr_epsilon_seed231.bin",
+      "runtime": "QNN",
+      "sha256": "F24A5790735DCBF9D05B027D2CF1C0D23064A82EB8FB7E24198884A5FB983E1B"
+    },
+    "vae_encoder_context": {
+      "path": "context/fidesr_vae_encoder/fidesr_vae_encoder.serialized.bin.bin",
+      "runtime": "QNN",
+      "sha256": "9A12999304CB34D19C0C7BA03E8593C2DF528628D404F6A512FB513F7E657B50"
+    },
+    "unet_context": {
+      "path": "context/fidesr_unet/fidesr_unet_merged.serialized.bin.bin",
+      "runtime": "QNN",
+      "sha256": "3A169A72D76CE949F803D5C49DA4EFBB2568A7D16668B61E1344134EC28C94AE"
+    },
+    "lrrb_context": {
+      "path": "context/fidesr_lrrb/fidesr_lrrb.serialized.bin.bin",
+      "runtime": "QNN",
+      "sha256": "1CDE7CC8979611168EE81845C4E14702DEE636CCC0F683DD76FDD679B97CA9F9"
+    },
+    "vae_decoder_context": {
+      "path": "context/fidesr_vae_decoder/fidesr_vae_decoder.serialized.bin.bin",
+      "runtime": "QNN",
+      "sha256": "C9C78E694A88EF6EA4D5D7FD7AF02FE7C5337F097BDACBF5D1547F66692C5D84"
+    }
+  }
+}
