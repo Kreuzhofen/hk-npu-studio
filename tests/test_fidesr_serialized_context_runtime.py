@@ -14,6 +14,7 @@ from types import SimpleNamespace
 ROOT = Path(__file__).parents[1]
 RUNNER = ROOT / "engine" / "backends" / "fidesr_strong_runner_template.py"
 BACKEND = ROOT / "engine" / "backends" / "fidesr_photo_restore_backend.py"
+RESOLVER = ROOT / "engine" / "backends" / "photo_restore_package_resolver.py"
 
 
 class FiDeSRSerializedContextRuntimeTests(unittest.TestCase):
@@ -21,6 +22,7 @@ class FiDeSRSerializedContextRuntimeTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.runner_text = RUNNER.read_text(encoding="utf-8")
         cls.backend_text = BACKEND.read_text(encoding="utf-8")
+        cls.resolver_text = RESOLVER.read_text(encoding="utf-8")
         cls.runner_tree = ast.parse(cls.runner_text)
         cls.backend_tree = ast.parse(cls.backend_text)
 
@@ -426,15 +428,27 @@ class FiDeSRSerializedContextRuntimeTests(unittest.TestCase):
 
     def test_all_four_stage_context_paths_are_exact(self) -> None:
         expected = (
-            '"fidesr_vae_encoder.serialized.bin.bin"',
-            '"fidesr_unet_merged.serialized.bin.bin"',
-            '"fidesr_lrrb.serialized.bin.bin"',
-            '"fidesr_vae_decoder.serialized.bin.bin"',
+            (
+                '"fidesr_vae_encoder.serialized.bin.bin"',
+                "HK_NPU_FIDESR_VAE_ENCODER_CONTEXT",
+            ),
+            (
+                '"fidesr_unet_merged.serialized.bin.bin"',
+                "HK_NPU_FIDESR_UNET_CONTEXT",
+            ),
+            ('"fidesr_lrrb.serialized.bin.bin"', "HK_NPU_FIDESR_LRRB_CONTEXT"),
+            (
+                '"fidesr_vae_decoder.serialized.bin.bin"',
+                "HK_NPU_FIDESR_VAE_DECODER_CONTEXT",
+            ),
         )
-        for filename in expected:
+        for filename, environment_name in expected:
             with self.subTest(filename=filename):
-                self.assertIn(filename, self.runner_text)
-                self.assertIn(filename, self.backend_text)
+                self.assertIn(filename, self.resolver_text)
+                self.assertIn(f'"{environment_name}"', self.backend_text)
+                self.assertIn(
+                    f'os.environ["{environment_name}"]', self.runner_text
+                )
 
         for stage in ("VAE_ENCODER", "UNET", "LRRB", "VAE_DECODER"):
             self.assertIn(f'"{stage}": CONTEXT_', self.runner_text)

@@ -47,6 +47,10 @@ from engine.backends.photo_restore_backend import (
     rgb2lab_np,
     lab2rgb_np,
 )
+from engine.backends.photo_restore_package_resolver import (
+    PhotoRestoreArtifacts,
+    PhotoRestorePackageResolver,
+)
 
 
 PHOTO_RESTORE_FIDESR_MISSING = "PHOTO_RESTORE_FIDESR_MISSING"
@@ -60,18 +64,6 @@ def _subprocess_creation_kwargs(platform_name: str | None = None) -> dict[str, i
     if platform_name == "win32":
         return {"creationflags": subprocess.CREATE_NO_WINDOW}
     return {}
-
-MODEL_DIR = ROOT / "models" / "photo_restore"
-CONTEXT_DIR = ROOT / "models" / "photo_restore_context"
-
-FIDESR_REQUIRED = (
-    CONTEXT_DIR / "fidesr_vae_encoder" / "fidesr_vae_encoder.serialized.bin.bin",
-    CONTEXT_DIR / "fidesr_unet" / "fidesr_unet_merged.serialized.bin.bin",
-    CONTEXT_DIR / "fidesr_lrrb" / "fidesr_lrrb.serialized.bin.bin",
-    CONTEXT_DIR / "fidesr_vae_decoder" / "fidesr_vae_decoder.serialized.bin.bin",
-    MODEL_DIR / "fidesr_empty_prompt_embeds.bin",
-    MODEL_DIR / "fidesr_epsilon_seed231.bin",
-)
 
 QNN_RUNTIME_FILES = (
     "QnnHtp.dll",
@@ -149,12 +141,15 @@ class FiDeSRPhotoRestoreBackend:
     def __init__(
         self,
         runner_template: Path | str | None = None,
+        package_resolver: PhotoRestorePackageResolver | None = None,
     ) -> None:
         self.runner_template = (
             Path(runner_template)
             if runner_template
             else Path(__file__).with_name("fidesr_strong_runner_template.py")
         )
+        self.package_resolver = package_resolver or PhotoRestorePackageResolver()
+        self._artifacts: PhotoRestoreArtifacts | None = None
 
         self._status = "UNINITIALIZED"
         self._cancel_requested = threading.Event()
@@ -178,12 +173,7 @@ class FiDeSRPhotoRestoreBackend:
                     f"FiDeSR Strong runner template missing: {self.runner_template}"
                 )
 
-            missing = [p for p in FIDESR_REQUIRED if not p.is_file()]
-            if missing:
-                raise RuntimeError(
-                    "FiDeSR model artifacts missing: "
-                    + ", ".join(str(p) for p in missing)
-                )
+            self._artifacts = self.package_resolver.require_ready()
 
             self._status = "INITIALIZED"
 
@@ -376,6 +366,9 @@ class FiDeSRPhotoRestoreBackend:
         )
 
         qnn_runner, qnn_backend, qnn_skeleton = resolve_fidesr_qnn_runtime()
+        artifacts = self._artifacts
+        if artifacts is None:
+            raise RuntimeError("FiDeSR package was not initialized.")
         runner_env = os.environ.copy()
         runner_env.update(
             {
@@ -384,6 +377,18 @@ class FiDeSRPhotoRestoreBackend:
                 "HK_NPU_FIDESR_QNN_RUNNER": str(qnn_runner),
                 "HK_NPU_FIDESR_QNN_BACKEND": str(qnn_backend),
                 "HK_NPU_FIDESR_QNN_SKELETON_DIR": str(qnn_skeleton),
+                "HK_NPU_FIDESR_VAE_ENCODER_CONTEXT": str(
+                    artifacts.vae_encoder_context
+                ),
+                "HK_NPU_FIDESR_UNET_CONTEXT": str(artifacts.unet_context),
+                "HK_NPU_FIDESR_LRRB_CONTEXT": str(artifacts.lrrb_context),
+                "HK_NPU_FIDESR_VAE_DECODER_CONTEXT": str(
+                    artifacts.vae_decoder_context
+                ),
+                "HK_NPU_FIDESR_EMPTY_PROMPT_EMBEDS": str(
+                    artifacts.empty_prompt_embeddings
+                ),
+                "HK_NPU_FIDESR_EPSILON_SEED": str(artifacts.epsilon_seed),
             }
         )
         cmd = (

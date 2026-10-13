@@ -20,8 +20,6 @@ except Exception as e:
 # ============================================================
 
 ROOT = Path(os.environ["HK_NPU_FIDESR_ROOT"]).resolve()
-MODEL_ROOT = ROOT / "models" / "photo_restore"
-CONTEXT_ROOT = ROOT / "models" / "photo_restore_context"
 TEMP_DIR = Path(os.environ.get("HK_NPU_FIDESR_TEMP_DIR", ROOT / "temp"))
 WORK = TEMP_DIR / "photo_restore"
 
@@ -33,22 +31,14 @@ QNN_BACKEND = Path(os.environ["HK_NPU_FIDESR_QNN_BACKEND"]).resolve()
 QNN_BIN = QNN_RUNNER.parent
 QNN_LIB = QNN_BACKEND.parent
 QNN_HEX = Path(os.environ["HK_NPU_FIDESR_QNN_SKELETON_DIR"]).resolve()
-CONTEXT_ENCODER = (
-    CONTEXT_ROOT / "fidesr_vae_encoder" /
-    "fidesr_vae_encoder.serialized.bin.bin"
-)
-CONTEXT_UNET = (
-    CONTEXT_ROOT / "fidesr_unet" /
-    "fidesr_unet_merged.serialized.bin.bin"
-)
-CONTEXT_LRRB = (
-    CONTEXT_ROOT / "fidesr_lrrb" /
-    "fidesr_lrrb.serialized.bin.bin"
-)
-CONTEXT_DECODER = (
-    CONTEXT_ROOT / "fidesr_vae_decoder" /
-    "fidesr_vae_decoder.serialized.bin.bin"
-)
+CONTEXT_ENCODER = Path(
+    os.environ["HK_NPU_FIDESR_VAE_ENCODER_CONTEXT"]
+).resolve()
+CONTEXT_UNET = Path(os.environ["HK_NPU_FIDESR_UNET_CONTEXT"]).resolve()
+CONTEXT_LRRB = Path(os.environ["HK_NPU_FIDESR_LRRB_CONTEXT"]).resolve()
+CONTEXT_DECODER = Path(
+    os.environ["HK_NPU_FIDESR_VAE_DECODER_CONTEXT"]
+).resolve()
 
 STAGE_CONTEXTS = {
     "VAE_ENCODER": CONTEXT_ENCODER,
@@ -57,8 +47,8 @@ STAGE_CONTEXTS = {
     "VAE_DECODER": CONTEXT_DECODER,
 }
 
-PROMPT_BIN = MODEL_ROOT / "fidesr_empty_prompt_embeds.bin"
-EPSILON_BIN = MODEL_ROOT / "fidesr_epsilon_seed231.bin"
+PROMPT_BIN = Path(os.environ["HK_NPU_FIDESR_EMPTY_PROMPT_EMBEDS"]).resolve()
+EPSILON_BIN = Path(os.environ["HK_NPU_FIDESR_EPSILON_SEED"]).resolve()
 
 
 # ============================================================
