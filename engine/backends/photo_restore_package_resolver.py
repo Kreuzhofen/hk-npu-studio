@@ -33,6 +33,27 @@ FIDESR_ARTIFACT_PATHS = {
     "epsilon_seed": Path("photo_restore/fidesr_epsilon_seed231.bin"),
 }
 
+FIDESR_PACKAGE_ARTIFACT_PATHS = {
+    "vae_encoder_context": Path(
+        "context/fidesr_vae_encoder/"
+        "fidesr_vae_encoder.serialized.bin.bin"
+    ),
+    "unet_context": Path(
+        "context/fidesr_unet/fidesr_unet_merged.serialized.bin.bin"
+    ),
+    "lrrb_context": Path(
+        "context/fidesr_lrrb/fidesr_lrrb.serialized.bin.bin"
+    ),
+    "vae_decoder_context": Path(
+        "context/fidesr_vae_decoder/"
+        "fidesr_vae_decoder.serialized.bin.bin"
+    ),
+    "empty_prompt_embeddings": Path(
+        "models/fidesr_empty_prompt_embeds.bin"
+    ),
+    "epsilon_seed": Path("models/fidesr_epsilon_seed231.bin"),
+}
+
 
 class PhotoRestorePackageError(RuntimeError):
     """Raised when no complete FiDeSR package can be resolved."""
@@ -120,39 +141,60 @@ class PhotoRestorePackageResolver:
 
     @classmethod
     def _artifacts_for_root(cls, root: Path) -> PhotoRestoreArtifacts:
+        """Resolve the established development/frozen layout."""
         paths = {
             name: cls._resolve_within_root(root, relative_path)
             for name, relative_path in FIDESR_ARTIFACT_PATHS.items()
         }
         return PhotoRestoreArtifacts(root=root, **paths)
 
+    @classmethod
+    def _artifacts_for_package_root(cls, root: Path) -> PhotoRestoreArtifacts:
+        """Resolve the managed ``photo_restore`` package layout."""
+        paths = {
+            name: cls._resolve_within_root(root, relative_path)
+            for name, relative_path in FIDESR_PACKAGE_ARTIFACT_PATHS.items()
+        }
+        return PhotoRestoreArtifacts(root=root, **paths)
+
+    @classmethod
+    def _candidate_artifacts_for_root(
+        cls, root: Path
+    ) -> tuple[PhotoRestoreArtifacts, ...]:
+        managed_package = cls._resolve_within_root(root, Path("photo_restore"))
+        return (
+            cls._artifacts_for_package_root(managed_package),
+            cls._artifacts_for_package_root(root),
+            cls._artifacts_for_root(root),
+        )
+
     def resolve(self) -> PhotoRestorePackageResolution:
         for root in self._roots:
-            artifacts = self._artifacts_for_root(root)
-            required = artifacts.required_files()
-            present = tuple(path for path in required if path.exists())
-            if not present:
-                continue
+            for artifacts in self._candidate_artifacts_for_root(root):
+                required = artifacts.required_files()
+                present = tuple(path for path in required if path.exists())
+                if not present:
+                    continue
 
-            missing = tuple(path for path in required if not path.is_file())
-            if missing:
+                missing = tuple(path for path in required if not path.is_file())
+                if missing:
+                    return PhotoRestorePackageResolution(
+                        status="NOT_READY",
+                        artifacts=None,
+                        searched_roots=self._roots,
+                        missing_files=missing,
+                        message=(
+                            f"FiDeSR package is incomplete in {artifacts.root}: "
+                            + ", ".join(str(path) for path in missing)
+                        ),
+                    )
+
                 return PhotoRestorePackageResolution(
-                    status="NOT_READY",
-                    artifacts=None,
+                    status="READY",
+                    artifacts=artifacts,
                     searched_roots=self._roots,
-                    missing_files=missing,
-                    message=(
-                        f"FiDeSR package is incomplete in {root}: "
-                        + ", ".join(str(path) for path in missing)
-                    ),
+                    message=f"FiDeSR package ready in {artifacts.root}",
                 )
-
-            return PhotoRestorePackageResolution(
-                status="READY",
-                artifacts=artifacts,
-                searched_roots=self._roots,
-                message=f"FiDeSR package ready in {root}",
-            )
 
         return PhotoRestorePackageResolution(
             status="NOT_READY",
