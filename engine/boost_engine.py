@@ -59,6 +59,10 @@ class BoostSuggestion:
 class StructuralValidator:
     """Validates candidate prompt rewrites against locked semantics."""
 
+    SHORT_PROMPT_WORD_LIMIT = 65
+    MAX_EXPANSION_NUMERATOR = 5
+    MAX_EXPANSION_DENOMINATOR = 4
+
     FORBIDDEN_PROPS_AND_ENTITIES = {
         # Props & furniture
         "frame", "frames", "gilded frame", "picture frame", "mirror", "chair", "chairs",
@@ -130,8 +134,18 @@ class StructuralValidator:
             if f_words.issubset(cand_words) and not f_words.issubset(orig_words):
                 return False, f"forbidden_new_entity:{forbidden}"
 
-        # 6. Word count limit (avoid CLIP truncation)
-        if len(candidate.split()) > 65:
+        # 6. Word count limit: retain the short-prompt cap while allowing a
+        # bounded 25% expansion for originals that already exceed it.
+        original_word_count = len(locked.original_prompt.split())
+        if original_word_count <= cls.SHORT_PROMPT_WORD_LIMIT:
+            word_limit = cls.SHORT_PROMPT_WORD_LIMIT
+        else:
+            word_limit = (
+                original_word_count * cls.MAX_EXPANSION_NUMERATOR
+                + cls.MAX_EXPANSION_DENOMINATOR
+                - 1
+            ) // cls.MAX_EXPANSION_DENOMINATOR
+        if len(candidate.split()) > word_limit:
             return False, "word_count_exceeded"
 
         return True, "valid"
@@ -387,6 +401,10 @@ class PhoenixBoostEngine:
         language = cls._detect_language(original)
         base = original.strip().rstrip(".,; ")
         base_folded = base.casefold()
+        person_present = bool(
+            locked.gender_age
+            or {"woman", "man", "people"}.intersection(locked.explicit_objects)
+        )
 
         additions: list[str] = []
 
@@ -397,7 +415,10 @@ class PhoenixBoostEngine:
                 if "studio" in (locked.scene_location or "") or "studio" in base_folded:
                     additions.extend(["professionelle Porträtfotografie", "weiche Studiobeleuchtung", "ausgewogene Belichtung", "hochauflösendes Foto"])
                 elif "sunflower" in (locked.scene_location or "") or "sonnenblume" in base_folded:
-                    additions.extend(["professionelle Fotografie", "natürliches Tageslicht", "weiches Sonnenlicht", "natürliche Hautstruktur", "feine Gesichtsdetails", "realistische Haardetails", "scharfer Fokus", "hochauflösendes Foto"])
+                    additions.extend(["professionelle Fotografie", "natürliches Tageslicht", "weiches Sonnenlicht"])
+                    if person_present:
+                        additions.extend(["natürliche Hautstruktur", "feine Gesichtsdetails", "realistische Haardetails"])
+                    additions.extend(["scharfer Fokus", "hochauflösendes Foto"])
                 else:
                     additions.extend(["professionelle Fotografie", "verfeinerte feine Details", "ausgewogener Kontrast", "verfeinerte Materialdetails", "scharfer Fokus", "hochauflösendes Foto"])
             elif locked.medium == "illustration":
@@ -411,7 +432,10 @@ class PhoenixBoostEngine:
                 if "studio" in (locked.scene_location or "") or "estudio" in base_folded:
                     additions.extend(["fotografía de retrato profesional", "iluminación suave de estudio", "exposición equilibrada", "foto de alta resolución"])
                 elif "sunflower" in (locked.scene_location or "") or "girasol" in base_folded:
-                    additions.extend(["fotografía profesional", "luz natural del día", "luz solar suave", "textura de piel natural", "detalle facial fino", "detalle de cabello realista", "enfoque nítido", "foto de alta resolución"])
+                    additions.extend(["fotografía profesional", "luz natural del día", "luz solar suave"])
+                    if person_present:
+                        additions.extend(["textura de piel natural", "detalle facial fino", "detalle de cabello realista"])
+                    additions.extend(["enfoque nítido", "foto de alta resolución"])
                 else:
                     additions.extend(["fotografía profesional", "detalle fino refinado", "contraste equilibrado", "detalle de material refinado", "enfoque nítido", "foto de alta resolución"])
             elif locked.medium == "illustration":
@@ -425,7 +449,10 @@ class PhoenixBoostEngine:
                 if "studio" in (locked.scene_location or "") or "studio" in base_folded:
                     additions.extend(["professional portrait photography", "soft studio lighting", "balanced exposure", "high resolution photo"])
                 elif "sunflower" in (locked.scene_location or "") or "sunflower" in base_folded:
-                    additions.extend(["professional photography", "natural daylight", "soft sunlight", "natural skin texture", "fine facial detail", "realistic hair detail", "sharp focus", "high resolution photo"])
+                    additions.extend(["professional photography", "natural daylight", "soft sunlight"])
+                    if person_present:
+                        additions.extend(["natural skin texture", "fine facial detail", "realistic hair detail"])
+                    additions.extend(["sharp focus", "high resolution photo"])
                 elif "mountain road" in (locked.scene_location or "") or "car" in (locked.subject or "") or "car" in base_folded:
                     additions.extend(["professional photography", "dynamic natural lighting", "sharp focus", "refined fine detail", "balanced contrast", "refined material detail", "high resolution photo"])
                 elif locked.gender_age or "portrait" in base_folded:

@@ -41,7 +41,7 @@ ThemeManager.palette = MagicMock(return_value=dummy_palette)
 from controllers.prompt_workspace_controller import PromptWorkspaceController
 from engine.brand_manager import BrandManager
 from engine.boost_ai_service import BoostAIService, BoostAIRun
-from engine.boost_engine import PhoenixBoostEngine
+from engine.boost_engine import PhoenixBoostEngine, StructuralValidator
 from engine.ollama_status import OllamaStatus, OllamaStatusService
 from widgets.phoenix.views.prompt_view import PhoenixPromptView
 from widgets.phoenix.theme import PHOENIX_THEME, update_phoenix_theme
@@ -1145,6 +1145,106 @@ class ExpandablePromptTests(unittest.TestCase):
                     self.assertIn(value, boosted)
                 for value in forbidden:
                     self.assertNotIn(value.casefold(), boosted.casefold())
+
+    def test_sunflower_photos_without_people_do_not_gain_portrait_details(self) -> None:
+        cases = (
+            (
+                "Sunflowers in a vase on a wooden table, realistic photo",
+                ("natural skin texture", "fine facial detail", "realistic hair detail"),
+            ),
+            (
+                "Eine Vase mit Sonnenblumen auf einem Holztisch, realistisches Foto",
+                ("natürliche Hautstruktur", "feine Gesichtsdetails", "realistische Haardetails"),
+            ),
+            (
+                "Un jarrón con girasoles sobre una mesa de madera, foto realista",
+                ("textura de piel natural", "detalle facial fino", "detalle de cabello realista"),
+            ),
+        )
+        for original, forbidden in cases:
+            with self.subTest(original=original):
+                boosted = PhoenixBoostEngine.suggest(
+                    original, "", "stable_diffusion_v3_5_qai", 20, 7, 512, 512
+                ).optimized_prompt
+                self.assertTrue(boosted.startswith(original))
+                for value in forbidden:
+                    self.assertNotIn(value.casefold(), boosted.casefold())
+
+    def test_sunflower_photos_with_people_keep_portrait_details(self) -> None:
+        cases = (
+            (
+                "A woman in a sunflower field, realistic photo",
+                ("natural skin texture", "fine facial detail", "realistic hair detail"),
+            ),
+            (
+                "Eine Frau in einem Sonnenblumenfeld, realistisches Foto",
+                ("natürliche Hautstruktur", "feine Gesichtsdetails", "realistische Haardetails"),
+            ),
+            (
+                "Una mujer en un campo de girasoles, foto realista",
+                ("textura de piel natural", "detalle facial fino", "detalle de cabello realista"),
+            ),
+        )
+        for original, required in cases:
+            with self.subTest(original=original):
+                boosted = PhoenixBoostEngine.suggest(
+                    original, "", "stable_diffusion_v3_5_qai", 20, 7, 512, 512
+                ).optimized_prompt
+                self.assertTrue(boosted.startswith(original))
+                for value in required:
+                    self.assertIn(value, boosted)
+
+    def test_non_person_landscape_does_not_gain_portrait_details(self) -> None:
+        original = "A mountain landscape with wildflowers, realistic photo"
+        boosted = PhoenixBoostEngine.suggest(
+            original, "", "stable_diffusion_v3_5_qai", 20, 7, 512, 512
+        ).optimized_prompt
+
+        self.assertTrue(boosted.startswith(original))
+        for value in ("natural skin texture", "fine facial detail", "realistic hair detail"):
+            self.assertNotIn(value, boosted)
+
+    def test_short_prompt_retains_existing_word_limit(self) -> None:
+        original = " ".join(["detail"] * 60)
+        locked = PhoenixBoostEngine.extract_locked_semantics(original)
+        candidate = original + " " + " ".join(["refined"] * 6)
+
+        self.assertEqual(len(original.split()), 60)
+        self.assertEqual(len(candidate.split()), 66)
+        self.assertEqual(
+            StructuralValidator.validate(candidate, locked),
+            (False, "word_count_exceeded"),
+        )
+
+    def test_long_prompt_accepts_bounded_semantic_preserving_refinement(self) -> None:
+        original = (
+            "A woman in a sunflower field, realistic photo, "
+            + " ".join(["carefully preserved original detail"] * 20)
+        )
+        locked = PhoenixBoostEngine.extract_locked_semantics(original)
+        candidate = original + ", balanced exposure, refined natural detail"
+
+        self.assertGreater(len(original.split()), 80)
+        self.assertTrue(candidate.startswith(original))
+        self.assertEqual(locked.subject, "woman")
+        self.assertEqual(locked.subject_count, 1)
+        self.assertEqual(locked.scene_location, "in a sunflower field")
+        self.assertIn("sunflower", locked.explicit_objects)
+        self.assertEqual(StructuralValidator.validate(candidate, locked), (True, "valid"))
+
+    def test_long_prompt_rejects_unbounded_expansion(self) -> None:
+        original = (
+            "A woman in a sunflower field, realistic photo, "
+            + " ".join(["carefully preserved original detail"] * 20)
+        )
+        locked = PhoenixBoostEngine.extract_locked_semantics(original)
+        candidate = original + " " + " ".join(["balanced tonal detail"] * 12)
+
+        self.assertGreater(len(candidate.split()), len(original.split()) * 1.25)
+        self.assertEqual(
+            StructuralValidator.validate(candidate, locked),
+            (False, "word_count_exceeded"),
+        )
 
     def test_boost_detailed_prompt_deduplicates_quality_terms(self) -> None:
         original = (
