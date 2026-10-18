@@ -160,6 +160,64 @@ class ImageGenerationPipeline:
                             import json
                             data = json.load(f)
 
+                    def used_value(*keys: str, fallback: Any = None) -> Any:
+                        for source in (result.metadata, data):
+                            for key in keys:
+                                if key in source and source[key] is not None:
+                                    return source[key]
+                        return fallback
+
+                    actual_seed = None
+                    for source in (result.metadata, data):
+                        reported_seed = source.get("seed")
+                        if reported_seed is not None and reported_seed != -1:
+                            actual_seed = reported_seed
+                            break
+                    if actual_seed is None and params.seed != -1:
+                        actual_seed = params.seed
+
+                    model_key = (
+                        "model_id"
+                        if "model" not in data
+                        and ("model_id" in data or "model_id" in result.metadata)
+                        else "model"
+                    )
+                    cfg_key = (
+                        "cfg_scale"
+                        if "cfg" not in data
+                        and ("cfg_scale" in data or "cfg_scale" in result.metadata)
+                        else "cfg"
+                    )
+                    model_fallback = (
+                        result.model_name
+                        if result.model_name and result.model_name != "Unknown"
+                        else params.model_name
+                    )
+                    backend_fallback = (
+                        result.backend_name
+                        if result.backend_name and result.backend_name != "Unknown"
+                        else None
+                    )
+                    data.update({
+                        "prompt": used_value("prompt", fallback=params.prompt),
+                        "negative_prompt": used_value(
+                            "negative_prompt", fallback=params.negative_prompt
+                        ),
+                        model_key: used_value(
+                            "model", "model_id", "model_name", fallback=model_fallback
+                        ),
+                        "width": used_value("width", fallback=params.width),
+                        "height": used_value("height", fallback=params.height),
+                        "steps": used_value("steps", "step_count", fallback=params.steps),
+                        cfg_key: used_value(
+                            "cfg", "cfg_scale", "guidance_scale", fallback=params.cfg_scale
+                        ),
+                        "sampler": used_value("sampler", fallback=params.sampler),
+                        "scheduler": used_value("scheduler", fallback=params.scheduler),
+                        "seed": actual_seed,
+                        "backend": used_value("backend", fallback=backend_fallback),
+                    })
+
                     data["controlnet_enabled"] = controlnet_enabled
                     data["controlnet_model"] = controlnet_model
                     data["canny_low_threshold"] = canny_low_threshold

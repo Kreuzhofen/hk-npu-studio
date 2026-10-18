@@ -11,6 +11,7 @@ from controllers.generation_job import GenerationJob
 from controllers.generation_result import GenerationResult
 from controllers.generation_pipeline import ImageGenerationPipeline
 from controllers.prompt_workspace_controller import PromptWorkspaceController
+from engine.asset_files import read_asset_metadata
 import config
 
 
@@ -106,6 +107,129 @@ class SidecarMetadataTests(unittest.TestCase):
         self.assertIsNone(data.get("canny_high_threshold"))
         self.assertIsNone(data.get("controlnet_conditioning_scale"))
         self.assertIsNone(data.get("reference_image_path"))
+
+    def test_generation_writes_complete_parameters_from_backend_and_session(self) -> None:
+        image_path = self.output_dir / "generate_complete.png"
+        session = GenerationSessionModel(
+            prompt="A preserved prompt",
+            negative_prompt="blur, artifacts",
+            model_name="session-model",
+            width=768,
+            height=512,
+            steps=28,
+            cfg_scale=5.5,
+            seed=123,
+            sampler="Euler",
+            scheduler="Karras",
+        )
+        pipeline = ImageGenerationPipeline(job=GenerationJob(session=session), backend_adapter=None)
+        pipeline.execute = MagicMock(return_value=GenerationResult(
+            success=True,
+            status="SUCCESS",
+            message="Done",
+            image_path=str(image_path),
+            backend_name="QNN HTP",
+            model_name="resolved-model",
+            metadata={
+                "seed": 456,
+                "steps": 24,
+                "cfg": 4.0,
+                "scheduler": "BackendScheduler",
+            },
+        ))
+
+        result = pipeline.run()
+        data = json.loads(image_path.with_suffix(".json").read_text(encoding="utf-8"))
+
+        self.assertTrue(result.success)
+        self.assertEqual(data, {
+            "prompt": "A preserved prompt",
+            "negative_prompt": "blur, artifacts",
+            "model": "resolved-model",
+            "width": 768,
+            "height": 512,
+            "steps": 24,
+            "cfg": 4.0,
+            "sampler": "Euler",
+            "scheduler": "BackendScheduler",
+            "seed": 456,
+            "backend": "QNN HTP",
+            "controlnet_enabled": False,
+            "controlnet_model": None,
+            "canny_low_threshold": None,
+            "canny_high_threshold": None,
+            "controlnet_conditioning_scale": None,
+            "reference_image_path": None,
+        })
+
+    def test_random_seed_uses_backend_value_and_never_persists_minus_one(self) -> None:
+        image_path = self.output_dir / "generate_random_seed.png"
+        session = GenerationSessionModel(seed=-1)
+        pipeline = ImageGenerationPipeline(job=GenerationJob(session=session), backend_adapter=None)
+        pipeline.execute = MagicMock(return_value=GenerationResult(
+            success=True,
+            status="SUCCESS",
+            message="Done",
+            image_path=str(image_path),
+            metadata={"seed": 987654321},
+        ))
+
+        pipeline.run()
+        data = json.loads(image_path.with_suffix(".json").read_text(encoding="utf-8"))
+        self.assertEqual(data["seed"], 987654321)
+
+        missing_path = self.output_dir / "generate_missing_seed.png"
+        missing_pipeline = ImageGenerationPipeline(
+            job=GenerationJob(session=GenerationSessionModel(seed=-1)),
+            backend_adapter=None,
+        )
+        missing_pipeline.execute = MagicMock(return_value=GenerationResult(
+            success=True,
+            status="SUCCESS",
+            message="Done",
+            image_path=str(missing_path),
+        ))
+
+        missing_pipeline.run()
+        missing = json.loads(missing_path.with_suffix(".json").read_text(encoding="utf-8"))
+        self.assertIsNone(missing["seed"])
+        self.assertNotEqual(missing["seed"], -1)
+
+    def test_existing_sidecar_schema_and_metadata_are_preserved(self) -> None:
+        image_path = self.output_dir / "generate_existing.png"
+        sidecar_path = image_path.with_suffix(".json")
+        sidecar_path.write_text(json.dumps({
+            "model_id": "backend-model",
+            "cfg_scale": 4.25,
+            "seed": 77,
+            "backend_specific": "keep-me",
+            "phoenix_boost_enabled": True,
+            "phoenix_boost_profile": "faithful",
+        }), encoding="utf-8")
+        session = GenerationSessionModel(model_name="session-model", cfg_scale=7.0, seed=-1)
+        pipeline = ImageGenerationPipeline(job=GenerationJob(session=session), backend_adapter=None)
+        pipeline.execute = MagicMock(return_value=GenerationResult(
+            success=True,
+            status="SUCCESS",
+            message="Done",
+            image_path=str(image_path),
+            backend_name="QNN HTP",
+        ))
+
+        pipeline.run()
+        data = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        normalized, error = read_asset_metadata(sidecar_path)
+
+        self.assertEqual(data["backend_specific"], "keep-me")
+        self.assertEqual(data["phoenix_boost_enabled"], True)
+        self.assertEqual(data["phoenix_boost_profile"], "faithful")
+        self.assertEqual(data["model_id"], "backend-model")
+        self.assertNotIn("model", data)
+        self.assertEqual(data["cfg_scale"], 4.25)
+        self.assertNotIn("cfg", data)
+        self.assertEqual(data["seed"], 77)
+        self.assertFalse(error)
+        self.assertEqual(normalized["model_id"], "backend-model")
 
     def test_load_old_history_entries_without_controlnet_keys(self) -> None:
         """3. Testet das Laden alter Historien-Einträge ohne ControlNet-Keys auf fehlerfreies Handling."""
