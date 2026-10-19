@@ -241,6 +241,25 @@ class PhoenixPromptView(WorkspaceFrame):
     # LEFT COLUMN – Scrollable Parameters + Fixed Generate Button
     # ==================================================================
 
+        # --- AUTOSAVE / AUTOLOAD START ---
+        from app.settings_manager import SettingsManager
+        last_p = SettingsManager.get_last_prompt()
+        if last_p:
+            self.prompt_text.delete("1.0", "end")
+            self.prompt_text.insert("end", last_p)
+        last_n = SettingsManager.get_last_negative_prompt()
+        if last_n:
+            self.neg_prompt_text.delete("1.0", "end")
+            self.neg_prompt_text.insert("end", last_n)
+
+        def _save_prompts(event=None):
+            SettingsManager.set_last_prompt(self.prompt_text.get("1.0", "end-1c"))
+            SettingsManager.set_last_negative_prompt(self.neg_prompt_text.get("1.0", "end-1c"))
+
+        self.prompt_text.bind("<FocusOut>", _save_prompts)
+        self.neg_prompt_text.bind("<FocusOut>", _save_prompts)
+        # --- AUTOSAVE / AUTOLOAD END ---
+
     def _build_input_area(self) -> None:
         self.content_slot.grid_rowconfigure(0, weight=1)
         self.content_slot.grid_columnconfigure(0, weight=1)

@@ -50,6 +50,26 @@ class SettingsManager:
         return "QNN EP"
 
     @classmethod
+    def get_last_prompt(cls) -> str:
+        return cls.load_settings().get("last_prompt", "")
+
+    @classmethod
+    def set_last_prompt(cls, text: str) -> bool:
+        settings = cls.load_settings()
+        settings["last_prompt"] = text
+        return cls.save_settings(settings)
+
+    @classmethod
+    def get_last_negative_prompt(cls) -> str:
+        return cls.load_settings().get("last_negative_prompt", "")
+
+    @classmethod
+    def set_last_negative_prompt(cls, text: str) -> bool:
+        settings = cls.load_settings()
+        settings["last_negative_prompt"] = text
+        return cls.save_settings(settings)
+
+    @classmethod
     def get_hf_token(cls) -> str:
         # Check env first, then preferences
         token = os.environ.get("HF_TOKEN")
