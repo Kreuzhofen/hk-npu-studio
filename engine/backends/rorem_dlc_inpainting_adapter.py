@@ -29,6 +29,8 @@ DEFAULT_TIMEOUT_SECONDS = int(os.environ.get("ROREM_DLC_TIMEOUT_SECONDS", "900")
 
 DEFAULT_GRAPH_A_DLC = MODELS_DIR / "rorem_mixed_qnn_dlc" / "graph_a" / "graph_a.dlc"
 DEFAULT_GRAPH_B_DLC = MODELS_DIR / "rorem_mixed_qnn_dlc" / "graph_b" / "graph_b.dlc"
+DEFAULT_GRAPH_A_CONTEXT = MODELS_DIR / "rorem_mixed_qnn_context" / "graph_a" / "graph_a.serialized.bin"
+DEFAULT_GRAPH_B_CONTEXT = MODELS_DIR / "rorem_mixed_qnn_context" / "graph_b" / "graph_b.serialized.bin"
 
 EXPECTED_GRAPH_A_SHA256 = "4aab49508c6fc7d481f908c8fb472692fbf3802cded80935ff0b81a07e180307"
 EXPECTED_GRAPH_B_SHA256 = "becfbaca891e6b0a89116eb25776d9776706cff8520304ae0c9db555c7166e07"
@@ -221,6 +223,7 @@ class RORemDlcRuntime:
 
     BACKEND_NAME = BACKEND_NAME
     CPU_AI_FALLBACK: bool = False
+    GPU_AI_FALLBACK: bool = False
 
     @staticmethod
     def _resolve_init_timestep(steps: int, strength: float) -> int:
@@ -247,8 +250,8 @@ class RORemDlcRuntime:
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
         cleanup_temp: bool = True,
     ) -> None:
-        self.graph_a_path = Path(graph_a_path) if graph_a_path else DEFAULT_GRAPH_A_DLC
-        self.graph_b_path = Path(graph_b_path) if graph_b_path else DEFAULT_GRAPH_B_DLC
+        self.graph_a_path = Path(graph_a_path) if graph_a_path else DEFAULT_GRAPH_A_CONTEXT
+        self.graph_b_path = Path(graph_b_path) if graph_b_path else DEFAULT_GRAPH_B_CONTEXT
         self.work_root = Path(work_root) if work_root else TEMP_DIR / "rorem_dlc_runtime"
         self.timeout_seconds = timeout_seconds
         self.cleanup_temp = cleanup_temp
@@ -282,7 +285,7 @@ class RORemDlcRuntime:
             self.qnn_model_dlc,
             self.qnn_htp,
         ]
-        return [p for p in required if not p.is_file()]
+        return [p for p in required if not p.is_file() or p.stat().st_size <= 0]
 
     def validate_pipeline_artifacts(self) -> list[Path]:
         """Return list of missing required artifact and runtime files for end-to-end image pipeline."""
@@ -300,7 +303,10 @@ class RORemDlcRuntime:
             self.tokenizer_g_dir,
             self.scheduler_dir,
         ]
-        return [p for p in required if not p.exists()]
+        return [
+            p for p in required
+            if not p.exists() or (p.is_file() and p.stat().st_size <= 0)
+        ]
 
     def _build_env(self) -> dict[str, str]:
         """Prepare subprocess environment with QNN binary and library paths."""
@@ -632,12 +638,74 @@ class RORemDlcRuntime:
 
         return output_dir
 
+    def _run_context_batch(
+        self,
+        context_path: Path | str,
+        input_lines: list[str],
+        work_path: Path,
+        output_dir: Path | None = None,
+    ) -> Path:
+        """Execute one or more inference sets from an existing serialized HTP context."""
+        context_file = Path(context_path)
+        if not context_file.is_file() or context_file.stat().st_size <= 0:
+            raise FileNotFoundError(
+                f"Required serialized HTP context is missing or empty: {context_file}"
+            )
+        if output_dir is None:
+            output_dir = work_path / "outputs"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        input_list_path = work_path / "input_list.txt"
+        input_list_path.write_text("\n".join(input_lines), encoding="ascii")
+        cmd = [
+            str(self.qnn_net_run),
+            "--backend", str(self.qnn_htp),
+            "--retrieve_context", str(context_file),
+            "--input_list", str(input_list_path),
+            "--output_dir", str(output_dir),
+            "--profiling_level", "basic",
+            "--use_native_input_files",
+            "--use_native_output_files",
+        ]
+
+        try:
+            proc = subprocess.run(
+                cmd,
+                cwd=str(work_path),
+                env=self._build_env(),
+                capture_output=True,
+                text=True,
+                timeout=self.timeout_seconds,
+                check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutError(
+                f"Serialized HTP context execution timed out after {self.timeout_seconds}s "
+                f"for {context_file.name}"
+            ) from exc
+
+        (work_path / "qnn_stdout.txt").write_text(
+            proc.stdout, encoding="utf-8", errors="replace"
+        )
+        (work_path / "qnn_stderr.txt").write_text(
+            proc.stderr, encoding="utf-8", errors="replace"
+        )
+        if proc.returncode != 0:
+            err = proc.stderr.strip() or proc.stdout.strip()
+            graph_label = "Graph A" if context_file == self.graph_a_path else "Graph B"
+            raise RuntimeError(
+                f"{graph_label} serialized HTP context execution failed with code "
+                f"{proc.returncode}: {err}"
+            )
+        return output_dir
+
     def _run_graph_a_internal(
         self,
         input_sets: list[Mapping[str, np.ndarray]],
         work_dir: Path | str | None = None,
     ) -> list[GraphAOutputs]:
-        """Low-level batch execution of Graph A DLC via qnn-net-run."""
+        """Low-level batch execution of Graph A serialized context via qnn-net-run."""
         if not input_sets:
             raise ValueError("input_sets cannot be empty")
 
@@ -675,7 +743,7 @@ class RORemDlcRuntime:
                     entries.append(f"{name}:={raw_path}")
                 input_lines.append(" ".join(entries))
 
-            self._run_dlc_batch(self.graph_a_path, input_lines, work_path, output_dir)
+            self._run_context_batch(self.graph_a_path, input_lines, work_path, output_dir)
 
             batch_results: list[GraphAOutputs] = []
             for set_idx in range(len(input_sets)):
@@ -811,7 +879,7 @@ class RORemDlcRuntime:
         input_sets: list[Mapping[str, np.ndarray | Path]],
         work_dir: Path | str | None = None,
     ) -> list[np.ndarray]:
-        """Low-level batch execution of Graph B DLC via qnn-net-run."""
+        """Low-level batch execution of Graph B serialized context via qnn-net-run."""
         if not input_sets:
             raise ValueError("input_sets cannot be empty")
 
@@ -884,7 +952,7 @@ class RORemDlcRuntime:
                 entries = [f"{name}:={resolved_inputs[name]}" for name in GRAPH_B_INPUT_NAMES]
                 input_lines.append(" ".join(entries))
 
-            self._run_dlc_batch(self.graph_b_path, input_lines, work_path, output_dir)
+            self._run_context_batch(self.graph_b_path, input_lines, work_path, output_dir)
 
             batch_out_samples: list[np.ndarray] = []
             for set_idx in range(len(input_sets)):

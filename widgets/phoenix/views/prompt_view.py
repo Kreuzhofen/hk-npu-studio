@@ -1003,15 +1003,53 @@ class PhoenixPromptView(WorkspaceFrame):
         )
         self.seed_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
  
-        self.batch_label = tk.Label(self.output_frame, text=tr("batch_label_colon", "Batch:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
-        self.batch_label.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-        self.batch_menu = tk.OptionMenu(self.output_frame, self.batch_var, "1", "2", "4", "8")
-        self.batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, disabledforeground=PHOENIX_THEME.text_disabled, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
-        self.batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
-        self.batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
+        batch_container = tk.Frame(self.output_frame, bg=PHOENIX_THEME.card_bg)
+        batch_container.grid(row=0, column=2, rowspan=2, columnspan=2, sticky="nsew", padx=(8, 0))
+
+        self.batch_label = tk.Label(
+            batch_container,
+            text=tr("count_title", "Anzahl"),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small,
+            anchor="w",
+        )
+        self.batch_label.pack(fill="x", anchor="w")
+
+        self.batch_spinbox = tk.Spinbox(
+            batch_container,
+            from_=1,
+            to=99,
+            textvariable=self.batch_var,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightcolor=PHOENIX_THEME.accent,
+            highlightthickness=1,
+            relief="flat",
+            font=PHOENIX_THEME.font_body,
+            buttonbackground=PHOENIX_THEME.elevated_bg,
+        )
+        self.batch_spinbox.pack(fill="x", pady=(2, 2))
+        self.batch_spinbox.bind("<FocusOut>", self._clamp_batch_var)
+        self.batch_spinbox.bind("<Return>", self._clamp_batch_var)
+        self.batch_menu = self.batch_spinbox
+
+        self.batch_subtitle = tk.Label(
+            batch_container,
+            text=tr("batch_help_prefix", "Batch: Erzeugt mehrere Bilder nacheinander (1–99)."),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            justify="left",
+            wraplength=230,
+        )
+        self.batch_subtitle.pack(fill="x", anchor="w")
 
         self._attach_parameter_help((self.seed_label, self.seed_entry), "seed_help", "Reproduzierbarer Startwert; -1 bedeutet zufälliger Seed.")
-        self._attach_parameter_help((self.batch_label, self.batch_menu), "batch_help", "Anzahl der zu erzeugenden Bilder; erhöht Zeit- und Speicherbedarf.")
+        self._attach_parameter_help((self.batch_label, self.batch_spinbox), "batch_help", "Batch: Erzeugt mehrere Bilder nacheinander (1–99).")
         self._attach_parameter_help((self.steps_label, self.steps_scale), "steps_help", "Mehr Entrauschungsschritte können Details verbessern, benötigen aber mehr Zeit.")
         self._attach_parameter_help((self.cfg_label, self.cfg_scale), "cfg_scale_help", "Stärke der Prompt-Befolgung; typische Empfehlung 6–8.")
         self._attach_parameter_help((self.sampler_lbl, self.sampler_menu), "sampler_help", "Verwendetes Berechnungsverfahren für die Bildentstehung.", self.sampler_menu)
@@ -1024,6 +1062,18 @@ class PhoenixPromptView(WorkspaceFrame):
         self.generation_section_label.grid_remove()
         self.tab_bar.grid_remove()
         self.tab_container.grid_remove()
+
+    def _clamp_batch_var(self, _event: tk.Event | None = None) -> None:
+        try:
+            val = int(self.batch_var.get())
+            if val < 1:
+                self.batch_var.set("1")
+            elif val > 99:
+                self.batch_var.set("99")
+            else:
+                self.batch_var.set(str(val))
+        except (ValueError, TypeError):
+            self.batch_var.set("1")
 
     @staticmethod
     def _configure_option_contract(widget: tk.OptionMenu, variable: tk.StringVar, spec: dict, label_widget: tk.Label | None = None, label_base_text: str = "") -> None:
@@ -1988,24 +2038,43 @@ class PhoenixPromptView(WorkspaceFrame):
             def progress_cb(percent: float, stage: str) -> None:
                 self._generation_events.put(("progress", (percent, stage)))
 
-            result = self.controller.generate_image(notify_workflow=False, progress_callback=progress_cb)
-            if (
-                self._upscale_profile_for_job in ("2", "4")
-                and result.success
-                and result.status != "CANCELLED"
-                and result.image_path
-            ):
-                try:
-                    scale = int(self._upscale_profile_for_job)
-                    result.metadata[f"upscaled_{scale}x_image_path"] = (
-                        self.controller.upscale_generated_image(result.image_path, scale)
-                    )
-                except Exception as error:
-                    logger.exception("Optional RealESRGAN %sx upscale failed", self._upscale_profile_for_job)
-                    result.metadata[f"upscale_{self._upscale_profile_for_job}x_error"] = str(error)
-            self._generation_events.put(("result", result))
+            # 100% Fakten-basiert: Die Variable hei?t batch_count im State
+            batch_count = getattr(self.controller.model.state, "batch_count", 1)
+            base_seed = getattr(self.controller.model.state, "seed", -1)
+            import random
+
+            for i in range(batch_count):
+                if getattr(self.controller.model.state, "status", "") == "CANCELLED":
+                    break
+
+                current_seed = base_seed if base_seed == -1 else (base_seed + i)
+                if current_seed == -1:
+                    current_seed = random.randint(10000, 9999999)
+                
+                self.controller.model.update_state(seed=current_seed)
+
+                if batch_count > 1:
+                    self._generation_events.put(("progress", (0.0, f"Batch {i+1}/{batch_count} vorbereiten...")))
+
+                result = self.controller.generate_image(notify_workflow=False, progress_callback=progress_cb)
+                
+                # Wichtig: Der UI mitteilen, ob dies das letzte Bild ist
+                result.is_last = (i == batch_count - 1)
+
+                if getattr(self, "_upscale_profile_for_job", "1") in ("2", "4") and getattr(result, "success", False) and getattr(result, "status", "") != "CANCELLED" and getattr(result, "image_path", None):
+                    try:
+                        scale = int(self._upscale_profile_for_job)
+                        result.metadata[f"upscaled_{scale}x_image_path"] = self.controller.upscale_generated_image(result.image_path, scale)
+                    except Exception as error:
+                        import logging
+                        logging.getLogger(__name__).exception("Upscale failed")
+                        result.metadata[f"upscale_{self._upscale_profile_for_job}x_error"] = str(error)
+                
+                self._generation_events.put(("result", result))
+
         except Exception as error:
-            logger.exception("Prompt-to-image generation failed")
+            import logging
+            logging.getLogger(__name__).exception("Prompt-to-image generation failed")
             self._generation_events.put(("error", error))
 
     def _on_cancel_generation(self) -> None:
@@ -2048,8 +2117,10 @@ class PhoenixPromptView(WorkspaceFrame):
         if not self._is_view_alive():
             return
 
-        self._generation_running = False
-        self._cancel_progress_tick()
+        # Antigravity Fix: UI nur stoppen, wenn es das letzte Bild im Batch ist
+        if getattr(result, "is_last", True):
+            self._generation_running = False
+            self._cancel_progress_tick()
         cancelled = result.status == "CANCELLED"
         output_path = Path(result.image_path) if result.image_path else None
         presentable_success = bool(
@@ -4026,44 +4097,95 @@ class PhoenixPromptView(WorkspaceFrame):
         self._configure_option_contract(popup_sampler_menu, self.sampler_var, contract.get("sampler", {}))
         self._configure_option_contract(popup_scheduler_menu, self.scheduler_var, contract.get("scheduler", {}))
 
-        tk.Label(container, text=tr("output_title", "Output"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, font=PHOENIX_THEME.font_card_title, anchor="w").pack(fill="x", pady=(10, 4))
-
         output_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
-        output_frame.pack(fill="x", pady=(0, 12))
-        output_frame.grid_columnconfigure(0, weight=0)
-        output_frame.grid_columnconfigure(1, weight=1)
-        output_frame.grid_columnconfigure(2, weight=0)
-        output_frame.grid_columnconfigure(3, weight=1)
+        output_frame.pack(fill="x", pady=(10, 12))
+        output_frame.grid_columnconfigure(0, weight=1, uniform="out_col")
+        output_frame.grid_columnconfigure(1, weight=1, uniform="out_col")
 
-        tk.Label(output_frame, text=tr("seed_label_colon", "Seed:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+        # ── Left Column: Ausgabe / Seed ──
+        left_box = tk.Frame(output_frame, bg=PHOENIX_THEME.card_bg)
+        left_box.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        left_box.grid_columnconfigure(0, weight=0)
+        left_box.grid_columnconfigure(1, weight=1)
+
+        tk.Label(
+            left_box, text=tr("output_title", "Ausgabe"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
+
+        tk.Label(
+            left_box, text=tr("seed_label_colon", "Seed:"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
+            font=PHOENIX_THEME.font_small, anchor="w",
+        ).grid(row=1, column=0, sticky="w", padx=(0, 4), pady=2)
         popup_seed_entry = tk.Entry(
-            output_frame, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
+            left_box, bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary,
             insertbackground=PHOENIX_THEME.text_primary,
             highlightbackground=PHOENIX_THEME.border, highlightcolor=PHOENIX_THEME.accent,
             highlightthickness=1, relief="flat", font=PHOENIX_THEME.font_body,
-            textvariable=self.seed_var
+            textvariable=self.seed_var,
         )
-        popup_seed_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
+        popup_seed_entry.grid(row=1, column=1, sticky="ew", pady=2)
 
-        tk.Label(output_frame, text=tr("batch_label_colon", "Batch:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
-        popup_batch_menu = tk.OptionMenu(output_frame, self.batch_var, "1", "2", "4", "8")
-        popup_batch_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
-        popup_batch_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
-        popup_batch_menu.grid(row=0, column=3, sticky="ew", pady=2)
         tk.Label(
-            output_frame, text=tr("seed_help", "Reproduzierbarer Startwert; -1 bedeutet zufälliger Seed."),
+            left_box, text=tr("seed_help", "Reproduzierbarer Startwert; -1 bedeutet zufälliger Seed."),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_caption, anchor="w", justify="left",
-        ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(3, 0))
+            wraplength=220,
+        ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=(3, 0))
+
+        # ── Right Column: Anzahl / Batch ──
+        right_box = tk.Frame(output_frame, bg=PHOENIX_THEME.card_bg)
+        right_box.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        right_box.grid_columnconfigure(0, weight=1)
+
+        popup_batch_title = tk.Label(
+            right_box, text=tr("count_title", "Anzahl"),
+            bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_card_title, anchor="w",
+        )
+        popup_batch_title.grid(row=0, column=0, sticky="w", pady=(0, 6))
+
+        popup_batch_spinbox = tk.Spinbox(
+            right_box,
+            from_=1,
+            to=99,
+            textvariable=self.batch_var,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            insertbackground=PHOENIX_THEME.text_primary,
+            highlightbackground=PHOENIX_THEME.border,
+            highlightcolor=PHOENIX_THEME.accent,
+            highlightthickness=1,
+            relief="flat",
+            font=PHOENIX_THEME.font_body,
+            buttonbackground=PHOENIX_THEME.elevated_bg,
+        )
+        popup_batch_spinbox.grid(row=1, column=0, sticky="ew", pady=2)
+        popup_batch_spinbox.bind("<FocusOut>", self._clamp_batch_var)
+        popup_batch_spinbox.bind("<Return>", self._clamp_batch_var)
+
+        popup_batch_subtitle = tk.Label(
+            right_box,
+            text=tr("batch_help_prefix", "Batch: Erzeugt mehrere Bilder nacheinander (1–99)."),
+            bg=PHOENIX_THEME.card_bg,
+            fg=PHOENIX_THEME.text_muted,
+            font=PHOENIX_THEME.font_caption,
+            anchor="w",
+            justify="left",
+            wraplength=220,
+        )
+        popup_batch_subtitle.grid(row=2, column=0, sticky="ew", pady=(3, 0))
 
         tk.Label(
             output_frame,
             text=tr("upscale_profile_label", "RealESRGAN (NPU):"),
             bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary,
             font=PHOENIX_THEME.font_small, anchor="w",
-        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(12, 4))
+        ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(12, 4))
         profile_frame = tk.Frame(output_frame, bg=PHOENIX_THEME.card_bg)
-        profile_frame.grid(row=3, column=0, columnspan=4, sticky="ew")
+        profile_frame.grid(row=2, column=0, columnspan=2, sticky="ew")
         for index in range(3):
             profile_frame.grid_columnconfigure(index, weight=1)
         self._upscale_profile_buttons = {}
@@ -4092,7 +4214,7 @@ class PhoenixPromptView(WorkspaceFrame):
             anchor="w",
             justify="left",
             wraplength=460,
-        ).grid(row=4, column=0, columnspan=4, sticky="ew", pady=(4, 4))
+        ).grid(row=3, column=0, columnspan=2, sticky="ew", pady=(4, 4))
 
 
 

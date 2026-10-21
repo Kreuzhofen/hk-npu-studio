@@ -85,11 +85,11 @@ class BoostAIService:
             instruction = (
                 "You are the Phoenix Boost prompt optimizer for Stable Diffusion.\n"
                 "Enhance the image prompt following these STRICT rules:\n"
-                f"1. Prioritize the main subject ('{locked.subject}') at the start.\n"
-                "2. Logically order the scene context.\n"
-                "3. Strengthen the existing medium (e.g. realistic photo -> professional photography; Renaissance painting -> Renaissance oil painting, masterpiece).\n"
-                "4. Add natural lighting and material quality.\n"
-                "5. STRICTLY FORBIDDEN: Do NOT add new people, poses, arm/hand actions, clothing, hairstyles, props, backgrounds, or changes to style/medium/proper names.\n"
+                f"1. Keep the exact subject and scene from the User Prompt ('{locked.subject}' in '{locked.scene_location or ''}'). Do not change '{locked.subject}' to any other entity or adult stage (preserve specific life stage such as puppy or kitten, child, girl, or boy exactly). For an animal, do not introduce portrait or portrait shot unless the User Prompt already requests it.\n"
+                "2. Preserve existing poses and actions ONLY if explicitly mentioned in the User Prompt. NEVER invent poses, actions, or camera interactions (no 'sitting', 'lying', 'standing', 'posing', 'camera', 'posing for the camera', 'facing camera', 'looking at camera').\n"
+                "3. Keep the prompt compact. Strengthen the existing medium with clean render fidelity (e.g., realistic photo -> professional photography, soft studio lighting, sharp focus, balanced exposure, natural lighting, high resolution photo). Avoid verbose photography cliches, camera equipment, or studio setups.\n"
+                "4. Format the optimized prompt directly describing the subject, scene, and refined lighting and render fidelity without adding any new physical objects, cloths, fabrics, furniture, studio equipment, setups, or background elements.\n"
+                "5. STRICTLY FORBIDDEN: Do not add props, furniture, cloths, equipment, camera mentions, photography fluff, or new poses (no sitting/lying/standing/posing). For an animal, do not introduce portrait or portrait shot unless the User Prompt already requests it.\n"
                 "6. Return JSON ONLY with keys: 'primary_subject', 'optimized_prompt', 'summary'.\n\n"
                 f"User Prompt: {json.dumps(prompt, ensure_ascii=False)}"
             )
@@ -121,8 +121,27 @@ class BoostAIService:
                     http_status,
                 )
                 envelope = json.loads(response.read().decode("utf-8"))
+        except (OSError, TimeoutError) as error:
+            from engine.ollama_status import OllamaStatusService
+            elapsed = time.perf_counter() - started
+            http_status = getattr(error, "code", "N/A")
+            logger.warning(
+                "Phoenix Boost AI request failed (transport/availability) | model=%s endpoint=%s timeout=%s status=%s elapsed=%.2fs | exception=%s: %s",
+                cls.MODEL, f"{cls.BASE_URL}/api/generate", timeout, http_status, elapsed, type(error).__name__, error,
+            )
+            OllamaStatusService.invalidate_cache()
+            return BoostAIRun(None, "failed", elapsed)
+
+        try:
             content = envelope.get("response", "")
-            data = json.loads(content) if isinstance(content, str) else content
+            if isinstance(content, str):
+                cleaned = content.strip()
+                if cleaned.startswith("```"):
+                    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+                    cleaned = re.sub(r"\s*```$", "", cleaned)
+                data = json.loads(cleaned)
+            else:
+                data = content
             result = cls._parse_ai_data(data, prompt, locked)
             elapsed = time.perf_counter() - started
             logger.info(
@@ -133,15 +152,12 @@ class BoostAIService:
                 result, "success", elapsed,
                 cls._change_summary(prompt, result.optimized_prompt, result.subject),
             )
-        except (OSError, TimeoutError, ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
-            from engine.ollama_status import OllamaStatusService
+        except (ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
             elapsed = time.perf_counter() - started
-            http_status = getattr(error, "code", "N/A")
             logger.warning(
-                "Phoenix Boost AI request/validation failed | model=%s endpoint=%s timeout=%s status=%s elapsed=%.2fs | exception=%s: %s",
-                cls.MODEL, f"{cls.BASE_URL}/api/generate", timeout, http_status, elapsed, type(error).__name__, error,
+                "Phoenix Boost AI candidate validation/parse failed (cache preserved) | model=%s timeout=%s elapsed=%.2fs | exception=%s: %s",
+                cls.MODEL, timeout, elapsed, type(error).__name__, error,
             )
-            OllamaStatusService.invalidate_cache()
             return BoostAIRun(None, "failed", elapsed)
 
     @classmethod
@@ -287,9 +303,7 @@ class BoostAIService:
                 logger.info(
                     "Phoenix Boost AI response normalized: prompt built from structured fields"
                 )
-        negative = str(data.get("negative_prompt", "")).strip() or (
-            "blurry, low quality, distorted, artifacts, poor composition"
-        )
+        negative = str(data.get("negative_prompt", "")).strip()
         if not optimized:
             raise ValueError(
                 "missing_optimized_prompt; response_keys="
