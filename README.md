@@ -668,7 +668,11 @@ Please do not disclose security vulnerabilities publicly. Follow [SECURITY.md](S
 
 ## 💖 Support HK NPU STUDIO
 
-If HK NPU STUDIO is useful to you, you can support its independent development through GitHub Sponsors. Contributions help fund compatibility testing, documentation, and continued work on local AI for Snapdragon® PCs.
+HK NPU STUDIO is developed independently, and building reliable local AI pipelines for Snapdragon® hardware is resource-intensive. It requires substantial engineering time, compatible hardware, model integration, compatibility testing, maintenance, and documentation.
+
+**Financial support helps secure the project's continued development.** Sponsorship helps cover development and testing costs, fix issues, improve reliability, and keep the project moving forward over the long term. Every contribution helps make sustained independent development more achievable.
+
+If the project is useful to you, please consider supporting it through GitHub Sponsors.
 
 [![Sponsor HK NPU STUDIO](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Kreuzhofen)
 
