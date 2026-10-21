@@ -21,6 +21,9 @@
   <a href="https://github.com/Kreuzhofen/hk-npu-studio/stargazers">
     <img src="https://img.shields.io/github/stars/Kreuzhofen/hk-npu-studio?style=flat-square&color=gold" alt="Stars">
   </a>
+  <a href="https://github.com/sponsors/Kreuzhofen">
+    <img src="https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white" alt="Sponsor HK NPU STUDIO">
+  </a>
   <br>
   <a href="https://learn.microsoft.com/windows/arm/">
     <img src="https://img.shields.io/badge/Platform-Windows_11_ARM64-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Platform">
@@ -662,6 +665,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.
 Please do not disclose security vulnerabilities publicly. Follow [SECURITY.md](SECURITY.md) for responsible reporting.
 
 ---
+
+## 💖 Support HK NPU STUDIO
+
+If HK NPU STUDIO is useful to you, you can support its independent development through GitHub Sponsors. Contributions help fund compatibility testing, documentation, and continued work on local AI for Snapdragon® PCs.
+
+[![Sponsor HK NPU STUDIO](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Kreuzhofen)
 
 ## 💬 Support
 
