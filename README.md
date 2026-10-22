@@ -64,6 +64,7 @@
 - [Testing](#-testing)
 - [Diagnostics](#-diagnostics)
 - [FAQ](#-faq)
+- [💖 Support HK NPU STUDIO](#-support-hk-npu-studio)
 - [Support](#-support)
 - [License](#-license)
 - [Trademark Notice](#trademark-notice)
