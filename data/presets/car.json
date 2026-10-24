@@ -1,0 +1,21 @@
+{
+  "prompt": "luxury sports car and deep burgundy paint. elegant chrome details, round vintage headlights, classic wire wheels, old trees, dramatic mountains. A beautifully restored classic 1950s luxury sports car parked on a scenic winding road in the European countryside at golden hour. Elegant deep burgundy paint with polished chrome details, round vintage headlights, classic wire wheels, flawless reflections on the bodywork. Warm sunset light shining through old trees, dramatic mountains in the distance, subtle morning mist over the valley, cinematic composition, low camera angle, realistic reflections, highly detailed metal and glass surfaces, photorealistic automotive photography, shallow depth of field, natural colors, atmospheric lighting, professional car photography, masterpiece, 8k detail",
+  "negative_prompt": "blurry, low quality, cartoon, illustration, modern car, futuristic car, distorted wheels, deformed bodywork, incorrect reflections, duplicate wheels, extra headlights, bad perspective, warped geometry, oversaturated, text, watermark, logo, license plate text, people, frame, blurry, low quality, distorted, artifacts, poor composition",
+  "model_name": "stable_diffusion_v3_5_qai",
+  "backend": "QNN EP",
+  "seed": 12345,
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "cfg_scale": 3.5,
+  "sampler": "FlowMatch Euler",
+  "scheduler": "Shift 3.0",
+  "batch": 1,
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "upscale_profile": "off",
+  "name": "car"
+}

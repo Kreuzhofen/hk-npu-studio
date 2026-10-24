@@ -310,7 +310,7 @@ def build_arguments() -> list[str]:
         PROJECT_ROOT / "locales": "locales",
         plugins: "plugins",
         PROJECT_ROOT / "workflows": "workflows",
-        PROJECT_ROOT / "presets": "presets",
+        PROJECT_ROOT / "data" / "presets": "data/presets",
         qnn_path: "onnxruntime_qnn",
     }
     if qai_runtime is not None:

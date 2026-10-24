@@ -1,0 +1,21 @@
+{
+  "prompt": "people and horses and stone_buildings. mountains, colorful market stalls. A bustling medieval marketplace at sunrise with dozens of people trading goods, colorful market stalls. Horses and stone buildings in the foreground, mountains as a distant backdrop under volumetric sunlight. Cinematic realism photography style.",
+  "negative_prompt": "low quality, blurry, duplicate people, malformed hands, extra limbs, distorted faces, blurry, low quality, distorted, artifacts, poor composition, blurry, low quality, distorted, artifacts, poor composition",
+  "model_name": "stable_diffusion_v3_5_qai",
+  "backend": "QNN EP",
+  "seed": -1,
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "cfg_scale": 3.5,
+  "sampler": "FlowMatch Euler",
+  "scheduler": "Shift 3.0",
+  "batch": 1,
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "upscale_profile": "off",
+  "name": "Komplex"
+}

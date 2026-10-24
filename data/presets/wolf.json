@@ -1,0 +1,21 @@
+{
+  "prompt": "wolf and snowy landscape. fallen branches, icicles. A lone wolf stands amidst a snowy landscape with intricate details of fallen branches and icicles. The camera captures the scene from slightly above, emphasizing the depth between the snow-covered ground and the low-hanging tree limbs.",
+  "negative_prompt": "multiple people, pets other than wolf, extra animals, messy environment, water bodies, indoor scenes, blurry, low quality, distorted, artifacts, poor composition",
+  "model_name": "stable_diffusion_v3_5_qai",
+  "backend": "QNN EP",
+  "seed": -1,
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "cfg_scale": 3.5,
+  "sampler": "FlowMatch Euler",
+  "scheduler": "Shift 3.0",
+  "batch": 1,
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "upscale_profile": "off",
+  "name": "Wolf"
+}

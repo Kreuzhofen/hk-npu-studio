@@ -1,0 +1,21 @@
+{
+  "prompt": "An adorable tiny green tree frog sitting on a large leaf covered with sparkling morning dew, surrounded by lush tropical plants and small colorful wildflowers. The frog has beautiful detailed emerald-green skin, large expressive eyes with realistic reflections, and a curious peaceful expression. Warm golden sunlight filtering through the leaves, magical soft backlighting, tiny water droplets sparkling in the light, cinematic composition, shallow depth of field, dreamy natural bokeh, extremely detailed macro photography, photorealistic, vibrant but natural colors, realistic textures, professional wildlife photography, atmospheric, masterpiece, 8k detail, professional photography, clear composition, natural light, sharp focus, fine detail",
+  "negative_prompt": "blurry, low quality, cartoon, illustration, deformed frog, mutated, extra legs, extra eyes, duplicate animal, bad anatomy, unnatural proportions, plastic texture, oversaturated, flat lighting, text, watermark, logo, frame, blurry, low quality, distorted, artifacts, poor composition",
+  "model_name": "stable_diffusion_v3_5_qai",
+  "backend": "QNN EP",
+  "seed": 12345,
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "cfg_scale": 3.5,
+  "sampler": "FlowMatch Euler",
+  "scheduler": "Shift 3.0",
+  "batch": 1,
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "upscale_profile": "off",
+  "name": "frog"
+}

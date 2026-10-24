@@ -1,0 +1,21 @@
+{
+  "prompt": "child and sunflowers. field, summer afternoon, golden sunlight, soft white clouds, green leaves, yellow petals. A joyful young child standing in a beautiful field of tall blooming sunflowers on a warm summer afternoon, gently holding one sunflower. Golden sunlight shines through the flowers with soft natural backlighting; blue sky dotted by few white clouds provide context and atmosphere. Detailed green leaves and yellow petals contrast beautifully against realistic skin tones under cinematic photography perspective. Shallow depth of field creates bokeh in background enhances focus on child's happy expression, professional quality 8k detail.",
+  "negative_prompt": "blurrblurry, low quality, distorted face, deformed hands, extra fingers, missing fingers, extra limbs, duplicate person, unnatural anatomy, bad proportions, oversaturated, artificial skin, text, watermark, logo, frame, blurry, low quality, distorted, artifacts, poor composition",
+  "model_name": "stable_diffusion_v3_5_qai",
+  "backend": "QNN EP",
+  "seed": -1,
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "cfg_scale": 3.5,
+  "sampler": "FlowMatch Euler",
+  "scheduler": "Shift 3.0",
+  "batch": 1,
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "upscale_profile": "off",
+  "name": "Sunflowers"
+}

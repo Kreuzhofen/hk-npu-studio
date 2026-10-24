@@ -1,0 +1,21 @@
+{
+  "prompt": "woman and sunflowers. A professional portrait photo of a 30-year-old woman with freckles and green eyes standing in an expansive sunflower field during golden hour, captured by an 85mm lens for ultra realistic skin. Natural lighting highlights her face while the shallow depth of field emphasizes her detailed hair. The scene is shot from a DSLR camera perspective focusing on her profile against vibrant yellow sunflowers with soft shadows and natural textures.",
+  "negative_prompt": "low quality, blurry, deformed face, extra fingers, bad anatomy, oversaturated, cartoon, painting, blurry, low quality, distorted, artifacts, poor composition",
+  "model_name": "stable_diffusion_v3_5_qai",
+  "backend": "QNN EP",
+  "seed": -1,
+  "width": 1024,
+  "height": 1024,
+  "steps": 30,
+  "cfg_scale": 7.5,
+  "sampler": "FlowMatch Euler",
+  "scheduler": "Shift 3.0",
+  "batch": 1,
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "upscale_profile": "off",
+  "name": "A professional Portrait"
+}

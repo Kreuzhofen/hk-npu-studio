@@ -2228,7 +2228,9 @@ class ExpandablePromptTests(unittest.TestCase):
 
     def test_boost_sunflowers_preset_accepts_equivalent_bokeh_and_detects_location_change(self) -> None:
         import json
-        with open("presets/sunflowers.json", "r", encoding="utf-8") as f:
+        from config import PRESETS_DIR
+
+        with open(PRESETS_DIR / "sunflowers.json", "r", encoding="utf-8") as f:
             preset = json.load(f)
         prompt = preset["prompt"]
         locked = PhoenixBoostEngine.extract_locked_semantics(prompt)

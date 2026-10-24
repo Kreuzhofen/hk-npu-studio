@@ -1,0 +1,17 @@
+{
+  "prompt": "A full body giraffe standing in the African savanna, holding the string of a small bright red helium balloon firmly in its mouth. The balloon is floating high above the giraffe because it is filled with helium. Two happy people are standing far in the background, laughing and watching the giraffe. The balloon is NOT attached to the giraffe's body, neck or tail, only to its mouth. Realistic wildlife photography, ultra detailed, golden hour, sharp focus, natural colors, professional DSLR, 8k.",
+  "negative_prompt": "hot air balloon, balloon attached to tail, balloon attached to body, cropped giraffe, close up, illustration, cartoon, painting, blurry, low quality, watermark, text, extra animals, extra limbs, deformed",
+  "model_name": "sdxl_base",
+  "width": 512,
+  "height": 512,
+  "steps": 20,
+  "cfg_scale": 7.0,
+  "sampler": "Euler a",
+  "scheduler": "Normal",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "name": "Giraffe"
+}

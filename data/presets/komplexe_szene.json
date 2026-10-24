@@ -1,0 +1,17 @@
+{
+  "prompt": "A bustling medieval marketplace at sunrise, dozens of people trading goods, colorful market stalls, horses, stone buildings, mountains in the background, volumetric sunlight, cinematic realism, ultra detailed, award-winning photography.",
+  "negative_prompt": "low quality, blurry, duplicate people, malformed hands, extra limbs, distorted faces",
+  "model_name": "sdxl_base",
+  "width": 512,
+  "height": 512,
+  "steps": 30,
+  "cfg_scale": 7.5,
+  "sampler": "Euler a",
+  "scheduler": "Normal",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "name": "Komplexe Szene"
+}

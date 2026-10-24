@@ -1,0 +1,17 @@
+{
+  "prompt": "A professional portrait photo of a 30-year-old woman with freckles and green eyes, standing in a sunflower field during golden hour, 85mm lens, ultra realistic skin, natural lighting, shallow depth of field, highly detailed hair, DSLR photography.",
+  "negative_prompt": "low quality, blurry, deformed face, extra fingers, bad anatomy, oversaturated, cartoon, painting",
+  "model_name": "sdxl_base",
+  "width": 512,
+  "height": 512,
+  "steps": 30,
+  "cfg_scale": 7.5,
+  "sampler": "Euler a",
+  "scheduler": "Normal",
+  "controlnet_enabled": false,
+  "canny_low_threshold": 50,
+  "canny_high_threshold": 150,
+  "controlnet_conditioning_scale": 1.0,
+  "reference_image_path": "",
+  "name": "Portrait"
+}

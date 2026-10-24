@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +18,27 @@ class PresetManager:
             preset_dir = PRESETS_DIR
         self.preset_dir = Path(preset_dir)
         self.preset_dir.mkdir(parents=True, exist_ok=True)
+        self._copy_bundled_presets()
         self._ensure_default_presets()
+
+    def _copy_bundled_presets(self) -> None:
+        """Copy missing bundled presets into the writable frozen-app directory."""
+        if not getattr(sys, "frozen", False):
+            return
+
+        from config import BASE
+
+        bundled_dir = Path(BASE) / "data" / "presets"
+        try:
+            if not bundled_dir.is_dir() or bundled_dir.resolve() == self.preset_dir.resolve():
+                return
+            for bundled_preset in bundled_dir.glob("*.json"):
+                destination = self.preset_dir / bundled_preset.name
+                if not destination.exists():
+                    shutil.copyfile(bundled_preset, destination)
+        except OSError:
+            # Bundled resources are optional at runtime; built-in defaults remain available.
+            return
 
     def _ensure_default_presets(self) -> None:
         """Ensures standard default, cyberpunk, and photorealistic presets exist on disk."""
