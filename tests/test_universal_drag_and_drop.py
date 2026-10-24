@@ -15,6 +15,9 @@ from PIL import Image
 
 from controllers.compare_workspace_controller import CompareWorkspaceController
 from controllers.gallery_controller import GalleryController
+import config
+from app.settings_manager import SettingsManager
+from controllers.model_repository import ModelRepository
 from controllers.prompt_workspace_controller import PromptWorkspaceController
 from widgets.phoenix.views.compare_view import PhoenixCompareView
 from widgets.phoenix.views.gallery_view import PhoenixGalleryView
@@ -80,11 +83,39 @@ class UniversalDragAndDropTests(unittest.TestCase):
         shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
     def setUp(self):
+        self.pref_dir = tempfile.TemporaryDirectory()
+        self.pref_path = Path(self.pref_dir.name) / "preferences.json"
+        self._pref_patcher = patch.object(
+            SettingsManager, "get_preferences_path", return_value=self.pref_path
+        )
+        self._pref_patcher.start()
+
+        self._model_repo_patcher = patch.object(
+            ModelRepository, "_preferences_path", self.pref_path
+        )
+        self._model_repo_patcher.start()
+
+        self._config_pref_patcher = patch.object(
+            config, "PREFERENCES_PATH", self.pref_path
+        )
+        self._config_pref_patcher.start()
+
         self.showerror_patcher = patch("tkinter.messagebox.showerror")
         self.mock_showerror = self.showerror_patcher.start()
 
     def tearDown(self):
-        self.showerror_patcher.stop()
+        try:
+            self.root.update_idletasks()
+            self.showerror_patcher.stop()
+        finally:
+            if hasattr(self, "_config_pref_patcher"):
+                self._config_pref_patcher.stop()
+            if hasattr(self, "_model_repo_patcher"):
+                self._model_repo_patcher.stop()
+            if hasattr(self, "_pref_patcher"):
+                self._pref_patcher.stop()
+            if hasattr(self, "pref_dir"):
+                self.pref_dir.cleanup()
 
     def test_dnd_utils_path_parsing(self):
         # 1. Single path
@@ -215,48 +246,52 @@ class UniversalDragAndDropTests(unittest.TestCase):
     def test_prompt_drop_reference_image(self):
         controller = PromptWorkspaceController()
         view = PhoenixPromptView(self.root, controller=controller)
+        try:
+            event = MockDropEvent(str(self.img_path))
+            view._on_file_drop(event)
 
-        event = MockDropEvent(str(self.img_path))
-        view._on_file_drop(event)
-
-        self.assertEqual(view._ref_image_path, str(self.img_path))
-        if getattr(view, "canny_supported", False):
-            self.assertTrue(view.controlnet_canny_var.get())
-        view.destroy()
+            self.assertEqual(view._ref_image_path, str(self.img_path))
+            if getattr(view, "canny_supported", False):
+                self.assertTrue(view.controlnet_canny_var.get())
+        finally:
+            view.destroy()
 
     def test_prompt_drop_preset_json(self):
         controller = PromptWorkspaceController()
         view = PhoenixPromptView(self.root, controller=controller)
+        try:
+            event = MockDropEvent(str(self.json_path))
+            view._on_file_drop(event)
 
-        event = MockDropEvent(str(self.json_path))
-        view._on_file_drop(event)
-
-        prompt_val = view.prompt_text.get("1.0", "end-1c").strip()
-        self.assertEqual(prompt_val, "Test Prompt From Dropped Preset")
-        self.assertEqual(view.steps_var.get(), 25)
-        self.assertAlmostEqual(view.cfg_var.get(), 6.5, places=3)
-        self.assertEqual(view.seed_var.get(), "5555")
-        view.destroy()
+            prompt_val = view.prompt_text.get("1.0", "end-1c").strip()
+            self.assertEqual(prompt_val, "Test Prompt From Dropped Preset")
+            self.assertEqual(view.steps_var.get(), 25)
+            self.assertAlmostEqual(view.cfg_var.get(), 6.5, places=3)
+            self.assertEqual(view.seed_var.get(), "5555")
+        finally:
+            view.destroy()
 
     def test_prompt_drop_text_file(self):
         controller = PromptWorkspaceController()
         view = PhoenixPromptView(self.root, controller=controller)
+        try:
+            event = MockDropEvent(str(self.txt_path))
+            view._on_file_drop(event)
 
-        event = MockDropEvent(str(self.txt_path))
-        view._on_file_drop(event)
-
-        prompt_val = view.prompt_text.get("1.0", "end-1c").strip()
-        self.assertIn("futuristic robotic falcon", prompt_val)
-        view.destroy()
+            prompt_val = view.prompt_text.get("1.0", "end-1c").strip()
+            self.assertIn("futuristic robotic falcon", prompt_val)
+        finally:
+            view.destroy()
 
     def test_prompt_drop_unsupported_file(self):
         controller = PromptWorkspaceController()
         view = PhoenixPromptView(self.root, controller=controller)
-
-        event = MockDropEvent(str(self.unsupported_path))
-        view._on_file_drop(event)
-        self.assertTrue(self.mock_showerror.called)
-        view.destroy()
+        try:
+            event = MockDropEvent(str(self.unsupported_path))
+            view._on_file_drop(event)
+            self.assertTrue(self.mock_showerror.called)
+        finally:
+            view.destroy()
 
 
 if __name__ == "__main__":
