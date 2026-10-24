@@ -78,17 +78,35 @@ class SnapdragonAIStudioV2(tk.Tk):
         print(message)
 
     def on_drop_file(self, event):
-        dropped_paths = self.tk.splitlist(event.data)
+        from widgets.phoenix.dnd_utils import parse_dnd_paths
+        raw_data = getattr(event, "data", "")
+        dropped_paths = parse_dnd_paths(raw_data)
 
         if not dropped_paths:
             self._log(tr("drop_no_file", "Drag & Drop: keine Datei erkannt."))
             return
 
+        # If Phoenix workspace is active, route to current view if it handles drops
+        if hasattr(self, "phoenix_workspace") and self.phoenix_workspace is not None:
+            ws = self.phoenix_workspace
+            current_view_name = getattr(ws, "current_view", None)
+            active_view = ws._views.get(current_view_name) if current_view_name else None
+
+            if current_view_name == "prompt" and hasattr(active_view, "_on_file_drop"):
+                active_view._on_file_drop(event)
+                return
+            elif current_view_name == "compare" and hasattr(active_view, "_on_general_drop"):
+                active_view._on_general_drop(event)
+                return
+            elif current_view_name == "gallery" and hasattr(active_view, "_on_drop"):
+                active_view._on_drop(event)
+                return
+
         files = []
         folders = []
 
         for dropped_path in dropped_paths:
-            path = Path(dropped_path)
+            path = Path(str(dropped_path).strip('{}""\'\''))
 
             if path.is_dir():
                 folders.append(path)

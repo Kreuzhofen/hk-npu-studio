@@ -131,6 +131,7 @@ class PhoenixCompareView(WorkspaceFrame):
         )
         self.original_panel.image_canvas.on_pan = lambda x, y: self._sync_pan("original", x, y)
         self.result_panel.image_canvas.on_pan = lambda x, y: self._sync_pan("result", x, y)
+        self._setup_drag_and_drop()
 
     def _resize_compare_content(self, event: tk.Event) -> None:
         """Keep both panels at the current viewport width without collapsing their image rows."""
@@ -363,3 +364,92 @@ class PhoenixCompareView(WorkspaceFrame):
         message = str(error) or error.__class__.__name__
         self.controller.set_error(message)
         messagebox.showerror(tr("compare_title", "Bildvergleich"), message)
+
+    def _setup_drag_and_drop(self) -> None:
+        from widgets.phoenix.dnd_utils import register_dnd_target
+
+        app = self.winfo_toplevel()
+        app_ctrl = getattr(app, "application_controller", None)
+        dnd_available = getattr(app_ctrl, "dnd_available", False)
+        dnd_files = getattr(app_ctrl, "dnd_files", "DND_Files")
+        if not dnd_available:
+            try:
+                from tkinterdnd2 import DND_FILES
+                dnd_files = DND_FILES
+                dnd_available = True
+            except ImportError:
+                dnd_available = False
+
+        if not dnd_available:
+            return
+
+        self.original_panel.setup_drop_target(dnd_files, lambda paths: self._on_panel_drop("original", paths))
+        self.result_panel.setup_drop_target(dnd_files, lambda paths: self._on_panel_drop("output", paths))
+
+        for w in (self, self.compare_canvas, self.split_container):
+            register_dnd_target(w, dnd_files, self._on_general_drop)
+
+    def load_original_from_path(self, filepath: str | Path) -> bool:
+        """Loads an image into the original (left) compare panel with format verification."""
+        try:
+            p = Path(filepath)
+            if not p.is_file():
+                raise FileNotFoundError(tr("file_not_found_msg", "Datei existiert nicht: {path}", path=str(p)))
+            ext = p.suffix.lower()
+            if ext not in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}:
+                raise ValueError(tr("supported_image_formats_only", "Nicht unterstütztes Format: {ext}", ext=ext))
+            self.controller.load_original(str(p))
+            self.refresh()
+            return True
+        except Exception as error:
+            self._handle_error(error)
+            return False
+
+    def load_output_from_path(self, filepath: str | Path) -> bool:
+        """Loads an image into the result (right) compare panel with format verification."""
+        try:
+            p = Path(filepath)
+            if not p.is_file():
+                raise FileNotFoundError(tr("file_not_found_msg", "Datei existiert nicht: {path}", path=str(p)))
+            ext = p.suffix.lower()
+            if ext not in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}:
+                raise ValueError(tr("supported_image_formats_only", "Nicht unterstütztes Format: {ext}", ext=ext))
+            self.controller.load_output(str(p))
+            self.refresh()
+            return True
+        except Exception as error:
+            self._handle_error(error)
+            return False
+
+    def _on_panel_drop(self, target_side: str, paths: list[str]) -> None:
+        if not paths:
+            return
+        if len(paths) >= 2 and target_side == "original":
+            self.load_original_from_path(paths[0])
+            self.load_output_from_path(paths[1])
+            return
+
+        if target_side == "original":
+            self.load_original_from_path(paths[0])
+        else:
+            self.load_output_from_path(paths[0])
+
+    def _on_general_drop(self, event) -> None:
+        try:
+            from widgets.phoenix.dnd_utils import parse_dnd_paths
+            cleaned = parse_dnd_paths(getattr(event, "data", ""))
+            if not cleaned:
+                return
+            if len(cleaned) >= 2:
+                self.load_original_from_path(cleaned[0])
+                self.load_output_from_path(cleaned[1])
+            else:
+                state = self.controller.get_state()
+                if not getattr(state, "original_loaded", False):
+                    self.load_original_from_path(cleaned[0])
+                elif not getattr(state, "output_loaded", False):
+                    self.load_output_from_path(cleaned[0])
+                else:
+                    self.load_original_from_path(cleaned[0])
+        except Exception as e:
+            self._handle_error(e)

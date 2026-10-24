@@ -2748,14 +2748,89 @@ class PhoenixPromptView(WorkspaceFrame):
         )
 
     def _on_image_drop(self, event) -> None:
-        if not event.data:
+        self._on_file_drop(event)
+
+    def _on_file_drop(self, event) -> None:
+        from widgets.phoenix.dnd_utils import parse_dnd_paths
+
+        raw_data = getattr(event, "data", "")
+        if not raw_data:
             return
-        dropped_paths = self.tk.splitlist(event.data)
-        if dropped_paths:
-            path_str = str(dropped_paths[0])
-            path_str = path_str.strip('{}""\'\'')
-            path_str = str(Path(path_str).resolve())
-            self._load_reference_image(path_str)
+        dropped_paths = parse_dnd_paths(raw_data)
+        if not dropped_paths:
+            return
+
+        supported_images = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"}
+        path_str = dropped_paths[0]
+        path = Path(path_str).resolve()
+
+        if not path.exists():
+            messagebox.showerror(
+                tr("file_not_found_title", "Datei nicht gefunden"),
+                tr("file_not_found_msg", "Die Datei existiert nicht: {path}", path=str(path)),
+            )
+            return
+
+        ext = path.suffix.lower()
+        if ext in supported_images:
+            self._load_reference_image(str(path))
+            if getattr(self, "canny_supported", False):
+                self.controlnet_canny_var.set(True)
+                self._on_controlnet_enable_changed()
+            self._save_all_generation_settings_now()
+        elif ext == ".json":
+            self._load_preset_or_settings_json(path)
+        elif ext == ".txt":
+            self._load_prompt_txt_file(path)
+        else:
+            messagebox.showerror(
+                tr("unsupported_format_title", "Nicht unterstütztes Format"),
+                tr(
+                    "prompt_dnd_supported_formats",
+                    "Nicht unterstützter Dateityp: {ext}\n\nUnterstützt werden:\n- Referenzbilder (.png, .jpg, .webp, .bmp, .tiff)\n- Prompt-Texte (.txt)\n- Presets / Einstellungen (.json)",
+                    ext=ext,
+                ),
+            )
+
+    def _load_preset_or_settings_json(self, path: Path) -> None:
+        try:
+            import json
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError("JSON-Datei enthält kein gültiges Einstellungsobjekt.")
+
+            settings = data.get("generation_settings", data)
+            if not isinstance(settings, dict):
+                raise ValueError("Keine gültigen Generierungseinstellungen in der JSON-Datei gefunden.")
+
+            self.apply_generation_settings(settings)
+            self._sync_parameters_to_controller()
+            self._save_all_generation_settings_now()
+        except Exception as e:
+            messagebox.showerror(
+                tr("error_loading_preset", "Fehler beim Laden"),
+                f"Konnte Einstellungen aus '{path.name}' nicht laden:\n{e}",
+            )
+
+    def _load_prompt_txt_file(self, path: Path) -> None:
+        try:
+            try:
+                text = path.read_text(encoding="utf-8").strip()
+            except UnicodeDecodeError:
+                text = path.read_text(encoding="cp1252").strip()
+
+            if text:
+                self.prompt_text.delete("1.0", "end")
+                self.prompt_text.insert("1.0", text)
+                self._update_prompt_counters()
+                self._sync_parameters_to_controller()
+                self._save_all_generation_settings_now()
+        except Exception as e:
+            messagebox.showerror(
+                tr("error_loading_prompt", "Fehler beim Laden"),
+                f"Konnte Text aus '{path.name}' nicht laden:\n{e}",
+            )
 
     def _on_dnd_click(self, event=None) -> None:
         from tkinter import filedialog
@@ -2784,7 +2859,7 @@ class PhoenixPromptView(WorkspaceFrame):
             return
 
         ext = path.suffix.lower()
-        if ext not in (".png", ".jpg", ".jpeg", ".webp"):
+        if ext not in (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"):
             self._clear_reference_image_state(
                 error_message=tr(
                     "reference_format_unsupported",
@@ -5860,14 +5935,21 @@ class PhoenixPromptView(WorkspaceFrame):
         _Tooltip(high_label, lambda: tr("tooltip_canny_high", "Oberer Canny-Schwellenwert für die Kantenerkennung (0 - 255)."))
         _Tooltip(strength_label, lambda: tr("tooltip_canny_strength", "Einflussstärke von ControlNet auf das generierte Bild (0.0 - 2.0)."))
 
-        # Setup drag & drop if available
+        # Setup drag & drop if available across entire prompt workspace
         if DND_AVAILABLE:
-            for widget in (self.dnd_card, self._dnd_preview_label):
-                try:
-                    widget.drop_target_register(DND_FILES)
-                    widget.dnd_bind("<<Drop>>", self._on_image_drop)
-                except Exception as e:
-                    logger.warning("TkDND not available: %s", e)
+            from widgets.phoenix.dnd_utils import register_dnd_target
+            dnd_widgets = [
+                self,
+                getattr(self, "input_card", None),
+                getattr(self, "param_canvas", None),
+                getattr(self, "param_content", None),
+                getattr(self, "dnd_card", None),
+                getattr(self, "_dnd_preview_label", None),
+                getattr(self, "insp_card", None),
+                getattr(self, "content_slot", None),
+            ]
+            for widget in dnd_widgets:
+                register_dnd_target(widget, DND_FILES, self._on_file_drop)
 
         # Trigger visibility update immediately based on current checkbox state
         self._on_controlnet_enable_changed()

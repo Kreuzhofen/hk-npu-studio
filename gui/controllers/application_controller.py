@@ -112,6 +112,18 @@ class ApplicationController:
             return
 
         if self.ui_mode is not UIMode.LEGACY:
+            targets = [
+                self.app,
+                getattr(self.app, "phoenix_workspace", None),
+                getattr(getattr(self.app, "phoenix_workspace", None), "content_host", None),
+            ]
+            for target in targets:
+                if target is not None:
+                    try:
+                        target.drop_target_register(self.dnd_files)
+                        target.dnd_bind("<<Drop>>", self.app.on_drop_file)
+                    except Exception:
+                        pass
             return
 
         drop_targets = [

@@ -285,3 +285,20 @@ class ComparePanel(PhoenixCard):
             self.placeholder.grid_forget()
             self.image_canvas.grid(row=0, column=0, sticky="nsew")
             self.image_canvas.update_viewport(image, zoom_scale)
+
+    def setup_drop_target(self, dnd_files, callback: Callable[[list[str]], None]) -> None:
+        """Register drag & drop targets for this panel and its visual components."""
+        from widgets.phoenix.dnd_utils import parse_dnd_paths, register_dnd_target
+
+        self._on_drop_callback = callback
+
+        def _on_drop(event):
+            try:
+                raw = getattr(event, "data", "")
+                cleaned = parse_dnd_paths(raw)
+                if cleaned and getattr(self, "_on_drop_callback", None):
+                    self._on_drop_callback(cleaned)
+            except Exception:
+                pass
+
+        register_dnd_target(self, dnd_files, _on_drop, recursive=True)

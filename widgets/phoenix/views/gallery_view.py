@@ -54,39 +54,95 @@ class PhoenixGalleryView(WorkspaceFrame):
             self._initial_load_handle = self.after_idle(self._start_initial_refresh)
 
         # Register drag & drop for library view if tkinterdnd2 is available
+        self._setup_drag_and_drop()
+
+    def _setup_drag_and_drop(self) -> None:
+        from widgets.phoenix.dnd_utils import register_dnd_target
+
         app = self.winfo_toplevel()
         app_ctrl = getattr(app, "application_controller", None)
-        if app_ctrl and getattr(app_ctrl, "dnd_available", False):
+        dnd_available = getattr(app_ctrl, "dnd_available", False)
+        dnd_files = getattr(app_ctrl, "dnd_files", "DND_Files")
+        if not dnd_available:
             try:
-                self.drop_target_register(app_ctrl.dnd_files)
-                self.dnd_bind("<<Drop>>", self._on_drop)
-            except Exception:
-                pass
+                from tkinterdnd2 import DND_FILES
+                dnd_files = DND_FILES
+                dnd_available = True
+            except ImportError:
+                dnd_available = False
+
+        if not dnd_available:
+            return
+
+        register_dnd_target(self, dnd_files, self._on_drop, recursive=True)
+        if hasattr(self, "thumbnail_area"):
+            register_dnd_target(self.thumbnail_area, dnd_files, self._on_drop, recursive=True)
 
     def _on_drop(self, event) -> None:
         try:
             from pathlib import Path
             from config import OUTPUT_DIR
             from engine.asset_files import copy_asset_with_sidecar
+            from tkinter import messagebox
+            import logging
 
-            app = self.winfo_toplevel()
-            paths = app.tk.splitlist(event.data)
+            from widgets.phoenix.dnd_utils import parse_dnd_paths
+            raw_data = getattr(event, "data", "")
+            paths = parse_dnd_paths(raw_data)
+            if not paths:
+                return
 
             dest_dir = self.controller.current_folder or OUTPUT_DIR
             dest_dir.mkdir(parents=True, exist_ok=True)
 
-            imported_any = False
-            for p_str in paths:
-                p = Path(p_str)
-                if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"}:
-                    dest_path = dest_dir / p.name
-                    copy_asset_with_sidecar(p, dest_path)
-                    imported_any = True
+            supported_extensions = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"}
+            imported_count = 0
+            last_imported: Path | None = None
+            invalid_files: list[str] = []
 
-            if imported_any:
-                self._start_async_refresh()
-        except Exception:
-            pass
+            for p_str in paths:
+                raw_path = str(p_str).strip('{}""\'\'')
+                p = Path(raw_path).resolve()
+                if not p.exists():
+                    invalid_files.append(f"{p.name} (existiert nicht)")
+                    continue
+
+                if p.is_dir():
+                    # Scan directory for supported images
+                    for sub in p.iterdir():
+                        if sub.is_file() and sub.suffix.lower() in supported_extensions:
+                            dest_path = dest_dir / sub.name
+                            copy_asset_with_sidecar(sub, dest_path)
+                            imported_count += 1
+                            last_imported = dest_path
+                elif p.is_file():
+                    if p.suffix.lower() in supported_extensions:
+                        dest_path = dest_dir / p.name
+                        copy_asset_with_sidecar(p, dest_path)
+                        imported_count += 1
+                        last_imported = dest_path
+                    else:
+                        invalid_files.append(p.name)
+
+            if imported_count > 0:
+                self.controller.status = tr(
+                    "gallery_dnd_imported",
+                    "{count} Bild(er) importiert",
+                    count=imported_count,
+                )
+                self._start_async_refresh(select_path=last_imported)
+            elif invalid_files:
+                messagebox.showerror(
+                    tr("invalid_image_title", "Ungültige Datei(en)"),
+                    tr(
+                        "gallery_dnd_unsupported",
+                        "Keine unterstützten Bilddateien gefunden.\nUnterstützte Formate: PNG, JPG, JPEG, WebP, BMP, TIFF\n\nAbgewiesen: {files}",
+                        files=", ".join(invalid_files[:5]),
+                    ),
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger("PhoenixGalleryView").error("Error during gallery drag and drop: %s", e)
 
     def _build_shell(self) -> None:
         # 1. Build Toolbar and place in self.header.toolbar_slot
