@@ -90,6 +90,7 @@ class PromptWorkspaceController:
         canny_high_threshold: int = 150,
         controlnet_conditioning_scale: float = 1.0,
         phoenix_boost_enabled: bool = False,
+        upscale_profile: str = "off",
     ) -> None:
         effective_controlnet_enabled = (
             self.model.state.controlnet_enabled
@@ -115,6 +116,7 @@ class PromptWorkspaceController:
             canny_high_threshold=canny_high_threshold,
             controlnet_conditioning_scale=controlnet_conditioning_scale,
             phoenix_boost_enabled=bool(phoenix_boost_enabled),
+            upscale_profile=str(upscale_profile),
         )
         # Update central generation session parameters
         self.generation_controller.update_session(
@@ -135,6 +137,95 @@ class PromptWorkspaceController:
             canny_high_threshold=canny_high_threshold,
             controlnet_conditioning_scale=controlnet_conditioning_scale,
             phoenix_boost_enabled=bool(phoenix_boost_enabled),
+        )
+
+    def restore_generation_settings(self, settings: dict[str, Any]) -> None:
+        """Synchronize controller model and generation session with restored persistent settings."""
+        if not isinstance(settings, dict):
+            return
+        model_id = (
+            settings.get("model_name")
+            or settings.get("selected_model")
+            or getattr(self.model.state, "selected_model", "sd_xl_base_1.0")
+        )
+        if model_id in self.AVAILABLE_MODELS and model_id != getattr(self.model.state, "selected_model", None):
+            self.select_model(model_id)
+
+        prompt = str(settings.get("prompt", getattr(self.model.state, "prompt", "")))
+        neg_prompt = str(settings.get("negative_prompt", getattr(self.model.state, "negative_prompt", "")))
+        try:
+            seed = int(settings.get("seed", getattr(self.model.state, "seed", -1)))
+        except (TypeError, ValueError):
+            seed = -1
+        try:
+            steps = int(settings.get("steps", getattr(self.model.state, "steps", 20)))
+        except (TypeError, ValueError):
+            steps = 20
+        try:
+            cfg = float(settings.get("cfg_scale", settings.get("cfg", getattr(self.model.state, "cfg", 7.0))))
+        except (TypeError, ValueError):
+            cfg = 7.0
+        try:
+            width = int(settings.get("width", getattr(self.model.state, "width", 512)))
+        except (TypeError, ValueError):
+            width = 512
+        try:
+            height = int(settings.get("height", getattr(self.model.state, "height", 512)))
+        except (TypeError, ValueError):
+            height = 512
+        sampler = str(settings.get("sampler", getattr(self.model.state, "sampler", "Euler a")))
+        scheduler = str(settings.get("scheduler", getattr(self.model.state, "scheduler", "Normal")))
+        try:
+            batch_size = int(
+                settings.get("batch_size", settings.get("batch_count", getattr(self.model.state, "batch_count", 1)))
+            )
+        except (TypeError, ValueError):
+            batch_size = 1
+        upscale_profile = str(settings.get("upscale_profile", getattr(self.model.state, "upscale_profile", "off")))
+        controlnet_enabled = bool(
+            settings.get("controlnet_enabled", getattr(self.model.state, "controlnet_enabled", False))
+        )
+        try:
+            canny_low = int(settings.get("canny_low_threshold", getattr(self.model.state, "canny_low_threshold", 50)))
+        except (TypeError, ValueError):
+            canny_low = 50
+        try:
+            canny_high = int(settings.get("canny_high_threshold", getattr(self.model.state, "canny_high_threshold", 150)))
+        except (TypeError, ValueError):
+            canny_high = 150
+        try:
+            cond_scale = float(
+                settings.get("controlnet_conditioning_scale", getattr(self.model.state, "controlnet_conditioning_scale", 1.0))
+            )
+        except (TypeError, ValueError):
+            cond_scale = 1.0
+        input_image = settings.get(
+            "input_image_path",
+            settings.get("reference_image_path", getattr(self.model.state, "input_image_path", None)),
+        )
+        boost_enabled = bool(
+            settings.get("phoenix_boost_enabled", getattr(self.model.state, "phoenix_boost_enabled", False))
+        )
+
+        self.update_parameters(
+            prompt=prompt,
+            negative_prompt=neg_prompt,
+            seed=seed,
+            steps=steps,
+            cfg=cfg,
+            width=width,
+            height=height,
+            selected_model=model_id,
+            sampler=sampler,
+            scheduler=scheduler,
+            batch_size=batch_size,
+            input_image_path=input_image,
+            controlnet_enabled=controlnet_enabled,
+            canny_low_threshold=canny_low,
+            canny_high_threshold=canny_high,
+            controlnet_conditioning_scale=cond_scale,
+            phoenix_boost_enabled=boost_enabled,
+            upscale_profile=upscale_profile,
         )
 
 

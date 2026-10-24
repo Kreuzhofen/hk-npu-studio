@@ -232,33 +232,31 @@ class PhoenixPromptView(WorkspaceFrame):
         self.grid_columnconfigure(0, weight=6, uniform="generate_cols")
         self.grid_columnconfigure(1, weight=4, uniform="generate_cols")
 
-        self._build_input_area()
-        self._build_inspector()
-        self._build_status_bar()
-        self.refresh()
+        self._save_settings_after_id = None
+        self._in_restore = True
+        try:
+            self._build_input_area()
+            self._build_inspector()
+            self._build_status_bar()
+            self._restore_saved_generation_settings()
+            self.refresh()
+        finally:
+            self._in_restore = False
 
-    # ==================================================================
-    # LEFT COLUMN – Scrollable Parameters + Fixed Generate Button
-    # ==================================================================
+        # --- PERSISTENT GENERATION SETTINGS AUTOSAVE START ---
+        def _on_prompt_focus_out(event=None):
+            self._sync_parameters_to_controller()
+            self._save_all_generation_settings_now()
 
-        # --- AUTOSAVE / AUTOLOAD START ---
-        from app.settings_manager import SettingsManager
-        last_p = SettingsManager.get_last_prompt()
-        if last_p:
-            self.prompt_text.delete("1.0", "end")
-            self.prompt_text.insert("end", last_p)
-        last_n = SettingsManager.get_last_negative_prompt()
-        if last_n:
-            self.neg_prompt_text.delete("1.0", "end")
-            self.neg_prompt_text.insert("end", last_n)
+        def _on_prompt_key_release(event=None):
+            self._queue_save_generation_settings()
 
-        def _save_prompts(event=None):
-            SettingsManager.set_last_prompt(self.prompt_text.get("1.0", "end-1c"))
-            SettingsManager.set_last_negative_prompt(self.neg_prompt_text.get("1.0", "end-1c"))
-
-        self.prompt_text.bind("<FocusOut>", _save_prompts)
-        self.neg_prompt_text.bind("<FocusOut>", _save_prompts)
-        # --- AUTOSAVE / AUTOLOAD END ---
+        self.prompt_text.bind("<FocusOut>", _on_prompt_focus_out)
+        self.neg_prompt_text.bind("<FocusOut>", _on_prompt_focus_out)
+        self.prompt_text.bind("<KeyRelease>", _on_prompt_key_release)
+        self.neg_prompt_text.bind("<KeyRelease>", _on_prompt_key_release)
+        self.bind("<Destroy>", self._on_destroy_view)
+        # --- PERSISTENT GENERATION SETTINGS AUTOSAVE END ---
 
     def _build_input_area(self) -> None:
         self.content_slot.grid_rowconfigure(0, weight=1)
@@ -514,6 +512,12 @@ class PhoenixPromptView(WorkspaceFrame):
             self.seed_var, self.sampler_var, self.scheduler_var,
         ):
             variable.trace_add("write", self._update_parameter_description)
+        for variable in (
+            self.width_var, self.height_var, self.steps_var, self.cfg_var,
+            self.seed_var, self.sampler_var, self.scheduler_var,
+            self.batch_var, self.upscale_profile_var, self.conditioning_strength_var,
+        ):
+            variable.trace_add("write", self._on_parameter_variable_changed)
         self._update_parameter_description()
         r += 1
 
@@ -1999,7 +2003,9 @@ class PhoenixPromptView(WorkspaceFrame):
             canny_high_threshold=canny_high,
             controlnet_conditioning_scale=cond_scale,
             phoenix_boost_enabled=bool(getattr(self, "_phoenix_boost_enabled", False)),
+            upscale_profile=self._normalize_upscale_profile(self.upscale_profile_var.get()),
         )
+        self._save_all_generation_settings_now()
 
         is_valid, msg = self.controller.generation_controller.validate_session()
         if not is_valid:
@@ -2720,6 +2726,8 @@ class PhoenixPromptView(WorkspaceFrame):
                 self.controller.model.update_state(status="ready")
 
             self.refresh()
+            if not getattr(self, "_in_restore", False):
+                self._save_all_generation_settings_now()
         finally:
             self._in_model_change = False
 
@@ -3054,6 +3062,7 @@ class PhoenixPromptView(WorkspaceFrame):
                 self.dnd_subtitle.pack_forget()
                 self.dnd_card.pack_forget()
                 self.controlnet_frame.pack_forget()
+        self._queue_save_generation_settings()
 
 
     def _on_canny_param_changed(self, *args) -> None:
@@ -3070,6 +3079,7 @@ class PhoenixPromptView(WorkspaceFrame):
             self._canny_debounce_id = None
 
         self._canny_debounce_id = self.after(150, self._trigger_canny_preview_update)
+        self._queue_save_generation_settings()
 
     def _trigger_canny_preview_update(self) -> None:
         self._canny_debounce_id = None
@@ -3380,7 +3390,196 @@ class PhoenixPromptView(WorkspaceFrame):
         self.sampler_var.set(str(normalized["sampler"]))
         self.scheduler_var.set(str(normalized["scheduler"]))
         self._set_upscale_profile(normalized["upscale_profile"])
+        if getattr(self, "canny_supported", False) and "controlnet_enabled" in normalized:
+            self.controlnet_canny_var.set(bool(normalized["controlnet_enabled"]))
+            try:
+                self.canny_low_var.set(int(normalized.get("canny_low_threshold", 50)))
+            except (TypeError, ValueError):
+                pass
+            try:
+                self.canny_high_var.set(int(normalized.get("canny_high_threshold", 150)))
+            except (TypeError, ValueError):
+                pass
+            try:
+                self.conditioning_strength_var.set(float(normalized.get("controlnet_conditioning_scale", 1.0)))
+            except (TypeError, ValueError):
+                pass
+        ref_path = normalized.get("reference_image_path")
+        if ref_path and os.path.isfile(str(ref_path)):
+            self._ref_image_path = str(ref_path)
         self._update_prompt_counters()
+        if not getattr(self, "_in_restore", False):
+            self._sync_parameters_to_controller()
+            self._save_all_generation_settings_now()
+
+    def _on_parameter_variable_changed(self, *args) -> None:
+        if getattr(self, "_in_restore", False) or getattr(self, "_in_model_change", False):
+            return
+        self._sync_parameters_to_controller()
+        self._queue_save_generation_settings()
+
+    def _on_destroy_view(self, event=None) -> None:
+        if getattr(self, "_is_destroying", False):
+            return
+        if event is None or getattr(event, "widget", None) == self:
+            self._is_destroying = True
+            if getattr(self, "_save_settings_after_id", None) is not None:
+                try:
+                    self.after_cancel(self._save_settings_after_id)
+                except Exception:
+                    pass
+                self._save_settings_after_id = None
+                try:
+                    self._save_all_generation_settings_now()
+                except Exception:
+                    pass
+
+    def _restore_saved_generation_settings(self) -> None:
+        from app.settings_manager import SettingsManager
+
+        saved = SettingsManager.get_generation_settings()
+        if not saved:
+            return
+
+        saved_model = saved.get("model_name")
+        if saved_model and saved_model in self.controller.AVAILABLE_MODELS:
+            if saved_model != self.model_var.get():
+                self.model_var.set(saved_model)
+            self._apply_generation_contract(saved_model)
+        else:
+            current_model = self.model_var.get()
+            self._apply_generation_contract(current_model)
+
+        self.apply_generation_settings(saved)
+        self._sync_parameters_to_controller()
+
+    def _collect_generation_settings(self) -> dict[str, Any]:
+        prompt = ""
+        if hasattr(self, "prompt_text"):
+            try:
+                if self.prompt_text.winfo_exists():
+                    prompt = self.prompt_text.get("1.0", "end-1c").strip()
+            except Exception:
+                pass
+        if not prompt and getattr(self, "controller", None) and hasattr(self.controller, "model"):
+            prompt = getattr(self.controller.model.state, "prompt", "")
+
+        neg_prompt = ""
+        if hasattr(self, "neg_prompt_text"):
+            try:
+                if self.neg_prompt_text.winfo_exists():
+                    neg_prompt = self.neg_prompt_text.get("1.0", "end-1c").strip()
+            except Exception:
+                pass
+        if not neg_prompt and getattr(self, "controller", None) and hasattr(self.controller, "model"):
+            neg_prompt = getattr(self.controller.model.state, "negative_prompt", "")
+
+        model_name = ""
+        if hasattr(self, "model_var"):
+            try:
+                model_name = self.model_var.get()
+            except Exception:
+                pass
+        if not model_name and getattr(self, "controller", None) and hasattr(self.controller, "model"):
+            model_name = getattr(self.controller.model.state, "selected_model", "")
+
+        def _safe_int(var, fallback):
+            if var is None:
+                return fallback
+            try:
+                return int(var.get())
+            except (TypeError, ValueError, tk.TclError):
+                return fallback
+
+        def _safe_float(var, fallback):
+            if var is None:
+                return fallback
+            try:
+                return float(var.get())
+            except (TypeError, ValueError, tk.TclError):
+                return fallback
+
+        controlnet_enabled = bool(
+            getattr(self, "canny_supported", False)
+            and getattr(self, "controlnet_canny_var", None)
+            and self.controlnet_canny_var.get()
+        )
+
+        upscale_profile = (
+            self._normalize_upscale_profile(self.upscale_profile_var.get())
+            if hasattr(self, "upscale_profile_var")
+            else "off"
+        )
+
+        return {
+            "prompt": prompt,
+            "negative_prompt": neg_prompt,
+            "model_name": model_name,
+            "seed": _safe_int(getattr(self, "seed_var", None), -1),
+            "steps": _safe_int(getattr(self, "steps_var", None), 20),
+            "cfg_scale": _safe_float(getattr(self, "cfg_var", None), 7.5),
+            "width": _safe_int(getattr(self, "width_var", None), 512),
+            "height": _safe_int(getattr(self, "height_var", None), 512),
+            "sampler": self.sampler_var.get() if hasattr(self, "sampler_var") else "Euler",
+            "scheduler": self.scheduler_var.get() if hasattr(self, "scheduler_var") else "Normal",
+            "batch_size": _safe_int(getattr(self, "batch_var", None), 1),
+            "upscale_profile": upscale_profile,
+            "controlnet_enabled": controlnet_enabled,
+            "canny_low_threshold": _safe_int(getattr(self, "canny_low_var", None), 50),
+            "canny_high_threshold": _safe_int(getattr(self, "canny_high_var", None), 150),
+            "controlnet_conditioning_scale": _safe_float(getattr(self, "conditioning_strength_var", None), 1.0),
+            "reference_image_path": getattr(self, "_ref_image_path", None) or "",
+            "phoenix_boost_enabled": bool(getattr(self, "_phoenix_boost_enabled", False)),
+        }
+
+    def _sync_parameters_to_controller(self) -> None:
+        data = self._collect_generation_settings()
+        self.controller.update_parameters(
+            prompt=data["prompt"],
+            negative_prompt=data["negative_prompt"],
+            seed=data["seed"],
+            steps=data["steps"],
+            cfg=data["cfg_scale"],
+            width=data["width"],
+            height=data["height"],
+            selected_model=data["model_name"],
+            sampler=data["sampler"],
+            scheduler=data["scheduler"],
+            batch_size=data["batch_size"],
+            input_image_path=data["reference_image_path"] or None,
+            controlnet_enabled=data["controlnet_enabled"],
+            canny_low_threshold=data["canny_low_threshold"],
+            canny_high_threshold=data["canny_high_threshold"],
+            controlnet_conditioning_scale=data["controlnet_conditioning_scale"],
+            phoenix_boost_enabled=data["phoenix_boost_enabled"],
+            upscale_profile=data["upscale_profile"],
+        )
+
+    def _save_all_generation_settings_now(self) -> None:
+        if getattr(self, "_in_restore", False):
+            return
+        if getattr(self, "_save_settings_after_id", None) is not None:
+            try:
+                self.after_cancel(self._save_settings_after_id)
+            except Exception:
+                pass
+            self._save_settings_after_id = None
+        from app.settings_manager import SettingsManager
+        data = self._collect_generation_settings()
+        SettingsManager.save_generation_settings(data)
+
+    def _queue_save_generation_settings(self) -> None:
+        if getattr(self, "_in_restore", False):
+            return
+        if getattr(self, "_save_settings_after_id", None) is not None:
+            try:
+                self.after_cancel(self._save_settings_after_id)
+            except Exception:
+                pass
+        try:
+            self._save_settings_after_id = self.after(300, self._save_all_generation_settings_now)
+        except Exception:
+            pass
 
     @staticmethod
     def _normalize_upscale_profile(value: object) -> str:
@@ -3459,6 +3658,19 @@ class PhoenixPromptView(WorkspaceFrame):
                 valid = False
             if not valid:
                 normalized[value_name] = spec.get("default", normalized[value_name])
+
+        if "controlnet_enabled" in settings:
+            normalized["controlnet_enabled"] = bool(settings["controlnet_enabled"])
+        if "canny_low_threshold" in settings:
+            normalized["canny_low_threshold"] = settings["canny_low_threshold"]
+        if "canny_high_threshold" in settings:
+            normalized["canny_high_threshold"] = settings["canny_high_threshold"]
+        if "controlnet_conditioning_scale" in settings:
+            normalized["controlnet_conditioning_scale"] = settings["controlnet_conditioning_scale"]
+        if "reference_image_path" in settings:
+            normalized["reference_image_path"] = settings["reference_image_path"]
+        elif "input_image_path" in settings:
+            normalized["reference_image_path"] = settings["input_image_path"]
 
         return normalized
 

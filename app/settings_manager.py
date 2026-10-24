@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 import config
-from app.configuration_manager import ConfigurationManager
+from app.configuration_manager import ConfigurationManager, DEFAULT_GENERATION_SETTINGS
 
 class SettingsManager:
     """Manages persistent application settings/preferences stored in preferences.json."""
@@ -33,6 +34,37 @@ class SettingsManager:
         return saved
 
     @classmethod
+    def get_default_generation_settings(cls) -> dict[str, Any]:
+        return deepcopy(DEFAULT_GENERATION_SETTINGS)
+
+    @classmethod
+    def get_generation_settings(cls) -> dict[str, Any]:
+        """Return the persistent generation settings, falling back to defaults."""
+        preferences = cls.load_settings()
+        gen = preferences.get("generation_settings")
+        if isinstance(gen, dict):
+            return deepcopy(gen)
+        return cls.get_default_generation_settings()
+
+    @classmethod
+    def save_generation_settings(cls, settings: dict[str, Any]) -> bool:
+        """Persist updated generation settings, keeping legacy last_prompt/last_negative_prompt in sync."""
+        if not isinstance(settings, dict):
+            return False
+        current_gen = cls.get_generation_settings()
+        current_gen.update(settings)
+        payload: dict[str, Any] = {
+            "generation_settings": current_gen,
+        }
+        if "prompt" in settings:
+            payload["last_prompt"] = str(settings["prompt"])
+        if "negative_prompt" in settings:
+            payload["last_negative_prompt"] = str(settings["negative_prompt"])
+        if "model_name" in settings and settings["model_name"]:
+            payload["active_model_id"] = str(settings["model_name"])
+        return cls.save_settings(payload)
+
+    @classmethod
     def get_execution_provider(cls) -> str:
         """Return the canonical ONNX Runtime provider selected by the user."""
         preferences = cls.load_settings()
@@ -51,23 +83,21 @@ class SettingsManager:
 
     @classmethod
     def get_last_prompt(cls) -> str:
-        return cls.load_settings().get("last_prompt", "")
+        gen = cls.get_generation_settings()
+        return gen.get("prompt", "")
 
     @classmethod
     def set_last_prompt(cls, text: str) -> bool:
-        settings = cls.load_settings()
-        settings["last_prompt"] = text
-        return cls.save_settings(settings)
+        return cls.save_generation_settings({"prompt": text})
 
     @classmethod
     def get_last_negative_prompt(cls) -> str:
-        return cls.load_settings().get("last_negative_prompt", "")
+        gen = cls.get_generation_settings()
+        return gen.get("negative_prompt", "")
 
     @classmethod
     def set_last_negative_prompt(cls, text: str) -> bool:
-        settings = cls.load_settings()
-        settings["last_negative_prompt"] = text
-        return cls.save_settings(settings)
+        return cls.save_generation_settings({"negative_prompt": text})
 
     @classmethod
     def get_hf_token(cls) -> str:
