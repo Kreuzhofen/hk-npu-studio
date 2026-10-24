@@ -4,6 +4,25 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
+## [Unreleased] – 2026-10-22
+
+### Hinzugefügt
+- **Universelles Drag-and-Drop (Sprint HK-DRAGDROP-01)**:
+  - Vollständige Drag-and-Drop-Unterstützung für alle zentralen Phoenix-Workspaces (Gallery, Compare und Prompt Workspace).
+  - **Gallery Workspace**: Unterstützt den direkten Import einzelner Bilddateien sowie ganzer Ordnerstrukturen inklusive Sidecar-Metadaten (`.json`) mit anschließender automatischer Selektion und UI-Aktualisierung.
+  - **Compare Workspace**: Präzise Zuordnung von Bildern zu den Vergleichsflächen ("Original" links, "Ergebnis" rechts) oder automatische Zuweisung beider Panels bei Mehrfachauswahl.
+  - **Prompt Workspace**: Direkte Übernahme von Referenzbildern mit automatischer ControlNet-Aktivierung, Presets (`.json`) und Prompt-Textdateien (`.txt`) über alle Eingabeflächen hinweg.
+  - **Zentrale DND-Hilfsbibliothek (`widgets/phoenix/dnd_utils.py`)**: Robuste Pfadzerlegung unter Windows (Schutz von Backslashes vor Tcl-Escape-Verlust) und rekursive Registrierung.
+  - Saubere Fehlerbehandlung für ungültige, nicht existierende oder nicht unterstützte Dateiformate ohne Anwendungsabstürze.
+  - Umfassende automatisierte Testabdeckung in `tests/test_universal_drag_and_drop.py`.
+- **Dauerhafte Speicherung sämtlicher Generierungseinstellungen**:
+  - Einführung von Schema-Version 3 in `ConfigurationManager` mit Unterstützung für atomare, versionsfähige Speicherung aller Generierungsparameter (`prompt`, `negative_prompt`, `model_name`, `seed`, `steps`, `cfg_scale`, `width`, `height`, `sampler`, `scheduler`, `batch_size`, `upscale_profile`, `controlnet_enabled`, `canny_low_threshold`, `canny_high_threshold`, `controlnet_conditioning_scale`, `input_image_path`, `phoenix_boost_enabled`).
+  - Zentrale API in `SettingsManager` (`get_generation_settings`, `save_generation_settings`, `get_default_generation_settings`) unter vollständiger Synchronisation mit bestehenden Schlüsseln (`last_prompt`, `last_negative_prompt`, `active_model_id`).
+  - Vollständige Konsistenz und MVC-Parität über `PromptWorkspaceState`, `PromptWorkspaceModel`, `PromptWorkspaceController`, `GenerationSessionModel` und `PipelineParameters`.
+  - Robuste Validierung und Fallbacks für fehlende, korrumpierte oder typfremde Daten.
+  - Automatisches Wiederherstellen beim Anwendungsstart (`_restore_saved_generation_settings`) und reaktives Speichern bei UI-Änderungen (mit sicherem Debouncing und Destroy-Absicherung).
+  - Umfangreiche Testabdeckung in `tests/test_generation_settings_persistence.py`.
+
 ## [2.0 RC2A] – 2026-08-17
 
 ### Hinzugefügt

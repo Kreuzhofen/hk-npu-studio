@@ -11,6 +11,7 @@ import tkinter as tk
 from PIL import Image
 
 from app.i18n import set_language, tr
+from app.settings_manager import SettingsManager
 from engine.theme_manager import ThemeManager, ThemePalette
 
 # Setup a mock palette for widgets/phoenix/theme initialization
@@ -61,17 +62,30 @@ class ExpandablePromptTests(unittest.TestCase):
         cls.root.destroy()
 
     def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.pref_path = Path(self.temp_dir.name) / "preferences.json"
+        self._pref_patcher = patch.object(
+            SettingsManager, "get_preferences_path", return_value=self.pref_path
+        )
+        self._pref_patcher.start()
+
         set_language("de_DE")
         OllamaStatusService.invalidate_cache()
         self.controller = PromptWorkspaceController()
         self.view = PhoenixPromptView(self.root, controller=self.controller)
 
     def tearDown(self) -> None:
-        if hasattr(self.view, "_boost_popup") and self.view._boost_popup.winfo_exists():
-            self.view._boost_popup.destroy()
-        self.view.destroy()
-        if hasattr(self.view, "_prompt_popup") and self.view._prompt_popup.winfo_exists():
-            self.view._prompt_popup.destroy()
+        try:
+            if hasattr(self.view, "_boost_popup") and self.view._boost_popup.winfo_exists():
+                self.view._boost_popup.destroy()
+            self.view.destroy()
+            if hasattr(self.view, "_prompt_popup") and self.view._prompt_popup.winfo_exists():
+                self.view._prompt_popup.destroy()
+        finally:
+            if hasattr(self, "_pref_patcher"):
+                self._pref_patcher.stop()
+            if hasattr(self, "temp_dir"):
+                self.temp_dir.cleanup()
 
     def test_maximize_button_exists(self) -> None:
         self.assertTrue(hasattr(self.view, "maximize_btn"))
@@ -551,6 +565,7 @@ class ExpandablePromptTests(unittest.TestCase):
         self.view._negative_prompt_popup_text.delete("1.0", "end")
         self.view._negative_prompt_popup_text.insert("1.0", "Applied negative")
 
+        self.view._prompt_popup.focus_set()
         self.view._prompt_popup.focus_force()
         self.root.update()
         self.view._prompt_popup.event_generate("<Escape>")

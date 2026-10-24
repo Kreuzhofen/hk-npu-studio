@@ -60,3 +60,10 @@ recovery_*/
 # Local downloaded model packages
 model_downloads/
 
+# Local development / temporary hardening (HK-GIT-HARDEN-01)
+/sd35_venv/
+*.bak_*
+/temp_*
+/data/preferences.json.*
+/assets/brand/*.before_trim
+

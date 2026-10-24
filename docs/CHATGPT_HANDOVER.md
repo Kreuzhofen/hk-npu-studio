@@ -1,28 +1,45 @@
 # HK NPU STUDIO – ChatGPT-Handover
 
-Stand: 24. September 2026, Tagesabschluss
+Stand: 16. Oktober 2026, HK NPU STUDIO 2.0 RC3 veröffentlicht; QAIRT 2.50 für den vollständigen FiDeSR-Produktpfad isoliert qualifiziert
 Projekt: HK NPU STUDIO – Phoenix Engine  
 Entwickler: Holger Kreuzhofen  
 Entwicklungsrechner: Holger  
 Clean-Testrechner: RC2CleanTest
 
-> **AKTUELLER VORRANG-HINWEIS – 24.09.2026**
+> **AKTUELLER VORRANG-HINWEIS – 21.10.2026**
 >
 > Diese Datei enthält die vollständige historische Projektchronik. Bei Widersprüchen gilt immer der **neueste datierte Abschnitt**.
-> Der verbindliche aktuelle Arbeitsstand steht im Abschnitt **„CHATGPT_HANDOVER – Ergänzung Tagesabschluss 24. September 2026 – VERSION 2.0 RC3 Build-/Packaging-Stand“** am Ende dieser Datei.
+> Der aktuelle Arbeitsstand steht im neuesten Abschnitt **„CHATGPT_HANDOVER – Ergänzung 21. Oktober 2026 – Phoenix Boost-Fidelität und SD3.5-Backendfehler“** am Ende dieser Datei.
 >
-> **Aktueller Übergabestatus 24.09.2026:**
-> - Release-Kandidat: **VERSION 2.0 RC3** (`display_version=2.0 RC3`, `package_version=2.0.0-rc.3`).
-> - **Phoenix Image Lab = AI Fotorestaurierung**; Colorization, Generatives Füllen, Retusche und Object Removal sind aus dem RC3-Release-UI ausgeschlossen.
-> - Faithful Photo Restore ist technisch/qualitativ für den definierten RC3-Pfad geprüft; neuronale Inferenz QNN/HTP/NPU-only, kein CPU-/GPU-AI-Fallback.
-> - Final Release QA: **164/164 PASS**; kleine und große reale Restore-Läufe PASS.
-> - DE/EN/ES, Versionsanzeige, README, User Guides und RC3 Release Notes sind aktualisiert.
-> - Build-/Packaging-Blocker zu FiDeSR-Pfaden, QNN/HTP-Runtime, Photo-Restore-Ressourcen und Dokumentation wurden behoben.
-> - Test-Harness: Photo-Restore-Contracts, RealESRGAN-Teardown und Tk-Order-Abhängigkeit behoben; letzter kombinierter Precheck-Scope **39/39 PASS**.
-> - **Noch kein Build, Installer, Commit oder Push.**
-> - Verbleibender praktischer Build-Blocker: freier Speicher auf C:. Letzt gemessen `14.639 GiB`; Ziel vor Build **≥17 GiB frei**.
-> - Nächster exakter Schritt: 2–3 GB auf C: freimachen, dann finalen RC3 Build-Precheck erneut ausführen.
+> **Aktueller Übergabestatus 21.10.2026:**
+> - Aktives Repository bleibt `C:\SnapdragonAI`; GitHub-Projekt: `https://github.com/Kreuzhofen/hk-npu-studio`; Branch `main`.
+> - Letzter sicher bestätigter synchronisierter Ausgangspunkt vor den jüngsten Boost-Arbeiten: `b3c9179fb1a6c2da3a18e6271be2082cb534411f`. Der exakte HEAD-/Arbeitsbaumstatus nach dem neuesten Antigravity-Lauf muss vor weiteren Änderungen erneut read-only geprüft werden; keine neuen Commits oder Pushes sind bestätigt.
+> - Phoenix Boost wurde am 20./21.10. in mehreren eng begrenzten Sprints auf Prompt-/Motivtreue, lange Prompts, Subjekt-Aliase und Pose-/Objekt-Erfindungen untersucht und korrigiert. Automatisierte Tests bestanden; **sichtbare Bildqualitätssteigerung ist weiterhin nicht pauschal bewiesen**.
+> - Für die neueste Fidelity-Arbeit wurde ein Backup unter `C:\SnapdragonAI\backup\phoenix_boost_juvenile_fidelity_20261021_155500` gemeldet; SHA-256-Prüfungen der vier Sicherungsdateien waren laut Arbeitsbericht erfolgreich.
+> - Ein weiterer Lauf der direkten Entwickler-App scheiterte am 21.10. mit `RuntimeError: No compatible and available backend was found.` bei `stable_diffusion_v3_5_qai`. Das Modell wurde aufgelöst; der Fehler tritt bei der Backend-Auswahl auf. Ursache noch nicht bestätigt; gezielte read-only Quellcode-/Logprüfung ist der nächste Schritt.
+> - **Prompt-Persistenz:** Commit-Beschreibung vom 20.10.2026 bestätigt Auto-Save/Auto-Load für Prompt und Negative Prompt beim Verlassen des Eingabefelds. Ein protokollierter manueller Neustart-Abnahmetest ist noch nicht dokumentiert.
+> - **Batch-/Mehrfachgenerierung:** Batch-UI-Arbeit ist laut letztem Projektstand erledigt; die Ende-zu-Ende-Abnahme aller Modelle bleibt gesondert zu bestätigen.
+> - Der Fehler ist nicht als Phoenix-Boost-Ursache nachgewiesen. Keine Builds, Commits, Pushes oder Release-Schritte ohne ausdrückliche Freigabe.
+> - QAIRT 2.50 bleibt für den geprüften FiDeSR-Pfad qualifiziert, wird aber **nicht automatisch** in RC4 integriert; nächster unabhängiger Schritt bleibt das read-only QAIRT-2.50-Migrations-Audit.
+> - Photo-Restore-BYOM-Redistribution ist weiterhin nicht öffentlich freigegeben; Qualcomm-Antwort steht aus.
 >
+> **Historischer Übergabestatus 27.09.2026 (durch neuere Abschnitte überholt):**
+> - **HK NPU STUDIO 2.0 RC3 ist veröffentlicht.**
+> - GitHub-Repository: `Kreuzhofen/hk-npu-studio`.
+> - Öffentlicher Pre-release: `v2.0.0-rc.3`.
+> - Der RC3-Tag löst auf den finalen Packaging-Commit `083760ee3a5186fad8ac09367f1e547b666c4e79` auf.
+> - `main` / `origin/main` stehen nach der README-Badge-Korrektur auf `dc0d801fa7275bacbff76b786a33db02b4c0dfa8` (`Fix README badge links`).
+> - Finaler Installer: `HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe`.
+> - Finale Größe: `2054694378` Byte.
+> - Finale SHA-256: `258CB85CC9BEF471D79B038B5126F617B6A0F0A3E9911DFB5E26709EED07A857`.
+> - GitHub-Asset ist erfolgreich hochgeladen und liegt unter dem GitHub-Limit von 2 GiB.
+> - Der finale Installer wurde auf `RC2CleanTest` hashgleich übertragen, installiert und die App erfolgreich gestartet.
+> - SD3.5 Medium funktioniert im Clean-PC/Frozen-Pfad; der zuvor gefundene QAI-AppBuilder-Packagingfehler wurde vor der Veröffentlichung behoben.
+> - Photo Restore bleibt NPU/QNN/HTP-only; kein CPU-/GPU-KI-Fallback.
+> - Öffentlicher RC3-Release-Text fokussiert auf **AI Photo Restoration**.
+> - Der Abschnitt **„Not included in RC3“** wurde aus der öffentlichen GitHub-Release-Beschreibung entfernt.
+> - README-Badges `Platform`, `Snapdragon X Elite`, `Qualcomm Hexagon NPU` und `RC3 Status` sind jetzt klickbar.
+> - Keine weiteren RC3-Builds oder Installerläufe erforderlich, solange keine Produkt- oder Packagingänderung erfolgt.
 ## Zweck
 
 Diese Datei ist die verbindliche Arbeitsübergabe für die Fortsetzung mit einem anderen ChatGPT-Account. Sie enthält den bestätigten Projektstand, Holgers Arbeitsregeln, die heutigen Änderungen, Testergebnisse und den nächsten sicheren Schritt.
@@ -22694,3 +22711,5905 @@ NEXT_EXACT_STEP=FREE_2_TO_3_GB_ON_C_THEN_FINAL_RC3_BUILD_PRECHECK
 ```
 
 Heute keine weiteren Builds, Installer, Commits oder Pushes ausführen.
+
+# CHATGPT_HANDOVER – Ergänzung Tagesabschluss 25. September 2026 – VERSION 2.0 RC3 Final Build / GitHub Main / Clean-Test offen
+
+Diese Ergänzung hat für den aktuellen RC3-Stand Vorrang vor allen älteren Statusabschnitten.
+
+## Verbindlicher Kurzstatus
+
+```text
+DATE=2026-09-25
+VERSION=VERSION 2.0 RC3
+DISPLAY_VERSION=2.0 RC3
+PACKAGE_VERSION=2.0.0-rc.3
+BRANCH=main
+HEAD=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+ORIGIN_MAIN=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+HEAD_MATCHES_ORIGIN_MAIN=YES
+FINAL_BUILD_OK=YES
+FINAL_INSTALLER_OK=YES
+FINAL_INSTALLER_CLEAN_TEST=OPEN
+COMMIT_CREATED=YES
+PUSH_PERFORMED=YES
+TAG_CREATED=NO
+GITHUB_RELEASE_CREATED=NO
+```
+
+## Finaler RC3 Build
+
+Finaler Installer:
+
+`C:\SnapdragonAI\dist\installer\HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe`
+
+```text
+BUILD_OK=True
+APP_BUILD_OK=True
+INSTALLER_BUILD_OK=True
+PHOTO_RESTORE_PAYLOAD_OK=True
+DND_FALLBACK_INCLUDED=True
+QNN_SPACE_PATH_FIX_INCLUDED=True
+NO_CONSOLE_WINDOW_FIX_INCLUDED=True
+INSTALLER_COMPRESSION_OPTIMIZED=True
+INSTALLER_GB=2.015
+INSTALLER_SHA256=954BC2D033E042B2A8B667C32E62A04AEEEDEAAF08366BD9DF544703F31E4980
+APP_SHA256=8872ADBDED5EE6C024CECC3272B5091F9235039B16844B06E0A7C7C3B84E74C1
+MISSING_PAYLOAD=0
+READY_FOR_FINAL_INSTALL_TEST=True
+```
+
+Enthaltene finale Fixes:
+- TkDND optionaler Fallback auf normales `tkinter.Tk()`.
+- QNN Input-Path-Portabilität für Benutzerpfade mit Leerzeichen.
+- Windows `CREATE_NO_WINDOW` für FiDeSR-/QNN-Subprozesse.
+- Installer-Kompressionsoptimierung für große FiDeSR-Contexts.
+- Kein Modell entfernt, kein separater Restore-Model-Download erforderlich.
+
+## Finales externes Backup
+
+Externes Volume: `D:` / `HK NPU Studio`
+
+Backup:
+
+`D:\HK_NPU_STUDIO_RC3_FINAL_20260925`
+
+```text
+LOCAL_C_BACKUP_REMOVED=True
+ORIGINAL_REPO_INTACT=True
+REPO_BACKUP_EXISTS=True
+INSTALLER_BACKUP_EXISTS=True
+INSTALLER_HASH_MATCH=True
+BACKUP_OK=True
+```
+
+## Öffentliche RC3 Dokumentation
+
+Neu beziehungsweise aktualisiert auf `main`:
+- `README.md`
+- `docs/releases/README.md`
+- `docs/releases/RC3_RELEASE_NOTES.md`
+- `docs/user-guide/USER_GUIDE_DE.md`
+- `docs/user-guide/USER_GUIDE_EN.md`
+- `docs/user-guide/USER_GUIDE_ES.md`
+- `docs/images/photo-restore-dark.png`
+- `docs/images/photo-restore-light.png`
+
+README dokumentiert:
+- HK NPU STUDIO 2.0 RC3
+- AI Photo Restoration
+- 4× Restore
+- Qualcomm QNN / Hexagon NPU
+- gebündelte Photo-Restore-Modelle
+- kein separater Restore-Modell-Download
+
+Nicht als RC3-Feature beworben:
+- Colorization
+- Object Removal
+- Generative Fill
+- Retouch
+
+## Finaler RC3 Commit und Push
+
+```text
+COMMIT_HASH=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+COMMIT_MESSAGE=Release HK NPU STUDIO 2.0 RC3
+FILES=33
+INSERTIONS=4107
+DELETIONS=308
+REMOTE=origin
+REMOTE_HEAD=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+REMOTE_HEAD_MATCH=YES
+PUSH_PERFORMED=YES
+PUSH_OK=True
+```
+
+Kein Force-Push.
+
+## Arbeitsbaum nach Commit
+
+Absichtlich weiterhin modified und **nicht Teil des RC3-Commits**:
+- `controllers/inpainting_controller.py`
+- `engine/backends/rorem_dlc_inpainting_adapter.py`
+
+Weitere bekannte untracked/unrelated Dateien bleiben unangetastet.
+
+Regeln:
+- nicht löschen
+- nicht pauschal stagen
+- niemals `git add .`
+
+## Letztes offenes Release-Gate
+
+Der final gebaute Installer wurde nach den letzten No-Console- und Kompressionsänderungen noch **nicht** final sauber auf `RC2CleanTest` installiert und real abgenommen.
+
+Der zuvor direkt gepatchte Installationsstand hat bereits einen vollständigen FiDeSR-NPU-Lauf bestätigt:
+VAE Encoder → UNet → LRRB → VAE Decoder.
+
+### Morgen – exakter Einstieg
+
+**RECHNER: RC2CleanTest**
+
+1. Alte/manuell gepatchte Testinstallation beenden.
+2. Bestehende HK NPU STUDIO Installation deinstallieren.
+3. Finalen Installer installieren.
+4. Start prüfen: keine Fehlermeldung, Version `2.0 RC3`, kein TkDND-Fehler.
+5. Dasselbe reale Restore-Testfoto laden.
+6. Photo Restore starten.
+7. Prüfen:
+   - kein schwarzes Konsolenfenster
+   - kein Model-Download
+   - keine Fehlermeldung
+   - vollständiger Restore
+   - Ergebnis visuell okay
+
+```text
+FINAL_RC3_INSTALL_TEST
+
+INSTALL_OK=YES/NO
+STARTUP_OK=YES/NO
+VERSION_2_0_RC3=YES/NO
+TKDND_ERROR=YES/NO
+PHOTO_RESTORE_STARTED=YES/NO
+BLACK_CONSOLE_WINDOW=YES/NO
+MODEL_DOWNLOAD_OCCURRED=YES/NO
+PHOTO_RESTORE_COMPLETED=YES/NO
+RESULT_VISUALLY_OK=YES/NO
+ERROR_MESSAGE=
+```
+
+## Veröffentlichung
+
+Noch nicht:
+- RC3 Tag
+- GitHub Release
+- Release-Asset veröffentlichen
+
+Erst nach vollständig grünem `FINAL_RC3_INSTALL_TEST`.
+
+## Feierabendstatus 25.09.2026
+
+```text
+FINAL_BUILD=PASS
+FINAL_INSTALLER=PASS
+FINAL_INSTALLER_SHA256=954BC2D033E042B2A8B667C32E62A04AEEEDEAAF08366BD9DF544703F31E4980
+FINAL_EXTERNAL_BACKUP=PASS
+BACKUP_ROOT=D:\HK_NPU_STUDIO_RC3_FINAL_20260925
+RC3_COMMIT=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+ORIGIN_MAIN=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+PUSH_OK=True
+RC3_TAG=NO
+GITHUB_RELEASE=NO
+FINAL_RC3_INSTALL_TEST=OPEN
+NEXT_RECHNER=RC2CleanTest
+NEXT_EXACT_STEP=CLEAN_INSTALL_FINAL_RC3_INSTALLER_AND_REAL_PHOTO_RESTORE_TEST
+```
+
+Arbeit für heute beendet. Morgen zuerst den finalen Clean-Test auf `RC2CleanTest` durchführen. Erst danach Tag/Release.
+
+# CHATGPT_HANDOVER – Ergänzung 26. September 2026 – RC3 SD3.5 Startup-Gate / letzter Rebuild / Clean-Test offen
+
+Diese Ergänzung hat für den aktuellen RC3-Stand Vorrang vor allen älteren Statusabschnitten.
+
+## Ausgangslage nach GitHub-Push vom 25.09.2026
+
+Der RC3-Dokumentations-/Produktstand wurde am 25.09.2026 als Commit veröffentlicht:
+
+```text
+BRANCH=main
+COMMIT_HASH=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+COMMIT_MESSAGE=Release HK NPU STUDIO 2.0 RC3
+ORIGIN_MAIN=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+REMOTE_HEAD_MATCH=YES
+PUSH_PERFORMED=YES
+```
+
+Dieser Commit enthält 33 gezielt gestagte RC3-Dateien. Nicht Bestandteil des RC3-Commits und weiterhin bewusst unangetastet:
+
+```text
+controllers/inpainting_controller.py
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Bekannte untracked/unrelated Dateien bleiben ebenfalls unangetastet. Niemals `git add .`.
+
+## Externes Backup
+
+Verifiziertes Backup vom 25.09.2026:
+
+```text
+D:\HK_NPU_STUDIO_RC3_FINAL_20260925
+BACKUP_OK=True
+INSTALLER_HASH_MATCH=True
+```
+
+Wichtig: Dieses Backup enthält den Stand **vor** dem am 26.09.2026 vorgenommenen SD3.5-Startup-Gate-Fix und vor dem neuesten Rebuild. Es bleibt als sichere Vor-Fix-Sicherung erhalten.
+
+## Clean-Test 26.09.2026 – RC3 Release-Blocker
+
+Auf `RC2CleanTest` wurde der damals finale Installer sauber installiert. Beim Start erschien weiterhin unerwünscht:
+
+```text
+Stable Diffusion 3.5 Medium installieren
+```
+
+Der Dialog versuchte Legacy-SD3.5-Komponenten vorzubereiten und meldete unter anderem:
+
+```text
+Required bundled dependency component(s) missing: torchgen, functorch, yaml
+```
+
+Für RC3 ist dieses Verhalten falsch, weil RC3 sichtbar ausschließlich AI Photo Restoration im Phoenix Image Lab veröffentlicht. SD3.5/Generative Fill/Object Removal/Retouch/Colorization dürfen keinen automatischen oder produktseitig erreichbaren Setupflow auslösen.
+
+Der Test wurde deshalb als Release-Blocker gewertet. Es wurden **keine** fehlenden Legacy-Abhängigkeiten nachinstalliert.
+
+## Erster Fixversuch – unzureichend
+
+Erste Diagnose:
+
+```text
+ROOT_CAUSE=RC3-Startseite wertete ein fehlendes aktives Generationsmodell als notwendige Ersteinrichtung.
+TRIGGER_FILE=widgets/phoenix/views/home_view.py
+FIX_TYPE=RC3_STARTUP_FEATURE_GATE
+```
+
+Geändert wurden:
+
+```text
+widgets/phoenix/views/home_view.py
+tests/test_home_first_run.py
+```
+
+Tests:
+
+```text
+RC3_CLEAN_START_SD35_DIALOG_TEST=PASS
+MISSING_SD35_MODEL_NO_DIALOG_TEST=PASS
+PHOTO_RESTORE_STARTUP_PATH_TEST=PASS
+FOCUSED_TESTS=46 passed, 2 subtests passed
+PY_COMPILE=PASS
+GIT_DIFF_CHECK=PASS
+```
+
+Daraufhin wurde ein neuer Installer gebaut:
+
+```text
+INSTALLER_SHA256=1128B101649CEA25EC3B10A8C515EEA4ADDFC1BD752185EF73C6A2A022076329
+APP_SHA256=005528C9246628EE7FA95CA343B799E944E597462916EC50F5DA728C16C362F6
+```
+
+Dieser Build **scheiterte im Realtest erneut mit demselben SD3.5-Dialog**. Damit war bewiesen, dass der reine Home-View-Fix nicht den vollständigen Produktpfad gegatet hatte.
+
+Der Hash `1128B101...` ist damit **nicht freigabefähig** und darf nicht veröffentlicht werden.
+
+## Zweite Ursachenanalyse – tatsächlicher zweiter Trigger
+
+Codex musste ausdrücklich gegen den letzten bekannten funktionierenden Stand
+
+```text
+868516a3e46ce3df268914deb531b6a4c348f5f6
+```
+
+vergleichen und die reale Dialogkette nachweisen.
+
+Ergebnis:
+
+```text
+DIALOG_CLASS=ModelDirectDownloadDialog
+DIALOG_CREATION_FUNCTION=PhoenixModelManagerView._on_install_selected()
+REAL_CALL_CHAIN=Explizite Model-Manager-Installationsaktion → ModelSourceDialog → choice="install_sd35_auto" → ModelDirectDownloadDialog(auto_start=True) → SD35SetupHelper.run_setup()
+REAL_TRIGGER_FILE=widgets/phoenix/views/model_manager_view.py
+REAL_TRIGGER_FUNCTION=PhoenixModelManagerView._on_install_selected
+ROOT_CAUSE_CLASS=SECOND_TRIGGER
+ROOT_CAUSE=Unabhängiger SD3.5-Installationspfad im Model Manager war trotz RC3 Photo-Restore-Umfang weiterhin freigeschaltet.
+STALE_BUILD_CODE_FOUND=NO
+SECOND_TRIGGER_FOUND=YES
+APPDATA_CAN_TRIGGER_DIALOG=NO
+```
+
+Der erste Fix war deshalb unzureichend: Er sperrte nur die Readiness-Navigation der Startseite, nicht den unabhängigen SD3.5-Installationspfad im Model Manager.
+
+## Finaler RC3 Startup-/Model-Manager-Gate-Fix
+
+Aktuell geänderte Dateien:
+
+```text
+widgets/phoenix/views/home_view.py
+widgets/phoenix/views/model_manager_view.py
+tests/test_home_first_run.py
+tests/test_model_direct_install_flow.py
+```
+
+Produktvertrag:
+
+- RC3 startet ohne automatisches SD3.5-Setup.
+- Fehlende Generationsmodelle erzwingen keine Ersteinrichtung.
+- SD3.5 ist in RC3 nicht als aktive Produktinstallation verfügbar.
+- Der SD3.5-Installationspfad ist über normale RC3-Benutzeraktionen nicht erreichbar.
+- Legacy-Code darf intern erhalten bleiben, ist für RC3 aber gegated.
+- Photo Restore bleibt erreichbar.
+- Photo Restore Backend und Qualität unverändert.
+- FiDeSR unverändert.
+- QNN/HTP unverändert.
+- keine neue Dependency.
+- kein CPU-/GPU-AI-Fallback.
+
+## Finaler Pre-Build-Proof
+
+Vor dem letzten Rebuild wurde die echte Startup-/Workspace-/Model-Manager-Kette mit Spy-/Regressionstests geprüft.
+
+Bestätigt:
+
+```text
+STARTUP_ON_INSTALL_SELECTED_CALLS=0
+STARTUP_MODEL_DIRECT_DOWNLOAD_DIALOG_CALLS=0
+STARTUP_SD35_SETUP_HELPER_CALLS=0
+
+SD35_PRODUCT_INSTALL_AVAILABLE_RC3=NO
+SD35_USER_ACTION_REACHABLE_RC3=NO
+
+AUTO_START_CALLS=0
+FIRST_RUN_CALLS=0
+MIGRATION_CALLS=0
+USER_ACTION_RC3_REACHABLE_CALLS=0
+
+SECOND_HOME_VIEW_COPY_FOUND=NO
+SECOND_MODEL_MANAGER_COPY_FOUND=NO
+BUILD_SOURCE_CONFIRMED=YES
+
+PHOTO_RESTORE_CHANGED=NO
+QNN_HTP_CHANGED=NO
+NEW_DEPENDENCIES=NO
+
+FOCUSED_TESTS=PASS – 70 passed, 26 subtests passed
+PY_COMPILE=PASS
+GIT_DIFF_CHECK=PASS
+FINAL_PROOF_RC3_SD35_UNREACHABLE=PASS
+READY_FOR_LAST_REBUILD=YES
+```
+
+Buildquelle bestätigt:
+
+```text
+C:\SnapdragonAI\gui_v2.py
+```
+
+Keine zweite Build-/Bundle-Kopie von `home_view.py` oder `model_manager_view.py` gefunden. Ein vorhandenes temporäres Backup ist vom Build ausgeschlossen.
+
+## Letzter RC3 Rebuild – aktueller Installer
+
+Der letzte freigegebene Rebuild wurde erfolgreich abgeschlossen.
+
+Aktueller Installer:
+
+```text
+C:\SnapdragonAI\dist\installer\HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe
+```
+
+Aktuelle Buildwerte:
+
+```text
+BUILD_OK=True
+SD35_RC3_GATE_INCLUDED=True
+DISPLAY_VERSION=2.0 RC3
+PACKAGE_VERSION=2.0.0-rc.3
+INSTALLER_GB=2.015
+INSTALLER_SHA256=43B90282ED6887398BD4FEBC2F1804830F48122DE0459987C9EEE6790BF9C299
+APP_SHA256=57E90D00C082197BCEC0491C22449ACC2F2BCEFB724CF07E39D76C6AE74C87B2
+COMMIT_CREATED=NO
+PUSH_PERFORMED=NO
+READY_FOR_CLEAN_INSTALL_TEST=True
+```
+
+Der frühere Installer-Hash
+
+```text
+954BC2D033E042B2A8B667C32E62A04AEEEDEAAF08366BD9DF544703F31E4980
+```
+
+sowie der Zwischenbuild-Hash
+
+```text
+1128B101649CEA25EC3B10A8C515EEA4ADDFC1BD752185EF73C6A2A022076329
+```
+
+sind für den finalen RC3-Test **veraltet**.
+
+Ab jetzt für den Clean-Test ausschließlich den Installer mit SHA-256
+
+```text
+43B90282ED6887398BD4FEBC2F1804830F48122DE0459987C9EEE6790BF9C299
+```
+
+verwenden.
+
+## Aktueller Git-Status / wichtige Abgrenzung
+
+Remote:
+
+```text
+origin/main=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+```
+
+Der aktuelle Startup-Gate-Fix vom 26.09.2026 ist **noch nicht committed und noch nicht gepusht**.
+
+Deshalb:
+
+```text
+STARTUP_GATE_FIX_COMMIT_CREATED=NO
+STARTUP_GATE_FIX_PUSH_PERFORMED=NO
+RC3_TAG_CREATED=NO
+GITHUB_RELEASE_CREATED=NO
+```
+
+Keinen Commit/Push ausführen, bevor der neueste Installer auf `RC2CleanTest` den finalen Realtest bestanden hat.
+
+## Nächster exakter Schritt
+
+**RECHNER: RC2CleanTest**
+
+Zuerst nur den eigentlichen Blocker isoliert prüfen:
+
+1. bestehende HK NPU STUDIO Testinstallation schließen und sauber deinstallieren.
+2. verbliebenen Programmordner nur falls notwendig entfernen:
+   `C:\Users\RC2CleanTest\AppData\Local\Programs\HK NPU STUDIO`
+3. ausschließlich den neuen Installer mit SHA-256 `43B90282...` verwenden.
+4. HK NPU STUDIO starten.
+5. zuerst nur prüfen:
+
+```text
+SD35_DIALOG_APPEARED=YES/NO
+STARTUP_OK=YES/NO
+VERSION_2_0_RC3=YES/NO
+```
+
+**HARD STOP:** Wenn `SD35_DIALOG_APPEARED=YES`, keinen weiteren Build starten und nicht zu Photo Restore weitergehen.
+
+Nur wenn:
+
+```text
+SD35_DIALOG_APPEARED=NO
+STARTUP_OK=YES
+VERSION_2_0_RC3=YES
+```
+
+dann anschließend denselben realen Photo-Restore-Test wie zuvor ausführen:
+
+```text
+PHOTO_RESTORE_STARTED=YES/NO
+BLACK_CONSOLE_WINDOW=YES/NO
+MODEL_DOWNLOAD_OCCURRED=YES/NO
+PHOTO_RESTORE_COMPLETED=YES/NO
+RESULT_VISUALLY_OK=YES/NO
+ERROR_MESSAGE=
+```
+
+Erwartung für einen vollständig grünen RC3-Release-Gate:
+
+```text
+SD35_DIALOG_APPEARED=NO
+STARTUP_OK=YES
+VERSION_2_0_RC3=YES
+PHOTO_RESTORE_STARTED=YES
+BLACK_CONSOLE_WINDOW=NO
+MODEL_DOWNLOAD_OCCURRED=NO
+PHOTO_RESTORE_COMPLETED=YES
+RESULT_VISUALLY_OK=YES
+ERROR_MESSAGE=
+```
+
+## Was nach grünem Clean-Test folgt
+
+Erst nach bestandenem finalem Clean-Test:
+
+1. Git-Status prüfen.
+2. ausschließlich die vier Startup-Gate-/Regressionstest-Dateien gezielt stagen.
+3. `git diff --cached --check`.
+4. Commit nur nach Holgers ausdrücklicher Freigabe.
+5. Push nur nach Holgers ausdrücklicher Freigabe.
+6. Danach neues finales externes Backup bzw. aktuelles Release-Artefakt mit neuem Hash sichern.
+7. Erst danach RC3 Tag und GitHub Release separat freigeben.
+
+## Aktueller Übergabestatus 26.09.2026
+
+```text
+VERSION=2.0 RC3
+ORIGIN_MAIN=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+STARTUP_GATE_FIX=IMPLEMENTED_AND_TESTED
+STARTUP_GATE_FIX_COMMITTED=NO
+STARTUP_GATE_FIX_PUSHED=NO
+LATEST_BUILD=PASS
+LATEST_INSTALLER_SHA256=43B90282ED6887398BD4FEBC2F1804830F48122DE0459987C9EEE6790BF9C299
+LATEST_APP_SHA256=57E90D00C082197BCEC0491C22449ACC2F2BCEFB724CF07E39D76C6AE74C87B2
+LATEST_INSTALLER_GB=2.015
+LATEST_CLEAN_TEST=OPEN
+RC3_TAG=NO
+GITHUB_RELEASE=NO
+NEXT_RECHNER=RC2CleanTest
+NEXT_EXACT_STEP=INSTALL_LATEST_HASH_43B90282_AND_VERIFY_SD35_DIALOG_APPEARED_NO
+```
+
+# CHATGPT_HANDOVER – Ergänzung 26. September 2026 – SD3.5 Recovery / Runtime repariert / Downloadfortschritt noch offen
+
+Diese Ergänzung ist der **verbindliche neueste Arbeitsstand**. Bei Widersprüchen mit älteren Abschnitten gilt dieser Abschnitt. Insbesondere sind die früheren Hinweise, dass SD3.5 im RC3-Model-Manager nicht installierbar sein solle oder dass der Installer mit SHA-256 `43B90282...` noch der nächste Release-Kandidat sei, **überholt**.
+
+## Verbindlicher Produktvertrag – SD3.5 in RC3
+
+Stable Diffusion 3.5 Medium bleibt Teil des bestehenden Model Managers und darf **nicht** aus dem Produkt entfernt oder global gegated werden.
+
+```text
+MODEL_MANAGER_VISIBLE=YES
+SD35_VISIBLE=YES
+SD35_MANUAL_INSTALL_AVAILABLE=YES
+SD21_VISIBLE=YES
+SD15_VISIBLE=YES
+CONTROLNET_VISIBLE=YES
+
+AUTO_SD35_DIALOG_ON_NORMAL_START=NO
+AUTO_SD35_DIALOG_ON_FIRST_RUN=NO
+GENERATION_MODEL_REQUIRED_FIRST_RUN_FLOW=NO
+
+PHOTO_RESTORE_INDEPENDENT=YES
+```
+
+Das RC3-Ziel war und bleibt ausschließlich: **kein automatischer SD3.5-Installationsdialog beim Start/Erststart**. Der manuelle Model-Manager-Pfad soll funktional wie RC2 bleiben.
+
+## Kritische Arbeitsregel nach den Regressionen vom 26.09.2026
+
+Holger hat mehrfach ausdrücklich beanstandet, dass bereits funktionierende RC2-Pfade unnötig verändert und dadurch neue Regressionen erzeugt wurden. Diese Regel ist ab jetzt ein Hard Gate:
+
+- Funktionierende RC2-Pfade nicht neu erfinden.
+- Referenz für den letzten bekannten funktionierenden SD3.5-Stand: `868516a3e46ce3df268914deb531b6a4c348f5f6`.
+- Nur minimal-invasive Änderungen.
+- Startup-Gate und manueller Installations-/Runtime-Pfad strikt getrennt behandeln.
+- Keine breiten Codex-/Antigravity-Sprints.
+- Codex/Antigravity tokenoptimiert und eng begrenzt einsetzen.
+- Keine Volltests ohne konkreten Grund.
+- Kein Build, Commit, Push oder Release vor Holgers eigener realer Source-Abnahme.
+- Niemals `git add .`.
+- Unrelated/untracked Dateien nicht anfassen.
+- Holger möchte keine weiteren unnötigen PowerShell-Diagnoseschleifen; bevorzugt soll Antigravity für breite lokale Analyse genutzt werden, PowerShell nur für klar notwendige, kleine Prüfungen.
+
+## Ausgangslage / veröffentlichter Git-Stand
+
+```text
+BRANCH=main
+ORIGIN_MAIN=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+PUBLIC_COMMIT_MESSAGE=Release HK NPU STUDIO 2.0 RC3
+RC3_TAG_CREATED=NO
+GITHUB_RELEASE_CREATED=NO
+```
+
+Die aktuellen SD3.5-Recovery-/Progress-Änderungen sind **nicht committed und nicht gepusht**.
+
+Der zuletzt gebaute Installer mit
+
+```text
+INSTALLER_SHA256=43B90282ED6887398BD4FEBC2F1804830F48122DE0459987C9EEE6790BF9C299
+APP_SHA256=57E90D00C082197BCEC0491C22449ACC2F2BCEFB724CF07E39D76C6AE74C87B2
+```
+
+ist für den Release **veraltet**. Er enthält die späteren SD3.5-Recovery-/Runtime-/Progress-Änderungen nicht und darf nicht veröffentlicht werden.
+
+```text
+LATEST_BUILT_INSTALLER_RELEASE_READY=NO
+NEW_BUILD_AFTER_SD35_RECOVERY=NO
+COMMIT_AFTER_SD35_RECOVERY=NO
+PUSH_AFTER_SD35_RECOVERY=NO
+```
+
+## SD3.5 – Fehlerkette und bestätigte Ursachen
+
+### 1. Unerwünschter automatischer SD3.5-Start
+
+Erste RC3-Clean-Tests öffneten beim Start unerwünscht den Dialog „Stable Diffusion 3.5 Medium installieren“.
+
+Zielkorrektur:
+
+```text
+AUTO_SD35_DIALOG=0
+```
+
+Der Startup-/First-Run-Gate liegt in `widgets/phoenix/views/home_view.py` und muss erhalten bleiben. Der manuelle Model-Manager-Pfad darf davon nicht blockiert werden.
+
+### 2. Fehlende Legacy-Abhängigkeiten `torchgen`, `functorch`, `yaml`
+
+Ein manueller Source-Test scheiterte zunächst mit:
+
+```text
+Required bundled dependency component(s) missing: torchgen, functorch, yaml
+```
+
+Analyse:
+- RC2 kopierte den vollständigen lokalen Torch-/PyYAML-Komponentensatz in die isolierte SD3.5-venv.
+- RC3 konnte einen unvollständigen Dependency-Root akzeptieren, sobald `torch` vorhanden war.
+- `yaml` gehört zu PyYAML; `torchgen` und `functorch` gehören zur Torch-Paketstruktur.
+- Keine blinde Nachinstallation über `pip install torchgen/functorch/yaml`.
+
+Spätere Recovery:
+- `tools/sd35_setup_helper.py` validiert einen Kandidaten vollständig auf `torch`, `torchgen`, `functorch`, `yaml` sowie die relevanten Dist-Infos, bevor er als Dependency-Root akzeptiert wird.
+- Keine neue externe Dependency eingeführt.
+
+### 3. Falscher Installed-/Active-State nach Abbruch
+
+Bei einem früheren Versuch wurde der Download abgebrochen; trotzdem zeigte der Model Manager SD3.5 anschließend als `ACTIVE / active and ready`.
+
+Bestätigte Ursache:
+- der Cancel-Button schloss den Dialog,
+- der laufende Qualcomm-/Python-Worker konnte im Hintergrund weiterlaufen,
+- dadurch konnten Import/Manifest/Aktivierung nach dem sichtbaren Abbruch noch erfolgen.
+
+Hard Contract:
+
+```text
+CANCEL_BEFORE_SUCCESS:
+SD35_INSTALLED=NO
+SD35_ACTIVE=NO
+PARTIAL_INSTALL_READY=NO
+PREVIOUS_ACTIVE_MODEL_PRESERVED=YES
+```
+
+### 4. Vermeintlicher Download-Hänger bei 3.482.468.996 Byte
+
+Während der Diagnose lag:
+
+```text
+C:\SnapdragonAI\temp\sd35-qai-setup\qai-appbuilder-main\samples\models\generative_ai\image_generation\stable_diffusion_v3_5\python\sd3.5_qnn_for_windows-8380.zip
+SIZE=3482468996
+```
+
+Antigravity stellte später fest, dass der Qualcomm-Downloader die volle Zielgröße per `truncate()` vorreservieren kann. Daher war die reine Dateigröße **kein verlässlicher Fortschrittsnachweis**.
+
+### 5. SD3.5 Generation scheiterte bei 0/8 – echte Runtime-Ursache
+
+Nach Wiederherstellung eines vollständigen SD3.5-Modellpakets wurde SD3.5 erkannt und aktiviert, die Generation scheiterte aber sofort bei `0/8`.
+
+Antigravity identifizierte die konkrete Ursache:
+- `sd35_qai_appbuilder_backend.py` importierte `_worker_python` aus dem SD1.5-QAI-Backend.
+- Im nicht eingefrorenen Source-Modus suchte diese Auflösung nach `C:\QAI-AppBuilder-Test\.venv\Scripts\python.exe`.
+- Deshalb meldete `StableDiffusion35QaiAppBuilderBackend.is_available()` fälschlich `False`.
+- `BackendManager.get_best_backend` fiel auf den generischen QNN-/SD2.1-Adapter zurück.
+- Dadurch wurde SD3.5 mit dem falschen SD2.1-Pfad gestartet und scheiterte bei `0/8`.
+
+Implementierte Korrektur:
+- SD3.5 besitzt wieder eine eigene Worker-Python-Auflösung auf die eingerichtete `sd35_venv`.
+- Dispatcher routet wieder auf `Qualcomm SD3.5 Medium QAI AppBuilder (HTP)`.
+
+Von Antigravity gemeldeter echter Source-Generationsnachweis:
+
+```text
+Target Backend=Qualcomm SD3.5 Medium QAI AppBuilder (HTP)
+Adapter=StableDiffusion35QaiAppBuilderBackend
+Sampling=1/8 ... 8/8
+VAE_DECODING=PASS
+GENERATION_STATUS=FINISHED
+OUTPUT=C:\SnapdragonAI\output\generate_f01b713c.png
+SD35_GENERATION=PASS
+```
+
+Dieser Runtime-Fix darf nicht wieder zurückgerollt oder durch generischen QNN-/SD2.1-Fallback ersetzt werden.
+
+## Manueller SD3.5-Pfad – RC2-Referenz
+
+Ein gezieltes Diff gegen `868516a3e46ce3df268914deb531b6a4c348f5f6` ergab:
+
+```text
+home_view.py:
+  STARTUP-GATE erforderlich
+  manueller SD3.5-Pfad nicht betroffen
+
+model_manager_view.py:
+  manueller Installationspfad war gegenüber RC2 verändert
+
+sd35_setup_helper.py:
+  manueller Installations-/Dependency-/Cancel-Pfad war gegenüber RC2 verändert
+```
+
+Danach wurden `tools/sd35_setup_helper.py` und `widgets/phoenix/views/model_manager_view.py` für den manuellen Installationspfad wieder auf RC2-Verhalten zurückgeführt, während `home_view.py` mit `AUTO_SD35_DIALOG=0` unangetastet blieb.
+
+Gemeldeter Stand:
+
+```text
+MANUAL_SD35_PATH_MATCHES_RC2=YES
+HOME_VIEW_UNCHANGED=YES
+AUTO_SD35_DIALOG=0
+PY_COMPILE=PASS
+```
+
+Spätere punktuelle Dependency- und Progress-Parser-Korrekturen in `sd35_setup_helper.py` dürfen nur den klar begrenzten Fehler beheben und nicht erneut die funktionierende RC2-Installationsarchitektur umbauen.
+
+## SD3.5 Downloadfortschritt – aktuell offener Blocker
+
+Holger verlangt ausdrücklich die **einheitliche HK-NPU-STUDIO-Downloaddarstellung wie bei den bestehenden Modelldownloads**.
+
+Gewünschte sichtbare Informationen:
+
+```text
+xx% downloaded
+xx% remaining
+
+xxx MB / x.xx GB downloaded
+x.xx GB remaining
+
+xxx KB received • xx.x MB/s
+```
+
+Zusätzlich:
+
+```text
+PROGRESSBAR=DETERMINATE_WHEN_REAL_VALUES_AVAILABLE
+FALSE_0_MB=FORBIDDEN
+FALSE_0_KB=FORBIDDEN
+```
+
+Wenn der Qualcomm-Downloader noch keine verlässlichen Werte liefert:
+- indeterminierter Balken ist zulässig,
+- Text `Downloading model files …` ist zulässig,
+- keine falschen `0.0 MB` / `0 KB` Werte anzeigen.
+
+### Bereits identifizierte Parser-Ursache
+
+Der bisherige Parser in `tools/sd35_setup_helper.py` erwartete im Wesentlichen:
+
+```text
+Download progress: <percent>% (<downloaded>/<total> MB) [<speed> MB/s]
+```
+
+Qualcomm / `py3-wget` / tqdm kann dagegen Ausgaben wie diese liefern:
+
+```text
+sd3.5_qnn_for_windows-8380.zip: 5%|...| 157M/3.48G [..., 1.53GiB/s]
+```
+
+sowie Varianten mit `\r`, variierenden Einheiten, Floats und Geschwindigkeit in MiB/GiB pro Sekunde.
+
+`dialogs/model_direct_download_dialog.py` kann die gewünschten Werte bereits darstellen, wenn ihm folgende Eventfelder geliefert werden:
+
+```text
+download_percent
+downloaded_bytes
+total_bytes
+speed
+```
+
+### Antigravity-Progress-Arbeit
+
+Antigravity meldete zunächst:
+
+```text
+FILES_CHANGED=sd35_setup_helper.py, model_direct_download_dialog.py, test_sd35_installer_state_machine.py
+PERCENT_VISIBLE=YES
+DOWNLOADED_MB_GB_VISIBLE=YES
+REMAINING_MB_GB_VISIBLE=YES
+SPEED_VISIBLE=YES
+PROGRESSBAR_DETERMINATE=YES
+FALSE_ZERO_VALUES=NO
+TESTS=47/47 PASS
+DIRECT_INSTALL_TESTS=31/31 PASS
+PY_COMPILE=PASS
+```
+
+**Diese Meldung wurde im realen Benutzer-Test widerlegt.**
+
+Holgers echter Source-Test zeigte weiterhin nur:
+
+```text
+Downloading model files ...
+PROGRESSBAR=INDETERMINATE
+PERCENT_VISIBLE=NO
+DOWNLOADED_MB_GB_VISIBLE=NO
+REMAINING_MB_GB_VISIBLE=NO
+SPEED_VISIBLE=NO
+```
+
+Damit gilt:
+
+```text
+SD35_DOWNLOAD_PROGRESS_REALTEST=FAIL
+RELEASE_READY=NO
+BUILD_ALLOWED=NO
+```
+
+### Letzter Antigravity-Versuch vor Handover
+
+Der letzte ausdrücklich als „letzter Versuch“ gestartete Antigravity-Task sollte den **echten laufenden stdout/stderr** von `stable_diffusion_v3_5.py` erfassen und den Parser exakt daran anpassen.
+
+Sichtbarer Verlauf:
+
+```text
+Edit(C:/SnapdragonAI/tools/sd35_setup_helper.py)
+test_sd35_installer_state_machine.py gestartet
+test_model_direct_install_flow.py gestartet
+vollständiger test_*.py Lauf gestartet
+Task wartete wiederholt auf Completion
+```
+
+Der Task lief nicht sinnvoll weiter / hing in der Testschleife. Es liegt **kein finaler Abschlussbericht und kein realer visueller PASS** dieses letzten Versuchs vor.
+
+```text
+LAST_PROGRESS_PATCH_STATUS=UNVERIFIED
+REAL_PROGRESS_UI_PASS=NO
+DO_NOT_ASSUME_PROGRESS_FIXED=YES
+```
+
+Keine weitere breite Testschleife starten. Bei Wiederaufnahme zuerst nur den aktuellen Diff von `tools/sd35_setup_helper.py` prüfen, dann die zwei fokussierten SD3.5-Testmodule, danach ein einziger echter Download-Realtest.
+
+## Aktuelle Testzustände / gesicherte Modelle
+
+Für wiederholte Downloadtests wurden vollständige SD3.5-Modellpakete bewusst **nicht gelöscht**, sondern umbenannt/gesichert.
+
+Bestätigte Sicherung:
+
+```text
+C:\SnapdragonAI\models\stable_diffusion_v3_5_qai.progress-test-20260926_204740
+```
+
+Es können zusätzlich ältere `.preserved-*`, `.before-download-test-*` oder weitere `progress-test-*` Sicherungen existieren. Vor Aufräumarbeiten immer zuerst exakt prüfen. Vollständige Modellpayloads nicht blind löschen.
+
+Der letzte saubere Download-Testreset meldete:
+
+```text
+SD35_RELEVANT_PROCESS_COUNT=0
+OLD_DOWNLOAD_COUNT=0
+SD35_LIVE_MODEL_EXISTS=False
+READY_FOR_FRESH_SD35_DOWNLOAD_TEST=True
+```
+
+Danach wurde ein neuer Source-Download gestartet; der reale Fortschritts-UI-Test blieb jedoch indeterminiert und damit **FAIL**.
+
+## Wichtige Dateien des aktuellen SD3.5-Recovery-Scopes
+
+Bestätigt betroffen bzw. in der heutigen Recovery bearbeitet:
+
+```text
+widgets/phoenix/views/home_view.py
+widgets/phoenix/views/model_manager_view.py
+tools/sd35_setup_helper.py
+engine/backends/sd35_qai_appbuilder_backend.py
+dialogs/model_direct_download_dialog.py
+tests/test_home_first_run.py
+tests/test_model_direct_install_flow.py
+tests/test_sd35_installer_state_machine.py
+tests/test_release_packaging.py
+tools/build_app.py
+```
+
+Vor jeder Git-Aktion aktuellen `git status --short` erneut prüfen. Die Liste ist eine Arbeitschronik und keine Erlaubnis, alle Dateien zu stagen.
+
+Weiterhin bekannte unrelated/uncommitted Dateien aus älteren Arbeiten nicht anfassen, insbesondere:
+
+```text
+controllers/inpainting_controller.py
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+sowie die vielen dokumentierten untracked RC2-/Asset-/Preset-/Tool-Dateien.
+
+## Bestätigte Schutzbereiche
+
+```text
+PHOTO_RESTORE_CHANGED=NO
+FIDESR_CHANGED=NO
+QNN_HTP_GENERAL_CHANGED=NO
+INPAINTING_CHANGED=NO
+ROREM_CHANGED=NO
+NEW_EXTERNAL_DEPENDENCIES=NO
+```
+
+Der SD3.5-spezifische QAI-AppBuilder-Backend-Fix ist notwendig und ändert nicht den allgemeinen QNN/HTP-Vertrag.
+
+## Release-Gates – verbindlicher aktueller Stand
+
+```text
+VERSION=2.0 RC3
+ORIGIN_MAIN=24501a4c00ce0bc884bb7bb30c6e5dd7410dc15e
+
+AUTO_SD35_DIALOG=0
+SD35_MODEL_MANAGER_VISIBLE=YES
+SD35_MANUAL_INSTALL_AVAILABLE=YES
+
+SD35_RUNTIME_ROUTING_FIX=IMPLEMENTED
+SD35_GENERATION_ANTIGRAVITY_REALTEST=PASS
+
+SD35_DOWNLOAD_PROGRESS_USER_REALTEST=FAIL
+SD35_DOWNLOAD_PROGRESS_LAST_PATCH=UNVERIFIED
+
+NEW_BUILD_AFTER_FIXES=NO
+COMMIT_AFTER_FIXES=NO
+PUSH_AFTER_FIXES=NO
+RC3_TAG=NO
+GITHUB_RELEASE=NO
+
+RELEASE_READY=NO
+BUILD_ALLOWED=NO
+```
+
+## Nächster exakter Schritt
+
+**RECHNER: ENTWICKLER-PC**
+
+1. HK NPU STUDIO / laufenden SD3.5-Download beenden, falls noch aktiv.
+2. Aktuellen Diff ausschließlich des letzten Progress-Patches prüfen:
+   - `tools/sd35_setup_helper.py`
+   - ggf. `dialogs/model_direct_download_dialog.py`
+   - zugehöriger fokussierter Test.
+3. Keine Volltestsuite.
+4. Nur:
+   - `test_sd35_installer_state_machine.py`
+   - `test_model_direct_install_flow.py`
+   - `py_compile`.
+5. Danach einen einzigen frischen manuellen SD3.5-Source-Downloadtest.
+6. Holger muss **visuell selbst** bestätigen:
+   - Prozent sichtbar,
+   - bereits geladene MB/GB sichtbar,
+   - verbleibende MB/GB sichtbar,
+   - Geschwindigkeit sichtbar, sofern Quelle sie liefert,
+   - determinate Balken sobald echte Werte vorliegen,
+   - keine falschen 0-Werte.
+7. Nur bei diesem echten visuellen PASS anschließend SD3.5 Installation vollständig auslaufen lassen und eine echte Generation testen.
+8. Erst wenn Holger ausdrücklich freigibt: neuer Frozen-/Installer-Build.
+9. Erst nach Build: direkter Frozen-Test und danach RC2CleanTest.
+10. Commit/Push/Tag/Release weiterhin separat und nur nach ausdrücklicher Freigabe.
+
+Hard Gate:
+
+```text
+IF SD35_DOWNLOAD_PROGRESS_USER_REALTEST != PASS:
+    BUILD=NO
+    COMMIT=NO
+    PUSH=NO
+    RELEASE=NO
+```
+
+## Kommunikations-/Prozesshinweis
+
+Holger ist nach den wiederholten Regressionen und Diagnose-Schleifen stark frustriert. Keine Wiederholung bereits erledigter Prüfungen und keine Zusicherungen wie „jetzt ist es sicher behoben“, solange Holger den konkreten Realtest nicht selbst gesehen hat.
+
+Nicht erneut:
+- funktionierende RC2-Pfade breit umbauen,
+- Model Manager oder SD3.5 global deaktivieren,
+- automatische Installation mit manueller Installation verwechseln,
+- synthetische Unit-Tests als Ersatz für Holgers echten GUI-Realtest behandeln,
+- einen Build vorschlagen, bevor Holger ausdrücklich bestätigt hat, dass der Source-Stand funktioniert.
+
+## Handover-Übernahme
+
+Diese Datei wurde vollständig erhalten und nur um den aktuellen Arbeitsstand ergänzt.
+
+Holger übernimmt sie wie bisher über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Keine verkürzte Fassung verwenden.
+
+
+# CHATGPT_HANDOVER – Ergänzung 27. September 2026 – RC3 veröffentlicht / Release finalisiert
+
+Diese Ergänzung hat für den aktuellen Projekt-, Git-, Installer- und Veröffentlichungsstand Vorrang vor allen älteren RC3-Zwischenständen. Ältere Abschnitte bleiben ausschließlich als Chronik erhalten.
+
+## 1. Finaler RC3-Status
+
+Produkt:
+
+```text
+PRODUCT=HK NPU STUDIO
+DISPLAY_VERSION=2.0 RC3
+PACKAGE_VERSION=2.0.0-rc.3
+ARCHITECTURE=ARM64
+RELEASE_STATUS=PUBLISHED_PRERELEASE
+TAG=v2.0.0-rc.3
+```
+
+GitHub:
+
+```text
+REPOSITORY=Kreuzhofen/hk-npu-studio
+RELEASE_TITLE=HK NPU STUDIO 2.0 RC3
+RELEASE_URL=https://github.com/Kreuzhofen/hk-npu-studio/releases/tag/v2.0.0-rc.3
+DRAFT=False
+PRERELEASE=True
+```
+
+RC3 ist veröffentlicht. Frühere Handover-Angaben wie `RC3_TAG=NO`, `GITHUB_RELEASE=NO`, `RELEASE_READY=NO` oder `BUILD_ALLOWED=NO` sind historische Zwischenstände und nicht mehr aktuell.
+
+## 2. Finaler Installer
+
+Finales öffentliches Artefakt:
+
+```text
+C:\SnapdragonAI\dist\installer\HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe
+```
+
+Verbindliche Werte:
+
+```text
+SIZE=2054694378
+SHA256=258CB85CC9BEF471D79B038B5126F617B6A0F0A3E9911DFB5E26709EED07A857
+GITHUB_SIZE_LIMIT=2147483648
+GITHUB_SIZE_OK=YES
+```
+
+Das Asset ist auf GitHub erfolgreich hochgeladen. Der vorherige zu große Installer mit SHA-256 `7C0055355B708C91412436221A256D3825D9098DB7AE650D46B763F305D3EAFD` ist **nicht** das finale Release-Artefakt.
+
+## 3. Größen-Hotfix
+
+Ursache für die zunächst überschrittene GitHub-Asset-Grenze:
+
+- vier große FiDeSR-Photo-Restore-Kontexte waren im Inno-Setup explizit von der Kompression ausgeschlossen;
+- dadurch lag der Installer bei `2257147197` Byte und damit über GitHubs maximaler Assetgröße von `2147483648` Byte.
+
+Gezielter Fix:
+
+```text
+installer/snapdragon_ai_studio.iss
+tools/build_installer.py
+tests/test_release_packaging.py
+```
+
+Änderung:
+
+- `nocompression` wurde ausschließlich für `models\photo_restore_context` entfernt;
+- globale `Compression=lzma2` und `SolidCompression=yes` blieben erhalten;
+- ein Packaging-Gate gegen zu große GitHub-Assets wurde ergänzt.
+
+Commit:
+
+```text
+083760ee3a5186fad8ac09367f1e547b666c4e79
+Reduce RC3 installer size for GitHub release
+```
+
+Dieser Commit ist der Commit, auf den der annotierte RC3-Tag auflöst.
+
+## 4. Clean-Test des finalen Installers
+
+Rechner:
+
+```text
+RC2CleanTest
+```
+
+Bestätigt:
+
+```text
+TRANSFER_HASH_MATCH=YES
+INSTALLATION_COMPLETED=YES
+APP_START=PASS
+```
+
+Der übertragene Installer hatte exakt die finale SHA-256:
+
+```text
+258CB85CC9BEF471D79B038B5126F617B6A0F0A3E9911DFB5E26709EED07A857
+```
+
+Für diesen letzten Größen-Hotfix wurde keine erneute vollständige AI-Funktionsrunde erzwungen, weil ausschließlich Installer-Kompression/Packaging geändert wurde und der Runtime-/Modellinhalt unverändert blieb.
+
+Wichtig für per-user Installationen auf `RC2CleanTest`: **nicht** mit `-Verb RunAs` starten. Der erwartete Installationspfad liegt unter:
+
+```text
+C:\Users\RC2CleanTest\AppData\Local\Programs\HK NPU STUDIO
+```
+
+## 5. SD3.5 – finaler RC3-Stand
+
+Der in der Recovery-Phase gefundene Frozen-QAI-AppBuilder-Fehler wurde vor RC3 behoben.
+
+Bestätigte Ursache:
+
+- Source-Betrieb funktionierte;
+- der Frozen-Build konnte den SD3.5-QAI-AppBuilder nicht als verfügbar erkennen;
+- `QAIAppSvc.exe`, benötigte QNN-Libraries und Helper-Payload waren im Build nicht enthalten;
+- Discovery kannte nur einen alten RC2B-Entwicklerpfad statt des realen RC3-Pfads `%LOCALAPPDATA%\HK NPU STUDIO\sd35_venv`.
+
+Fix:
+
+- `tools/build_app.py` erkennt den realen RC3-SD3.5-vEnv-Pfad;
+- Build schlägt fehl, wenn der erforderliche QAI-Payload fehlt;
+- QAI-/Helper-Payload wird namespaced paketiert und nicht in den App-Root geflattet;
+- SD3.5-Routing fällt nicht auf einen falschen SD1.5-Backendpfad zurück.
+
+Relevanter veröffentlichter Fix-Commit vor dem Packaging-Hotfix:
+
+```text
+204235e15dc96945e68a8791d02c7dd89950afb4
+Fix SD3.5 RC3 installation, routing and frozen runtime
+```
+
+Der Clean-PC/Frozen-SD3.5-Generationspfad wurde vor der finalen Veröffentlichung erfolgreich real getestet.
+
+Produktvertrag für RC3 bleibt:
+
+```text
+MODEL_MANAGER_VISIBLE=YES
+SD35_VISIBLE=YES
+SD35_MANUAL_INSTALL=YES
+SD21_VISIBLE=YES
+SD15_VISIBLE=YES
+CONTROLNET_VISIBLE=YES
+
+AUTO_SD35_STARTUP_DIALOG=NO
+AUTO_SD35_FIRST_RUN_DIALOG=NO
+GENERATION_MODEL_REQUIRED_FIRST_RUN_FLOW=NO
+
+PHOTO_RESTORE_INDEPENDENT=YES
+```
+
+## 6. Photo Restore – RC3-Hauptfunktion
+
+Öffentlicher Schwerpunkt von RC3 ist **AI Photo Restoration** in Phoenix Image Lab.
+
+Verbindlich:
+
+- `Faithful Restore` sichtbar;
+- Enhanced/experimentelle Varianten nicht als RC3-Hauptfunktion freigegeben;
+- 4× Upscaling;
+- Dust Cleanup V4;
+- große Bilder über native Multi-Tile-Verarbeitung;
+- Graustufenbilder bleiben Graustufen;
+- Restore-Modelle sind im Installer enthalten;
+- neuronale Restaurierung ausschließlich Snapdragon NPU über QNN/HTP;
+- kein CPU- oder GPU-KI-Fallback.
+
+Öffentliche Produktkommunikation soll nicht unnötig aufzählen, welche internen/experimentellen Funktionen nicht enthalten sind.
+
+## 7. Öffentliche Release-Beschreibung
+
+Die GitHub-Release-Beschreibung wurde nach Veröffentlichung bereinigt.
+
+Aktueller Stand:
+
+- Fokus auf AI Photo Restoration und Verbesserungen;
+- Plattformtext und SHA-256 enthalten;
+- der komplette Abschnitt
+
+```text
+🚫 Not included in RC3
+```
+
+einschließlich der darunter aufgeführten experimentellen Funktionen wurde aus der öffentlichen Release-Beschreibung entfernt.
+
+Der öffentliche Release soll **nicht** mit internen Regressionen oder nicht freigegebenen Experimentalfunktionen belastet werden.
+
+## 8. README-Badges
+
+Nach der Veröffentlichung wurde `README.md` korrigiert.
+
+Die vier unteren Badges sind jetzt echte Links:
+
+```text
+Platform              -> Microsoft Windows on Arm
+Snapdragon X Elite    -> Qualcomm Snapdragon X Elite
+Qualcomm Hexagon NPU  -> Qualcomm AI
+RC3 Status            -> GitHub Release v2.0.0-rc.3
+```
+
+Commit:
+
+```text
+dc0d801fa7275bacbff76b786a33db02b4c0dfa8
+Fix README badge links
+```
+
+GitHub `main` steht nach dieser README-Korrektur auf diesem Commit.
+
+Wichtig: Der Release-Tag wurde **nicht erneut** auf den README-Dokumentationscommit verschoben. Er löst weiterhin auf den finalen RC3-Packaging-Commit `083760ee3a5186fad8ac09367f1e547b666c4e79` auf.
+
+## 9. Aktueller Git-Stand
+
+Öffentlich verifiziert:
+
+```text
+BRANCH=main
+ORIGIN_MAIN=dc0d801fa7275bacbff76b786a33db02b4c0dfa8
+LATEST_COMMIT=dc0d801fa7275bacbff76b786a33db02b4c0dfa8
+LATEST_MESSAGE=Fix README badge links
+
+RC3_TAG=v2.0.0-rc.3
+RC3_TAG_RESOLVED_COMMIT=083760ee3a5186fad8ac09367f1e547b666c4e79
+```
+
+Der Tag wurde einmal gezielt/forciert auf den finalen Packaging-Commit korrigiert, nachdem er bereits vor dem letzten Packaging-Hotfix veröffentlicht worden war. Es gab **keinen Force-Push von `main`**.
+
+## 10. Unrelated lokale Dateien weiterhin schützen
+
+Nicht automatisch stagen, verändern oder löschen, insbesondere:
+
+```text
+controllers/inpainting_controller.py
+docs/CHATGPT_HANDOVER.md
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+sowie die dokumentierten untracked RC2-/RC3-Notizen, Assets, Presets, Export-/Smoke-/Temp-Dateien und `sd35_venv/`.
+
+Weiterhin gilt:
+
+```text
+NEVER_GIT_ADD_DOT=YES
+UNTRACKED_UNRELATED_FILES_TOUCH=NO
+BUILD_COMMIT_PUSH_WITHOUT_HOLGER_APPROVAL=NO
+```
+
+## 11. Externes Backup
+
+Vorhandenes, verifiziertes Backup:
+
+```text
+D:\HK_NPU_STUDIO_RC3_FINAL_20260925
+```
+
+Es enthält einen älteren RC3-Stand vor den letzten SD3.5-/Packaging-Korrekturen. **Nicht automatisch überschreiben oder ersetzen.** Nur auf ausdrücklichen Auftrag von Holger aktualisieren.
+
+## 12. Was jetzt nicht mehr erforderlich ist
+
+Für den bereits veröffentlichten RC3-Stand ohne neue Produktänderung:
+
+- kein weiterer Frozen-Build;
+- kein weiterer Installer-Build;
+- kein erneuter Clean-Test;
+- kein erneutes Verschieben des RC3-Tags;
+- kein erneuter Release-Upload;
+- keine erneute SD3.5-Gesamtanalyse.
+
+Neue Builds/Tests nur, wenn tatsächlich neue Produkt-/Runtime-/Packagingänderungen vorgenommen werden.
+
+## 13. Nächster sinnvoller Arbeitsmodus
+
+RC3 ist veröffentlicht. Ab jetzt:
+
+1. reale Nutzer-/GitHub-Issue-Rückmeldungen aufnehmen;
+2. Fehler zuerst reproduzieren und technisch einordnen;
+3. UI-, Runtime-, NPU/QNN/HTP-, Packaging-/Installer- und Portabilitätsprobleme sauber trennen;
+4. fokussierte Tests zuerst;
+5. keine Codeänderung vor ausreichender Eingrenzung;
+6. keine Builds/Commits/Pushes ohne Holgers Freigabe;
+7. keine bereits veröffentlichten RC3-Artefakte ohne konkreten Grund neu erzeugen.
+
+## 14. Handover-Übernahme
+
+Diese Datei wurde vollständig erhalten und um den finalen Stand vom 27. September 2026 ergänzt.
+
+Holger übernimmt sie wie bisher über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Keine verkürzte Fassung verwenden.
+# CHATGPT_HANDOVER – Ergänzung 4. Oktober 2026 – Showcase veröffentlicht / ControlNet Canny gesichert
+
+> Diese Ergänzung ist Bestandteil der vollständigen bestehenden `CHATGPT_HANDOVER.md`.
+> Die gesamte ältere Chronik bleibt unverändert erhalten. Bei widersprüchlichen Statusangaben hat dieser neueste Abschnitt Vorrang.
+
+## 1. Verbindlicher aktueller Git-Stand
+
+Repository:
+
+```text
+C:\SnapdragonAI
+```
+
+Branch:
+
+```text
+main
+```
+
+Bestätigter veröffentlichter HEAD:
+
+```text
+40b45756 README: add adaptive light and dark showcase assets
+```
+
+Bestätigt:
+
+```text
+HEAD = main = origin/main = origin/HEAD = 40b45756
+```
+
+Der Push war erfolgreich. `git status -sb` zeigte danach:
+
+```text
+## main...origin/main
+```
+
+ohne `ahead` oder `behind`.
+
+Seit dem am 27. September dokumentierten RC3-Release wurden auf `main` weitere Code-/Dokumentationsänderungen veröffentlicht. Diese Commits ändern nicht rückwirkend den bereits veröffentlichten RC3-Installer oder dessen Tag. Ein neuer Installer-/Release-Build wurde für diese Arbeiten nicht erzeugt.
+
+## 2. Phoenix Boost – finaler Stand und Release-Assets
+
+Phoenix Boost wurde nach dem RC3-Release weiter finalisiert und auf `main` veröffentlicht.
+
+Commit:
+
+```text
+51d190f2 Phoenix Boost: finalize controlled prompt enhancement and release assets
+```
+
+Der Commit enthält ausschließlich die hierfür bewusst ausgewählten Phoenix-Boost-Dateien und Release-Assets. Unter anderem:
+
+```text
+controllers/generation_pipeline.py
+controllers/generation_session.py
+controllers/prompt_workspace_controller.py
+engine/boost_ai_service.py
+engine/boost_engine.py
+engine/phoenix_boost_quality.py
+tests/test_expandable_prompt.py
+tests/test_phoenix_boost_quality.py
+widgets/phoenix/views/prompt_view.py
+docs/images/examples/phoenix-boost/phoenix_boost_comparison.png
+docs/images/examples/photo-restoration/photo_restoration_comparison.png
+docs/images/examples/photo-restoration/photo_restoration_comparison_16x9.png
+docs/images/examples/photo-restoration/photo_restore_before.jpg
+docs/images/examples/photo-restoration/photo_restore_after_rc3.png
+```
+
+Wichtige Abgrenzung:
+
+- `controllers/generation_pipeline.py` importiert weiterhin `engine.phoenix_boost_quality`.
+- `engine/phoenix_boost_quality.py` ist daher weiterhin Bestandteil des aktiven Pfades und darf nicht als entfernt behandelt werden.
+- Das finale Phoenix-Boost-Showcase wurde als veröffentlichungswürdig akzeptiert.
+- Offizielles Showcase-Asset:
+
+```text
+docs/images/examples/phoenix-boost/phoenix_boost_comparison.png
+```
+
+## 3. AI Photo Restoration – finale Showcase-Assets
+
+Die vorhandene reale Restore-Paarung wurde für die öffentliche Darstellung verwendet:
+
+```text
+docs/images/examples/photo-restoration/photo_restore_before.jpg
+docs/images/examples/photo-restoration/photo_restore_after_rc3.png
+```
+
+Finale Vergleichsgrafiken:
+
+```text
+docs/images/examples/photo-restoration/photo_restoration_comparison.png
+docs/images/examples/photo-restoration/photo_restoration_comparison_16x9.png
+```
+
+Die 16:9-Version wird für GitHub/README bevorzugt.
+
+Finaler Footer der Restore-Grafik:
+
+```text
+Detail Recovery • Natural Texture • Fine Detail Preservation • NPU Accelerated
+```
+
+Color Restoration wurde bewusst nicht mehr als Feature im Footer dargestellt.
+
+## 4. ControlNet Canny – Root Cause, Minimalfix und veröffentlichter Commit
+
+Für ControlNet Canny wurde die Detailtreue am Citroën-DS-Beispiel technisch untersucht.
+
+Bestätigte Ursache:
+
+- Eingaben werden vor der Canny-Erkennung auf `512×512` gebracht.
+- Nicht-quadratische Eingaben werden dabei per Center-Crop auf Quadrat gebracht.
+- Die bisher verwendeten Standard-Schwellen `50/150` waren für feine, kontrastarme Fahrzeugdetails zu hoch.
+- Türgriffe und kleine Leuchten/Indikatorstrukturen konnten dadurch bereits in der Canny-Map verloren gehen, bevor ControlNet sie erhält.
+- Das Problem lag nicht an einer Koordinatenverschiebung zwischen Canny-Map und UNet, sondern primär an Detailverlust durch Resize/Crop/Blur/Thresholding.
+
+Minimaler produktiver Codefix:
+
+```text
+engine/controlnet_canny_backend.py
+```
+
+Defaultwerte geändert:
+
+```text
+low_threshold:  50 -> 15
+high_threshold: 150 -> 45
+```
+
+Dies gilt sowohl für `canny_edge_detector(...)` als auch für die Job-Defaults im Backend.
+
+Commit:
+
+```text
+53ac9291 ControlNet Canny: improve edge detail defaults and add release assets
+```
+
+Der Commit wurde erfolgreich auf `origin/main` gepusht.
+
+### ControlNet-Canny-Release-Referenz
+
+Das beste manuell bestätigte DS-Ergebnis wurde mit folgenden UI-Parametern erzeugt:
+
+```text
+MODEL=controlnet_canny_qnn
+RESOLUTION=512x512
+CANNY_LOW=16
+CANNY_HIGH=49
+CONTROLNET_STRENGTH=0.90
+CFG=7.5
+STEPS=20
+SAMPLER=DDIM
+SCHEDULER=DDIM
+SEED=45
+BATCH=2
+```
+
+Exakter Prompt:
+
+```text
+A white Citroën DS, photorealistic classic car, premium editorial automotive photography, cinematic lighting, highly detailed bodywork, realistic reflections, clean background, professional car photo
+```
+
+Wichtig:
+
+- Release-Beispiel nutzt bewusst `16/49`.
+- Produktive neue Defaults stehen auf `15/45`.
+- Diese Werte nicht als identisch darstellen.
+- Für den bestätigten besten manuellen Lauf wurde kein verbindlicher Negative Prompt dokumentiert.
+- Keine alten automatisierten DS-Fehlversuche als Release-Referenz verwenden.
+
+Finale Canny-Assets:
+
+```text
+docs/images/examples/controlnet_canny/citroen_ds_canny_16_49.png
+docs/images/examples/controlnet_canny/citroen_ds_input.jpg
+docs/images/examples/controlnet_canny/citroen_ds_result_seed45.png
+docs/images/examples/controlnet_canny/citroen_ds_result_seed45_2x.png
+docs/images/examples/controlnet_canny/controlnet_canny_comparison.png
+docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9.png
+```
+
+Das bestätigte Ergebnis wurde vor der finalen Vergleichsgrafik 2× über den vorhandenen lokalen RealESRGAN-NPU-Pfad hochskaliert.
+
+## 5. Menschliches ControlNet-Canny-Beispiel – verworfen
+
+Ein menschliches Portrait wurde ebenfalls als möglicher Canny-Showcase getestet.
+
+Ergebnis:
+
+```text
+HOLGER_RELEASE_EXAMPLE=ABANDON
+FACE_IDENTITY_PRESERVATION=FAIL
+CLOTHING_PRESERVATION=FAIL
+BACKGROUND_PRESERVATION=FAIL
+ANATOMY_SAFETY=FAIL
+RELEASE_WORTHY=NO
+```
+
+Beobachtet wurden unter anderem deutliche Identitätsänderung, Kleidung-/Haut-Fehlinterpretationen, Hintergrundverlust und Artefakte.
+
+Diesen menschlichen Canny-Showcase nicht weiterverfolgen, solange Holger ihn nicht ausdrücklich erneut aufnimmt.
+
+## 6. README-Showcase – veröffentlicht
+
+Die drei finalen Beispiele wurden in `README.md` unter einer neuen Showcase-Sektion veröffentlicht.
+
+Reihenfolge:
+
+1. Phoenix Boost
+2. AI Photo Restoration
+3. ControlNet Canny
+
+Erster README-Showcase-Commit:
+
+```text
+f2c3df57 README: add HK NPU STUDIO showcase examples
+```
+
+Die drei Beispiele werden untereinander dargestellt, damit die Vergleichsgrafiken auch auf GitHub und Mobilgeräten groß genug und lesbar bleiben.
+
+Showcase-Einleitung final:
+
+```text
+## See HK NPU STUDIO in Action
+
+Real-world examples running locally on Snapdragon® NPU hardware.
+```
+
+Die zunächst vorhandene redundante Zwischenzeile
+
+```text
+Phoenix Boost • Photo Restoration • ControlNet Canny
+```
+
+wurde später bewusst wieder entfernt.
+
+## 7. Adaptive Light-/Dark-Mode-Showcase-Grafiken
+
+Holger gefiel der dunkle Hintergrund der Showcase-Grafiken im normalen GitHub-/Windows-Light-Mode nicht ausreichend.
+
+Deshalb wurden die bestehenden Dark-Grafiken unverändert beibehalten und zusätzlich drei separate Light-Versionen erzeugt.
+
+Neue Light-Assets:
+
+```text
+docs/images/examples/phoenix-boost/phoenix_boost_comparison_light.png
+docs/images/examples/photo-restoration/photo_restoration_comparison_16x9_light.png
+docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9_light.png
+```
+
+Die bestehenden Dark-Assets wurden per SHA-256 vor/nach der Erstellung als byte-identisch bestätigt.
+
+Dark-Referenzen:
+
+```text
+docs/images/examples/phoenix-boost/phoenix_boost_comparison.png
+docs/images/examples/photo-restoration/photo_restoration_comparison_16x9.png
+docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9.png
+```
+
+README verwendet nun pro Beispiel GitHub-kompatible `<picture>`-Blöcke mit:
+
+```text
+prefers-color-scheme: dark
+prefers-color-scheme: light
+```
+
+Keine festen Pixelbreiten, kein JavaScript und kein eigenes CSS für die Umschaltung.
+
+Commit:
+
+```text
+40b45756 README: add adaptive light and dark showcase assets
+```
+
+Enthalten:
+
+```text
+README.md
+docs/images/examples/controlnet_canny/controlnet_canny_comparison_16x9_light.png
+docs/images/examples/phoenix-boost/phoenix_boost_comparison_light.png
+docs/images/examples/photo-restoration/photo_restoration_comparison_16x9_light.png
+```
+
+Push:
+
+```text
+f2c3df57..40b45756  main -> main
+```
+
+## 8. Manuelle visuelle Abnahme des Showcase
+
+GitHub Light Mode wurde nach Veröffentlichung real im Browser geprüft.
+
+Holgers Bewertung: Light-Darstellung passt.
+
+Bestätigt:
+
+- heller Hintergrund fügt sich sauber in GitHub Light Mode ein;
+- Phoenix Boost, Restore und Canny bleiben lesbar;
+- keine problematische feste Breite;
+- Struktur und Abstände wirken sauber;
+- neue Einleitung passt;
+- redundante Feature-Zeile ist entfernt.
+
+Holger prüfte anschließend die mobile Darstellung auf dem Handy einschließlich Dark Mode.
+
+Bestätigung:
+
+```text
+MOBILE_LAYOUT=PASS
+DARK_MODE_MOBILE=PASS
+LIGHT_MODE_GITHUB=PASS
+SHOWCASE_DESIGN=PASS
+```
+
+Die Showcase-Veröffentlichung ist damit abgeschlossen. Keine weiteren Änderungen an diesen drei veröffentlichten Showcase-Beispielen vornehmen, solange kein konkreter neuer Grund besteht.
+
+## 9. Wichtige UTF-8-/PowerShell-Erfahrung vom 4. Oktober
+
+Bei einer nachträglichen README-Textkorrektur wurde die Datei kurzfristig durch einen ungeeigneten PowerShell-`Get-Content`/`Set-Content`-Pfad als Mojibake neu geschrieben.
+
+Sichtbare Symptome waren unter anderem:
+
+```text
+SnapdragonÂ®
+â€”
+ðŸ...
+4Ã—
+```
+
+Die Änderung wurde nicht committed oder gepusht.
+
+README wurde anschließend gezielt aus `HEAD` wiederhergestellt und UTF-8-sicher erneut geändert über:
+
+```text
+[System.IO.File]::ReadAllText(..., [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText(..., UTF8Encoding(false))
+```
+
+Danach zeigte `git diff --check` keine Fehler, und der finale Diff betraf ausschließlich den gewünschten Showcase-Bereich.
+
+Verbindliche Lehre:
+
+- README mit Unicode/Emoji nicht über unsichere PowerShell-Standard-Decodierung komplett neu schreiben.
+- Bei UTF-8-kritischen Dateien bevorzugt .NET `ReadAllText`/`WriteAllText` mit explizitem UTF-8 ohne BOM verwenden.
+- Nach Textänderungen immer Diff auf Mojibake und `git diff --check` prüfen.
+- Wenn PowerShell im Fortsetzungsmodus `>>` hängt, zuerst `Ctrl+C`; anschließend kompakte, robuste Befehle verwenden.
+- Holger möchte bei PowerShell-Arbeit möglichst einen zusammenhängenden Block statt vieler kleinteiliger Einzelbefehle.
+
+## 10. Aktueller Arbeitsbaum nach Showcase-Push
+
+Nach Push von `40b45756` waren weiterhin bewusst lokale, nicht zugehörige Änderungen vorhanden:
+
+```text
+M controllers/inpainting_controller.py
+M docs/CHATGPT_HANDOVER.md
+M engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Diese drei Dateien sind weiterhin geschützt und dürfen nicht beiläufig gestaged, überschrieben oder in fremde Commits aufgenommen werden.
+
+Zusätzlich bestehen zahlreiche bekannte untracked Alt-/Arbeitsdateien. Besonders weiterhin nicht pauschal anfassen oder stagen.
+
+Letzter bestätigter Branchstatus:
+
+```text
+## main...origin/main
+```
+
+ohne `ahead` oder `behind`.
+
+## 11. Arbeitsregel – vollständige Sprints
+
+Holger hat erneut ausdrücklich festgelegt:
+
+- Bei Antigravity-/Codex-Aufträgen immer den vollständigen, zusammengeführten Sprint liefern.
+- Keine bloßen Ergänzungsblöcke oder Nachträge als alleinigen Prompt senden.
+- Sprints weiterhin tokenoptimiert und eng begrenzt halten.
+- Wenn sinnvoll, die voraussichtliche Dauer nennen.
+- Bei PowerShell möglichst einen vollständigen zusammenhängenden Befehlsblock liefern.
+- Keine Builds/Commits/Pushes ohne den abgestimmten Schritt.
+- Niemals `git add .`.
+- Untracked/unrelated Dateien nicht beiläufig anfassen.
+
+## 12. Release-Abgrenzung
+
+Wichtig für kommende Arbeiten:
+
+- HK NPU STUDIO 2.0 RC3 bleibt der bereits veröffentlichte Release.
+- Der RC3-Installer und RC3-Tag wurden durch die Arbeiten vom 4. Oktober nicht neu erzeugt oder verschoben.
+- `main` enthält inzwischen neuere Phoenix-Boost-, ControlNet-Canny- und README/Showcase-Arbeiten.
+- Diese neueren Commits sind daher nicht automatisch Bestandteil des bereits veröffentlichten RC3-Installers.
+- Vor einem zukünftigen neuen Release muss entschieden werden, welche dieser Änderungen in den nächsten Build/Installer übernommen und auf RC2CleanTest beziehungsweise einem aktuellen Clean-Teststand validiert werden müssen.
+
+## 13. Nächster sicherer Einstieg
+
+Bei Wiederaufnahme:
+
+1. Git-Stand mit `status --short --branch`, `rev-parse HEAD`, `rev-parse origin/main` prüfen.
+2. Erwarteter letzter veröffentlichter Stand: `40b45756`.
+3. Geschützte lokale Änderungen an `controllers/inpainting_controller.py`, `docs/CHATGPT_HANDOVER.md` und `engine/backends/rorem_dlc_inpainting_adapter.py` nicht beiläufig anfassen.
+4. Showcase als abgeschlossen betrachten.
+5. Keine neuen Showcase-Bilder oder weitere Light/Dark-Varianten erzeugen, solange Holger keinen konkreten Änderungswunsch äußert.
+6. Bei produktiven Folgearbeiten weiterhin strikt zwischen `CODE_PASS`, `TECH_PASS` und realem `PRODUCT_PASS` unterscheiden.
+7. Keine Produktfunktion als releasefertig bezeichnen, wenn nur der Entwicklungs-PC geprüft wurde.
+8. NPU/QNN/HTP bleibt verbindliches Ziel für neuronale Produktinferenz; CPU nur für Orchestrierung, I/O, Masken, Scheduler, Mathematik und Compositing.
+
+## 14. Statusflags – 4. Oktober 2026
+
+```text
+PRODUKTNAME=HK NPU STUDIO
+RC3_VERÖFFENTLICHT=True
+MAIN_HEAD=40b45756
+ORIGIN_MAIN=40b45756
+PHOENIX_BOOST_FINAL_COMMIT=51d190f2
+CONTROLNET_CANNY_COMMIT=53ac9291
+README_SHOWCASE_COMMIT=f2c3df57
+README_ADAPTIVE_THEME_COMMIT=40b45756
+CONTROLNET_DEFAULT_CANNY_LOW=15
+CONTROLNET_DEFAULT_CANNY_HIGH=45
+CONTROLNET_RELEASE_EXAMPLE_CANNY=16_49
+CONTROLNET_RELEASE_EXAMPLE_SEED=45
+CONTROLNET_RELEASE_EXAMPLE_STRENGTH=0.90
+CONTROLNET_RELEASE_EXAMPLE_CFG=7.5
+CONTROLNET_RELEASE_EXAMPLE_STEPS=20
+CONTROLNET_RELEASE_EXAMPLE_DDIM=True
+CONTROLNET_RELEASE_RESULT_2X=True
+SHOWCASE_PUBLISHED=True
+SHOWCASE_LIGHT_MODE_PASS=True
+SHOWCASE_DARK_MODE_MOBILE_PASS=True
+SHOWCASE_MOBILE_PASS=True
+SHOWCASE_COMPLETE=True
+RC3_REBUILT_AFTER_SHOWCASE=False
+RC3_TAG_MOVED=False
+```
+
+## 15. Handover-Übernahme
+
+Diese vollständige Datei wurde nicht gekürzt, sondern um den bestätigten Stand vom 4. Oktober 2026 ergänzt.
+
+Holger übernimmt sie wie bisher über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Download-Dateiname immer exakt:
+
+```text
+CHATGPT_HANDOVER.md
+```
+
+Keine verkürzte Fassung verwenden.
+
+
+# CHATGPT_HANDOVER – Ergänzung 5. Oktober 2026 – Compare-Metadaten und In-App-Updater abgeschlossen
+
+> Diese Ergänzung führt die vollständige bestehende Chronik fort.
+> Ältere Abschnitte bleiben unverändert erhalten. Bei widersprüchlichen Statusangaben hat dieser neueste Abschnitt Vorrang.
+
+## 1. Arbeitsregeln – neue Sicherungsvorgabe
+
+Holger möchte künftig ausdrücklich darauf hingewiesen werden, wenn vor einem Arbeitsschritt eine Sicherung erforderlich oder sinnvoll ist.
+
+Verbindlich:
+
+- Vor riskanten oder größeren Änderungen aktiv auf eine sinnvolle Sicherung hinweisen.
+- Keine unnötigen Sicherungen bei reinen Read-only-Prüfungen verlangen.
+- Vor größeren uncommitteten Mehrdatei-Sprints einen klaren Rücksprungpunkt bevorzugen.
+- Bestehende Git-/Staging-Regeln bleiben unverändert:
+  - niemals `git add .`;
+  - geschützte/unrelated Dateien nicht anfassen;
+  - Builds, Commits und Pushes nur nach ausdrücklicher Freigabe;
+  - vor Commit nur exakt erwartete Dateien stagen und kontrollieren.
+
+Für die Update-Arbeit wurden am 5. Oktober zwei externe Sicherungen erstellt:
+
+```text
+C:\Users\holge\Desktop\HK_NPU_UPDATE_BACKUP_20261005_161420.zip
+C:\Users\holge\Desktop\HK_NPU_UPDATE_FINAL_BACKUP_20261005_163040.zip
+```
+
+## 2. Compare-Workspace – Generierungsmetadaten ergänzt
+
+Vor dem Updater-Sprint wurde der Bildvergleich um vollständige Generierungsmetadaten erweitert.
+
+Ausgangsfehler:
+
+- JSON-Sidecars enthielten bereits relevante Generierungsdaten;
+- zentrale Metadatenlesung funktionierte;
+- der Compare-Controller und die UI übernahmen beziehungsweise renderten jedoch nur einen kleinen Teil davon.
+
+Root Cause:
+
+```text
+COMPARE_CONTROLLER_DROPS_METADATA
+```
+
+Final dargestellt werden:
+
+- Model
+- Prompt
+- Negative Prompt
+- Seed
+- Steps
+- CFG
+- Sampler
+- Scheduler
+
+Unterstützte Alias-Fallbacks:
+
+```text
+model -> model_id
+cfg -> cfg_scale
+```
+
+Fehlende Sidecars bleiben sicher und zeigen `-`.
+
+Realer Produkt-Sichttest:
+
+- Bild ohne Sidecar: `-`
+- generiertes Bild: vollständige Metadaten sichtbar
+- Prompt und Negative Prompt lesbar
+- Layout stabil
+
+Commit:
+
+```text
+703a5895 Compare: show generation metadata
+```
+
+Push erfolgreich.
+
+## 3. Ziel des In-App-Updaters
+
+HK NPU STUDIO soll Updates direkt in der Anwendung prüfen und bei einem neueren Release sicher herunterladen und installieren können.
+
+Finale sichtbare Position:
+
+```text
+File | Studio | View | Plugins | Tools | Help | Update
+```
+
+`Update` ist ein eigener Top-Level-Menüpunkt direkt rechts neben `Help`.
+
+Kein Update-Link in einer unteren Statusleiste.
+
+## 4. Statusleisten-Regression und Wiederherstellung des RC3-Layouts
+
+Während des ersten Update-Sprints wurde eine globale Statusleiste sichtbar:
+
+```text
+HK NPU STUDIO | Idle | Queue: 0 | Worker: Idle | Backend: Stub | 0% | v2.0 RC3
+```
+
+Holger stellte klar, dass diese Leiste im letzten RC3-Hauptlayout nicht vorhanden war.
+
+Bestätigte Root Cause:
+
+```text
+UIBuilder erzeugte und packte die globale StatusBar sowohl im Phoenix- als auch im Legacy-Hauptlayout.
+```
+
+Korrektur:
+
+- komplette Statusleiste aus dem sichtbaren Hauptfenster entfernt;
+- kein leerer Footer-/Spacer-Bereich zurückgelassen;
+- `Update` oben neben `Help` erhalten;
+- Update-Callback erhalten.
+
+Bestätigte technische Prüfung:
+
+```text
+STATUSBAR_RENDERED=NO
+STATUSBAR_SPACE_REMOVED=PASS
+UPDATE_MENU_PRESERVED=PASS
+UPDATE_CALLBACK_PRESERVED=PASS
+FOCUSED_TESTS=PASS 14/14
+PY_COMPILE=PASS
+DIFF_CHECK=PASS
+```
+
+Realer Sichttest auf Holgers Entwicklungs-PC bestätigte anschließend:
+
+- `Update` oben korrekt;
+- keine untere Statusleiste;
+- kein leerer Footer.
+
+## 5. Update-Service – Architektur
+
+Zentrale Update-Logik:
+
+```text
+engine/application_update_service.py
+```
+
+Update-Dialog:
+
+```text
+dialogs/update_dialog.py
+```
+
+Weitere relevante UI-/Controller-Dateien:
+
+```text
+gui/controllers/application_controller.py
+gui/controllers/ui_builder.py
+widgets/menu_bar.py
+```
+
+Lokalisierungen:
+
+```text
+locales/de_DE.json
+locales/en_US.json
+locales/es_ES.json
+```
+
+Tests:
+
+```text
+tests/test_application_update_service.py
+tests/test_update_workflow.py
+```
+
+Updatequelle:
+
+```text
+https://api.github.com/repos/Kreuzhofen/hk-npu-studio/releases
+```
+
+Bewusst nicht `/releases/latest`, weil RC-/Pre-Release-Kandidaten berücksichtigt werden müssen.
+
+Aktuelle installierte Version stammt aus:
+
+```text
+engine.release_config.RELEASE.package_version
+```
+
+beziehungsweise `release.json`.
+
+## 6. Sicherheitsvertrag des Updaters
+
+Der Updater verwendet nur geeignete Windows-ARM64-Installer.
+
+Aktuelles Namensschema:
+
+```text
+HKNPUStudio-{version}-ARM64-Setup.exe
+```
+
+Legacy-Schema:
+
+```text
+SnapdragonAIStudio-{version}-ARM64-Setup.exe
+```
+
+Der Installerfilter bleibt absichtlich streng.
+
+Kein breites Regex-Fallback wie:
+
+```text
+(HKNPUStudio|SnapdragonAIStudio)-.*ARM64.*\.exe
+```
+
+Weitere Sicherheitsbedingungen:
+
+- HTTPS-only;
+- SHA-256-Digest zwingend erforderlich;
+- Download über bestehenden `DownloadService`;
+- Integritätsprüfung vor Installerstart;
+- kein `shell=True`;
+- Installerstart über `subprocess.Popen`;
+- App-Shutdown erst nach erfolgreichem Prozessstart;
+- Netzwerk-, Hash- oder Startfehler lassen die App offen;
+- kein Browser als primärer Updatepfad;
+- kein eigener zusätzlicher Bootstrap-Updater;
+- Installerkonfiguration und Buildsystem wurden für diesen Sprint nicht verändert.
+
+## 7. Reale GitHub-Release-Diagnose
+
+Beim ersten realen Test mit installiertem:
+
+```text
+2.0.0-rc.3
+```
+
+meldete der Dialog fälschlich:
+
+```text
+No matching ARM64 installer was found.
+```
+
+Die Diagnose bestätigte, dass der Installer im aktuellen RC3-Release tatsächlich vorhanden ist.
+
+Öffentliches Release:
+
+```text
+RELEASE_NAME=HK NPU STUDIO 2.0 RC3
+TAG_NAME=v2.0.0-rc.3
+DRAFT=False
+PRERELEASE=True
+```
+
+Asset:
+
+```text
+HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe
+```
+
+Größe:
+
+```text
+2054694378 Bytes
+```
+
+SHA-256-Digest:
+
+```text
+258cb85cc9bef471d79b038b5126f617b6a0f0a3e9911dfb5e26709eed07a857
+```
+
+Damit war eindeutig:
+
+```text
+KEIN_INSTALLER_ASSET_IM_RELEASE=False
+ASSET_NAME_PASST=True
+ARM64_FILTER_OK=True
+DIGEST_VORHANDEN=True
+```
+
+## 8. Root Cause des Update-Fehlers – RC-Versionsvergleich
+
+Die eigentliche Ursache lag im Pre-Release-Versionsvergleich.
+
+Historische Versionen wie:
+
+```text
+2.0.0-rc1
+2.0.0-rc.2a
+2.0.0-rc.2b
+```
+
+wurden teilweise fälschlich als neuer als:
+
+```text
+2.0.0-rc.3
+```
+
+bewertet.
+
+Dadurch wurde ein altes Release als Upgrade-Kandidat ausgewählt. Beim alten RC1-Release wich zusätzlich die Punktierung zwischen Tag und Assetname ab:
+
+```text
+Tag:   v2.0.0-rc1
+Asset: SnapdragonAIStudio-2.0.0-rc.1-ARM64-Setup.exe
+```
+
+Das erzeugte die irreführende Meldung `installer_missing`.
+
+Die Root Cause wurde bestätigt als:
+
+```text
+VERSION/FILTER SCHLIESST RELEASE AUS
+```
+
+## 9. Korrigierter Versionsvergleich
+
+Der Versionsvergleich wurde minimal korrigiert.
+
+Verbindliche historische Reihenfolge:
+
+```text
+2.0.0-rc1
+<
+2.0.0-rc.2
+<
+2.0.0-rc.2a
+<
+2.0.0-rc.2b
+<
+2.0.0-rc.3
+<
+2.0.0-rc.4
+<
+2.0.0
+<
+2.0.1
+<
+2.1.0
+```
+
+Dabei gilt:
+
+- Core-Version zuerst;
+- RC-Nummer numerisch;
+- bei gleicher RC-Nummer optionales Suffix;
+- gleiche RC-Nummer: kein Suffix < a < b < c;
+- Stable derselben Core-Version > jeder Pre-Release.
+
+Bestätigte Ergebnisse:
+
+```text
+ROOT_CAUSE_CONFIRMED=YES
+
+RC1_LT_RC2=PASS
+RC2_LT_RC2A=PASS
+RC2A_LT_RC2B=PASS
+RC2B_LT_RC3=PASS
+RC3_LT_RC4=PASS
+RC3_LT_STABLE=PASS
+
+CURRENT_RC3_UP_TO_DATE=PASS
+RC4_UPDATE_AVAILABLE=PASS
+STABLE_UPDATE_AVAILABLE=PASS
+
+INSTALLER_FILTER_UNCHANGED=YES
+SHA256_CONTRACT_UNCHANGED=YES
+DOWNLOAD_LOGIC_UNCHANGED=YES
+
+FOCUSED_TESTS=PASS 14/14
+PY_COMPILE=PASS
+DIFF_CHECK=PASS
+```
+
+## 10. Finaler Update-Dialogzustand
+
+Beim ersten erfolgreichen `UP_TO_DATE`-Test blieben visuell noch drei falsche Zustände stehen:
+
+- `Checking for updates...`
+- leerer Progressbar
+- Button `Cancel`
+
+Diese Zustände wurden bereinigt.
+
+Finaler `UP_TO_DATE`-Vertrag:
+
+- Hauptmeldung:
+  - `HK NPU STUDIO ist auf dem neuesten Stand.`
+- `Checking for updates...` nicht mehr sichtbar;
+- kein leerer Progressbar;
+- `Download & Installieren` deaktiviert;
+- rechter Button: `Schließen`;
+- Dialog schließt sauber;
+- `UPDATE_AVAILABLE`-Zustand bleibt unverändert;
+- Fehlerzustände zeigen keinen laufenden Progresszustand.
+
+Bestätigte Tests:
+
+```text
+UP_TO_DATE_CHECKING_HIDDEN=PASS
+UP_TO_DATE_PROGRESS_HIDDEN=PASS
+UP_TO_DATE_CLOSE_BUTTON=PASS
+UPDATE_AVAILABLE_UNCHANGED=PASS
+ERROR_STATE_CLEAN=PASS
+
+FOCUSED_TESTS=16 passed
+PY_COMPILE=PASS
+DIFF_CHECK=PASS
+```
+
+## 11. Reale Produktabnahme des Update-Checks
+
+Rechner:
+
+```text
+Entwicklungs-PC Holger
+```
+
+Modus:
+
+```text
+direkter Python-App-Test über C:\SnapdragonAI\gui_v2.py
+```
+
+Visuell bestätigt:
+
+- `Update` oben direkt neben `Hilfe`;
+- keine globale Statusleiste unten;
+- Dialog öffnet korrekt;
+- aktuelle RC3-Version wird korrekt als aktuell erkannt;
+- Meldung:
+  - `HK NPU STUDIO ist auf dem neuesten Stand.`
+- kein `Checking for updates...`;
+- kein leerer Fortschrittsbalken;
+- `Download & Installieren` deaktiviert;
+- `Schließen` sichtbar;
+- Dark Mode konsistent.
+
+Daraus folgt für den aktuellen real getesteten Pfad:
+
+```text
+UPDATE_CHECK_PRODUCT_PASS=YES
+STATUSBAR_REGRESSION_FIXED=YES
+```
+
+Wichtige Abgrenzung:
+
+Der reale Pfad
+
+```text
+kein neueres Update vorhanden
+```
+
+ist produktseitig bestätigt.
+
+Der vollständige reale End-to-End-Pfad
+
+```text
+neue Version
+-> Download
+-> SHA-256
+-> Installerstart
+-> App-Shutdown
+```
+
+ist technisch und testseitig abgesichert, wurde aber noch nicht mit einem tatsächlich neueren öffentlichen Release als RC3 real ausgeführt.
+
+Dieser End-to-End-Test muss beim nächsten RC beziehungsweise Release nachgeholt werden.
+
+## 12. Finaler Update-Commit
+
+Nach ausdrücklicher Freigabe wurden ausschließlich die Update-Dateien gezielt gestaged.
+
+Gestaged wurden:
+
+```text
+dialogs/update_dialog.py
+engine/application_update_service.py
+gui/controllers/application_controller.py
+gui/controllers/ui_builder.py
+locales/de_DE.json
+locales/en_US.json
+locales/es_ES.json
+tests/test_application_update_service.py
+tests/test_update_workflow.py
+widgets/menu_bar.py
+```
+
+Geschützte Dateien waren nicht im Staging.
+
+Commit:
+
+```text
+b9bd489c Update: add verified in-app update workflow
+```
+
+Commitumfang:
+
+```text
+10 files changed, 1251 insertions(+), 12 deletions(-)
+create mode 100644 dialogs/update_dialog.py
+create mode 100644 tests/test_update_workflow.py
+```
+
+`git diff --cached --check` war erfolgreich.
+
+## 13. Push
+
+Nach separater ausdrücklicher Push-Freigabe:
+
+```text
+703a5895..b9bd489c  main -> main
+```
+
+Final bestätigt:
+
+```text
+b9bd489c (HEAD -> main, origin/main, origin/HEAD) Update: add verified in-app update workflow
+## main...origin/main
+```
+
+Damit gilt:
+
+```text
+PUSH=PASS
+COMMIT=b9bd489c
+HEAD=main
+ORIGIN_MAIN=b9bd489c
+BRANCH_SYNC=YES
+```
+
+## 14. Geschützte lokale Änderungen bleiben erhalten
+
+Nach Commit und Push weiterhin lokal verändert und ausdrücklich nicht Bestandteil des Update-Commits:
+
+```text
+controllers/inpainting_controller.py
+docs/CHATGPT_HANDOVER.md
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Diese Dateien weiterhin nicht beiläufig stagen, überschreiben oder in fremde Commits aufnehmen.
+
+Zahlreiche bekannte untracked Alt-/Arbeitsdateien sind ebenfalls weiterhin vorhanden und wurden durch den Update-Sprint nicht angefasst.
+
+## 15. Aktueller Git-Stand
+
+Branch:
+
+```text
+main
+```
+
+Aktueller bestätigter HEAD:
+
+```text
+b9bd489c Update: add verified in-app update workflow
+```
+
+Remote:
+
+```text
+origin/main = b9bd489c
+origin/HEAD = b9bd489c
+```
+
+Vorherige wichtige Commits:
+
+```text
+703a5895 Compare: show generation metadata
+40b45756 README: add adaptive light and dark showcase assets
+f2c3df57 README: add HK NPU STUDIO showcase examples
+53ac9291 ControlNet Canny: improve edge detail defaults and add release assets
+51d190f2 Phoenix Boost: finalize controlled prompt enhancement and release assets
+```
+
+## 16. Nächster sicherer Schritt
+
+Bei Wiederaufnahme:
+
+1. Git-Status und `HEAD/origin/main` kurz prüfen.
+2. Erwarteter HEAD/Remote:
+   - `b9bd489c`
+3. Geschützte lokale Änderungen nicht beiläufig anfassen.
+4. In-App-Updater für den aktuellen RC3-Check als abgeschlossen betrachten.
+5. Beim nächsten tatsächlich neueren RC/Release gezielt den realen End-to-End-Updatepfad testen:
+   - Update wird erkannt;
+   - ARM64-Installer ausgewählt;
+   - Download vollständig;
+   - SHA-256 verifiziert;
+   - Installer gestartet;
+   - App erst nach erfolgreichem Start geschlossen;
+   - installierte neue Version startet erfolgreich.
+6. Erst nach diesem realen Test den vollständigen Updater-End-to-End-Pfad als `PRODUCT_PASS` bezeichnen.
+7. Keine weitere Änderung am strengen Installerfilter ohne konkreten belegten Grund.
+8. Keine breite Regex-Aufweichung der Installer-Auswahl.
+9. NPU/QNN/HTP bleibt verbindlich für neuronale Produktinferenz; der Updater selbst ist reine Orchestrierungs-/Netzwerklogik.
+
+## 17. Statusflags – 5. Oktober 2026
+
+```text
+PRODUKTNAME=HK NPU STUDIO
+RC3_VERÖFFENTLICHT=True
+
+COMPARE_METADATA_COMMIT=703a5895
+COMPARE_METADATA_PRODUCT_PASS=True
+
+IN_APP_UPDATE_IMPLEMENTED=True
+UPDATE_MENU_TOP=True
+STATUSBAR_REGRESSION_FIXED=True
+
+GITHUB_RELEASE_CHECK=PASS
+PRERELEASE_VERSION_COMPARE=PASS
+ARM64_INSTALLER_FILTER=PASS
+SHA256_REQUIRED=True
+DOWNLOAD_PROGRESS_IMPLEMENTED=True
+DOWNLOAD_CANCEL_IMPLEMENTED=True
+INSTALLER_LAUNCH_IMPLEMENTED=True
+CLEAN_APP_SHUTDOWN_IMPLEMENTED=True
+
+CURRENT_RC3_UP_TO_DATE_PRODUCT_PASS=True
+NEWER_RELEASE_REAL_DOWNLOAD_TEST=False
+
+UPDATE_COMMIT=b9bd489c
+UPDATE_PUSHED=True
+MAIN_HEAD=b9bd489c
+ORIGIN_MAIN=b9bd489c
+MAIN_ORIGIN_SYNC=True
+
+NEXT_UPDATE_GATE=REAL_NEWER_RELEASE_END_TO_END_TEST
+```
+
+## 18. Handover-Übernahme
+
+Diese vollständige Datei wurde nicht gekürzt oder neu aufgebaut.
+
+Die gesamte bisherige Chronik bleibt erhalten und wurde ausschließlich um den bestätigten Stand vom 5. Oktober 2026 ergänzt.
+
+Holger übernimmt die Datei wie bisher über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Download-Dateiname immer exakt:
+
+```text
+CHATGPT_HANDOVER.md
+```
+
+Keine verkürzte Fassung oder separate Ergänzungsdatei verwenden.
+
+# CHATGPT_HANDOVER – Ergänzung 12. Oktober 2026 – GitHub Issue #6 abgeschlossen / FiDeSR QNN-Kompatibilität bestätigt
+
+> Diese Ergänzung führt die vollständige bestehende Chronik fort.
+> Ältere Abschnitte bleiben unverändert erhalten. Bei widersprüchlichen Statusangaben hat dieser neueste Abschnitt Vorrang.
+
+## 1. Verbindlicher aktueller Projekt- und Git-Stand
+
+Projekt:
+
+```text
+HK NPU STUDIO
+Repo=C:\SnapdragonAI
+GitHub=https://github.com/Kreuzhofen/hk-npu-studio
+Branch=main
+```
+
+Aktueller bestätigter und gepushter HEAD:
+
+```text
+ec88a838 Fix FiDeSR QNN runtime compatibility
+```
+
+Bestätigt:
+
+```text
+HEAD=ec88a838
+origin/main=ec88a838
+origin/HEAD=ec88a838
+MAIN_ORIGIN_SYNC=True
+```
+
+Der Push erfolgte erfolgreich von:
+
+```text
+c2981fa6..ec88a838  main -> main
+```
+
+## 2. GitHub Issue #6 – vollständig abgeschlossen
+
+Issue:
+
+```text
+#6 Image Scaling Issue
+Reporter=zardo-tagore
+Status=closed
+StateReason=completed
+```
+
+Issue #6 bestand technisch aus zwei getrennten Teilen.
+
+### Teil A – SD3.5 bestehendes QAI-App-Builder-Paket auswählen
+
+Problem:
+
+- Ein bereits heruntergeladenes SD3.5-Medium-/QAI-App-Builder-Paket konnte über die UI nicht über einen bestehenden Ordner ausgewählt werden.
+- Der Dialog leitete den Guided-/Folder-Pfad zuvor indirekt aus einer URL ab; die reale Referenz-URL erfüllte diese Heuristik nicht.
+
+Fix:
+
+```text
+Commit=c2981fa647d0d5958c223bf70be4a4f9a0675421
+Short=c2981fa6
+Message=Fix SD3.5 existing folder selection
+```
+
+Geändert wurden gezielt:
+
+```text
+dialogs/model_source_dialog.py
+widgets/phoenix/views/model_manager_view.py
+tests/test_model_direct_install_flow.py
+```
+
+Der SD3.5-Pfad wird jetzt über die exakte Modell-ID `stable_diffusion_v3_5_qai` erkannt, sodass die bestehende Ordnerauswahl erreichbar ist.
+
+Teil A war bereits vor Abschluss von Teil B auf `main` veröffentlicht.
+
+### Teil B – Photo Restore / FiDeSR schlägt auf Reporter-System fehl
+
+Der Reporter meldete, dass Phoenix Image Lab → Photo Restore / FiDeSR Strong bei realen Bildern auf seinem Vivobook S16 fehlschlug.
+
+Produktiver AI-Pfad:
+
+```text
+VAE_ENCODER QNN/HTP
+-> UNET QNN/HTP
+-> LRRB QNN/HTP
+-> VAE_DECODER QNN/HTP
+```
+
+CPU bleibt ausschließlich für nicht-neuronale Orchestrierung, I/O, Wavelet-/Detailmathematik und Compositing zulässig.
+
+```text
+CPU_AI_FALLBACK=NO
+```
+
+## 3. Diagnoseinstrumentierung für Issue #6
+
+Vor der Runtime-Lösung wurde der FiDeSR-Pfad gezielt instrumentiert, weil der ursprüngliche Runner nur `--log_level error` verwendete und Fehlerinformationen beim Cleanup verloren gingen.
+
+Geänderte Dateien des später finalisierten Fixes:
+
+```text
+engine/backends/fidesr_photo_restore_backend.py
+engine/backends/fidesr_strong_runner_template.py
+tests/test_fidesr_serialized_context_runtime.py
+```
+
+Ergänzt wurden unter anderem:
+
+```text
+--log_level info
+FIDESR_DIAG_STAGE_START
+FIDESR_DIAG_STAGE_END
+FIDESR_DIAG_FAILURE
+FIDESR_DIAG_QNN_TAIL
+```
+
+Bei einem Fehler werden jetzt der QNN-Log und die Input-Liste unter einem `fidesr_failure_diagnostics`-Ordner erhalten, während große temporäre Staging-Tensoren weiterhin entfernt werden.
+
+Zusätzlich werden unvollständige Result-Sets als Fehler behandelt und Stage/Exitcode/Logpfad an den Parent-Fehler weitergegeben.
+
+## 4. Reporter-Log – entscheidende technische Evidenz
+
+Der reale Reporter-Lauf mit dem ersten Diagnosebuild scheiterte in:
+
+```text
+stage=VAE_ENCODER
+qnn_exit=16
+```
+
+Wichtige Logfolge:
+
+```text
+qnn-net-run 2.47.0.260601114230
+QnnBackend_create success
+traditioneller Stub/Skel-Pfad meldet zunächst err4000
+HTP user driver wird anschließend erfolgreich geladen
+QNN stub connection established
+QnnDevice_create status 0x0
+QnnContext_createFromBinary begins
+Skel failed to process context binary
+err5005 über mehrere PD-Versuche
+Failed to find available PD
+context size estimate 240424704
+err1002 / 0x3ea
+```
+
+Wichtig:
+
+- `err4000` war nicht der finale Blocker;
+- der User-Driver-Fallback funktionierte;
+- der Fehler trat bei der Erstellung des serialisierten HTP-Kontexts auf;
+- der Lauf scheiterte vor eigentlicher Tile-/Graph-Inferenz.
+
+## 5. Warum QNN 2.47 nicht pauschal als defekt gilt
+
+Auf dem Clean-Test-PC `RC2CleanTest` lief derselbe installierte FiDeSR-Produktpfad mit vollständig zusammengehörigem QNN 2.47 erfolgreich.
+
+Bestätigt:
+
+```text
+qnn-net-run=2.47.0.260601114230
+QnnHtp.dll=2.47.0.260601114230
+REAL_INSTALLED_APP=PASS
+PHOTO_RESTORE=PASS
+```
+
+Damit gilt ausdrücklich:
+
+```text
+QNN_2_47_GLOBALLY_BROKEN=False
+REPORTER_FAILURE=SYSTEM_SPECIFIC_COMPATIBILITY_PROBLEM
+```
+
+Die Root Cause darf nicht verkürzt als „QNN 2.47 ist kaputt“ beschrieben werden.
+
+## 6. Entscheidende Runtime-Beobachtung
+
+Die Installer-/App-Struktur enthält mehrere QNN-Runtimefamilien:
+
+```text
+qnn_runtime            = 2.47.0.260601114230
+onnxruntime_qnn        = 2.50.40.260831140417
+qai_appbuilder/libs    = 2.48.40.260702151143
+```
+
+Ein früher isolierter Reporter-Test hatte unbeabsichtigt erfolgreich diese Kombination verwendet:
+
+```text
+Runner=qnn-net-run 2.47
+Backend/Support=QNN HTP 2.50.40
+```
+
+Der reale Produktpfad verwendete dagegen deterministisch:
+
+```text
+Runner=2.47
+Backend/Support=2.47
+```
+
+und scheiterte auf genau diesem Reporter-System bei `QnnContext_createFromBinary`.
+
+Diese Differenz war die Grundlage für den kontrollierten Kompatibilitätsfix.
+
+## 7. Finaler FiDeSR-QNN-Kompatibilitätsvertrag
+
+Commit:
+
+```text
+ec88a8389d6c8fc878e2068e81a20d26782d89bd
+Fix FiDeSR QNN runtime compatibility
+```
+
+Kurz:
+
+```text
+ec88a838
+```
+
+Verhalten im installierten/Frozen-Produkt:
+
+1. Der FiDeSR-Runner bleibt:
+
+```text
+qnn_runtime\bin\qnn-net-run.exe
+Version=2.47.0.260601114230
+```
+
+2. Wenn der vollständige bereits paketierte QNN-2.50.40-Supportsatz vorhanden ist, verwendet FiDeSR vollständig:
+
+```text
+onnxruntime_qnn\QnnHtp.dll
+onnxruntime_qnn\QnnSystem.dll
+onnxruntime_qnn\QnnHtpV73Stub.dll
+onnxruntime_qnn\libQnnHtpV73Skel.so
+onnxruntime_qnn\libqnnhtpv73.cat
+```
+
+Backend-Version:
+
+```text
+2.50.40.260831140417
+```
+
+3. Ist auch nur eine erforderliche 2.50.40-Datei nicht vorhanden oder leer, wird kein partieller Mix erzeugt. Dann bleibt der vollständige kohärente 2.47-Satz aktiv:
+
+```text
+qnn_runtime\lib\...
+qnn_runtime\hexagon\...
+```
+
+Verbindlich:
+
+```text
+PARTIAL_RUNTIME_MIXING=NO
+CPU_GPU_AI_FALLBACK=NO
+NPU_QNN_HTP_ONLY=YES
+```
+
+PATH-/ADSP-Vertrag im 2.50-Kompatibilitätspfad:
+
+```text
+PATH:
+qnn_runtime\bin
+-> onnxruntime_qnn
+-> inherited PATH
+
+ADSP_LIBRARY_PATH:
+onnxruntime_qnn
+```
+
+Der alte 2.47-lib-/hexagon-Support wird im aktiven 2.50-Supportpfad nicht zusätzlich vorangestellt.
+
+## 8. Automatisierte Validierung vor Commit
+
+Finaler Pre-Commit-Gate auf Entwicklungs-PC Holger:
+
+```text
+FOCUSED_TESTS=19/19 PASS
+PY_COMPILE=PASS
+GIT_DIFF_CHECK=PASS
+```
+
+Der Final-Gate endete mit:
+
+```text
+FOCUSED_TESTS=PASS
+PY_COMPILE=PASS
+DIFF_CHECK=PASS
+```
+
+Es wurden ausschließlich diese drei Issue-#6-Dateien selektiv gestaged und committed:
+
+```text
+engine/backends/fidesr_photo_restore_backend.py
+engine/backends/fidesr_strong_runner_template.py
+tests/test_fidesr_serialized_context_runtime.py
+```
+
+Kein `git add .` wurde verwendet.
+
+## 9. Clean-Test-PC – realer installierter Produktlauf
+
+Rechner:
+
+```text
+RC2CleanTest
+```
+
+Vor Installation des QNN250-Diagnosebuilds war die vorige Programminstallation sauber entfernt; Benutzerdaten wurden nicht destruktiv gelöscht.
+
+Installierte Runtime-Versionen wurden vor dem realen Test bestätigt:
+
+```text
+qnn_runtime\bin\qnn-net-run.exe
+2.47.0.260601114230
+
+onnxruntime_qnn\QnnHtp.dll
+2.50.40.260831140417
+```
+
+Echter GUI-Photo-Restore-Lauf:
+
+```text
+REAL_INSTALLED_APP=PASS
+IMAGE_OUTPUT=YES
+ERROR=NONE
+```
+
+Execution-Metadata belegten für alle vier FiDeSR-Stufen denselben gewünschten Pfad:
+
+```text
+Runner=...\qnn_runtime\bin\qnn-net-run.exe
+Backend=...\onnxruntime_qnn\QnnHtp.dll
+```
+
+Alle Stufen:
+
+```text
+VAE_ENCODER  = 50/50 inferences completed
+UNET         = 50/50
+LRRB         = 50/50
+VAE_DECODER  = 50/50
+```
+
+Damit:
+
+```text
+CLEAN_TEST_RUNTIME_PASS=YES
+QNN250_COMPATIBILITY_PATH_REAL_PRODUCT_PASS=YES
+```
+
+Die visuelle Qualität von `Faithful Photo Restore` bleibt davon getrennt. Der getestete Output war deutlich schärfer, interpretierte jedoch einzelne Gesichter/Hautdetails zu stark neu. Dieses Qualitätsproblem ist kein Teil des ursprünglichen Issue-#6-Runtimefehlers und darf nicht mit dessen Fix vermischt werden.
+
+```text
+FIDESR_RUNTIME_FIX_PASS=YES
+FAITHFUL_QUALITY_SEPARATE_TOPIC=YES
+```
+
+## 10. Diagnose-Pre-Release für den Reporter
+
+Neue Pre-Release:
+
+```text
+Tag=issue6-qnn250-diagnostic-20261011
+Title=Issue #6 QNN 2.50 Diagnostic Build
+Target=main
+PreRelease=True
+```
+
+Asset:
+
+```text
+HK_NPU_STUDIO_Issue6_QNN250_Diagnostic.exe
+```
+
+Lokaler Buildpfad:
+
+```text
+C:\SnapdragonAI_ISSUE6_DIAG_BUILD\dist\installer\HK_NPU_STUDIO_Issue6_QNN250_Diagnostic.exe
+```
+
+Verbindliche Artefaktwerte:
+
+```text
+SIZE=2051655930
+SHA256=55ED03C1CD1714B18C6281308B026B4E940492962C792666C2EDE4171D010133
+```
+
+Release:
+
+```text
+https://github.com/Kreuzhofen/hk-npu-studio/releases/tag/issue6-qnn250-diagnostic-20261011
+```
+
+Der Build wurde nur als Diagnose-/Kompatibilitätsbuild veröffentlicht, nicht als regulärer Produktrelease.
+
+## 11. Reporter-Test – entscheidender externer Real-World-PASS
+
+Der Reporter installierte und testete den neuen Diagnosebuild auf seinem betroffenen Vivobook S16.
+
+Rückmeldung sinngemäß:
+
+```text
+Everything went well.
+```
+
+Zusätzlich stellte der Reporter ein Video von HK NPU STUDIO im realen Einsatz bereit.
+
+Im Video beziehungsweise seiner Rückmeldung bestätigt:
+
+- HK NPU STUDIO läuft auf dem Vivobook S16;
+- Stable Diffusion läuft erfolgreich durch;
+- Photo Restore läuft erfolgreich durch;
+- weitere Modelle wurden installiert und verwendet;
+- der Reporter ist mit der funktionierenden Software sichtbar zufrieden.
+
+Damit ist der systemspezifische Kompatibilitätsfix nicht nur auf dem Entwicklungs- und Clean-Test-PC, sondern auch auf dem ursprünglich betroffenen Fremdrechner bestätigt.
+
+```text
+REPORTER_REAL_PRODUCT_TEST=PASS
+ORIGINAL_PHOTO_RESTORE_FAILURE=RESOLVED
+REPORTER_SYSTEM_QNN247_RUNNER_QNN250_SUPPORT=PASS
+```
+
+Die Root Cause weiterhin präzise formulieren:
+
+```text
+Auf dem Reporter-System scheitert FiDeSR mit dem paketierten vollständigen 2.47-HTP-Support bei der Erstellung des serialisierten Kontexts.
+Der vorhandene vollständige 2.50.40-HTP-Supportsatz löst dieses systemspezifische Kompatibilitätsproblem bei unverändertem 2.47-qnn-net-run-Runner.
+```
+
+Nicht formulieren:
+
+```text
+QNN 2.47 ist generell defekt.
+```
+
+## 12. GitHub-Kommunikation und Abschluss
+
+Der Reporter erhielt zunächst den Diagnosebuild mit klarer Bitte um genau einen realen Photo-Restore-Test.
+
+Nach erfolgreicher Rückmeldung wurde zusätzlich persönlich für Logs, Tests und Video gedankt und angekündigt, den bestätigten Fix in die nächste veröffentlichte HK-NPU-STUDIO-Version zu übernehmen.
+
+Nach Commit und Push des finalen Fixes wurde ein technischer Abschlusskommentar veröffentlicht.
+
+Issue #6 wurde anschließend geschlossen:
+
+```text
+ISSUE_6_STATE=closed
+ISSUE_6_STATE_REASON=completed
+ISSUE_6_PART_A=FIXED
+ISSUE_6_PART_B=FIXED
+ISSUE_6_REPORTER_CONFIRMATION=PASS
+ISSUE_6_FIX_ON_MAIN=YES
+```
+
+## 13. Sicherungen des Issue-#6-Arbeitsstands
+
+Bestehende Sicherungen:
+
+```text
+C:\SnapdragonAI_BACKUP_ISSUE6_DIAG_20261009_175720
+C:\SnapdragonAI_BACKUP_ISSUE6_QNN250_20261011_164506
+```
+
+Diese Sicherungen nicht beiläufig löschen.
+
+## 14. Geschützte lokale, nicht zu Issue #6 gehörende Änderungen
+
+Nach dem Commit von Issue #6 blieben unter anderem folgende versionierte Änderungen lokal und ausdrücklich außerhalb des Issue-#6-Commits:
+
+```text
+controllers/inpainting_controller.py
+docs/CHATGPT_HANDOVER.md
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Zusätzlich existieren zahlreiche bekannte untracked Arbeits-/Asset-/Test-/Tool-Dateien.
+
+Verbindlich:
+
+- nicht pauschal stagen;
+- nicht löschen;
+- nicht in fremde Commits aufnehmen;
+- niemals `git add .`.
+
+## 15. Neue verbindliche Sprint-Ausgabe für Codex / Antigravity
+
+Holger möchte bei jedem zukünftigen Codex-/Antigravity-Auftrag am Anfang sichtbar erhalten:
+
+```text
+TOOL: CODEX oder ANTIGRAVITY
+GESCHÄTZTE DAUER: ...
+BACKUP: erforderlich / sinnvoll / nicht nötig
+SCOPE: ...
+```
+
+Zusätzlich gilt weiterhin:
+
+- immer den vollständigen zusammengeführten Sprinttext ausgeben;
+- niemals nur Ergänzungen/Nachträge liefern;
+- tokenoptimiert, aber vollständig;
+- Codex für kleine, klar abgegrenzte Implementierungen;
+- Antigravity für breite Analyse, Abhängigkeits-/Konsistenzprüfung und größere Bestandsaufnahmen.
+
+## 16. HK NPU STUDIO Designsprache – verbindlich für kommende UI-Sprints
+
+Neue oder geänderte UI muss vollständig die bestehende HK-NPU-STUDIO-Designsprache einhalten.
+
+Verbindlich:
+
+- bestehende Theme-Tokens/Farbpalette;
+- bestehende Typografie;
+- bestehende Button-Höhen, Radien, Hover-/Pressed-Zustände;
+- bestehende Abstände und Innenränder;
+- bestehende Panel-/Rahmenoptik;
+- bestehende Icon-/Symbolsprache;
+- Dark-/Light-Mode-Logik;
+- bestehende Überschriftenhierarchie;
+- keine generische Windows-/Qt-/Fremdoptik, wenn vorhandene HK-NPU-STUDIO-Komponenten existieren;
+- keine unnötigen neuen Farben oder isolierten Fontgrößen;
+- 100-%- und 175-%-Windows-Skalierung als UI-Gate;
+- keine abgeschnittenen Texte, Buttons oder unteren Dialogbereiche.
+
+`CODE_PASS` ist kein `UI_PRODUCT_PASS`.
+
+## 17. Nächster kleiner Produktsprint – Update-Dialog verbessern
+
+Der bestehende In-App-Updater selbst wurde bereits am 5. Oktober implementiert und veröffentlicht (`b9bd489c`).
+
+Der nächste kleine, getrennte UI-Sprint betrifft ausschließlich die Informationsdarstellung des Update-Dialogs.
+
+```text
+TOOL=CODEX
+GESCHÄTZTE_DAUER=20–40 Minuten
+BACKUP=sinnvoll
+SCOPE=Updater UI / Versionsanzeige / kurze Release-Highlights
+```
+
+Gewünschter Kein-Update-Zustand:
+
+```text
+HK NPU STUDIO ist auf dem neuesten Stand.
+
+Installierte Version     vX.Y.Z
+Neueste Version          vX.Y.Z
+
+[ Schließen ]
+```
+
+Gewünschter Update-verfügbar-Zustand:
+
+```text
+Eine neue Version von HK NPU STUDIO ist verfügbar.
+
+Installierte Version     vX.Y.Z
+Verfügbare Version       vX.Y.Z
+
+Neu in diesem Update
+• Punkt 1
+• Punkt 2
+• Punkt 3
+
+Mit „Download & Installieren“ wird HK NPU STUDIO auf vX.Y.Z aktualisiert.
+
+[ Download & Installieren ]    [ Schließen ]
+```
+
+Anforderungen:
+
+- aktuelle/installierte Version anzeigen;
+- verfügbare/neueste Version anzeigen;
+- Zielversion des Updates klar nennen;
+- maximal 3–5 kurze Release-Highlights;
+- vorhandene zentrale Versionsquelle verwenden;
+- keine Versionsnummer unnötig hartcodieren;
+- vorhandene GitHub-Release-Metadaten wiederverwenden, wenn möglich;
+- fehlende Highlights/Versionsdaten dürfen nicht crashen;
+- Download-Button nur aktiv, wenn wirklich ein Update installierbar ist;
+- HK-NPU-STUDIO-Design strikt einhalten;
+- 100 % und 175 % Scaling manuell prüfen;
+- Dark/Light prüfen;
+- kein Build, Commit oder Push vor Holgers jeweiliger Freigabe.
+
+## 18. Danach geplanter Packaging-Sprint – FiDeSR Restore Package Externalization
+
+Nach Abschluss des kleinen Updater-UI-Sprints soll der große Installer gezielt verkleinert werden.
+
+Hintergrund:
+
+- aktueller Installer liegt ungefähr bei 2.05 GB;
+- Hauptursache sind die großen FiDeSR-Photo-Restore-Kontexte;
+- insbesondere der UNet-Kontext ist sehr groß (~1.74 GB);
+- GitHub-Asset-Limit wird dadurch unnötig knapp.
+
+Geplantes Ziel:
+
+```text
+FiDeSR / Photo Restore aus Hauptinstaller externalisieren
+-> separates Restore-Paket
+-> Installation über Model Manager oder beim ersten bewussten Start von Photo Restore
+-> Integritäts-/Versionsprüfung
+-> vorhandene Installation wiederverwenden
+-> keine doppelten Downloads
+-> Offline-Installationsmöglichkeit berücksichtigen
+-> NPU/QNN/HTP-only unverändert
+```
+
+Für den ersten Externalization-Sprint gilt:
+
+```text
+TOOL=ANTIGRAVITY
+SCOPE=Analyse und Design
+CODE_CHANGED=NO
+BUILD=NO
+COMMIT=NO
+PUSH=NO
+```
+
+Kein Scope-Creep in Restore-Qualität, Inpainting oder andere Modelle.
+
+## 19. Strict Recovery Workflow – weiterhin verbindlich
+
+Für HK NPU STUDIO gilt weiterhin:
+
+1. bekannte gute Baseline vor Änderungen sichern;
+2. pro Sprint nur eine kausale Variable;
+3. identisches Before/After;
+4. Verschlechterung sofort revertieren;
+5. keine experimentellen Fixes stapeln;
+6. kein Scope-Creep;
+7. `CODE_PASS` ≠ `PRODUCT_PASS`;
+8. Produktfreigabe nur nach echtem Produkt-Test;
+9. Entwicklungs-PC allein ist kein Portabilitäts-/Releasebeweis;
+10. keine Builds, Commits oder Pushes ohne abgestimmte Freigabe.
+
+## 20. Statusflags – 12. Oktober 2026
+
+```text
+PRODUKTNAME=HK NPU STUDIO
+GITHUB_REPO=Kreuzhofen/hk-npu-studio
+
+ISSUE_6_STATE=CLOSED_COMPLETED
+ISSUE_6_PART_A_FIX=c2981fa6
+ISSUE_6_PART_B_FIX=ec88a838
+ISSUE_6_FIX_PUSHED=True
+
+MAIN_HEAD=ec88a838
+ORIGIN_MAIN=ec88a838
+MAIN_ORIGIN_SYNC=True
+
+FIDESR_QNN_RUNNER_VERSION=2.47.0.260601114230
+FIDESR_QNN_COMPAT_BACKEND_VERSION=2.50.40.260831140417
+FIDESR_COMPLETE_250_SUPPORT_PREFERRED=True
+FIDESR_COHERENT_247_FALLBACK=True
+FIDESR_PARTIAL_RUNTIME_MIXING=False
+CPU_AI_FALLBACK=NO
+
+FIDESR_FOCUSED_TESTS=19_PASS
+CLEAN_TEST_QNN250_RUNTIME_PASS=True
+REPORTER_REAL_PRODUCT_TEST_PASS=True
+ORIGINAL_REPORTER_PHOTO_RESTORE_FAILURE_RESOLVED=True
+
+ISSUE6_DIAGNOSTIC_TAG=issue6-qnn250-diagnostic-20261011
+ISSUE6_DIAGNOSTIC_EXE_SIZE=2051655930
+ISSUE6_DIAGNOSTIC_SHA256=55ED03C1CD1714B18C6281308B026B4E940492962C792666C2EDE4171D010133
+
+FAITHFUL_RESTORE_QUALITY_SEPARATE_TOPIC=True
+
+NEXT_SPRINT=UPDATE_DIALOG_VERSION_AND_HIGHLIGHTS
+NEXT_SPRINT_TOOL=CODEX
+NEXT_AFTER_UPDATER=FIDESR_RESTORE_PACKAGE_EXTERNALIZATION_ANALYSIS
+NEXT_AFTER_UPDATER_TOOL=ANTIGRAVITY
+```
+
+## 21. Handover-Übernahme
+
+Diese vollständige Handover-Datei wurde nicht gekürzt oder neu aufgebaut.
+
+Die gesamte bisherige Chronik bleibt erhalten und wurde ausschließlich um den bestätigten Stand vom 12. Oktober 2026 ergänzt.
+
+Download-Dateiname immer exakt:
+
+```text
+CHATGPT_HANDOVER.md
+```
+
+Holger übernimmt die Datei anschließend ausschließlich über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Keine verkürzte Fassung oder separate Ergänzungsdatei verwenden.
+
+# CHATGPT_HANDOVER – Ergänzung 12. Oktober 2026 – Update-Dialog Version/Highlights abgeschlossen und veröffentlicht
+
+> Diese Ergänzung führt die vollständige bestehende Chronik fort.
+> Ältere Abschnitte bleiben unverändert erhalten. Bei widersprüchlichen Statusangaben hat dieser neueste Abschnitt Vorrang.
+
+## 1. Ausgangsbaseline
+
+Branch:
+
+```text
+main
+```
+
+Baseline vor dem Sprint:
+
+```text
+ec88a838 Fix FiDeSR QNN runtime compatibility
+```
+
+Vorhandene unrelated Änderungen wurden nicht verändert.
+
+Geschützte lokale Änderungen blieben insbesondere:
+
+```text
+controllers/inpainting_controller.py
+docs/CHATGPT_HANDOVER.md
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Zahlreiche bekannte untracked Dateien blieben ebenfalls unangetastet.
+
+## 2. Sicherung
+
+Vor dem Update-Dialog-Sprint wurde folgende Sicherung erstellt:
+
+```text
+C:\SnapdragonAI\temp\update_dialog_backup_20261012_184336
+```
+
+Damit ist für diesen Sprint ein lokaler Rücksprungpunkt vorhanden.
+
+## 3. Geänderte Dateien
+
+Der Sprint war auf genau sieben Dateien begrenzt:
+
+```text
+dialogs/update_dialog.py
+engine/application_update_service.py
+tests/test_update_workflow.py
+tests/test_application_update_service.py
+locales/de_DE.json
+locales/en_US.json
+locales/es_ES.json
+```
+
+Keine anderen Dateien wurden für diesen Sprint gestaged oder committed.
+
+## 4. Versionsquellen
+
+Installierte Version:
+
+```text
+engine.release_config.RELEASE.package_version
+```
+
+Zugriff im Updater über:
+
+```text
+ApplicationUpdateService.current_version
+```
+
+Remote-Version:
+
+```text
+GitHub Releases API
+```
+
+Die neueste gültige Remote-Version wird jetzt auch im Zustand `UP_TO_DATE` an den Dialog weitergereicht, damit installierte und neueste Version gleichzeitig angezeigt werden können.
+
+## 5. Release-Highlights
+
+Quelle:
+
+```text
+GitHub release body
+```
+
+beziehungsweise bei vorhandenem Manifest:
+
+```text
+manifest.release_notes
+```
+
+Aufbereitung:
+
+- Markdown konservativ bereinigen;
+- Duplikate entfernen;
+- höchstens fünf Highlights;
+- höchstens 140 Zeichen pro Punkt;
+- leere oder fehlende Notes sicher behandeln;
+- Umlaute und lange Zeilen regressionsgetestet.
+
+Fehlende Highlights erzeugen keinen leeren sichtbaren Bereich.
+
+## 6. Wiederverwendete HK-NPU-STUDIO-Designkomponenten
+
+Der Dialog verwendet weiterhin die bestehende Designsprache:
+
+```text
+StudioDialog
+PHOENIX_THEME
+PhoenixButton
+Phoenix-Progressbar
+bestehende Dark-/Light-Theme-Tokens
+```
+
+Keine generische Fremdoptik und keine neue isolierte Farbwelt.
+
+Responsive Wrap-Breiten reagieren auf die tatsächlich verfügbare Dialogbreite.
+
+## 7. Finaler Zustand – kein Update verfügbar
+
+Realer Zustand mit RC3:
+
+```text
+Installierte Version: v2.0.0-rc.3
+Neueste Version:      v2.0.0-rc.3
+```
+
+Verhalten:
+
+- klare Meldung:
+  - `HK NPU STUDIO ist auf dem neuesten Stand.`
+- installierte Version sichtbar;
+- neueste Version sichtbar;
+- fehlende Versionen würden `Unbekannt` anzeigen;
+- keine Release-Highlights;
+- kein Fortschrittsbalken;
+- `Download & Installieren` deaktiviert;
+- rechter Button `Schließen`;
+- keine abgeschnittenen Texte.
+
+## 8. Finaler Zustand – Update verfügbar
+
+Vertrag:
+
+- installierte Version sichtbar;
+- verfügbare Version sichtbar;
+- Downloadgröße sichtbar;
+- Zielversion sichtbar;
+- maximal fünf kompakte Release-Highlights;
+- fehlende Highlights ohne leeren Bereich;
+- Download nur aktiv, wenn ein vollständiges installierbares Manifest vorliegt;
+- vor Downloadstart `Schließen`;
+- während laufender Operation weiterhin `Abbrechen`.
+
+Die bestehende Download-, SHA-256-, Installerstart- und Shutdown-Logik wurde nicht unnötig verändert.
+
+## 9. Edge Cases
+
+Abgedeckt wurden:
+
+```text
+fehlende Versionen
+leere Release Notes
+Markdown in Release Notes
+Duplikate
+Umlaute
+lange Zeilen
+unvollständige Manifeste
+responsive Dialogbreiten
+```
+
+Keiner dieser Fälle darf den Dialog zum Absturz bringen.
+
+## 10. Automatisierte Tests
+
+Rechner:
+
+```text
+Entwicklungs-PC Holger
+```
+
+Modus:
+
+```text
+direkte Python-/Pytest-Prüfung
+kein Frozen-Build
+keine Installation
+```
+
+Ergebnis:
+
+```text
+33 passed
+```
+
+Nach erfolgreichem Testlauf erschien eine bekannte umgebungsbedingte ignorierte `pyreadline3`-Destruktorwarnung.
+
+Wichtig:
+
+```text
+EXIT_CODE=0
+```
+
+Zusätzlich:
+
+```text
+PY_COMPILE=PASS
+DIFF_CHECK=PASS
+```
+
+`git diff --check` zeigte nur CRLF-Hinweise, keine inhaltlichen Fehler.
+
+## 11. Reale UI-Produktabnahme
+
+Rechner:
+
+```text
+Entwicklungs-PC Holger
+```
+
+Modus:
+
+```text
+direkter Python-App-Test über C:\SnapdragonAI\gui_v2.py
+```
+
+Holger öffnete den Update-Dialog real in der Anwendung.
+
+Im Screenshot bestätigt:
+
+- `Update` oben im Menü vorhanden;
+- installierte Version `v2.0.0-rc.3`;
+- neueste Version `v2.0.0-rc.3`;
+- Meldung `HK NPU STUDIO ist auf dem neuesten Stand.`;
+- keine Release-Highlights;
+- kein Fortschrittsbalken;
+- `Download & Installieren` deaktiviert;
+- `Schließen` vorhanden;
+- keine abgeschnittenen Texte;
+- Dark-Mode-/Phoenix-Design konsistent.
+
+Damit gilt für den real verfügbaren `UP_TO_DATE`-Pfad:
+
+```text
+CODE_PASS=YES
+UI_PRODUCT_PASS=YES
+UP_TO_DATE_PRODUCT_PASS=YES
+```
+
+Wichtige Abgrenzung:
+
+Der reale End-to-End-Pfad
+
+```text
+neueres Release vorhanden
+-> Update erkannt
+-> ARM64-Installer ausgewählt
+-> Download
+-> SHA-256-Prüfung
+-> Installerstart
+-> App-Shutdown
+-> neue Version startet
+```
+
+ist weiterhin technisch/testseitig abgesichert, aber noch nicht mit einem realen öffentlichen Release neuer als RC3 produktseitig abgenommen.
+
+Dafür gilt weiterhin:
+
+```text
+NEWER_RELEASE_REAL_DOWNLOAD_TEST=False
+```
+
+## 12. Commit
+
+Nach ausdrücklicher Freigabe wurden ausschließlich die sieben erwarteten Dateien gestaged.
+
+Kontrolle:
+
+```text
+dialogs/update_dialog.py
+engine/application_update_service.py
+locales/de_DE.json
+locales/en_US.json
+locales/es_ES.json
+tests/test_application_update_service.py
+tests/test_update_workflow.py
+```
+
+`git diff --cached --check`:
+
+```text
+PASS
+```
+
+Commit:
+
+```text
+812a0071 Update: improve update dialog release information
+```
+
+Commitumfang:
+
+```text
+7 files changed, 297 insertions(+), 30 deletions(-)
+```
+
+## 13. Push
+
+Nach separater ausdrücklicher Push-Freigabe:
+
+```text
+ec88a838..812a0071  main -> main
+```
+
+Final verifiziert:
+
+```text
+HEAD:
+812a0071617e938e121108f8120dcb53cd90f044
+
+origin/main:
+812a0071617e938e121108f8120dcb53cd90f044
+```
+
+Git-Log:
+
+```text
+812a0071 (HEAD -> main, origin/main, origin/HEAD) Update: improve update dialog release information
+```
+
+Branchstatus:
+
+```text
+## main...origin/main
+```
+
+Damit gilt:
+
+```text
+MAIN_HEAD=812a0071
+ORIGIN_MAIN=812a0071
+MAIN_ORIGIN_SYNC=True
+UPDATE_DIALOG_COMMIT=812a0071
+UPDATE_DIALOG_PUSHED=True
+```
+
+## 14. Geschützte lokale Änderungen nach Commit und Push
+
+Weiterhin lokal verändert und ausdrücklich außerhalb dieses Commits:
+
+```text
+controllers/inpainting_controller.py
+docs/CHATGPT_HANDOVER.md
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Diese Dateien weiterhin:
+
+- nicht beiläufig stagen;
+- nicht überschreiben;
+- nicht in fremde Commits aufnehmen.
+
+Alle bekannten untracked Dateien blieben ebenfalls unangetastet.
+
+## 15. Bewertung des Sprints
+
+Finaler Status:
+
+```text
+CODE_PASS=YES
+UI_PRODUCT_PASS=YES
+UP_TO_DATE_PRODUCT_PASS=YES
+BUILD=NO
+COMMIT=YES
+PUSH=YES
+```
+
+Ein neuer Frozen-/Installer-Build war für diesen reinen Dialog-/Service-Sprint nicht erforderlich.
+
+Der vollständige reale Update-End-to-End-Pfad bleibt bis zum ersten öffentlichen Release neuer als RC3 als separates Produktgate offen.
+
+## 16. Nächster geplanter Sprint
+
+Der zuvor geplante kleine Update-Dialog-Sprint ist abgeschlossen.
+
+Als nächster größerer Schritt bleibt die bereits dokumentierte Analyse zur Verkleinerung des Hauptinstallers durch Externalisierung von FiDeSR / Photo Restore.
+
+Vorgesehener Start:
+
+```text
+TOOL=ANTIGRAVITY
+GESCHÄTZTE_DAUER=30–60 Minuten
+BACKUP=für reine Read-only-Analyse nicht nötig
+SCOPE=FiDeSR Restore Package Externalization – Analyse und Design
+```
+
+Ziel:
+
+```text
+FiDeSR / Photo Restore aus dem Hauptinstaller externalisieren
+-> separates Restore-Paket
+-> Installation über Model Manager oder beim ersten bewussten Start von Photo Restore
+-> Integritäts-/Versionsprüfung
+-> vorhandene Installation wiederverwenden
+-> keine doppelten Downloads
+-> Offline-Installationsmöglichkeit berücksichtigen
+-> NPU/QNN/HTP-only unverändert
+```
+
+Erster Sprint ausschließlich Analyse/Design:
+
+```text
+CODE_CHANGED=NO
+BUILD=NO
+COMMIT=NO
+PUSH=NO
+```
+
+Kein Scope-Creep in Restore-Qualität, Inpainting oder andere Modelle.
+
+## 17. Statusflags – aktueller Stand 12. Oktober 2026
+
+```text
+PRODUKTNAME=HK NPU STUDIO
+GITHUB_REPO=Kreuzhofen/hk-npu-studio
+
+ISSUE_6_STATE=CLOSED_COMPLETED
+ISSUE_6_PART_B_FIX=ec88a838
+ISSUE_6_FIX_PUSHED=True
+
+UPDATE_DIALOG_IMPROVEMENT_COMPLETE=True
+UPDATE_DIALOG_TESTS=33_PASS
+UPDATE_DIALOG_PY_COMPILE=PASS
+UPDATE_DIALOG_DIFF_CHECK=PASS
+UPDATE_DIALOG_UI_PRODUCT_PASS=True
+UP_TO_DATE_PRODUCT_PASS=True
+NEWER_RELEASE_REAL_DOWNLOAD_TEST=False
+
+UPDATE_DIALOG_COMMIT=812a0071
+UPDATE_DIALOG_PUSHED=True
+
+MAIN_HEAD=812a0071
+ORIGIN_MAIN=812a0071
+MAIN_ORIGIN_SYNC=True
+
+PROTECTED_LOCAL_CHANGE_1=controllers/inpainting_controller.py
+PROTECTED_LOCAL_CHANGE_2=docs/CHATGPT_HANDOVER.md
+PROTECTED_LOCAL_CHANGE_3=engine/backends/rorem_dlc_inpainting_adapter.py
+
+NEXT_SPRINT=FIDESR_RESTORE_PACKAGE_EXTERNALIZATION_ANALYSIS
+NEXT_SPRINT_TOOL=ANTIGRAVITY
+```
+
+## 18. Handover-Übernahme
+
+Diese vollständige Handover-Datei wurde nicht gekürzt oder neu aufgebaut.
+
+Die gesamte bisherige Chronik bleibt erhalten und wurde ausschließlich um den bestätigten Abschluss des Update-Dialog-Sprints vom 12. Oktober 2026 ergänzt.
+
+Download-Dateiname immer exakt:
+
+```text
+CHATGPT_HANDOVER.md
+```
+
+Holger übernimmt die Datei wie bisher über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Keine verkürzte Fassung oder separate Ergänzungsdatei verwenden.
+
+
+# CHATGPT_HANDOVER – Ergänzung 13. Oktober 2026 – FiDeSR Externalisierung Sprint 1 und 2 abgeschlossen
+
+Diese Ergänzung führt die vollständige bisherige Chronik fort. Bei widersprüchlichen älteren Angaben zu Git-Stand, FiDeSR-/Photo-Restore-Externalisierung oder nächstem Schritt hat dieser Abschnitt Vorrang.
+
+## Arbeitsregel – Sicherung vor technischen Sprints
+
+Neue verbindliche Vorgabe von Holger:
+
+- Wenn vor einem Sprint eine Sicherung sinnvoll oder erforderlich ist, immer zuerst den vollständigen PowerShell-Backup-Block ausgeben.
+- Erst Sicherung ausführen und Ergebnis prüfen.
+- Danach erst den Codex-/Antigravity-Sprint starten.
+- Reihenfolge ausdrücklich: Sicherung -> Prüfung -> Sprint.
+- Wenn keine neue Sicherung nötig ist, dies klar sagen.
+
+## Ausgangspunkt der Externalisierung
+
+Ziel ist, die großen FiDeSR-/Photo-Restore-Artefakte aus dem Hauptinstaller zu lösen und künftig als separates NPU-Modellpaket zu verwalten.
+
+Der Read-only-Analysebericht bestätigte:
+
+- FiDeSR-Artefakte im Frozen-Build: 1.935.091.712 Bytes (~1,80 GB).
+- Hauptverursacher: `fidesr_unet_merged.serialized.bin.bin` mit rund 1,66 GB.
+- Bestehende Infrastruktur ist weitgehend wiederverwendbar: DownloadService, ModelInstallService, ModelRepository, PackageCatalogService und ModelDirectDownloadDialog.
+- Empfohlener späterer Benutzertrigger bleibt BOTH: Model Manager und First-Use-Gate in Photo Restore.
+- Hauptinstaller darf die FiDeSR-Artefakte erst ganz am Ende der Externalisierung verlieren, wenn Resolver, Paket und Installationsweg real funktionieren.
+
+## Sprint 1 – FiDeSR Photo Restore Package Resolver
+
+### Backup vor Sprint 1
+
+Vor der Implementierung wurde über PowerShell ein Backup der produktiven Datei erstellt:
+
+`C:\SnapdragonAI\engine\backends\fidesr_photo_restore_backend.py`
+
+Zielordner:
+
+`C:\SnapdragonAI\temp\photo_restore_resolver_backup_<timestamp>\`
+
+Bestätigt:
+
+`BACKUP_OK=True`
+
+### Baseline
+
+- Branch: `main`
+- Ausgangs-HEAD: `812a0071`
+- `origin/main`: `812a0071`
+- Vorheriger Commit: `Update: improve update dialog release information`
+
+Geschützte lokale Änderungen blieben unangetastet:
+
+- `controllers/inpainting_controller.py`
+- `docs/CHATGPT_HANDOVER.md`
+- `engine/backends/rorem_dlc_inpainting_adapter.py`
+
+Untracked/unrelated Dateien wurden ebenfalls nicht verändert.
+
+### Bestätigte Root Cause
+
+Codex bestätigte:
+
+- Backend und Runner konstruierten FiDeSR-Pfade getrennt aus `config.BASE/models`.
+- Dadurch existierten zwei Pfadquellen für denselben produktiven FiDeSR-Lauf.
+- Für die Externalisierung war deshalb ein zentraler Resolver nötig.
+
+### Implementierung
+
+Neu:
+
+- `engine/backends/photo_restore_package_resolver.py`
+- `tests/test_photo_restore_package_resolver.py`
+
+Geändert:
+
+- `engine/backends/fidesr_photo_restore_backend.py`
+- `engine/backends/fidesr_strong_runner_template.py`
+- `tests/test_fidesr_serialized_context_runtime.py`
+
+Der Runner musste geändert werden, weil er selbst noch Modellroots konstruierte. Er erhält jetzt sechs konkrete Artefaktpfade.
+
+### Resolver-Vertrag
+
+Der Resolver validiert einen kohärenten Root und genau sechs benötigte Artefakte:
+
+1. FiDeSR UNet Context
+2. VAE Encoder Context
+3. VAE Decoder Context
+4. LRRB Context
+5. Empty Prompt Embeddings
+6. Epsilon Seed
+
+Root-Priorität:
+
+1. konfigurierte ModelRepository-Roots
+2. `config.MODELS_DIR`
+3. Frozen `<exe>\models`
+4. bisheriger `config.BASE\models`-Fallback
+
+Teilinstallationen werden nicht als READY akzeptiert.
+
+Unterstützt werden:
+
+- aktueller Development-Bestand
+- bestehender Frozen-/Bundle-Bestand
+- künftiger managed Root
+- zero-copy Nutzung vorhandener gültiger Dateien
+
+Nicht geändert:
+
+- QNN Runtime Discovery
+- qnn-net-run
+- HTP Backend
+- Scheduler
+- Seeds
+- Steps
+- Tile-/Wavelet-Verarbeitung
+- Dust Cleanup
+- Colorization
+- Downloadlogik
+
+### Automatisierte Tests
+
+Codex-Abschluss:
+
+`76 passed, 6 subtests passed`
+
+Zusätzlich:
+
+- `PY_COMPILE=PASS`
+- `DIFF_CHECK=PASS`
+
+### Reale Produktprüfung
+
+Entwicklungs-PC Holger, direkter Python-App-Test:
+
+`C:\Program Files\Python311-arm64\python.exe C:\SnapdragonAI\gui_v2.py`
+
+Ein vorhandenes Foto wurde mit Photo Restore / Faithful Restore erfolgreich verarbeitet.
+
+Realer Log-Nachweis:
+
+- VAE Encoder: QNN/HTP PASS
+- UNet: QNN/HTP PASS
+- LRRB: QNN/HTP PASS
+- VAE Decoder: QNN/HTP PASS
+- `ALL_FIDESR_AI_INFERENCE_QNN_HTP=PASS`
+- `CPU_AI_FALLBACK=NO`
+- Ausgabe erfolgreich erzeugt
+- Outputgröße: `2496x1736`
+- Gesamtlaufzeit: `58.21 s`
+
+Damit für Sprint 1:
+
+`CODE_PASS=YES`
+`TECH_PASS=YES`
+`PRODUCT_PASS=YES`
+
+### Commit und Push Sprint 1
+
+Commit:
+
+`77b27266 Photo Restore: centralize FiDeSR package resolution`
+
+Commitumfang:
+
+`5 files changed, 411 insertions(+), 45 deletions(-)`
+
+Push erfolgreich:
+
+`812a0071..77b27266 main -> main`
+
+Verifiziert:
+
+`HEAD = origin/main = 77b27266709baf0aa48e24892eaf95b5f29e1203`
+
+## Sprint 2 – Photo Restore Installer & Model Package Definition
+
+### Backup vor Sprint 2
+
+Vor der Implementierung wurde gesichert:
+
+`C:\SnapdragonAI\resources\package_catalog.json`
+
+Zielordner:
+
+`C:\SnapdragonAI\temp\photo_restore_package_sprint2_backup_<timestamp>\`
+
+Bestätigt:
+
+`BACKUP_OK=True`
+
+### Baseline
+
+- Branch: `main`
+- `HEAD = origin/main = 77b27266`
+- Commit: `Photo Restore: centralize FiDeSR package resolution`
+
+### Implementierung
+
+Neu:
+
+- `resources/models/photo_restore.json`
+- `tests/test_photo_restore_package_definition.py`
+
+Geändert:
+
+- `resources/package_catalog.json`
+
+Photo-Restore-Modell-ID:
+
+`photo_restore`
+
+Version:
+
+`1.0.0`
+
+Vertrag:
+
+- QNN/HTP
+- sechs Pflichtartefakte
+- vorhandene `local_only`-Konvention
+- vorhandenes `smp_or_zip`-/lokales Paketmodell
+- `required_files` gemäß bestehendem Installationsvertrag
+
+### Package Catalog
+
+Bestehendes Catalog-Schema unverändert weiterverwendet.
+
+Es existiert noch keine reale veröffentlichte Download-URL. Deshalb wurde keine Fake-URL eingetragen. Die vorhandene gültige Konvention für lokale Pakete mit leerer `download_url` wurde verwendet.
+
+`PACKAGE_URL_BLOCKER=NO`
+
+### ModelInstallService / Offline-Vertrag
+
+Bestätigt:
+
+- lokale Ordner unterstützt
+- `.zip` unterstützt
+- `.smp` unterstützt
+- `package_id`
+- `package_version`
+- `capabilities`
+- `components`
+- optionale Komponenten-Hashes
+
+Offline-Kompatibilität wurde gegen den vorhandenen Servicevertrag erfolgreich validiert.
+
+### Tests Sprint 2
+
+Codex-Abschluss:
+
+`31 passed, 35 subtests passed`
+
+Zusätzlich:
+
+- `JSON_VALIDATION=PASS`
+- `PY_COMPILE=PASS`
+- `DIFF_CHECK=PASS`
+
+Status:
+
+`MODEL_DEFINITION_ADDED=YES`
+`PACKAGE_CATALOG_ENTRY_ADDED=YES`
+`PACKAGE_URL_BLOCKER=NO`
+`OFFLINE_PACKAGE_COMPATIBLE=YES`
+`EXISTING_INSTALL_SERVICE_REUSED=YES`
+`FILES_MOVED=NO`
+`FILES_COPIED=NO`
+`FILES_DELETED=NO`
+`DOWNLOAD_STARTED=NO`
+`ARCHIVE_CREATED=NO`
+`CODE_PASS=YES`
+`PRODUCT_PASS=NOT_TESTED`
+`BUILD=NO`
+
+### Commit und Push Sprint 2
+
+Commit:
+
+`6ae433fb Photo Restore: add external package definition`
+
+Commitumfang:
+
+`3 files changed, 260 insertions(+)`
+
+Push erfolgreich:
+
+`77b27266..6ae433fb main -> main`
+
+Verifiziert:
+
+`HEAD = origin/main = 6ae433fb37fae063da55c9bfcea4bae13f5b6327`
+
+## Aktueller Git-Stand am 13. Oktober 2026
+
+Repository:
+
+`C:\SnapdragonAI`
+
+Branch:
+
+`main`
+
+Aktueller veröffentlichter Stand:
+
+`6ae433fb Photo Restore: add external package definition`
+
+Verifiziert:
+
+`HEAD = origin/main = 6ae433fb37fae063da55c9bfcea4bae13f5b6327`
+
+Geschützte lokale Änderungen weiterhin vorhanden und nicht angefasst:
+
+- `controllers/inpainting_controller.py`
+- `docs/CHATGPT_HANDOVER.md`
+- `engine/backends/rorem_dlc_inpainting_adapter.py`
+
+Bekannte untracked Dateien bleiben unangetastet.
+
+## Externalisierungsstatus nach Sprint 2
+
+Abgeschlossen:
+
+- Read-only Architektur-/Größenanalyse
+- zentraler FiDeSR-Package-Resolver
+- reale bestehende NPU-Restauration nach Resolver-Umstellung
+- Photo-Restore-Modellpaket-Definition
+- Package-Catalog-Eintrag
+- Offline-Vertragskompatibilität
+- Commit und Push von Sprint 1
+- Commit und Push von Sprint 2
+
+Noch offen:
+
+1. Installationspfad vollständig mit Resolver verbinden
+2. kleines synthetisches Photo-Restore-Testpaket vollständig installieren und auflösen
+3. First-Use-Gate in Photo Restore
+4. Model-Manager-Integration
+5. reales externes 1,8-GB-Paket / veröffentlichte Download-URL
+6. Packaging-Entfernung der FiDeSR-Artefakte aus Hauptinstaller
+7. neuer Frozen-/Installer-Build
+8. Clean-PC-End-to-End-Test
+9. erst danach Installer-Größenreduktion als PRODUCT_PASS werten
+
+Wichtig:
+
+Die 1,8 GB FiDeSR-Artefakte bleiben bis zur finalen Packaging-Phase im Hauptinstaller. Nicht vorzeitig entfernen.
+
+## Nächster sicherer Schritt am Nachmittag
+
+Nicht direkt mit Packaging Removal beginnen.
+
+Geplanter nächster Arbeitsschritt:
+
+**Sprint 3 – Installationspfad / First-Use-Vorbereitung**
+
+Vor dem nächsten Sprint gilt Holgers neue Reihenfolge:
+
+1. prüfen, welche bestehenden Dateien geändert werden sollen
+2. falls Sicherung sinnvoll: zuerst vollständiger PowerShell-Backup-Block
+3. `BACKUP_OK=True` abwarten
+4. erst danach Codex-Sprint ausgeben
+
+Der nächste Sprint soll als kleinster sicherer Schritt bevorzugt zuerst den Installationspfad mit einem kleinen synthetischen Photo-Restore-Paket und dem Sprint-1-Resolver verbinden, ohne echte 1,8-GB-FiDeSR-Artefakte zu verschieben.
+
+Danach erst UI-First-Use-Gate und Model-Manager.
+
+## Statusflags 13. Oktober 2026
+
+```text
+PRODUKT=HK NPU STUDIO
+GITHUB_REPO=Kreuzhofen/hk-npu-studio
+BRANCH=main
+HEAD=6ae433fb37fae063da55c9bfcea4bae13f5b6327
+ORIGIN_MAIN=6ae433fb37fae063da55c9bfcea4bae13f5b6327
+
+FIDESR_EXTERNALIZATION_ANALYSIS=PASS
+
+SPRINT_1_RESOLVER_CODE_PASS=YES
+SPRINT_1_RESOLVER_TECH_PASS=YES
+SPRINT_1_RESOLVER_PRODUCT_PASS=YES
+SPRINT_1_COMMIT=77b27266
+SPRINT_1_PUSH=YES
+
+SPRINT_2_PACKAGE_DEFINITION_CODE_PASS=YES
+SPRINT_2_OFFLINE_CONTRACT_PASS=YES
+SPRINT_2_PRODUCT_PASS=NOT_TESTED
+SPRINT_2_COMMIT=6ae433fb
+SPRINT_2_PUSH=YES
+
+FIDESR_FILES_MOVED=NO
+FIDESR_FILES_COPIED=NO
+FIDESR_FILES_DELETED=NO
+MAIN_INSTALLER_FIDESR_REMOVED=NO
+
+NEXT_STEP=PHOTO_RESTORE_INSTALL_PATH_SYNTHETIC_PACKAGE_AND_RESOLVER_INTEGRATION
+NEXT_BUILD=NO
+NEXT_COMMIT=NO
+NEXT_PUSH=NO
+```
+
+## Handover-Übernahme
+
+Diese vollständige Datei wurde nur ergänzt; die ältere Chronik bleibt erhalten.
+
+Download-Dateiname muss exakt sein:
+
+`CHATGPT_HANDOVER.md`
+
+Holger speichert die bereitgestellte Datei und startet anschließend:
+
+`C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd`
+
+Ziel:
+
+`C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md`
+
+Das CMD soll die vollständige Handover-Datei übernehmen. Keine verkürzte Fassung verwenden.
+
+# CHATGPT_HANDOVER – Ergänzung 13. Oktober 2026 – Photo Restore Externalisierung Sprint 3–8 / Qualcomm-Anfrage versendet
+
+> Diese Ergänzung setzt die vollständige bisherige Chronik fort. Ältere Abschnitte bleiben vollständig erhalten. Bei widersprüchlichen Statusangaben gilt der neueste datierte Abschnitt.
+
+## Verbindlicher aktueller Git-Stand
+
+Repository: `C:\SnapdragonAI`  
+Branch: `main`
+
+`HEAD = origin/main = bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb`
+
+Aktueller Commit:
+
+`bdde0d68 Photo Restore: add third-party license payload`
+
+Relevante vorherige Commits:
+
+- `40b27cfe Photo Restore: add real package manifest`
+- `c8a1a9da Photo Restore: connect managed package install path`
+- `6ae433fb Photo Restore: add external package definition`
+- `77b27266 Photo Restore: centralize FiDeSR package resolution`
+
+Geschützte lokale Änderungen weiterhin nicht anfassen:
+
+- `controllers/inpainting_controller.py`
+- `docs/CHATGPT_HANDOVER.md`
+- `engine/backends/rorem_dlc_inpainting_adapter.py`
+
+Bekannte untracked/unrelated Dateien weiterhin unangetastet lassen.
+
+## Verbindliche Arbeitsregel – Sicherung zuerst
+
+Bei technischen Sprints:
+
+1. Zuerst entscheiden, ob eine Sicherung nötig/sinnvoll ist.
+2. Wenn ja: vollständigen PowerShell-Sicherungsblock zuerst liefern.
+3. Holger führt ihn aus und sendet die Ausgabe.
+4. Erst nach bestätigtem Backup den vollständigen integrierten Codex-/Antigravity-Prompt liefern.
+5. Keine fragmentierten Nachträge.
+6. Keine Builds, Commits oder Pushes ohne ausdrückliche Freigabe.
+7. Niemals `git add .`.
+
+## Photo Restore Externalisierung – Ziel
+
+Die FiDeSR-Modell-/Context-Artefakte sollen aus dem Hauptinstaller externalisiert werden, ohne den NPU-only-Produktvertrag zu verändern.
+
+AI-Inferenz bleibt ausschließlich Qualcomm QNN / HTP / Snapdragon NPU. Kein CPU-/GPU-KI-Fallback.
+
+Sechs reale FiDeSR-Artefakte, Gesamtgröße:
+
+`1935091712 Bytes`
+
+Hashes:
+
+- VAE Encoder: `9A12999304CB34D19C0C7BA03E8593C2DF528628D404F6A512FB513F7E657B50`
+- UNet: `3A169A72D76CE949F803D5C49DA4EFBB2568A7D16668B61E1344134EC28C94AE`
+- LRRB: `1CDE7CC8979611168EE81845C4E14702DEE636CCC0F683DD76FDD679B97CA9F9`
+- VAE Decoder: `C9C78E694A88EF6EA4D5D7FD7AF02FE7C5337F097BDACBF5D1547F66692C5D84`
+- Empty Prompt: `26E5E7D387699FDF4BB52EBD914A3BC686801604CC1C11CBCDD7FD6FE28B5604`
+- Epsilon Seed: `F24A5790735DCBF9D05B027D2CF1C0D23064A82EB8FB7E24198884A5FB983E1B`
+
+## Sprint 3 – Managed Install Path + Resolver
+
+Baseline: `6ae433fb`
+
+Geändert:
+
+- `engine/backends/photo_restore_package_resolver.py`
+- `tests/test_photo_restore_install_path.py`
+
+Ergebnisse:
+
+- Managed Package Root `MODELS_DIR/photo_restore` wird erkannt.
+- Direct-Package-Root und Legacy-/Development-Layout bleiben unterstützt.
+- Unvollständige Pakete werden abgelehnt.
+- ModelInstallService musste nicht geändert werden.
+- Kleine synthetische ZIP-Installation über echten Install-Service erfolgreich.
+- Keine realen FiDeSR-Dateien verschoben/gelöscht.
+
+Tests:
+
+`39 passed, 5 subtests passed`
+
+Status:
+
+`CODE_PASS=YES`, `TECH_PASS=YES`, `PRODUCT_PASS=NOT_TESTED`
+
+Commit/Push:
+
+`c8a1a9da Photo Restore: connect managed package install path` – gepusht.
+
+## Sprint 4 – Real Package Contract / Hashinventar
+
+Read-only.
+
+Alle sechs Artefakte gefunden und gehasht.
+
+Bestätigtes Paketlayout:
+
+```text
+photo_restore/
+├── package.json
+├── models/
+│   ├── fidesr_empty_prompt_embeds.bin
+│   └── fidesr_epsilon_seed231.bin
+└── context/
+    ├── fidesr_vae_encoder/fidesr_vae_encoder.serialized.bin.bin
+    ├── fidesr_unet/fidesr_unet_merged.serialized.bin.bin
+    ├── fidesr_lrrb/fidesr_lrrb.serialized.bin.bin
+    └── fidesr_vae_decoder/fidesr_vae_decoder.serialized.bin.bin
+```
+
+Bestätigt:
+
+- `PACKAGE_LAYOUT_MATCH=YES`
+- `PHOTO_RESTORE_DEFINITION_MATCH=YES`
+- `COMPONENT_HASH_VALIDATION_SUPPORTED=YES`
+- `ARCHIVE_HASH_CONTRACT_KNOWN=YES`
+
+Tests: `19 passed`
+
+Keine Dateien geändert, kein Commit erforderlich.
+
+## Sprint 5 – Reales package.json Manifest
+
+Neu:
+
+- `resources/packages/photo_restore/package.json`
+- `tests/test_photo_restore_real_manifest.py`
+
+Manifest:
+
+- `package_id=photo_restore`
+- `package_version=1.0.0`
+- `architecture=arm64`
+- `app_min_version=2.0.0-rc.3`
+- `runtime=QNN`
+- exakt sechs Komponenten
+- exakt sechs reale SHA-256-Werte
+
+Validiert:
+
+- produktives Manifest PASS
+- synthetische Hashvalidierung PASS
+- manipulierte Komponente erkannt
+- fehlende Komponente erkannt
+- falsche Package-ID erkannt
+- Path Traversal abgelehnt
+
+Tests: `40 passed`
+
+Commit:
+
+`40b27cfe Photo Restore: add real package manifest`
+
+Push: erfolgreich.
+
+## Sprint 6 – Reales SMP erzeugt
+
+Preflight:
+
+- `FIDESR_SOURCE_FILES=6`
+- `FIDESR_TOTAL_BYTES=1935091712`
+- `C_FREE_GB=79.46`
+- `SOURCE_SIZE_CONTRACT=PASS`
+- `DISK_SPACE_PASS=True`
+
+Erstes reales lokales SMP:
+
+`C:\SnapdragonAI\temp\photo_restore_package_build\photo_restore-1.0.0-arm64.smp`
+
+Sprint-6-Größe:
+
+`1780764139 Bytes`
+
+Sprint-6-SHA-256:
+
+`FAFB4D3AD1EFE51C52779BB5203F1E8CFF4C377D64553DBAEBA1F272B9FFA8DA`
+
+Dieses Paket wurde später als Pre-License-Version gesichert:
+
+`C:\SnapdragonAI\temp\photo_restore_package_build\photo_restore-1.0.0-arm64.pre-license.smp`
+
+Validiert:
+
+- ZIP-kompatibles `.smp`
+- exakt sieben Dateien
+- alle sechs Modellhashes stimmen zu Quelle und Manifest
+- `package.json` byteidentisch
+- `validate_package_source()` PASS
+- keine reale Installation
+- Quellen unverändert
+
+Status:
+
+`CODE_PASS=YES`, `TECH_PASS=YES`, `PRODUCT_PASS=NOT_TESTED`
+
+Kein Commit erforderlich.
+
+## Sprint 7 – Lizenz-/Distributionsanalyse
+
+Provenienz:
+
+FiDeSR: `Ar0Kim/FiDeSR`  
+Weights: `jmjin2/FiDeSR`  
+Basis: Stable Diffusion 2.1 Base
+
+Entstehung:
+
+`PyTorch/Weights -> ONNX -> Qualcomm AI Hub BYOM -> QNN DLC -> lokale qnn-context-binary-generator.exe -> .serialized.bin.bin`
+
+Qualcomm AI Hub Jobs:
+
+- LRRB: Job `jgk2726vg` -> Target Model `mq3x912rq`
+- VAE Encoder: Job `jp3zvzom5` -> Target Model `mm5lpw99q`
+- VAE Decoder: Job `jgzlolz45` -> Target Model `mqp4wyygq`
+- UNet Merged: Job `jp8e0erqp` -> Target Model `mqye9wwxn`
+
+Upstream-Lizenzen:
+
+- FiDeSR-Anteile: Apache License 2.0
+- Stable-Diffusion-2.1-Anteile: CreativeML Open RAIL++-M
+
+Im SMP befinden sich keine Qualcomm-Runtime-Binaries, keine `qnn-net-run.exe`, keine QNN-DLLs, keine HTP-Skel-Libraries und keine QAIRT-SDK-Dateien.
+
+Sprint-7-Status:
+
+`ALL_6_LICENSE_CHAINS_COMPLETE=YES`  
+`QNN_RUNTIME_FILES_IN_SMP=NO`  
+`PUBLIC_DISTRIBUTION_CLEAR=UNCLEAR`
+
+## Sprint 8 – License Payload + lizenziertes SMP
+
+Gültige Pre-Sprint-8-Sicherung:
+
+`C:\SnapdragonAI\temp\photo_restore_license_sprint8_backup_20261013_172108`
+
+Bestätigt:
+
+`BACKUP_FILE_COUNT=3`  
+`BACKUP_CONTENT_CHECK=PASS`  
+`BACKUP_OK=True`
+
+Neu im Repo:
+
+- `resources/packages/photo_restore/LICENSE-APACHE-2.0.txt`
+- `resources/packages/photo_restore/LICENSE-CREATIVEML-OPENRAIL-M.txt`
+- `resources/packages/photo_restore/THIRD_PARTY_NOTICES.md`
+
+Geändert:
+
+- `tests/test_photo_restore_real_manifest.py`
+
+Nicht geändert:
+
+- `resources/packages/photo_restore/package.json`
+- `resources/models/photo_restore.json`
+- `resources/package_catalog.json`
+
+Tests:
+
+`30 passed in 0.61s`
+
+JSON validation PASS, py_compile PASS, git diff --check PASS.
+
+Neues finales lokales SMP:
+
+`C:\SnapdragonAI\temp\photo_restore_package_build\photo_restore-1.0.0-arm64.smp`
+
+Dateianzahl:
+
+`10`
+
+Finale Größe:
+
+`1780775835 Bytes`
+
+Finaler aktuell maßgeblicher SHA-256:
+
+`85FBB68AC622E0A24D9FB0746A839626214CB050246D3A39D304FFFDA41DB208`
+
+Validiert:
+
+- alle sechs Modellhashes unverändert
+- Lizenzdateien im SMP byteidentisch zum Repo
+- `package.json` byteidentisch
+- keine Qualcomm-Runtime-Binaries
+- keine Logs / kein `__pycache__`
+- Installer Parse-only PASS
+- keine reale Installation
+
+Status:
+
+`LICENSE_PAYLOAD_COMPLETE=YES`  
+`REAL_SMP_REBUILT=YES`  
+`REAL_SMP_STRUCTURE_PASS=YES`  
+`REAL_SMP_LICENSE_FILES_PASS=YES`  
+`REAL_SMP_MODEL_HASHES_PASS=YES`  
+`INSTALL_SERVICE_PARSE_PASS=YES`  
+`PUBLIC_DISTRIBUTION_CLEAR=UNCLEAR`  
+`PRODUCT_PASS=NOT_TESTED`
+
+Sprint-8-Commit:
+
+`bdde0d68 Photo Restore: add third-party license payload`
+
+Exakter Commitumfang:
+
+- `resources/packages/photo_restore/LICENSE-APACHE-2.0.txt`
+- `resources/packages/photo_restore/LICENSE-CREATIVEML-OPENRAIL-M.txt`
+- `resources/packages/photo_restore/THIRD_PARTY_NOTICES.md`
+- `tests/test_photo_restore_real_manifest.py`
+
+Push erfolgreich:
+
+`HEAD = origin/main = bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb`
+
+## Qualcomm-BYOM-Redistribution – Anfrage versendet
+
+Am 13. Oktober 2026 wurde die formale Anfrage an Qualcomm AI Hub Support versendet.
+
+Empfänger:
+
+`ai-hub-support@qti.qualcomm.com`
+
+Betreff:
+
+`Redistribution of BYOM-compiled QNN/HTP model context binaries`
+
+In der Anfrage wurden:
+
+- HK NPU STUDIO und der Photo-Restore-Anwendungsfall erklärt;
+- der BYOM-Kompilierungsweg beschrieben;
+- klargestellt, dass keine Qualcomm-Runtime-/SDK-Binaries im Paket enthalten sind;
+- Apache 2.0 und CreativeML Open RAIL++-M als Upstream-Lizenzen genannt;
+- die vier AI-Hub-Job-/Target-IDs angegeben;
+- ausdrücklich um Bestätigung gebeten, ob die user-generated `.serialized.bin.bin` QNN/HTP Context Binaries weitergegeben werden dürfen;
+- nach zusätzlichen Qualcomm-Attributions-/Hinweispflichten gefragt.
+
+Status:
+
+`QUALCOMM_BYOM_REDISTRIBUTION_REQUEST_SENT=YES`  
+`QUALCOMM_BYOM_REDISTRIBUTION_RESPONSE=WAITING`  
+`QUALCOMM_BYOM_REDISTRIBUTION_CONFIRMATION=NO`  
+`PUBLIC_DISTRIBUTION_CLEAR=UNCLEAR`
+
+## Aktueller STOP-Punkt
+
+Bis zur Qualcomm-Antwort NICHT:
+
+- SMP öffentlich hochladen;
+- GitHub-Release-Asset erstellen;
+- reale öffentliche Download-URL setzen;
+- `resources/package_catalog.json` auf Release-URL/Checksum umstellen;
+- FiDeSR aus dem Hauptinstaller entfernen;
+- öffentliche Distribution als freigegeben deklarieren.
+
+Das lokale validierte SMP bewusst behalten:
+
+`C:\SnapdragonAI\temp\photo_restore_package_build\photo_restore-1.0.0-arm64.smp`
+
+Maßgeblicher Hash:
+
+`85FBB68AC622E0A24D9FB0746A839626214CB050246D3A39D304FFFDA41DB208`
+
+## Nächster sicherer Schritt
+
+Wenn Qualcomm positiv antwortet:
+
+1. Antwort vollständig prüfen.
+2. Eventuelle zusätzliche Notices minimal ergänzen.
+3. Falls das SMP dadurch geändert wird: neu bauen und neu hashen.
+4. Separater Sprint für `resources/package_catalog.json` mit echter URL und realem Archivhash.
+5. Reale isolierte Installation über den echten ModelInstallService.
+6. Resolver muss Managed Root als `READY` erkennen.
+7. Realer Photo-Restore-Produktlauf mit QNN/HTP-Nachweis.
+8. Erst danach FiDeSR-Binaries aus Hauptinstaller/Frozen-Staging entfernen.
+9. Danach Frozen-/Installer-Build und RC2CleanTest.
+
+Wenn Qualcomm die Redistribution ablehnt:
+
+Kein öffentliches HK-NPU-STUDIO-SMP. Stattdessen User-Supplied/BYOM-Pfad.
+
+Wenn Qualcomm unklar antwortet:
+
+`PUBLIC_DISTRIBUTION_CLEAR=UNCLEAR` beibehalten und nicht veröffentlichen.
+
+## Aktueller Gesamtstatus
+
+```text
+RESOLVER_EXTERNAL_PACKAGE_SUPPORT=YES
+MODEL_PACKAGE_DEFINITION=YES
+MANAGED_INSTALL_PATH_CONTRACT=YES
+REAL_MANIFEST=YES
+REAL_COMPONENT_HASHES=YES
+REAL_SMP=YES
+LICENSE_PAYLOAD_COMPLETE=YES
+SMP_PARSE_ONLY_VALIDATION=YES
+REAL_PACKAGE_INSTALLATION=NOT_TESTED
+REAL_MANAGED_PRODUCT_RUN=NOT_TESTED
+PUBLIC_DISTRIBUTION_CLEAR=UNCLEAR
+QUALCOMM_RESPONSE=WAITING
+MAIN_INSTALLER_FIDESR_REMOVAL=NOT_STARTED
+FROZEN_BUILD_AFTER_EXTERNALIZATION=NO
+RC2CLEAN_EXTERNAL_PACKAGE_TEST=NO
+```
+
+## Handover-Übernahme
+
+Diese Datei ist die vollständige Chronik plus diese neue Ergänzung.
+
+Download-Dateiname exakt:
+
+`CHATGPT_HANDOVER.md`
+
+Holger übernimmt sie über:
+
+`C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd`
+
+nach:
+
+`C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md`
+
+Die ältere Chronik niemals kürzen oder durch eine Zusammenfassung ersetzen.
+
+
+# CHATGPT_HANDOVER – Ergänzung 15. Oktober 2026 – Speicherbereinigung, Temp-Cleanup und externe WORK-Archivierung
+
+> Diese Ergänzung führt die vollständige bisherige Chronik fort und hat für Speicherorganisation, ausgelagerte Entwicklungsartefakte, `temp`, WORK-Archiv und Git-Worktree-Status Vorrang vor älteren Angaben. Die ältere Chronik bleibt vollständig erhalten.
+
+## Verbindlicher Sicherheits- und Recovery-Workflow
+
+Für HK NPU STUDIO gilt ab jetzt verbindlich:
+
+1. `C:\SnapdragonAI` ist das **aktive Entwicklungsrepository und die aktive Entwicklungsumgebung**. Es bleibt auf `C:` und darf niemals als Ganzes verschoben, ausgelagert, gelöscht oder als entbehrlicher Speicherbestand behandelt werden.
+2. Vor dem Verschieben einzelner Inhalte aus `C:\SnapdragonAI` muss nicht nur Runtime-Relevanz, sondern auch Entwicklungs-, Build-, Export-/Re-Export-, Recompile-, Test-, Reproduktions-, Diagnose-, Installer-/Packaging- und Release-Verifikationsrelevanz geprüft werden.
+3. Nicht eindeutig entbehrliche Daten werden nicht direkt gelöscht, sondern zuerst nach `99_ZU_LOESCHEN` quarantänisiert.
+4. Keine Builds, Commits oder Pushes ohne ausdrückliche Freigabe.
+5. Niemals `git add .` oder `git add -A`; unrelated/untracked Dateien nicht anfassen.
+6. Vor technischen Sprints, bei denen eine Sicherung sinnvoll ist, zuerst den vollständigen PowerShell-Sicherungsblock geben, Ausgabe abwarten und erst danach den vollständigen Codex-/Antigravity-Sprint liefern.
+7. Bei PowerShell keine `$LASTEXITCODE`-Prüfung für native Cmdlets wie `Copy-Item`, `Move-Item`, `Remove-Item`; stattdessen `-ErrorAction Stop`, `try/catch` und explizite Existenz-/Größen-/Hashprüfungen verwenden. `$LASTEXITCODE` nur für echte externe Programme wie Git.
+8. Interaktive PowerShell-Besonderheit: Wenn mehrteilige `if { ... } else { ... }`-Blöcke zeilenweise eingefügt werden, kann PowerShell den `if`-Block bereits ausführen und ein nachträgliches `else` separat interpretieren. Wo möglich ohne nachgestelltes `else` arbeiten.
+9. Ebenfalls wichtig: Ein `throw` in einem einzeln eingefügten PowerShell-Block beendet nur diesen ausgeführten Block. Wenn Holger danach weitere Blöcke manuell einfügt, läuft die Sitzung weiter. Für kritische Migrationen deshalb bevorzugt in einem zusammenhängenden Skript oder mit explizitem STOP nach Fehlern arbeiten.
+
+## Zentrale Speicherstruktur
+
+Am 15. Oktober 2026 wurde die bislang über `C:` verteilte HK-NPU-STUDIO-Arbeitsablage in eine zentrale Struktur überführt:
+
+```text
+C:\HK_NPU_STUDIO_WORK\
+├── 01_DAUERHAFT\
+├── 02_TEST\
+├── 03_BACKUPS\
+└── 99_ZU_LOESCHEN\
+```
+
+Bedeutung:
+
+- `01_DAUERHAFT` — dauerhaft zu erhaltende Release-/Lizenz-/Qualitätsartefakte.
+- `02_TEST` — Entwicklungsmodelle, reproduzierbare Teststände, Diagnose- und historische Testdaten.
+- `03_BACKUPS` — bewusst angelegte Sicherungen, Patches und Migrationsprotokolle.
+- `99_ZU_LOESCHEN` — quarantänisierte Daten; noch **keine** Löschfreigabe.
+
+Alle vier Ordner wurden zunächst auf `C:` aufgebaut und anschließend vollständig auf die externe Festplatte migriert.
+
+## Frühe Bereinigung verteilter Root-Ordner
+
+Folgende außerhalb des Repositories liegende Diagnoseordner wurden nach `02_TEST` verschoben:
+
+```text
+C:\HK_NPU_DIAG_25
+    -> 02_TEST\HK_NPU_DIAG_25
+
+C:\HK_NPU_DIAG
+    -> 02_TEST\HK_NPU_DIAG
+
+C:\HK_NPU_ISSUE6_DIAG
+    -> 02_TEST\HK_NPU_ISSUE6_DIAG
+```
+
+Folgende vorhandene Sicherungen wurden nach `03_BACKUPS` konsolidiert:
+
+```text
+C:\HK_NPU_STUDIO_PRE_ISSUE6_BACKUP
+C:\SnapdragonAI_BACKUP_ISSUE6_DIAG_20261009_175720
+C:\SnapdragonAI_BACKUP_ISSUE6_QNN250_20261011_164506
+C:\SnapdragonAI_Backups
+```
+
+Keine dieser Daten wurde gelöscht.
+
+## Build-/Release-Artefakte aus dem aktiven Repo ausgelagert
+
+Vor der Modell-/Temp-Bereinigung wurde geprüft, welche Top-Level-Bereiche getrackt sind. `dist`, `build`, `output`, `logs` und `temp` enthielten keine getrackten Dateien, während `backup` und `artifacts` getrackte Inhalte enthielten und deshalb unangetastet blieben.
+
+Kontrolliert verschoben wurden:
+
+```text
+C:\SnapdragonAI\dist\HKNPUStudio
+    -> C:\HK_NPU_STUDIO_WORK\99_ZU_LOESCHEN\Build_Artefakte\HKNPUStudio_RC3_Frozen
+```
+
+Größe ungefähr:
+
+`2.852 GiB`
+
+Der finale RC3-Installer und sein Release-Manifest wurden dauerhaft erhalten:
+
+```text
+C:\SnapdragonAI\dist\installer
+C:\SnapdragonAI\dist\release-artifacts.json
+
+-> C:\HK_NPU_STUDIO_WORK\01_DAUERHAFT\Releases\2.0.0-rc.3\
+```
+
+Größe ungefähr:
+
+`1.914 GiB`
+
+Außerdem:
+
+```text
+C:\SnapdragonAI\build
+    -> C:\HK_NPU_STUDIO_WORK\99_ZU_LOESCHEN\Build_Artefakte\PyInstaller_build
+```
+
+Größe ungefähr:
+
+`0.252 GiB`
+
+Ältere Temp-/Export-/Smoke-/Modellprobe-Artefakte wurden nach:
+
+```text
+C:\HK_NPU_STUDIO_WORK\99_ZU_LOESCHEN\Alte_Temp_Artefakte
+```
+
+verschoben. Darunter unter anderem ältere Photo-Restore-Gates, NeoDragon-/FOMM-/SDXL-Exporte, Microdetail-Tests, Kaggle-Artefakte, PD12M-/Cinematic-/RealESRGAN-/VAE-ONNX-Probes.
+
+Nichts davon wurde am 15. Oktober endgültig gelöscht.
+
+## Modell-Audit und ausgelagerte Entwicklungsmodelle
+
+Die Modellbereinigung wurde bewusst konservativ durchgeführt. Große aktive Runtime-/Build-/Recompile-Modelle blieben im Repository, wenn ihre Bedeutung für die vollständige Entwicklungsumgebung nicht eindeutig entfallen war.
+
+Nach `02_TEST\Models` verschoben wurden:
+
+| Modellordner | ungefährer Umfang | Einordnung |
+|---|---:|---|
+| `flux2_klein_4b` | 14.95 GiB | Entwicklungs-/Forschungsmodell |
+| `sd2_inpainting_qnn_candidate` | 5.05 GiB | Entwicklungs-/Kandidatmodell |
+| `sd2_inpainting_source` | 1.77 GiB | Source-/Reproduktionsmaterial |
+| `rorem_mixed` | 4.78 GiB | Entwicklungs-/Exportmodell; nicht aktuelle Runtime |
+
+Wichtig: `rorem_mixed` wird für Entwicklung/Export/Reproduktion benötigt und wurde **nicht gelöscht**, sondern nur nach `02_TEST` ausgelagert.
+
+Nach `02_TEST\Models_Development` verschoben wurden die kleineren Test-/Entwicklungsstände:
+
+```text
+rorem_mixed_qnn_context_combined
+rorem_mixed_qnn_context_w8a16
+sdxl_inpainting_qnn_split
+lama_dilated
+aotgan
+```
+
+Im aktiven Repository `C:\SnapdragonAI\models` blieben bewusst unter anderem:
+
+```text
+rorem_mixed_qnn_dlc
+rorem_mixed_qnn_context
+sdxl_inpainting
+sdxl_inpainting_qnn
+sdxl_inpainting_qnn_context
+stable_diffusion_v3_5_qai
+photo_restore
+photo_restore_context
+controlnet_canny_qnn
+stable_diffusion_v2_1_qnn
+```
+
+Begründung: Diese Pfade sind aktuell produktiv oder für Recompile/Reproduktion/Build der vollständigen Entwicklungsumgebung relevant.
+
+## Temp-Cleanup – erster großer Durchlauf
+
+Vor dem Cleanup:
+
+```text
+C:\SnapdragonAI\temp
+TOTAL_SIZE = 1,796,810,061 bytes
+           = 1.673410 GiB
+```
+
+Nach dem ersten move-only Cleanup:
+
+```text
+TOTAL_SIZE = 481,230,895 bytes
+           = 0.448181 GiB
+```
+
+Nach:
+
+```text
+C:\HK_NPU_STUDIO_WORK\02_TEST\Temp_Cleanup_20261015
+```
+
+wurden verschoben:
+
+```text
+1,315,482,951 bytes
+542 direkte Einträge
+```
+
+Darunter historische Bild-/RAW-/ONNX-/Archiv-/Log-/Trainings-/Vergleichs- und Diagnoseartefakte, unter anderem:
+
+- `ai_photo_restore_visual_diagnosis`
+- `realesrgan_microdetail_pairs_v1_20260917`
+- `ai_photo_restore_quality_rescue`
+- `sd35_vae_quality`
+- DetailNet-Kaggle-ZIP
+- `i2v_fomm_env`
+- Microdetail-Pairsets
+- alte Phoenix-Vergleiche
+- ältere RealESRGAN-Tile-Sets
+- frühere SD2-/VAE-/Context-/FOMM-/FiDeSR-Tests
+
+Statistik dieses ersten Durchlaufs:
+
+```text
+DIRECT_FILES_MOVED=408
+DIRECTORIES_MOVED=155
+NESTED_FILES_MOVED=7309
+HISTORICAL_IMAGES_MOVED=1753
+HISTORICAL_IMAGE_BYTES=839721874
+RAW_FILES=193
+RAW_BYTES=142938486
+ONNX_FILES=2
+ARCHIVES=17
+ARCHIVE_BYTES=161715175
+LOG_TEXT_FILES=399
+LOG_TEXT_BYTES=8124372
+MOVE_FAILURES=0
+DESTINATION_COLLISIONS=0
+SOURCE_REMAINING_AFTER_MOVE=0
+DESTINATION_MISSING=0
+```
+
+Manifest und Validierung lagen unter:
+
+```text
+02_TEST\Temp_Cleanup_20261015\TEMP_CLEANUP_MANIFEST.tsv
+02_TEST\Temp_Cleanup_20261015\TEMP_CLEANUP_RESULTS.tsv
+```
+
+Nach `99_ZU_LOESCHEN\Temp_Cleanup_20261015` gingen ausschließlich kleine, bereits als Quarantäne geeignete Cache-/Leer-/Nullbyte-Log-Artefakte von etwa `96 KB`.
+
+## Temp-Finalaudit
+
+Der anschließende read-only Finalaudit ergab:
+
+```text
+ACTIVE_RUNNING_JOB_FOUND=NO
+UNKNOWN_KEEP=NONE
+```
+
+Für `temp\fidesr_studio_jobs` wurden 67 Jobs klassifiziert:
+
+```text
+DEVELOPMENT_REPRODUCTION_KEEP=2 jobs / 10.42 MiB
+HISTORICAL_ARCHIVE=6 jobs / 145.81 MiB
+SAFE_QUARANTINE=59 jobs / 0.07 MiB
+```
+
+Der neueste vollständige FiDeSR-Lauf blieb im aktiven Temp:
+
+```text
+C:\SnapdragonAI\temp\fidesr_studio_jobs\20261013_184729_36b71767
+```
+
+Das frühere Testpaket:
+
+```text
+C:\SnapdragonAI\temp\packages\sdxl_base_alpha_test
+```
+
+wurde als historisches `1.0.0-alpha`-Paket ohne echte Modellgewichte, ohne aktuellen Build-/Runtime-Consumer und mit Platzhalter-ONNX-Dateien eingestuft.
+
+## Finaler Temp-Cleanup – ausgeführt
+
+Ausgeführt wurden exakt die vorher geprüften Moves.
+
+Vorher:
+
+```text
+TEMP_SIZE_BEFORE=481230895 bytes
+                 458.94 MiB
+```
+
+Nachher:
+
+```text
+TEMP_SIZE_AFTER=169161874 bytes
+                161.33 MiB
+```
+
+Verschoben:
+
+```text
+MOVED_TO_01_DAUERHAFT_BYTES=100993460
+MOVED_TO_02_TEST_BYTES=210998456
+MOVED_TO_99_ZU_LOESCHEN_BYTES=77105
+TOTAL_MOVED_BYTES=312069021
+TOTAL_MOVED_MIB=297.61
+ACCOUNTING_DIFFERENCE=0
+MOVES_ATTEMPTED=82
+MOVES_VALIDATED=82
+MOVE_FAILURES=NONE
+DESTINATION_COLLISIONS=NONE
+```
+
+### Release-/Qualitätsevidenz nach `01_DAUERHAFT\Release_Quality_Evidence`
+
+Verschoben wurden:
+
+```text
+phoenix_boost_final_attempt
+phoenix_boost_release_comparison_v2
+fidesr_generalization_check_20260922
+photo_restore_defect_v5_20260924
+photo_restoration_release_comparison
+photo_restore_microtexture_v1_20260924
+photo_restore_skin_v1_20260924
+photo_restore_dust_v4_20260924
+photo_restore_detail_preservation_v1_20260924
+release_readiness_20260914
+fidesr_studio_parity_compare
+fidesr_studio_parity_smoke
+```
+
+### Entwicklungs-/Reproduktionsmaterial nach `02_TEST\Temp_Development_Reproduction`
+
+Verschoben wurden:
+
+```text
+performance_audit_20260922
+rorem_a8w8_calibration_20260923
+rorem_a8w8_validation_20260923
+packages
+```
+
+Zusätzlich diese FiDeSR-Jobs:
+
+```text
+20260925_204436_3d4988ba
+20260925_204549_c44ea74e
+20260925_205327_068f6494
+20260927_113326_96c5a1e9
+20261009_180843_0e802dc0
+20261011_165214_b4be922a
+20261013_071259_1f2ca34c
+```
+
+### FiDeSR-Safe-Quarantine
+
+Die 59 als `SAFE_QUARANTINE` klassifizierten leeren bzw. Mini-PNG-only-Jobverzeichnisse wurden nach:
+
+```text
+99_ZU_LOESCHEN\Temp_Quarantine\fidesr_studio_jobs
+```
+
+verschoben.
+
+### Verbleibender aktiver `C:\SnapdragonAI\temp`-Bestand
+
+Nach dem finalen Cleanup verblieben nur:
+
+```text
+controlnet_canny_gate
+fidesr_studio_jobs
+image_lab
+r006
+rorem_dlc_runtime
+rorem_validation
+sd15_first_npu_image
+sd21_qnn_runtime
+sd35_inpainting_smoke
+sd35_missing_htp_validation
+sd35_npu_export_reference
+sd35_vae_precision_validation
+sd35-qai-setup
+OllamaSetup.exe
+```
+
+Alle vorgesehenen KEEP-Pfade waren vorhanden:
+
+```text
+KEEP_PATHS_CHECKED=15
+KEEP_PATHS_MISSING=0
+ALL_KEEP_IN_TEMP_PATHS_EXIST=YES
+FIDESR_STUDIO_JOBS_ROOT_RETAINED=YES
+LATEST_FIDESR_JOB_RETAINED=YES
+```
+
+`C:\SnapdragonAI\temp` gilt damit als **fertig aufgeräumt**. Nicht weiter reduzieren, solange keine neue technische Einordnung erfolgt.
+
+## Finaler Audit von `C:\HK_NPU_STUDIO_WORK`
+
+Vor der externen Migration führte Codex einen vollständigen read-only Release-/Archiv-Audit aus.
+
+Repository-Gate:
+
+```text
+BRANCH=main
+HEAD=bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb
+ORIGIN_MAIN=bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb
+HEAD_GATE=PASS
+```
+
+WORK-Gesamtbestand zum Auditzeitpunkt:
+
+```text
+WORK_ROOT=C:\HK_NPU_STUDIO_WORK
+TOTAL_BYTES=63047755125
+TOTAL_GIB=58.718
+TOTAL_FILES=35465
+```
+
+Bereiche:
+
+| Bereich | Bytes | GiB | Dateien |
+|---|---:|---:|---:|
+| `01_DAUERHAFT` | 3,936,464,239 | 3.666 | 192 |
+| `02_TEST` | 31,461,246,795 | 29.301 | 8,967 |
+| `03_BACKUPS` | 1,053,558 | 0.001 | 27 |
+| `99_ZU_LOESCHEN` | 27,648,990,533 | 25.750 | 26,279 |
+
+Wichtige Einordnung:
+
+```text
+ACTIVE_CODE_REFERENCES_TO_C:\HK_NPU_STUDIO_WORK=0
+ACTIVE_TEST_REFERENCES_TO_C:\HK_NPU_STUDIO_WORK=0
+ACTIVE_BUILD_REFERENCES_TO_C:\HK_NPU_STUDIO_WORK=0
+RESTORE_TO_REPO_CANDIDATES=NONE
+```
+
+Damit musste **nichts** aus WORK nach `C:\SnapdragonAI` zurückkopiert werden.
+
+Aktive Photo-Restore- und RORem-Runtime-/Context-Dateien befinden sich weiterhin vollständig im Repository.
+
+## Dauerhaft zu erhaltende WORK-Bestände
+
+`01_DAUERHAFT`:
+
+```text
+PhotoRestore
+Releases
+Release_Quality_Evidence
+```
+
+`02_TEST`:
+
+```text
+Models
+Models_Development
+Temp_Cleanup_20261015
+Temp_Development_Reproduction
+Temp_Historical
+HK_NPU_DIAG
+HK_NPU_DIAG_25
+HK_NPU_ISSUE6_DIAG
+```
+
+`03_BACKUPS` vollständig erhalten.
+
+`99_ZU_LOESCHEN` wurde **nicht gelöscht**; der gesamte Quarantänebestand wurde später extern mitarchiviert.
+
+## Issue #6 Diagnose-Worktree und Patch
+
+Vor der externen Migration war noch folgender Git-Worktree registriert:
+
+```text
+C:\HK_NPU_STUDIO_WORK\99_ZU_LOESCHEN\SnapdragonAI_ISSUE6_DIAG_BUILD
+```
+
+Basis:
+
+```text
+c2981fa647d0d5958c223bf70be4a4f9a0675421
+```
+
+Lokale Änderungen:
+
+```text
+engine/backends/fidesr_photo_restore_backend.py
+engine/backends/fidesr_strong_runner_template.py
+tests/test_fidesr_serialized_context_runtime.py
+```
+
+Diff:
+
+```text
+420 insertions / 13 deletions
+UNTRACKED_FILES=0
+```
+
+Die lokalen Änderungen waren bereits vollständig als Patch gesichert:
+
+```text
+03_BACKUPS\Issue6_DIAG_BUILD\issue6_diag_local_changes.patch
+```
+
+Patchwerte:
+
+```text
+SIZE=21968
+SHA256=193B688874E90344B20F098CE7562DD78EDBBF2783D4DE8155764432FC9322B4
+EXPECTED_SHA256_MATCH=YES
+PATCH_FILES=3
+PATCH_LINES=578
+WORKTREE_DIFF_LINES=578
+LINEWISE_DIFFERENCES=0
+REVERSE_APPLY_CHECK=PASS
+```
+
+Damit bildet der Patch die drei lokalen Worktree-Änderungen exakt ab.
+
+Zusätzlich waren zwei alte Worktree-Metadaten prunable:
+
+```text
+C:\SnapdragonAI_Baseline_49eb1de6
+C:\SnapdragonAI_PHOTO_RESTORE_INTEGRATION
+```
+
+## Photo Restore SMP und RC3-Installer – verifizierte Dauerartefakte
+
+Photo Restore licensed SMP:
+
+```text
+01_DAUERHAFT\PhotoRestore\photo_restore-1.0.0-arm64.smp
+SIZE=1780775835
+SHA256=85FBB68AC622E0A24D9FB0746A839626214CB050246D3A39D304FFFDA41DB208
+VALIDATION=PASS
+```
+
+RC3-Installer:
+
+```text
+01_DAUERHAFT\Releases\2.0.0-rc.3\installer\HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe
+SIZE=2054694378
+SHA256=258CB85CC9BEF471D79B038B5126F617B6A0F0A3E9911DFB5E26709EED07A857
+```
+
+`release-artifacts.json` bestätigt denselben Installer-Hash.
+
+## Backup-Qualität
+
+Codex bewertete:
+
+```text
+BACKUP_HEALTH=PASS_WITH_ONE_LIMITATION
+```
+
+Einschränkung:
+
+```text
+HK_NPU_STUDIO_PRE_ISSUE6_BACKUP
+```
+
+enthält nur `.pyc`-Payload und kein eindeutiges Restore-Manifest. Diese Einschränkung blockiert die externe Archivierung nicht.
+
+## `99_ZU_LOESCHEN` – Einordnung vor externer Migration
+
+| Gruppe | Einordnung |
+|---|---|
+| `SnapdragonAI_ISSUE6_DIAG_BUILD` | vor Migration nicht roh verschieben; registrierter Git-Worktree |
+| `Alte_Temp_Artefakte` | extern archivieren |
+| `PhotoRestore` | später separat löschbar, aber noch nicht gelöscht |
+| `Build_Artefakte` | später separat löschbar, aber noch nicht gelöscht |
+| `Alte_Tests` | REVIEW; teilweise einzigartige große Test-/Kaggle-ZIPs |
+| `Temp_Cleanup_20261015` | später separat löschbar |
+| `Temp_Quarantine` | später separat löschbar |
+
+Wichtig: Am 15. Oktober wurde **keine** endgültige Löschfreigabe für `99_ZU_LOESCHEN` erteilt. Der gesamte Bereich wurde extern archiviert.
+
+## Entscheidung vor externer Migration
+
+Codex-Endstatus:
+
+```text
+EXTERNAL_MOVE_CLEAR=YES_AFTER_ACTIONS
+```
+
+Einziger harter Blocker war der registrierte Issue-6-Worktree. Eine rohe Explorer-/PowerShell-Verschiebung des gesamten WORK-Baums hätte dessen Git-Metadaten beschädigt.
+
+## Externe Festplatte
+
+Holger schloss die externe Festplatte an.
+
+Ermittelt:
+
+```text
+D:
+VolumeName=HK NPU Studio
+Size=931.5 GB
+Free before migration=551.18 GB
+```
+
+Diese Platte ist **nicht immer angeschlossen**.
+
+Verbindliche Recovery-Regel:
+
+> Wenn künftig ein ausgelagertes Artefakt benötigt oder vermisst wird und `D:\HK_NPU_STUDIO_WORK` nicht erreichbar ist, Holger ausdrücklich sagen: **„Bitte schließe die externe Festplatte 'HK NPU Studio' an.“** Erst danach dort nachsehen. Nicht vorschnell von Datenverlust ausgehen und nichts unnötig neu erzeugen oder herunterladen.
+
+## Preflight-Sicherung vor der externen Migration
+
+Vor dem eigentlichen Umzug wurde erstellt:
+
+```text
+C:\HK_NPU_STUDIO_WORK\03_BACKUPS\WORK_EXTERNAL_MOVE_20261015
+```
+
+Enthalten waren mindestens:
+
+```text
+git_worktree_before_move.txt
+git_status_before_move.txt
+migration_preflight.txt
+robocopy_to_external.log
+```
+
+Preflight:
+
+```text
+MIGRATION_PREFLIGHT_PASS=True
+NOTHING_MOVED=True
+NOTHING_DELETED=True
+```
+
+Nochmals verifizierte Hashes:
+
+```text
+PATCH_SHA256=193B688874E90344B20F098CE7562DD78EDBBF2783D4DE8155764432FC9322B4
+SMP_SHA256=85FBB68AC622E0A24D9FB0746A839626214CB050246D3A39D304FFFDA41DB208
+INSTALLER_SHA256=258CB85CC9BEF471D79B038B5126F617B6A0F0A3E9911DFB5E26709EED07A857
+```
+
+## Externe Migration `C:` -> `D:`
+
+Ziel:
+
+```text
+D:\HK_NPU_STUDIO_WORK
+```
+
+Die Migration erfolgte mit Robocopy als vollständige Kopie, bevor die Quelle auf `C:` entfernt wurde.
+
+Robocopy-Endstand:
+
+```text
+Directories: 11695 / 11695 copied
+Files:       35469 / 35469 copied
+Bytes:       63047758841 / 63047758841 copied
+Errors:      0
+ROBOCOPY_EXITCODE=1
+```
+
+Robocopy-Exitcode `1` bedeutet in diesem Kontext erfolgreich kopierte Dateien, kein Fehler.
+
+### Wichtige Validierungsnuance während der Migration
+
+Die vor dem Kopieren gebildete PowerShell-Inventur enthielt:
+
+```text
+SOURCE_FILES=35468
+SOURCE_BYTES=63047758275
+```
+
+Nach Robocopy wurden am Ziel gemessen:
+
+```text
+DESTINATION_FILES=35469
+DESTINATION_BYTES=63047942413
+```
+
+Dadurch schlugen die einfachen Source-/Destination-Count-Gates formal an.
+
+Ursache der Abweichung ist mit sehr hoher Wahrscheinlichkeit die **während der Migration selbst neu erzeugte bzw. weitergeschriebene Robocopy-Logdatei innerhalb des Quell-WORK-Baums**. Sie existierte beim ursprünglichen Source-Snapshot noch nicht beziehungsweise wuchs während des Kopierens. Robocopy selbst meldete danach 35.469 kopierte Dateien und 0 Fehler.
+
+Wichtig für zukünftige Migrationen: Migrationslogs nicht innerhalb des zu kopierenden Quellbaums erzeugen, sondern außerhalb davon.
+
+Da Holger den PowerShell-Block interaktiv abschnittsweise ausführte, wurde nach den `throw`-Meldungen manuell mit den nachfolgenden Blöcken weitergemacht. Deshalb darf diese Stelle nicht als Beweis dafür verwendet werden, dass `throw` die gesamte Session beendet hätte.
+
+Die drei kritischen Zielartefakte wurden anschließend direkt am externen Ziel erneut per SHA-256 verifiziert und bestanden exakt:
+
+```text
+DEST_PATCH_SHA256=193B688874E90344B20F098CE7562DD78EDBBF2783D4DE8155764432FC9322B4
+DEST_SMP_SHA256=85FBB68AC622E0A24D9FB0746A839626214CB050246D3A39D304FFFDA41DB208
+DEST_INSTALLER_SHA256=258CB85CC9BEF471D79B038B5126F617B6A0F0A3E9911DFB5E26709EED07A857
+DESTINATION_CRITICAL_HASHES=PASS
+```
+
+## ARCHIVE_INDEX.md
+
+Am externen Ziel wurde erstellt:
+
+```text
+D:\HK_NPU_STUDIO_WORK\ARCHIVE_INDEX.md
+```
+
+Der Index dokumentiert:
+
+- ursprünglichen WORK-Pfad `C:\HK_NPU_STUDIO_WORK`;
+- externen Pfad `D:\HK_NPU_STUDIO_WORK`;
+- Volume `HK NPU Studio`;
+- Migrationsdatum 15.10.2026;
+- aktives Repository `C:\SnapdragonAI`;
+- Branch `main`;
+- Repository-HEAD `bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb`;
+- Bedeutung von `01_DAUERHAFT`, `02_TEST`, `03_BACKUPS`, `99_ZU_LOESCHEN`;
+- Photo-Restore-SMP inklusive SHA-256;
+- RC3-Installer inklusive SHA-256;
+- Issue6-Diagnosepatch inklusive SHA-256;
+- Recovery-Regel: externes Archiv zuerst prüfen, bevor Daten neu erzeugt oder heruntergeladen werden.
+
+Ein zusätzlicher lokaler Pointer unter:
+
+```text
+C:\HK_NPU_STUDIO_WORK_ARCHIVE_LOCATION.txt
+```
+
+konnte wegen fehlender Schreibberechtigung auf dem Root von `C:` **nicht** erstellt werden. Das ist kein technischer Blocker; maßgeblich sind `ARCHIVE_INDEX.md`, diese Handover-Datei und die dauerhaft gespeicherte Recovery-Regel.
+
+## Git-Worktree-Bereinigung vor Entfernung der C:-Quelle
+
+Nachdem die externe Patch-Sicherung verifiziert war, wurde der registrierte Issue-6-Worktree sauber mit Git entfernt/deregistriert:
+
+```text
+ISSUE6_WORKTREE_DEREGISTERED=True
+```
+
+Danach wurden die zwei bereits fehlenden/prunable Metadaten bereinigt:
+
+```text
+Removing worktrees/SnapdragonAI_Baseline_49eb1de6
+Removing worktrees/SnapdragonAI_PHOTO_RESTORE_INTEGRATION
+WORKTREE_PRUNE_PASS=True
+```
+
+Finale Worktree-Liste:
+
+```text
+worktree C:/SnapdragonAI
+HEAD bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb
+branch refs/heads/main
+```
+
+Damit:
+
+```text
+NO_GIT_WORKTREE_REFERENCES_TO_WORK=True
+```
+
+## Entfernung des lokalen WORK-Baums nach externer Sicherung
+
+Nach dem finalen externen Hash-Endcheck:
+
+```text
+EXTERNAL_ARCHIVE_FINAL_CHECK=PASS
+```
+
+wurde die lokale Quelle entfernt:
+
+```text
+C:\HK_NPU_STUDIO_WORK
+```
+
+Bestätigt:
+
+```text
+LOCAL_WORK_SOURCE_REMOVED=True
+SOURCE_REMOVED_FROM_C=True
+```
+
+Der aktive Entwicklungsrepo blieb unverändert:
+
+```text
+FINAL_BRANCH=main
+FINAL_HEAD=bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb
+FINAL_ORIGIN_MAIN=bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb
+C_SNAPDRAGONAI_UNCHANGED=True
+```
+
+## Speicherstand nach externer Migration
+
+Nach Abschluss:
+
+```text
+C_FREE_GB=123.41
+D_FREE_GB=492.36
+```
+
+Vorher waren auf `C:` ungefähr `66.71 GB` frei. Die externe Migration hat damit real rund 56–57 GB Systemlaufwerksplatz freigegeben.
+
+Finale Statusflags:
+
+```text
+EXTERNAL_ARCHIVE=D:\HK_NPU_STUDIO_WORK
+EXTERNAL_VOLUME=HK NPU Studio
+ARCHIVE_INDEX_EXISTS=True
+SOURCE_REMOVED_FROM_C=True
+CRITICAL_HASHES_PASS=True
+GIT_WORKTREE_CLEAN=True
+C_SNAPDRAGONAI_UNCHANGED=True
+DELETE_FROM_ARCHIVE_PERFORMED=False
+MIGRATION_PASS=True
+```
+
+## Verbindlicher externer Archivpfad ab jetzt
+
+Der tatsächliche externe HK-NPU-STUDIO-Archivpfad lautet:
+
+```text
+D:\HK_NPU_STUDIO_WORK
+```
+
+Volume:
+
+```text
+HK NPU Studio
+```
+
+Diese Festplatte ist nicht dauerhaft angeschlossen.
+
+Bei später fehlenden oder vermissten Dateien gilt zwingend:
+
+1. Prüfen, ob `D:` / Volume `HK NPU Studio` angeschlossen ist.
+2. Falls nicht: Holger ausdrücklich auffordern, die externe Festplatte anzuschließen.
+3. Danach zuerst `D:\HK_NPU_STUDIO_WORK` durchsuchen.
+4. Erst wenn die Datei dort ebenfalls nicht vorhanden ist, Reproduktion, Re-Download, Recompile oder sonstige Wiederherstellung planen.
+
+Dies betrifft insbesondere:
+
+- ausgelagerte Entwicklungsmodelle;
+- alte QNN-/HTP-Kontexte und Diagnoseartefakte;
+- historische Tests und Testbilder;
+- alte Builds/Frozen-Stände;
+- Release-/Qualitätsevidenz;
+- Modellexporte und Reproduktionsmaterial;
+- Sicherungen und Patches;
+- `99_ZU_LOESCHEN`-Quarantänebestand.
+
+## Aktueller Git- und Arbeitsbaumstand am 15. Oktober 2026
+
+Bestätigt:
+
+```text
+BRANCH=main
+HEAD=bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb
+ORIGIN_MAIN=bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb
+```
+
+Neuester Commit:
+
+```text
+bdde0d68 Photo Restore: add third-party license payload
+```
+
+Weiterhin lokal modifiziert und geschützt:
+
+```text
+controllers/inpainting_controller.py
+docs/CHATGPT_HANDOVER.md
+engine/backends/rorem_dlc_inpainting_adapter.py
+```
+
+Bekannte untracked/unrelated Dateien weiterhin nicht anfassen.
+
+Am 15. Oktober wurden im Rahmen der Speicher-/Archivbereinigung **keine** Builds, Commits oder Pushes durchgeführt.
+
+```text
+BUILD=NO
+COMMIT=NO
+PUSH=NO
+```
+
+## Qualcomm BYOM Redistribution – weiterhin offen
+
+Die Anfrage an:
+
+```text
+ai-hub-support@qti.qualcomm.com
+```
+
+vom 13. Oktober 2026 ist weiterhin ohne bestätigte Freigabe.
+
+Status am 15. Oktober:
+
+```text
+QUALCOMM_BYOM_REDISTRIBUTION_CONFIRMATION=PENDING
+PUBLIC_DISTRIBUTION_CLEAR=UNCLEAR
+```
+
+Das lizenzierte Photo-Restore-SMP ist jetzt dauerhaft extern archiviert unter:
+
+```text
+D:\HK_NPU_STUDIO_WORK\01_DAUERHAFT\PhotoRestore\photo_restore-1.0.0-arm64.smp
+```
+
+SHA-256:
+
+```text
+85FBB68AC622E0A24D9FB0746A839626214CB050246D3A39D304FFFDA41DB208
+```
+
+Die öffentliche Distribution bleibt bis zur Qualcomm-Antwort gesperrt.
+
+## Nächster sicherer Einstieg
+
+Bei Wiederaufnahme nicht erneut am bereits abgeschlossenen Temp-/WORK-Cleanup arbeiten.
+
+1. `C:\SnapdragonAI` bleibt der aktive Entwicklungsstand.
+2. Falls ein ausgelagertes Artefakt benötigt wird und `D:` fehlt: Holger zuerst zum Anschließen der externen Festplatte `HK NPU Studio` auffordern.
+3. Bei Bedarf `D:\HK_NPU_STUDIO_WORK\ARCHIVE_INDEX.md` als Archivübersicht lesen.
+4. `99_ZU_LOESCHEN` nicht automatisch löschen; eine spätere endgültige Löschung bleibt ein eigener, explizit freizugebender Schritt.
+5. Bei erneuter Nutzung archivierter Skripte absolute historische `C:\SnapdragonAI\...`-Pfade prüfen und ggf. für die aktuelle Ausführung anpassen oder Artefakte kontrolliert an ihren ursprünglichen Ort zurückkopieren.
+6. Photo-Restore-Distribution weiterhin nicht öffentlich freigeben, solange Qualcomm nicht positiv geantwortet hat.
+7. Repo-Sicherheitsregeln, NPU/QNN/HTP-only-Produktziel und Strict Recovery Workflow beibehalten.
+
+## Handover-Übernahme nach dieser Aktualisierung
+
+Diese Datei ist weiterhin die **vollständige Chronik**. Es wurde nichts gekürzt oder ersetzt; der 15.-Oktober-Abschnitt wurde unten angehängt und der Vorrang-Hinweis am Dateianfang auf den aktuellen Stand gebracht.
+
+Download-Dateiname exakt:
+
+```text
+CHATGPT_HANDOVER.md
+```
+
+Holger übernimmt die Datei wie bisher über:
+
+```text
+C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd
+```
+
+nach:
+
+```text
+C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md
+```
+
+Vor dem Überschreiben muss die vorhandene Übernahme-/Hashprüfung erfolgreich sein. Die ältere Chronik niemals kürzen oder durch eine Zusammenfassung ersetzen.
+
+
+# CHATGPT_HANDOVER – Ergänzung 16. Oktober 2026 – QAIRT 2.50 Paralleltest und FiDeSR-Produktpfad
+
+> Diese Ergänzung setzt die vollständige bestehende Chronik fort. Ältere Abschnitte bleiben vollständig erhalten. Bei widersprüchlichen Statusangaben hat dieser neueste Abschnitt Vorrang.
+>
+> Tagesabschluss: 16. Oktober 2026.
+
+## Neue verbindliche Arbeitsregel – externe Festplatte vorher ankündigen
+
+Für HK NPU STUDIO gilt ab jetzt zusätzlich verbindlich:
+
+- Wenn ein geplanter PowerShell-, Codex- oder Antigravity-Schritt Dateien, Backups, Testdaten, Archive oder Arbeitsverzeichnisse auf der externen Festplatte benötigt, Holger **vor** dem eigentlichen Sprint/Befehl ausdrücklich sagen: **„Bitte schließe jetzt die externe Festplatte ‚HK NPU Studio‘ an.“**
+- Typische betroffene Pfade: `D:\HK_NPU_STUDIO_WORK` und `D:\RC2CleanTest-Archiv`.
+- Nicht erst im Skript auf `D:` prüfen lassen.
+- Erst nach dem ausdrücklichen Hinweis den eigentlichen Befehl/Sprint ausgeben.
+- Wenn die Festplatte nicht verfügbar ist, keine Datenverluste vermuten und nichts neu erzeugen/herunterladen, bevor das Archiv geprüft wurde.
+
+## Aktueller Git- und Produktstand
+
+Repository: `C:\SnapdragonAI`  
+Branch: `main`  
+Bestätigter aktueller Stand: `HEAD = origin/main = bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb`
+
+Aktive Regeln bleiben unverändert: NPU/QNN/HTP-only für AI-Inferenz; CPU nur Orchestrierung/I/O/Masken/Mathe/Scheduler/Postprocessing/Compositing; kein CPU-/GPU-KI-Fallback als Produktlösung; keine Builds/Commits/Pushes ohne Freigabe; niemals `git add .`/`git add -A`; unrelated/untracked Dateien nicht anfassen; `C:\SnapdragonAI` niemals als Ganzes auslagern oder löschen.
+
+## Photo Restore / Qualcomm – Status unverändert eingefroren
+
+Die bereits vorbereitete Photo-Restore-Auslagerung bleibt technisch eingefroren. Qualcomm wurde wegen BYOM-/Redistributionsrechten angeschrieben.
+
+`QUALCOMM_BYOM_REDISTRIBUTION_CONFIRMATION=PENDING`  
+`PUBLIC_DISTRIBUTION_CLEAR=UNCLEAR`
+
+Bis zur Antwort keine öffentliche Bereitstellung der ausgelagerten Restore-SMPs, keine Änderung der öffentlichen Modell-URL und keine Änderung am eingefrorenen Photo-Restore-/Installer-Releasepfad. Der heutige QAIRT-2.50-Test wurde davon strikt getrennt.
+
+## QAIRT 2.50 – Baseline- und Preinstall-Sicherungen
+
+Baseline-Backup: `D:\HK_NPU_STUDIO_WORK\03_BACKUPS\QAIRT250_FiDeSR_LRRB_20261016`
+
+LRRB-Context: `C:\SnapdragonAI\models\photo_restore_context\fidesr_lrrb\fidesr_lrrb.serialized.bin.bin`  
+Größe: `1,548,288` Bytes  
+SHA-256: `1CDE7CC8979611168EE81845C4E14702DEE636CCC0F683DD76FDD679B97CA9F9`
+
+QAIRT-2.47-Runner: `C:\Qualcomm\AIStack\2.47.0.260601\bin\aarch64-windows-msvc\qnn-net-run.exe`  
+Version: `QNN SDK v2.47.0.260601114230`
+
+Status: `QAIRT250_FIDESR_LRRB_BASELINE_BACKUP=PASS`, `QAIRT247_BASELINE_RECORD=PASS`. Repo, SDK und Original-Context blieben unverändert.
+
+Vollständiges Preinstall-Backup: `D:\HK_NPU_STUDIO_WORK\03_BACKUPS\QAIRT250_PREINSTALL_20261016`
+
+- QAIRT 2.47: `C:\Qualcomm\AIStack\2.47.0.260601`, `10,654` Dateien, `5,822,467,655` Bytes (~`5.422596 GiB`).
+- QAIRT 2.48: `C:\Qualcomm\QAIRT_2_48\qairt\2.48.40.260702`, `10,790` Dateien, `5,984,944,308` Bytes (~`5.573914 GiB`).
+
+`QAIRT250_PREINSTALL_BACKUP=PASS`  
+`SOURCE_SDK247_CHANGED=False`  
+`SOURCE_SDK248_CHANGED=False`  
+`GLOBAL_PATH_CHANGED=False`  
+`GLOBAL_ENV_CHANGED=False`  
+`REPO_CHANGED=False`
+
+## QAIRT 2.50 – offizielle parallele Bereitstellung
+
+Offizielle Quelle: Qualcomm Software Center / `Qualcomm_AI_Runtime_Community`.
+
+Version: `2.50.0.260828`  
+Build: `QNN_SDK_BUILD_ID=v2.50.0.260828221209`
+
+Download: `2,601,473,189` Bytes  
+SHA-256: `A346EA0E2C8631B46D57261A4969994CD9CC34124A8355BBC7B08B2C8BD859A5`
+
+Side-by-side-Ziel: `C:\Qualcomm\QAIRT_2_50\qairt\2.50.0.260828`
+
+- kein Überschreiben von 2.47/2.48
+- keine Registry-/Installeränderung
+- kein globaler PATH-Wechsel
+- keine persistenten QNN-/QAIRT-/ADSP-Variablen
+
+SDK: `10,903` Dateien, `6,367,781,707` Bytes (~`5.930459 GiB`).
+
+Runner: `C:\Qualcomm\QAIRT_2_50\qairt\2.50.0.260828\bin\aarch64-windows-msvc\qnn-net-run.exe`  
+Version: `QNN SDK v2.50.0.260828221209`  
+Exitcode: `0`
+
+Wichtige Runtime-Hashes:
+- `qnn-net-run.exe`: `C8140AD4A0D450715E451ADE2F062FD8A493D6C5F70723FD562CE3ABB0A49F47`
+- `QnnHtp.dll`: `99FF3A16167451FC5EBE03781260B2B64C37E4042414999EBD4805D6A1683A23`
+- `QnnSystem.dll`: `CC06B2D032AEA6FCCCBE024F62C97FD19ACF8259705F067A2DDAD2E1D0CDCA7F`
+- `QnnHtpV73Stub.dll`: `AF36EA28A4A6C56D37DC1566E101C0084A5BC2B7267619B126C1668703B3C60E`
+- `libQnnHtpV73Skel.so`: `E3070ED8EC0FC24EA6E44EF54C599D43BCB1D95DD5AA377C0CD55D74F49FB2DD`
+
+`QAIRT250_PROVISIONING=PASS`
+
+## FiDeSR LRRB – fehlender V73-Katalog kausal bestätigt
+
+Testroot: `D:\HK_NPU_STUDIO_WORK\02_TEST\QAIRT250_FiDeSR_LRRB_20261016`
+
+Inputvertrag: `latent_cat` FP16 `[1,8,64,64]` → `output_0` FP16 `[1,4,64,64]`.
+
+Known-good Input `LRRB_2TILE`: `65,536` Bytes, SHA-256 `DE2F256064A0AF797747C2B97505DC0B9F3DF0DE4F489EAC731C23AE9CA9CC31`.
+
+Der erste isolierte QAIRT-2.47-Lauf scheiterte mit Exitcode `16`, `qnn_open 0x80000406`, Skeleton-Fehler `1002`, User-Driver-Fallback und Context-Fehlern `5005/1002`. Die Isolation war unvollständig. Es fehlte insbesondere `libqnnhtpv73.cat`.
+
+Quelle: `C:\Qualcomm\AIStack\2.47.0.260601\lib\hexagon-v73\unsigned\libqnnhtpv73.cat`  
+Größe: `12,216` Bytes  
+SHA-256: `AC5A8B16BE428D49858EFA6553DFA4EF45A72408FC2AE79CF11C3E83EFFBA1F1`
+
+Lehre: Für den V73-Runtime-Vertrag gehören `libQnnHtpV73Skel.so` und `libqnnhtpv73.cat` zwingend zusammen.
+
+Ein-Variablen-Retry: Nur `libqnnhtpv73.cat` ergänzt. Ergebnis: Exitcode `0`, `TRADITIONAL_V73_SKEL_LOAD=PASS`, `USER_DRIVER_FALLBACK=NO`, Context/Graph/HTP-NPU PASS. 2× `output_0`, je `32,768` Bytes, SHA-256 `8E6E677FF211DE9212062560E9E84DD7FB283DFB05A8E0EBC1C8DE73C66732A3`, finite, NaN=0, Inf=0.
+
+`CATALOG_HYPOTHESIS=CONFIRMED`  
+`QAIRT247_BASELINE_RETRY=PASS`
+
+## FiDeSR LRRB – echter QAIRT 2.47 vs. 2.50 A/B-Test
+
+A = vollständiger kohärenter QAIRT-2.47-V73-Satz.  
+B = vollständiger kohärenter offizieller QAIRT-2.50-V73-Satz.
+
+Identisch: Context, Input, Tensorvertrag, Native-FP16-I/O, Kommando-Semantik, Hardware, HTP/NPU-Ziel, Validierung.
+
+A: `19` Runtime-Dateien, Exit `0`, `0.845 s`, Traditional V73 PASS, kein User Driver, Context/Graph/HTP-NPU PASS, Output PASS.
+
+B: `21` Runtime-Dateien, Exit `0`, `1.057 s`, Traditional V73 PASS, kein User Driver, Context/Graph/HTP-NPU PASS, Output PASS.
+
+`CONTEXT_247_ON_QAIRT250=PASS`
+
+Numerischer Vergleich beider Output-Paare: `MAX_ABS_DIFF=0.0`, `MEAN_ABS_DIFF=0.0`, `RMSE=0.0`, `MAX_REL_DIFF=0.0`, `EXACT_HASH_MATCH=YES`.
+
+`NUMERICAL_EQUIVALENCE=EXACT`
+
+Keine Issue-#6-Signale unter QAIRT 2.50: kein qnn_open-Fehler, keine Skeleton-Rejection, kein User-Driver-Fallback, kein FastRPC-, Context-, 5005-/1002-, SoC-, Backend- oder Context-Kompatibilitätsfehler.
+
+Performance: A `0.845 s`, B `1.057 s`, Delta `+0.212 s` / `+25.09 %`. Nur isolierte Kaltstartbeobachtung, keine Performancebewertung.
+
+`TECH_PASS=YES`  
+`QAIRT250_LRRB_TRUE_AB_TEST=PASS`
+
+## Vollständiger FiDeSR-Reporter-/Produktpfad mit QAIRT 2.50
+
+Der komplette bekannte FiDeSR-Produkt-/Reporterpfad wurde isoliert mit dem vollständigen offiziellen QAIRT-2.50-Satz ausgeführt. Der aktuelle Frozen-/Produktpfad im Repository wurde nicht umgestellt.
+
+Aktueller Frozen-Vertrag bleibt vorerst: qnn-net-run 2.47 + bevorzugter vollständiger 2.50.40-HTP-Supportsatz aus `onnxruntime_qnn`, wenn vollständig vorhanden.
+
+Getestetes Context-Set: `VAE_ENCODER`, `UNET_MERGED`, `LRRB`, `VAE_DECODER`, Empty-Prompt-Embeddings, Epsilon-Seed. Alle sechs Artefakte byte- und hashidentisch kopiert.
+
+Realer Input: WEBP RGB `703×446`, `22,712` Bytes, SHA-256 `64FB3A1DA6AF1E5CA35A673689C1B4ADCCDB9B85E558801704567C57F41431F1`.
+
+Runtime: kompletter offizieller QAIRT-2.50-Satz, `21` Dateien, nur prozesslokaler PATH/ADSP_LIBRARY_PATH.
+
+Stage-Ergebnisse:
+- VAE Encoder: `35/35`, `10.78 s`
+- UNet: `35/35`, `30.75 s`
+- LRRB: `35/35`, `3.35 s`
+- VAE Decoder: `35/35`, `26.09 s`
+- Gesamt: `100.29 s`; Wall-Clock `101.338 s`
+
+NPU-/HTP-Nachweis: `140/140` Graph-Ausführungen, alle Status `0x0`; Backend, Device, Context und Graph PASS; kein CPU-/GPU-KI-Fallback.
+
+Alle vier unveränderten FiDeSR-Contexts wurden geladen, Graphen erfolgreich abgerufen und auf HTP/NPU ausgeführt. Keine Context-/Skeleton-/FastRPC-/Backend-/SoC-/5005-/1002-/User-Driver-Fehlersignatur.
+
+Outputs: `140/140` RAW-Ausgaben mit korrekter FP16-Größe, vollständig finite, NaN=0, Inf=0. Finales PNG: RGB `2808×1784`.
+
+Vergleich zur historischen Baseline: byteidentisch, hashidentisch, pixelidentisch; `MAX_ABS=0`, `MEAN_ABS=0`, `RMSE=0`, `MAX_REL=0`.
+
+`OUTPUT_EQUIVALENCE=EXACT`  
+`TECH_PASS=YES`  
+`PRODUCT_PASS=YES`  
+`QAIRT250_FIDESR_PRODUCT_PATH=PASS`
+
+## Bedeutung und Migrationsentscheidung
+
+Jetzt technisch bewiesen:
+1. Ein 2.47-generierter FiDeSR-LRRB-Context läuft unverändert auf dem vollständigen offiziellen QAIRT-2.50-Satz.
+2. Der vollständige FiDeSR-Produktpfad mit allen vier Contexts läuft auf QAIRT 2.50.
+3. Die geprüften QAIRT-2.50-Ausgaben sind zur historischen Baseline exakt identisch.
+4. Kein Issue-#6-Fehlersignal tritt im vollständigen validierten QAIRT-2.50-Pfad auf.
+5. QAIRT 2.50 ist für FiDeSR technisch und produktseitig qualifiziert.
+6. Dies bedeutet **keine automatische RC4-Migration**.
+7. SD1.5, SD2.1, ControlNet, SD3.5, RealESRGAN und RORem sind dadurch nicht automatisch für 2.50 qualifiziert.
+
+Empfohlener nächster technischer Schritt: **read-only QAIRT-2.50-Migrations-Audit**. Prüfen: Installer/Frozen-Runtime-Payload, Ablösung des bisherigen 2.47-Runner/2.50.40-Support-Mix, betroffene Tests/Backends, V73/V81/X2-Elite-Payloads, Third-Party Notices/Lizenzen und kohärente ORT/QNN-Tuples.
+
+Bis dahin: produktiven FiDeSR-Pfad unverändert lassen, Photo-Restore-Releasepfad unverändert lassen, Qualcomm-Lizenz-/Redistributionsanfrage separat offen halten.
+
+## Aufzubewahrende QAIRT-2.50-Testartefakte
+
+- Provisioning: `D:\HK_NPU_STUDIO_WORK\02_TEST\QAIRT250_PROVISIONING_20261016`
+- LRRB-A/B: `D:\HK_NPU_STUDIO_WORK\02_TEST\QAIRT250_FiDeSR_LRRB_20261016`
+- Vollständiger FiDeSR-Produktpfad: `D:\HK_NPU_STUDIO_WORK\02_TEST\QAIRT250_FIDESR_PRODUCT_PATH_20261016`
+
+Diese Nachweise nicht beiläufig löschen.
+
+## Tagesabschluss 16. Oktober 2026
+
+Bestätigt:
+
+`QAIRT250_PROVISIONING=PASS`  
+`QAIRT247_BASELINE_RETRY=PASS`  
+`QAIRT250_LRRB_TRUE_AB_TEST=PASS`  
+`QAIRT250_FIDESR_PRODUCT_PATH=PASS`  
+`TECH_PASS=YES`  
+`PRODUCT_PASS=YES`
+
+Unverändert: `main = origin/main = bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb`; Repo nicht verändert; QAIRT 2.47/2.48/2.50-Quellen nicht verändert; Original-Contexts nicht verändert; globale Umgebung nicht verändert; Photo-Restore-Releasepfad nicht verändert; kein Build; kein Commit; kein Push.
+
+Offen für den nächsten Arbeitstag:
+- Qualcomm-Antwort zur BYOM-/Photo-Restore-Redistribution abwarten.
+- QAIRT 2.50 noch nicht in RC4 integrieren.
+- Bei Wiederaufnahme read-only QAIRT-2.50-Migrations-Audit planen.
+- Andere Modelle nicht automatisch auf 2.50 umstellen.
+- Keine Installer-/Packagingänderung ohne separaten Sprint.
+
+Heute keine weiteren technischen Arbeiten durchführen.
+
+## Handover-Übernahme
+
+Diese vollständige Datei wurde nicht gekürzt oder neu aufgebaut, sondern ausschließlich um den Stand vom 16. Oktober 2026 ergänzt.
+
+Download-Dateiname exakt: `CHATGPT_HANDOVER.md`
+
+Übernahme über: `C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd`
+
+Ziel: `C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md`
+
+Die bestehende Chronik darf nicht durch eine verkürzte Fassung ersetzt werden.
+
+# CHATGPT_HANDOVER – Ergänzung 18. Oktober 2026 – Phoenix Boost, Generierungsmetadaten und lokale Git-Sicherung
+
+> Diese Ergänzung wird an die vollständige, unveränderte historische Chronik angehängt. Bei Widersprüchen gilt der neueste datierte Abschnitt beziehungsweise der tatsächlich geprüfte Git-Stand. Diese Ergänzung dokumentiert den Benutzer-/PowerShell- und Codex-/Antigravity-Berichtsstand vom 18.10.2026; keine neuen lokalen Repositoryprüfungen wurden beim Erstellen dieser Handover-Datei ausgeführt.
+
+## Aktueller verbindlicher Projekt-/Git-Stand
+
+- Produkt: **HK NPU STUDIO**; Repo `C:\SnapdragonAI`; GitHub `https://github.com/Kreuzhofen/hk-npu-studio`; Branch `main`.
+- Git-Ausgangspunkt vor den heutigen Fixes: `bdde0d6859c02c6cbdec815fcfb8dc0fa47f82fb` (`origin/main` identisch).
+- Zwei neue **lokale** Commits am 18.10.2026, per PowerShell bestätigt:
+  1. `d172684e` – `Fix Phoenix Boost prompt fidelity and long prompt validation` (`engine/boost_engine.py`, `tests/test_expandable_prompt.py`; 133 insertions, 6 deletions).
+  2. `8b7b35a3` – `Fix generation sidecar metadata persistence` (`controllers/generation_pipeline.py`, `tests/test_sidecar_metadata.py`; 182 insertions).
+- Letzter bestätigter HEAD: `8b7b35a3` auf `main`; `main...origin/main [ahead 2]`. **Kein Push, Build oder Installer** nach diesen Änderungen. Die Commits sind nicht als veröffentlicht zu behandeln.
+- Nach den Commits weiterhin vorhanden und **geschützt/uncommitted**: `controllers/inpainting_controller.py`, `docs/CHATGPT_HANDOVER.md`, `engine/backends/rorem_dlc_inpainting_adapter.py`. Zahlreiche bekannte untracked Dateien, z. B. `presets/`, `tools/`, `tests/`, `data/`, `sd35_venv/`, Brand-/Dokumentationsdateien, bleiben unangetastet. Nie `git add .`; keine fremden Änderungen stagen, löschen, resetten oder bereinigen.
+- Git meldete beim gezielten Staging LF-/CRLF-Konvertierungshinweise; `git diff --cached --check` für beide Commits erfolgreich. Ein früherer globaler Diff-Check meldete ausschließlich vorhandenes trailing whitespace in der geschützten Handover, nicht in den Fix-Dateien.
+
+## Verbindliche Arbeitsregeln – Präzisierung am 18. Oktober
+
+- Deutsch; klare PowerShell-Arbeiten **direkt mit vollständigem eigenständigem Block**, ohne vorher zu fragen, ob ein Befehl gewünscht wird. Keine stillschweigende Abhängigkeit von Variablen früherer PowerShell-Sitzungen: neue Fenster verlieren `$repo`, `$backup`, `$files`.
+- Für jeden Sprint und jede Sicherungs-/Prüfanleitung **oberhalb** des Prompts/Blocks ausdrücklich: **BACKUP**, **FESTPLATTE D**, **TOOL**, **GESCHÄTZTE DAUER**, **SCOPE**. D: nur anschließen lassen, wenn konkret benötigt; für heutige Fixes/Audits nicht nötig. Falls erforderlich ausdrücklich: „Bitte schließe jetzt die externe Festplatte ‚HK NPU Studio‘ an.“
+- Antigravity breite, gezielte Read-only-Diagnosen; Codex nur für eng begrenzte Fixes; Sprints tokenoptimiert, aber **vollständig und integriert**, nie Delta-/Nachtragsblöcke.
+- Vor produktiver Änderung verifiziertes Backup; eine kausale Variable pro Sprint, identisches Before/After, Verschlechterung nur eigene Änderung revertieren, kein Scope-Creep. `CODE_PASS` ist nicht `PRODUCT_PASS`; reale Entwickler-GUI-Abnahme separat, RC2CleanTest/Frozen separat.
+- Keine Builds, Commits, Pushes, Tags, Installer oder Releases ohne ausdrückliche Freigabe. Für die beiden heutigen lokalen Commits lag die Freigabe im Dialog vor; **kein Push freigegeben**.
+- Neuronale Bildinferenz ausschließlich Snapdragon NPU / Qualcomm QNN/HTP; CPU nur nichtneuronale Orchestrierung/I-O/Resize/Masken/Scheduler/Mathematik/Compositing. Keine CPU-/GPU-KI-Fallbacks als Bildproduktlösung. Ollama/Qwen zur Text-Prompt-Optimierung ist davon als bestehende getrennte Komponente zu unterscheiden.
+- Bestehende HK-NPU-STUDIO-Theme-Tokens, Light/Dark, Buttons, Icons, Typografie und 175-%-Windows-Skalierung bei UI-Arbeit erhalten; keine abgeschnittenen Texte oder verdeckten Schaltflächen.
+
+## GitHub Issue #6
+
+- Issue #6 nach erfolgreichem Reporter- und Clean-Test auf dem betroffenen Vivobook S16 geschlossen.
+- Teil A SD3.5 Existing-Package-Auswahl: `c2981fa6`.
+- Teil B Photo Restore / FiDeSR QNN-Runtime-Kompatibilität: `ec88a838`.
+- Bestehender FiDeSR-Vertrag: `qnn-net-run` 2.47; kompletter 2.50.40-QNN-HTP-Supportsatz, falls vollständig; andernfalls kohärenter 2.47-Satz, niemals partiell mischen. NPU-only. Die QAIRT-2.50-Qualifikation aus dem Handover-Abschnitt vom 16.10. ist **keine automatische Migration/RC4-Integration**.
+
+## Phoenix Boost – Diagnose, Sprint 1 und Sprint 2
+
+### Ausgangslage und bestätigte Ursachen
+
+Phoenix Boost funktionierte bei kurzen Prompts, meldete aber bei einem längeren englischen `Sunflowers`-Preset mit **92 Wörtern** „KI-Optimierung fehlgeschlagen / Phoenix-Ersatzoptimierung wird verwendet“. Der konkrete vollständige Wortlaut des Presets ist aus `presets/sunflowers.json` zu laden, nicht zu erfinden.
+
+Antigravity führte eine Read-only-Diagnose aus: Qwen2.5 3B über Ollama lieferte HTTP 200, gültiges JSON, ca. 38,4 s im dokumentierten Live-Test. Auslöser der Ablehnung war die starre `StructuralValidator.validate`-Grenze `len(candidate.split()) > 65` → `word_count_exceeded`. Daneben erkannte die Semantikextraktion manche lange Subjekte schlecht (z. B. `child`), und `in the background` konnte zu falschem Location-Lock führen. Eine Cache-Invalidierung bei Validierungs-ValueError wurde als weiterer unabhängiger Schwachpunkt gefunden und **nicht** im heutigen Fix geändert.
+
+Zweite Ursache: `PhoenixBoostEngine.controlled_rewrite` koppelte die Fallback-Begriffe `natural skin texture`, `fine facial detail`, `realistic hair detail` hart an `sunflower`, auch ohne Person im Bild. Die einschlägigen Phoenix-Dateien hatten sich gegenüber Referenzcommit `51d190f2` bis zur Diagnose nicht geändert: **alte Implementierungsfehler**, keine spätere neue Regression.
+
+### Sprint 1 – motivtreuer Fallback
+
+- Lokaler Codex-Fix in `engine/boost_engine.py` / `tests/test_expandable_prompt.py` (DE/EN/ES).
+- Reines Blumen-/Sonnenblumenmotiv bekommt keine erfundenen Haut-/Gesichts-/Haarattribute mehr; bei „A woman in a sunflower field, realistic photo“ bleiben personenpassende Attribute möglich.
+- Originalprompt/Locked Semantics unverändert, keine Parameter- oder Inferenzänderungen.
+- Tests laut Codex: relevante Boost-Tests 30 PASS + 16 Subtests; gesamte damalige Testdatei 86 PASS, ein Tk/Escape-Test im Gesamtlauf order-dependent FAIL, isoliert PASS; py_compile PASS. `CODE_PASS=YES`. Sicherung `C:\Users\holge\Desktop\boost_engine.py.before_sunflower_fix_20261018_163925.bak` mit Hashgleichheit.
+
+### Sprint 2 – lange Prompts
+
+- Lokaler Codex-Fix derselben beiden Dateien; `StructuralValidator.validate` berücksichtigt jetzt die Originalwortanzahl: bis 65 Originalwörter bleibt Limit 65; darüber liegt das Limit bei aufgerundeten **125 %** der Originalwörter. Beispiel Original 88, Kandidat 93, Limit 110 → gültig. Überexpansion bleibt begrenzt, keine automatische Kürzung, Locked Semantics / Prefix-Preservation erhalten.
+- Letzter fokussierter Lauf 11 PASS + 10 Subtests; größerer Boost-Lauf vor letzter Grenzpräzisierung 33 PASS + 16 Subtests; py_compile und scoped diff PASS. `CODE_PASS=YES`.
+- Backups (bytegleich verifiziert):
+  - `C:\Users\holge\Desktop\boost_engine.py.before_long_prompt_fix_20261018_171853.bak` (SHA256 `5C11D1B0E2DB7A5091470290E25AC82012B4A171795DB3E288D139F336B87B78`)
+  - `C:\Users\holge\Desktop\test_expandable_prompt.py.before_long_prompt_fix_20261018_171853.bak` (SHA256 `C005BCF3A52E144EFCE0C438BAB82FB60B0C154488147AB632FDDE934C885EE9`).
+- **Holger bestätigte in der Entwickler-App ausdrücklich: „KI-Optimierung abgeschlossen“ auch beim langen Prompt.** Damit ist der ursprüngliche Langprompt-Fehler im direkten Python-GUI-Test behoben; noch kein Frozen-/Clean-Test und noch kein quantitativer Bildqualitäts-PASS.
+- Produktqualität bleibt offen: Ein mit Boost generiertes Bild einer Frau im Sonnenblumenfeld zeigte eine **frei im Himmel schwebende Sonnenblumenblüte** (eventuell als Sonne fehlinterpretiert; tatsächliche Ursache unbekannt). Negative Prompts wirkten über mehrere Motive hinweg kurz/ähnlich; motivspezifische Negative-Prompt-Optimierung nur als eigener zukünftiger Diagnose-/Qualitätsblock, nicht stillschweigend implementieren.
+- Ein belastbarer Qualitäts-A/B-Test braucht identisches Bildmodell, festen Seed, Auflösung, Steps, CFG, Sampler, Scheduler und Originalprompt; nur kontrollierte Boost-Anwendung ändern. Zuerst hatte die GUI Seed `-1`, deshalb war das fehlerhafte alte Bild nicht reproduzierbar. Geplant: Originalprompt `A woman in a sunflower field, realistic photo`, Seed `42`, SD3.5 Medium, 1024×1024, 8 Steps, CFG 3.5, FlowMatch Euler, Shift 3.0, einmal ohne und einmal mit Boost. **Noch nicht als durchgeführt bestätigt.** Bei negativem Ergebnis Strict Recovery statt kosmetischer Prompt-/Negative-Prompt-Überkorrektur.
+
+## Generierungsmetadaten – Root Cause und Sprint 3
+
+### Diagnose
+
+Die am 18.10. mit Boost erzeugten Bilder `generate_01f6792e`, `generate_7f94ad0b`, `generate_06a8ccdd` hatten jeweils ein gleichnamiges JSON-Sidecar, das nur die sechs ControlNet-Felder enthielt. PIL-Check auf allen drei PNGs: `INFO_KEYS: []`, keine eingebetteten PNG-Text-Chunks.
+
+Antigravity Read-only-Diagnose: `controllers/generation_pipeline.py` / `ImageGenerationPipeline.finish()` schrieb nur ControlNet und `phoenix_boost_*` aus `result.metadata`. Bereits verfügbare `self.job.parameters` (Prompt, Negative Prompt, Modell, Auflösung, Steps, CFG, Sampler, Scheduler) und der vom QAI/HTP-Worker aufgelöste tatsächliche Seed aus `result.metadata['seed']` wurden nicht in den Sidecar übernommen. Der Compare-Workspace liest vorhandene Sidecar-Keys korrekt und zeigt sonst `-`; keine eigenständige Compare-Root-Cause. Die QAI-Worker speicherten das PNG ohne PngInfo, daher auch keine PNG-Metadaten.
+
+### Implementierung
+
+- Lokaler Codex-Fix ausschließlich in `controllers/generation_pipeline.py` / `ImageGenerationPipeline.finish()` und `tests/test_sidecar_metadata.py`.
+- Sidecar enthält bei neuen Generierungen Prompt, Negative Prompt, Modell, Breite/Höhe, Steps, CFG, Sampler, Scheduler, Backend und **tatsächlich vom Backend gemeldeten Seed**; bestehende ControlNet-/Phoenix-Boost-/Backendfelder und bestehendes Sidecar-Schema respektiert. Bei `Seed=-1` ohne tatsächlichen Backendseed wird `null` geschrieben, nie eine erfundene reproduzierbare Zahl. Atomisches Sidecar-Schreiben bleibt.
+- **Keine Änderung an PNG-Embedding**, keine rückwirkende Reparatur alter PNG-/JSON-Dateien. Das sind getrennte spätere Aufgaben.
+- Tests laut Codex: 32 PASS + 3 Subtests, py_compile PASS, scoped git diff PASS; `CODE_PASS=YES`.
+- Verifizierte Backups:
+  - `C:\Users\holge\Desktop\generation_pipeline.py.before_sidecar_metadata_20261018_180624.bak` (SHA256 `F540821957A095248E195FF819445A8C977AE7153290A5DEDA141F6B12F1546C`)
+  - `C:\Users\holge\Desktop\test_sidecar_metadata.py.before_sidecar_metadata_20261018_180624.bak` (SHA256 `692C1C85B28F72F850ED37B086AE2AEAFB19A9099AC185B6ECAE86E5036241BF`).
+
+### Reale Entwickler-GUI-Abnahme
+
+- Nach einem zwischenzeitlichen, nicht weiter reproduzierten Dialog „No compatible and available backend was found“ gelang eine neue SD3.5-NPU/HTP-Generierung; den sporadischen Backend-Dialog nur bei erneuter Reproduktion separat untersuchen, nicht aus dem Sidecar-Fix eine Ursache ableiten.
+- Neues PNG `C:\SnapdragonAI\output\generate_bfe344cf.png` mit JSON-Sidecar.
+- Tatsächlicher JSON-Inhalt laut PowerShell: `prompt="A red vintage car parked on a country road, realistic photo"`, `negative_prompt="blurry, distorted, low quality"`, `model="stable_diffusion_v3_5_qai"`, `width=height=1024`, `steps=8`, `cfg=3.5`, `sampler="FlowMatch Euler"`, `scheduler="Shift 3.0"`, `seed=2695874076`, `backend="Qualcomm SD3.5 Medium QAI AppBuilder (HTP)"`, ControlNet disabled mit übrigen Null-Feldern.
+- Holgers Screenshot des Bildvergleichs bestätigte die Anzeige von Modell, Prompt, Negative Prompt, Seed und Steps für das neue Bild; alte Bilder ohne Metadaten zeigen weiter fehlende Felder.
+- **`SIDECAR_PRODUCT_PASS=YES` für SD3.5 in der direkt gestarteten Entwickler-App und Compare-Anzeige.** Keine pauschale Freigabe für andere Modelle, Phoenix-Boost-Sidecar-Sonderfälle, Frozen-App oder RC2CleanTest.
+
+## Sicherung des fertig getesteten Arbeitsstands und lokale Commits
+
+Nach den drei Fix-Sprints wurde der **aktuelle** vierteilige Fixstand zusätzlich auf dem Desktop gesichert. Eine erste PowerShell-Fortsetzung scheiterte nach Öffnen eines neuen PowerShell-Fensters an fehlenden Sitzungsvariablen; daraus entstand **kein erfolgreicher Backup-Nachweis**. Danach wurde ein vollständig eigenständiger PowerShell-Block ausgeführt und bestätigt:
+
+```text
+BACKUP_PASS=YES
+SHA256_VERGLEICH=PASS
+DATEIEN_GESICHERT=4
+BACKUP_PFAD=C:\Users\holge\Desktop\HK_NPU_FIX_BACKUP_20261018_204100
+REPOSITORY_UNVERAENDERT=YES
+COMMIT=NO
+PUSH=NO
+```
+
+Gesichert und hashgleich verglichen:
+- `engine/boost_engine.py`
+- `tests/test_expandable_prompt.py`
+- `controllers/generation_pipeline.py`
+- `tests/test_sidecar_metadata.py`
+
+Erst danach wurden **mit Holgers Zustimmung** genau diese vier Dateien in zwei getrennten, lokal erfolgreichen Git-Commits aufgenommen. Vor jedem Commit: leere Staging-Area, Backup-Hashabgleich, exakt zwei erwartete Dateien, scoped staged diff/check. Keine fremden Dateien gestaged. `PHOENIX_COMMIT=PASS`, `METADATA_COMMIT=PASS`; `LOCAL_COMMITS=2`, `BUILD=NO`, `PUSH=NO`. HEAD `8b7b35a3`, Branch `main` zwei Commits vor `origin/main`.
+
+## Offene Entwicklungsaufgaben – aktuelle Priorität
+
+Ursprüngliche Reihenfolge: (1) Phoenix Boost, (2) Prompt/Tags/Metadaten, (5) Prompt-Persistenz nach Neustart, (3) Drag & Drop in relevanten Bildbereichen, (4) Batch Generation für alle Modelle.
+
+- Punkt 1: technisch funktionsfähig; Langprompt-Fehler und motivfremder Sonnenblumen-Fallback lokal korrigiert und committed. **Qualitätsverbesserung ist nicht bewiesen**; schwebende Sonnenblume, ähnliche kurze Negative Prompts und strenger Seed-42-A/B-Test bleiben offen.
+- Punkt 2: **Sidecar-Persistenz und Compare-Anzeige für SD3.5 direkt in der Entwickler-App bestanden**; die breitere Prompt-/Tags-/Metadaten-UI und weitere Modelle separat prüfen, nicht pauschal als fertig behaupten.
+- **Punkt 5 – Prompt-Persistenz:** Implementierung vorhanden. Commit-Beschreibung vom 20.10.2026: `feat(ui): add autosave and autoload for prompt and negative prompt on focus out`. Prompt und Negative Prompt werden beim Verlassen des Eingabefelds automatisch gespeichert und beim erneuten Öffnen/Laden wiederhergestellt. Ein explizit protokollierter manueller Neustart-Abnahmetest ist in dieser Handover nicht belegt; deshalb Code-Implementierung bestätigt, Neustart-Verhalten bei der nächsten gezielten Produktprüfung verifizieren.
+- Punkt 3: globales Drag & Drop – noch offen.
+- **Punkt 4 – Batch-/Mehrfachgenerierung:** Die Batch-UI-Punkte wurden laut letztem Projektstand erledigt. Nicht mehr als „noch nicht implementiert“ führen. Die vollständige Ende-zu-Ende-Funktion für alle Bildmodelle einschließlich unterschiedlicher Seeds, Fortschritt, Abbruch, Erhalt bereits erzeugter Ergebnisse und strukturierter Metadaten ist anhand der vorliegenden Angaben nicht für jedes Modell separat abgenommen; gezielt verifizieren, bevor sie als vollständig produktionsgeprüft gilt.
+- QAIRT-2.50-Migrations-Audit und ausstehende Qualcomm-Redistributionsantwort bleiben als unabhängige technische/rechtliche Blöcke offen; nicht mit den UI-/Boost-Sprints vermischen.
+
+## Nächster sicherer Schritt nach dieser Handover
+
+1. **Kein neuer Build/Commit/Push ohne ausdrückliche Freigabe.** Der aktuelle lokale Stand ist sicher auf Desktop und in zwei Git-Commits. Bei Bedarf zuerst `git status --short --branch`, `git rev-parse HEAD` und `git rev-parse origin/main` nur lesen.
+2. Qualitäts-A/B-Test in der **direkten Entwickler-App** mit exakt identischem Seed `42` und identischen übrigen Parametern; Originalprompt ohne Boost gegen denselben Prompt mit Boost vergleichen. Beide Original-PNGs und JSON-Sidecars bewahren. Nicht den bereits generierten alten Fehlerfall mit Seed `-1` als kontrollierte Baseline behandeln.
+3. Sichtbaren Effekt bewerten: schwebende Objekte, Motivtreue, Anatomie, Textur, keine Prompt-Drift, tatsächliche Qualitätssteigerung; nur bei nachgewiesener Ursache neuen eng begrenzten Read-only-Diagnosesprint oder Fixplan starten. Negative-Prompt-Motivabhängigkeit ist **nicht** automatisch Teil dieses Fixes.
+4. Danach die übrigen Punkte in der festgelegten Reihenfolge einzeln behandeln, jeweils BACKUP/FESTPLATTE D/TOOL/DAUER/SCOPE voranstellen.
+5. Für Release-/Installer-/Portabilitätsaussagen bleiben Frozen-App und RC2CleanTest erforderlich. Bisherige direkte Entwickler-App-Tests ersetzen sie nicht.
+
+## Handover-Übernahme und Datensicherheit
+
+Diese Datei ist die **vollständige bisherige Chronik plus diese neue Ergänzung**; ältere Inhalte dürfen niemals gekürzt oder ersetzt werden. Download-Dateiname **exakt** `CHATGPT_HANDOVER.md`. Download in `%USERPROFILE%\Downloads` speichern und anschließend `C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd` starten; das vorhandene CMD übernimmt nach `C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md` und prüft SHA-256. Hier wird das lokale Repository **nicht direkt verändert**. Externe D:-Festplatte dafür nicht anschließen, solange das CMD/konkrete Ziel sie nicht benötigt.
+
+
+# CHATGPT_HANDOVER – Ergänzung 21. Oktober 2026 – Phoenix Boost-Fidelität und SD3.5-Backendfehler
+
+> Diese Ergänzung wird an die vollständige, unveränderte historische Chronik angehängt. Sie dokumentiert den zuletzt bestätigten Arbeitsbericht und trennt bestätigte Fakten ausdrücklich von noch offenen Diagnosen. Bei Abweichungen gilt der neueste verifizierte lokale Zustand.
+
+## 1. Aktueller Arbeitsrahmen und Schutzregeln
+
+- Produkt: **HK NPU STUDIO**; Repository `C:\SnapdragonAI`; GitHub `https://github.com/Kreuzhofen/hk-npu-studio`; Branch `main`.
+- Codex war für den letzten Auftrag nicht verfügbar. Holger hat ausdrücklich **Antigravity** gewählt.
+- Vor dem jüngsten Fidelity-Sprint wurde ein Backup gemeldet:
+  `C:\SnapdragonAI\backup\phoenix_boost_juvenile_fidelity_20261021_155500`
+- Laut Arbeitsbericht waren die SHA-256-Prüfungen aller vier Sicherungsdateien erfolgreich.
+- Keine externen D:-Arbeiten waren für diesen Quellcode-/Diagnoseschritt erforderlich.
+- Keine Builds, Commits, Pushes oder Releases ohne Holgers ausdrückliche Freigabe.
+- Bekannte lokale Änderungen und untracked Dateien bleiben unangetastet. Nie `git add .`.
+- Letzter sicher bestätigter synchronisierter Ausgangspunkt vor den jüngsten Boost-Änderungen: `b3c9179fb1a6c2da3a18e6271be2082cb534411f`. Nach den jüngsten Arbeiten ist der exakte HEAD-/Status nicht in diesem Handover als neu verifiziert dokumentiert. Vor jeder weiteren Änderung zuerst read-only `git status --short --branch`, `git rev-parse HEAD`, `git rev-parse origin/main` und `git diff --stat` ausführen.
+
+## 2. Phoenix Boost – Stand 20./21. Oktober
+
+### Ausgangsprobleme
+
+Bei realistischen Promptbeispielen wurden wiederholt Probleme mit Motivtreue beobachtet:
+- Qwen-Validierung konnte durch die Formulierung `in the background` fälschlich eine Szenenposition sperren, obwohl Bokeh nur den fotografischen Hintergrund beschrieb.
+- Bei einem Welpen-/Tiermotiv wurde unangemessen `professional portrait photography` ergänzt.
+- Lange Prompts mussten die ursprüngliche Motivsemantik behalten.
+- Der Boost durfte keine nicht angeforderte Pose, keine zusätzlichen Requisiten und keine neuen Bildobjekte erfinden.
+- Ein abgelehnter KI-Kandidat durfte nicht unnötig einen gültigen Cache invalidieren.
+- Synonyme wie `puppy`/`welpe` und `dog` mussten bei der Subjektprüfung semantisch korrekt behandelt werden.
+
+### Durchgeführte technische Arbeit
+
+Die letzten Boost-Sprints konzentrierten sich auf:
+- Trennung von fotografischem Bokeh und tatsächlicher Szenenposition;
+- neutrale Studiofotografie für Tiere statt unpassender Portrait-/Beauty-Attribute;
+- semantische Aliasbehandlung für Subjekte;
+- Erhalt der Promptsemantik bei langen Prompts;
+- Verbot unbegründeter Pose- und Objekt-Erfindungen;
+- gezielte Regressionstests für diese Verträge.
+
+Bekannte zugehörige Dateien aus den Sprints:
+- `C:\SnapdragonAI\engine\boost_engine.py`
+- `C:\SnapdragonAI\engine\boost_ai_service.py`
+- `C:\SnapdragonAI\tests\test_expandable_prompt.py`
+- `C:\SnapdragonAI\tests\test_phoenix_boost_quality.py`
+- `C:\SnapdragonAI\tests\test_sidecar_metadata.py`
+- `C:\SnapdragonAI\widgets\phoenix\views\prompt_view.py` wurde bereits zuvor lokal verändert und muss als bestehende Änderung geschützt bleiben.
+
+### Gemeldete Testergebnisse
+
+- Vor den jüngsten Änderungen: Read-only-Audit mit `130/130` Tests bestanden.
+- Nach den früheren Semantik-/Langprompt-/Alias-Sprints wurden jeweils fokussierte Boost- und Regressionstests ausgeführt; ein Arbeitsbericht nennt zuletzt `test_expandable_prompt.py`: `102 passed`, `test_phoenix_boost_quality.py`: `5 passed`, `test_sidecar_metadata.py`: `6 passed`.
+- Ein Live-Boost-Aufruf lieferte einen gültigen Kandidaten ohne erfundene Pose/Requisiten.
+- Diese Resultate sind **CODE-/Regressionsevidenz**, kein Beweis für eine sichtbare Bildqualitätssteigerung.
+- Die geforderte visuelle Prüfung muss mit echten Vorher-/Nachher-Bildern bei identischem Modell, Seed und identischen Parametern erfolgen. Motivtreue, Anatomie, keine Zusatzobjekte und ein tatsächlich erkennbarer Qualitätsgewinn müssen manuell bewertet werden. Keine `PRODUCT_PASS`-Behauptung nur aus Unit-Tests.
+
+### Nächster sicherer Boost-Schritt
+
+1. Zuerst den aktuellen Git-/Arbeitsbaumzustand read-only feststellen.
+2. Antigravity-Bericht des letzten Auftrags und dessen tatsächlich geänderte Dateien/Testergebnisse prüfen, bevor ein weiterer Fix begonnen wird.
+3. Keine weitere breite Änderung und keine zusätzliche Prompt-/Negative-Prompt-Kosmetik ohne konkrete Reproduktion.
+4. Falls Codeänderungen notwendig sind: nur eine bestätigte Ursache pro Sprint, Backup vor Änderung, danach fokussierte Tests und ein identischer realer Bild-A/B-Test.
+5. Keine Builds, Commits oder Pushes ohne ausdrückliche Freigabe.
+
+## 3. SD3.5-Fehler: „No compatible and available backend was found“
+
+### Bestätigter Fehler
+
+Am 21.10.2026 scheiterte eine Generierung in der direkten Entwickler-App mit:
+
+`RuntimeError: No compatible and available backend was found.`
+
+Bekannte Logdetails:
+- Modell-ID: `stable_diffusion_v3_5_qai`
+- Modellpfad: `C:\SnapdragonAI\models\stable_diffusion_v3_5_qai`
+- Das Modellverzeichnis wurde vom `ModelRepository` als vorhanden/Ready aufgelöst.
+- Fehlerstelle laut Log: `C:\SnapdragonAI\controllers\generation_controller.py`, Zeile 224, in `queue_generation`.
+- Letzter bekannter Fehlerzeitpunkt: `2026-10-21T07:02:06.516516`.
+- Ältere Logs enthalten erfolgreiche SD3.5-NPU/HTP-Aufrufe; das belegt nicht, dass die aktuelle Backend-Auswahl korrekt funktioniert.
+- Ein früherer Fehler für `controlnet_canny_qnn` mit „Modell ist nicht installiert“ ist ein separater Vorfall und darf nicht mit dem SD3.5-Fehler vermischt werden.
+
+### Was noch nicht bewiesen ist
+
+- Die Modellauflösung allein beweist nicht, dass ein kompatibler Backend-Provider registriert und verfügbar ist.
+- Die genaue Ursache ist noch offen: Backendregistrierung, Kompatibilitätsbedingungen, Verfügbarkeit/Initialisierung des QNN-Backends oder ein anderer Fehler im Auswahlpfad sind erst zu prüfen.
+- Es gibt keinen Beleg, dass Phoenix Boost diesen Fehler verursacht.
+- Nicht auf Verdacht das Modell neu installieren, Runtime-Dateien austauschen oder CPU-/GPU-Fallbacks hinzufügen. Der Produktvertrag bleibt QNN/HTP/NPU-only für neuronale Bildinferenz.
+
+### Bereits bereitgestellter read-only PowerShell-Check
+
+Der folgende Block wurde zur Eingrenzung vorbereitet; der erfolgreiche Lauf und seine vollständige Ausgabe sind in diesem Handover noch nicht dokumentiert. Bei Wiederaufnahme aus `C:\SnapdragonAI` ausführen und die Ausgabe sichern:
+
+```powershell
+$ErrorActionPreference = "Continue"
+$Root = "C:\SnapdragonAI"
+
+Write-Host "`n=== 1. EXAKTE FEHLERMELDUNG IM QUELLCODE ===" -ForegroundColor Cyan
+Get-ChildItem "$Root\controllers","$Root\engine" -Recurse -File -Filter "*.py" |
+    Select-String -SimpleMatch "No compatible and available backend was found" -Context 12,12 |
+    ForEach-Object {
+        "`nDATEI: $($_.Path) | ZEILE: $($_.LineNumber)"
+        $_.Context.PreContext
+        $_.Line
+        $_.Context.PostContext
+    }
+
+Write-Host "`n=== 2. BACKEND-AUSWAHL UND KOMPATIBILITAET ===" -ForegroundColor Cyan
+Get-ChildItem "$Root\controllers","$Root\engine" -Recurse -File -Filter "*.py" |
+    Select-String -Pattern "compatible.*backend|available.*backend|backend_registry|registered_backends|backend.*available|resolve_backend|select_backend" -Context 2,4 |
+    Select-Object -First 100 |
+    ForEach-Object {
+        "`n$($_.Path):$($_.LineNumber)"
+        $_.Line
+        $_.Context.PostContext
+    }
+
+Write-Host "`n=== 3. SD 3.5 MODELLDEFINITIONEN ===" -ForegroundColor Cyan
+Get-ChildItem "$Root\resources\models","$Root\models\stable_diffusion_v3_5_qai" -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object {
+        $_.Extension -in ".json",".yaml",".yml",".toml",".py"
+    } |
+    Select-Object FullName,Length
+
+Write-Host "`n=== 4. QNN / BACKEND-INITIALISIERUNGSFEHLER IM HAUPTLOG ===" -ForegroundColor Cyan
+Select-String -Path "$Root\logs\hk_npu_studio.log" `
+    -Pattern "QNN|HTP|backend|RuntimeError|ERROR|Exception|stable_diffusion_v3_5_qai" `
+    -Context 1,2 |
+    Select-Object -Last 100 |
+    ForEach-Object {
+        "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line
+        $_.Context.PostContext
+    }
+```
+
+**Vorgehen nach dem Check:** Ursache anhand konkreter Auswahl-/Registrierungslogik und Logzeilen lokalisieren; erst danach einen eng begrenzten Antigravity-Fixprompt formulieren. Keine Änderung vor bestätigter Root Cause.
+
+## 4. ChatGPT-Speicherwarnung – getrennt vom Repository
+
+Am 21.10. fragte Holger, ob alle ChatGPT-Bilder auf einmal markiert und gelöscht werden können, weil ChatGPT wiederholt „Speicher voll“ meldet.
+
+- Es wurde erklärt, dass Bibliotheksdateien getrennt von Chats verwaltet werden können und dass das Löschen eines Chats die separat in der Bibliothek gespeicherte Datei nicht zwingend entfernt.
+- Die offizielle Hilfe dokumentiert keine bestätigte Funktion, mit der sämtliche noch in der Bibliothek liegenden Bilder in einem Schritt ausgewählt und gelöscht werden.
+- „Alle löschen“ im Bereich „Zuletzt gelöscht“ würde nur bereits gelöschte Dateien betreffen, nicht automatisch alle aktiven Bilder.
+- Holger möchte nicht jedes Bild einzeln anklicken; ein bestätigter Sammellösch-Trick wurde nicht gefunden.
+- Diese ChatGPT-Kontoverwaltung ist **kein Repository-Schritt**. Keine Projektdateien, Handover-Dateien oder Projekt-Chats löschen, um die Bibliothek aufzuräumen. Die Handover-Aktualisierung erfolgt weiterhin über den festgelegten lokalen CMD-Workflow.
+
+## 5. Aktionsliste beim Wiederaufnehmen
+
+1. Aktuellen Git-Status und den letzten Antigravity-Bericht feststellen; keine Annahmen über den noch nicht bestätigten HEAD.
+2. Die bereitgestellte read-only PowerShell-Diagnose zum SD3.5-Backendfehler ausführen und die vollständige Ausgabe auswerten.
+3. Boost-Änderungen anhand des Antigravity-Abschlussberichts kontrollieren und die Regressionstests gezielt wiederholen, falls ihr tatsächlicher Lauf nicht eindeutig belegt ist.
+4. Anschließend den echten visuellen Boost-A/B-Test durchführen; bis dahin keine allgemeine Produktqualitätsfreigabe behaupten.
+5. QAIRT-2.50-Migrations-Audit und Qualcomm-Redistributionsanfrage separat halten.
+6. Keine Builds, Commits, Pushes, Installer oder Releases ohne Holgers ausdrückliche Freigabe.
+
+## Handover-Übernahme
+
+Diese Datei enthält weiterhin die vollständige vorhandene Chronik plus diese Ergänzung. Sie wurde nicht gekürzt oder neu aufgebaut.
+
+- Download-Dateiname: `CHATGPT_HANDOVER.md`
+- Lokaler Übernahmebefehl: `C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd`
+- Ziel: `C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md`
+- Nach dem Download den bestehenden CMD-Workflow verwenden und dessen SHA-256-Prüfung abwarten.
+- Das Repository wurde durch die Erstellung dieser Download-Datei nicht verändert.
+
+# CHATGPT_HANDOVER – Korrektur 21. Oktober 2026 – Batch-UI und Prompt-Persistenz
+
+Diese Korrektur präzisiert den aktuellen Stand; sie ersetzt nicht die historische Chronik. Frühere Aussagen „noch offen“ beziehungsweise „noch nicht implementiert“ zu diesen beiden Punkten sind für den aktuellen Stand überholt.
+
+- **Prompt und Negative Prompt:** Implementierung durch den Commit mit der Beschreibung `feat(ui): add autosave and autoload for prompt and negative prompt on focus out` dokumentiert. Änderungen werden beim Fokusverlust gespeichert und beim erneuten Laden wiederhergestellt. Ein tatsächlich protokollierter Test mit App schließen und neu starten liegt in den vorliegenden Angaben nicht vor; daher nicht fälschlich als unabhängig abgenommener Neustarttest ausgeben.
+- **Batch-/Mehrfachgenerierung:** Die Batch-UI-Punkte wurden als erledigt gemeldet. Die Handover darf den gesamten Batch-Bereich daher nicht mehr als „nicht implementiert“ darstellen. Die vollständige Ende-zu-Ende-Abnahme für jedes unterstützte Bildmodell ist separat zu bestätigen.
+- **Nächste gezielte Produktprüfung:** Prompt eingeben, Fokus aus dem Feld nehmen, App vollständig schließen und neu starten; prüfen, ob Prompt und Negative Prompt wiederhergestellt sind. Batch anschließend mit kleinem Lauf prüfen: mehrere Bilder, Fortschrittsanzeige, Abbruch und Erhalt bereits fertiger Ergebnisse. Keine Builds/Commits/Pushes ohne ausdrückliche Freigabe.
+
