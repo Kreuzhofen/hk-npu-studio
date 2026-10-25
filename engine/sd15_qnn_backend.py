@@ -70,11 +70,10 @@ MODEL_DIR = MODELS_DIR / "stable_diffusion_v1_5_qnn"
 
 
 def _resolve_worker_python() -> str:
-    """Prefer the legacy isolated QNN environment when present, otherwise use this interpreter."""
+    """Prefer the configured QNN environment when present, otherwise use this interpreter."""
     configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
     candidates = [
         Path(configured) if configured else None,
-        TEMP_DIR / "ort_qnn_245_test" / "venv" / "Scripts" / "python.exe",
         Path(sys.executable),
     ]
     for candidate in candidates:

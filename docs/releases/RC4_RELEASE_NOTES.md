@@ -47,4 +47,12 @@
 - **Phoenix Boost Visuelle Qualitätsbewertung**: Die syntaktischen und semantischen Schutzregeln (`StructuralValidator`, `LockedSemantics`, Wortbegrenzung) sowie der mathematische Luminanzfilter sind durch automatisierte Regressionstests belegt. Die kontrollierte visuelle A/B-Qualitätsbewertung (Seed 42 gegen neutrale Baseline) ist eine offene Folgeaufgabe und gilt weiterhin nicht als pauschal nachgewiesen.
 - **Updatefunktion Clean-Test**: Die Updatefunktion ist vollständig implementiert und mit 33 Unit-/Workflow-Tests automatisiert verifiziert. Ein vollständiger Live-Update-Lauf auf einem bereinigten Testsystem (mit echtem GitHub-Asset-Download, UAC-Elevation und Neustart) ist noch nicht unabhängig bestätigt und bleibt eine offene Abnahmeaufgabe.
 - **Photo Restore Modell-Externalisierung**: Die Auslagerung der 1,94 GB großen FiDeSR-Modelle aus dem Hauptinstaller in ein separates NPU-Paket (`.smp`) wartet auf die formale Freigabe der Qualcomm AI Hub BYOM-Redistribution.
-- **Code-Signatur**: Vorabversionen besitzen keine Authenticode-Signatur; Windows SmartScreen zeigt beim Ausführen den Hinweis auf einen unbekannten Herausgeber an.
+- **Code-Signatur & Windows 11 Smart App Control (SAC)**:
+  - *Hintergrund*: HK NPU STUDIO bündelt wissenschaftliche Open-Source-Laufzeitbibliotheken (u. a. NumPy mit OpenBLAS, PyTorch), die upstream auf Windows ARM64 aktuell ohne kommerzielles Authenticode-Zertifikat ausgeliefert werden. Vorabversionen besitzen zudem noch kein kostenpflichtiges EV-Zertifikat.
+  - *SmartScreen*: Beim ersten Ausführen kann Windows SmartScreen einen Hinweis auf einen unbekannten Herausgeber anzeigen („Weitere Informationen“ → „Trotzdem ausführen“).
+  - *Smart App Control (SAC)*: Auf Systemen mit aktiviertem Smart App Control im strikten Modus **„Ein“ (Enforced)** blockiert die Windows-Codeintegrität (`ci.dll`, Event ID 3077) das Laden unsignierter Drittanbieter-DLLs (insb. `scipy_openblas-*.dll`), wodurch der Start mit einem DLL-Initialisierungsfehler abbricht.
+  - *Sichere Alternativen & Transparenz*:
+    - Im standardmäßigen **Evaluierungsmodus** von Smart App Control ist die Ausführung uneingeschränkt möglich.
+    - Für Systeme mit dauerhaft erzwungenem Modus („Ein“) wird empfohlen, Vorabversionen in einer separaten Test-/Evaluierungsumgebung oder direkt aus dem Quellcode über die lokale Python-ARM64-Umgebung (`python gui_v2.py`) zu betreiben.
+    - Eine pauschale Deaktivierung von Windows-Sicherheitsfunktionen wird ausdrücklich nicht empfohlen.
+    - Für zukünftige Releases wird die Anbindung an Microsoft Trusted Signing evaluiert, um auch in strikt geschützten Umgebungen eine signierte Ausführung zu ermöglichen.

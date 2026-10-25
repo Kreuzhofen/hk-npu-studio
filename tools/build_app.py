@@ -70,6 +70,7 @@ RELEASE_DOCUMENTS = (
     (PROJECT_ROOT / "docs" / "user-guide" / "USER_GUIDE_EN.md", "docs/user-guide"),
     (PROJECT_ROOT / "docs" / "user-guide" / "USER_GUIDE_ES.md", "docs/user-guide"),
     (PROJECT_ROOT / "docs" / "releases" / "RC3_RELEASE_NOTES.md", "docs/releases"),
+    (PROJECT_ROOT / "docs" / "releases" / "RC4_RELEASE_NOTES.md", "docs/releases"),
 )
 
 

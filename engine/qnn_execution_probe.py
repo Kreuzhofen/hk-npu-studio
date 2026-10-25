@@ -14,9 +14,9 @@ import ctypes
 import hashlib
 import json
 import logging
-from engine.logging_config import get_logger
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -25,21 +25,79 @@ from typing import Any
 
 import numpy as np
 
-# Ensure global site-packages is appended to import PIL if needed
-global_site_packages = r"C:\Program Files\Python311-arm64\Lib\site-packages"
-if global_site_packages not in sys.path:
-    sys.path.append(global_site_packages)
+# Add project root to sys.path first so internal imports resolve correctly
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-# Add project root to sys.path
-project_root = str(Path(__file__).parent.parent.resolve())
-if project_root not in sys.path:
-    sys.path.append(project_root)
-
+from engine.logging_config import get_logger
 from engine.sd21_qnn_backend import SimpleCLIPTokenizer, StableDiffusion21DDIMScheduler, StableDiffusion21QnnBackend
 from controllers.generation_job import GenerationJob
 from controllers.generation_session import GenerationSessionModel
 
 logger = get_logger("QnnExecutionProbe")
+
+
+def _resolve_probe_python() -> str:
+    """Resolve Python interpreter for probe subprocess.
+    Prefers SNAPDRAGON_QNN_PYTHON if set, otherwise current sys.executable.
+    """
+    configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
+    if configured and Path(configured).is_file():
+        return configured
+    return sys.executable
+
+
+def _resolve_qnn_package_dir(python_executable: str | None = None) -> Path | None:
+    """Find onnxruntime_qnn package directory dynamically without hardcoded paths."""
+    try:
+        import importlib.util
+
+        spec = importlib.util.find_spec("onnxruntime_qnn")
+        if spec is not None and spec.origin is not None:
+            candidate = Path(spec.origin).resolve().parent
+            if candidate.is_dir():
+                return candidate
+    except Exception:
+        pass
+
+    if python_executable:
+        py_path = Path(python_executable).resolve()
+        candidates = [
+            py_path.parent / "Lib" / "site-packages" / "onnxruntime_qnn",
+            py_path.parent.parent / "Lib" / "site-packages" / "onnxruntime_qnn",
+        ]
+        for c in candidates:
+            if c.is_dir():
+                return c
+
+    return None
+
+
+def _resolve_default_model_dir() -> Path:
+    """Resolve default model directory dynamically."""
+    try:
+        from config import MODELS_DIR
+
+        candidate = MODELS_DIR / "stable_diffusion_v2_1_qnn"
+        if candidate.is_dir():
+            return candidate
+        legacy = MODELS_DIR / "stable_diffusion_v2_1"
+        if legacy.is_dir():
+            return legacy
+        return candidate
+    except Exception:
+        return PROJECT_ROOT / "models" / "stable_diffusion_v2_1_qnn"
+
+
+def _resolve_default_report_path() -> Path:
+    """Resolve default report JSON path dynamically."""
+    try:
+        from config import TEMP_DIR
+
+        return TEMP_DIR / "reports" / "qnn_execution_probe_report.json"
+    except Exception:
+        return PROJECT_ROOT / "temp" / "reports" / "qnn_execution_probe_report.json"
 
 
 def _memory_snapshot() -> dict[str, int | None]:
@@ -92,7 +150,16 @@ def load_production_contract(metadata_path: Path) -> dict[str, Any]:
 
     files = data.get("model_files", {})
 
-    # Helper to check nested dict and return value or raise error
+    def get_comp_dict(primary: str, fallback: str) -> dict:
+        val = files.get(primary)
+        if val is not None:
+            return val
+        return files.get(fallback) or {}
+
+    te_meta = get_comp_dict("text_encoder.bin", "text_encoder.onnx")
+    unet_meta = get_comp_dict("unet.bin", "unet.onnx")
+    vae_meta = get_comp_dict("vae.bin", "vae.onnx")
+
     def get_opt(d: dict, *keys: str) -> Any:
         curr = d
         for k in keys:
@@ -103,44 +170,44 @@ def load_production_contract(metadata_path: Path) -> dict[str, Any]:
 
     contract = {
         "text_encoder": {
-            "input_shape": get_opt(files, "text_encoder.bin", "inputs", "tokens", "shape"),
-            "input_dtype": get_opt(files, "text_encoder.bin", "inputs", "tokens", "dtype"),
-            "output_shape": get_opt(files, "text_encoder.bin", "outputs", "text_embedding", "shape"),
-            "output_dtype": get_opt(files, "text_encoder.bin", "outputs", "text_embedding", "dtype"),
-            "scale": get_opt(files, "text_encoder.bin", "outputs", "text_embedding", "quantization_parameters", "scale"),
-            "zero_point": get_opt(files, "text_encoder.bin", "outputs", "text_embedding", "quantization_parameters", "zero_point"),
+            "input_shape": get_opt(te_meta, "inputs", "tokens", "shape"),
+            "input_dtype": get_opt(te_meta, "inputs", "tokens", "dtype"),
+            "output_shape": get_opt(te_meta, "outputs", "text_embedding", "shape"),
+            "output_dtype": get_opt(te_meta, "outputs", "text_embedding", "dtype"),
+            "scale": get_opt(te_meta, "outputs", "text_embedding", "quantization_parameters", "scale"),
+            "zero_point": get_opt(te_meta, "outputs", "text_embedding", "quantization_parameters", "zero_point"),
         },
         "unet": {
-            "latent_shape": get_opt(files, "unet.bin", "inputs", "latent", "shape"),
-            "latent_dtype": get_opt(files, "unet.bin", "inputs", "latent", "dtype"),
-            "latent_scale": get_opt(files, "unet.bin", "inputs", "latent", "quantization_parameters", "scale"),
-            "latent_zero_point": get_opt(files, "unet.bin", "inputs", "latent", "quantization_parameters", "zero_point"),
+            "latent_shape": get_opt(unet_meta, "inputs", "latent", "shape"),
+            "latent_dtype": get_opt(unet_meta, "inputs", "latent", "dtype"),
+            "latent_scale": get_opt(unet_meta, "inputs", "latent", "quantization_parameters", "scale"),
+            "latent_zero_point": get_opt(unet_meta, "inputs", "latent", "quantization_parameters", "zero_point"),
 
-            "timestep_shape": get_opt(files, "unet.bin", "inputs", "timestep", "shape"),
-            "timestep_dtype": get_opt(files, "unet.bin", "inputs", "timestep", "dtype"),
-            "timestep_scale": get_opt(files, "unet.bin", "inputs", "timestep", "quantization_parameters", "scale"),
-            "timestep_zero_point": get_opt(files, "unet.bin", "inputs", "timestep", "quantization_parameters", "zero_point"),
+            "timestep_shape": get_opt(unet_meta, "inputs", "timestep", "shape"),
+            "timestep_dtype": get_opt(unet_meta, "inputs", "timestep", "dtype"),
+            "timestep_scale": get_opt(unet_meta, "inputs", "timestep", "quantization_parameters", "scale"),
+            "timestep_zero_point": get_opt(unet_meta, "inputs", "timestep", "quantization_parameters", "zero_point"),
 
-            "text_emb_shape": get_opt(files, "unet.bin", "inputs", "text_emb", "shape"),
-            "text_emb_dtype": get_opt(files, "unet.bin", "inputs", "text_emb", "dtype"),
-            "text_emb_scale": get_opt(files, "unet.bin", "inputs", "text_emb", "quantization_parameters", "scale"),
-            "text_emb_zero_point": get_opt(files, "unet.bin", "inputs", "text_emb", "quantization_parameters", "zero_point"),
+            "text_emb_shape": get_opt(unet_meta, "inputs", "text_emb", "shape"),
+            "text_emb_dtype": get_opt(unet_meta, "inputs", "text_emb", "dtype"),
+            "text_emb_scale": get_opt(unet_meta, "inputs", "text_emb", "quantization_parameters", "scale"),
+            "text_emb_zero_point": get_opt(unet_meta, "inputs", "text_emb", "quantization_parameters", "zero_point"),
 
-            "output_shape": get_opt(files, "unet.bin", "outputs", "output_latent", "shape"),
-            "output_dtype": get_opt(files, "unet.bin", "outputs", "output_latent", "dtype"),
-            "scale": get_opt(files, "unet.bin", "outputs", "output_latent", "quantization_parameters", "scale"),
-            "zero_point": get_opt(files, "unet.bin", "outputs", "output_latent", "quantization_parameters", "zero_point"),
+            "output_shape": get_opt(unet_meta, "outputs", "output_latent", "shape"),
+            "output_dtype": get_opt(unet_meta, "outputs", "output_latent", "dtype"),
+            "scale": get_opt(unet_meta, "outputs", "output_latent", "quantization_parameters", "scale"),
+            "zero_point": get_opt(unet_meta, "outputs", "output_latent", "quantization_parameters", "zero_point"),
         },
         "vae": {
-            "latent_shape": get_opt(files, "vae.bin", "inputs", "latent", "shape"),
-            "latent_dtype": get_opt(files, "vae.bin", "inputs", "latent", "dtype"),
-            "latent_scale": get_opt(files, "vae.bin", "inputs", "latent", "quantization_parameters", "scale"),
-            "latent_zero_point": get_opt(files, "vae.bin", "inputs", "latent", "quantization_parameters", "zero_point"),
+            "latent_shape": get_opt(vae_meta, "inputs", "latent", "shape"),
+            "latent_dtype": get_opt(vae_meta, "inputs", "latent", "dtype"),
+            "latent_scale": get_opt(vae_meta, "inputs", "latent", "quantization_parameters", "scale"),
+            "latent_zero_point": get_opt(vae_meta, "inputs", "latent", "quantization_parameters", "zero_point"),
 
-            "output_shape": get_opt(files, "vae.bin", "outputs", "image", "shape"),
-            "output_dtype": get_opt(files, "vae.bin", "outputs", "image", "dtype"),
-            "scale": get_opt(files, "vae.bin", "outputs", "image", "quantization_parameters", "scale"),
-            "zero_point": get_opt(files, "vae.bin", "outputs", "image", "quantization_parameters", "zero_point"),
+            "output_shape": get_opt(vae_meta, "outputs", "image", "shape"),
+            "output_dtype": get_opt(vae_meta, "outputs", "image", "dtype"),
+            "scale": get_opt(vae_meta, "outputs", "image", "quantization_parameters", "scale"),
+            "zero_point": get_opt(vae_meta, "outputs", "image", "quantization_parameters", "zero_point"),
         }
     }
 
@@ -194,19 +261,19 @@ def check_and_hash_output(name: str, out_arr1: np.ndarray, out_arr2: np.ndarray,
 class QnnExecutionProbe:
     """Orchestrates QNN session execution probe for Stable Diffusion 2.1."""
 
-    def __init__(self, model_dir: str | Path = r"C:\SnapdragonAI\models\stable_diffusion_v2_1", prompt: str | None = None, seed: int | None = None):
-        self.model_dir = Path(model_dir)
+    def __init__(self, model_dir: str | Path | None = None, prompt: str | None = None, seed: int | None = None):
+        self.model_dir = Path(model_dir) if model_dir is not None else _resolve_default_model_dir()
         self.metadata_path = self.model_dir / "metadata.json"
         self.prompt = prompt or "A cinematic portrait of a red fox in a misty forest, highly detailed, natural lighting"
         self.seed = seed if seed is not None else 42
 
     def run_subprocess_probe(self) -> dict[str, Any]:
         """Runs the session probe inside the virtual environment via subprocess to isolate drivers."""
-        venv_python = r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Scripts\python.exe"
+        worker_python = _resolve_probe_python()
         script_path = Path(__file__).resolve()
 
         cmd = [
-            venv_python, str(script_path),
+            worker_python, str(script_path),
             "--subprocess-run",
             "--package", str(self.model_dir),
             "--prompt", self.prompt,
@@ -214,7 +281,16 @@ class QnnExecutionProbe:
         ]
         print(f"[Probe Launcher] Starte Subprozess für QNN Sessions: {' '.join(cmd)}", flush=True)
 
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join(
+            part for part in (str(PROJECT_ROOT), env.get("PYTHONPATH", "")) if part
+        )
+        qnn_dir = _resolve_qnn_package_dir(worker_python)
+        if qnn_dir is not None:
+            env["PATH"] = os.pathsep.join((str(qnn_dir), env.get("PATH", "")))
+            env["ADSP_LIBRARY_PATH"] = str(qnn_dir)
+
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
         if result.returncode != 0:
             error_msg = result.stderr or result.stdout or "Subprozess fehlgeschlagen"
             raise RuntimeError(f"Qualifikations-Probe-Subprozess fehlgeschlagen (Code {result.returncode}): {error_msg}")
@@ -230,7 +306,7 @@ class QnnExecutionProbe:
             raise RuntimeError(f"Ungültige JSON-Antwort von Subprozess: {result.stdout}") from e
 
     def run_physical_sessions_on_htp(self) -> dict[str, Any]:
-        """Loads and executes the sessions directly. Must be run in the QNN-enabled venv."""
+        """Loads and executes the sessions directly. Must be run in the QNN-enabled environment."""
         import onnxruntime as ort
         import onnxruntime_qnn as qnn
 
@@ -247,166 +323,174 @@ class QnnExecutionProbe:
 
         options = ort.SessionOptions()
         options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
-
         provider_options = {"backend_path": qnn.get_qnn_htp_path()}
         options.add_provider_for_devices(selected_devices, provider_options)
 
-        results = {}
+        session_model_dir, runtime_layout = StableDiffusion21QnnBackend._prepare_ep_context_runtime_layout(self.model_dir)
 
-        # --- 1. Text Encoder Probe ---
-        print("[QNN Probe HTP] Text Encoder laden...", flush=True)
-        te_path = self.model_dir / "text_encoder.onnx"
-        te_session = ort.InferenceSession(str(te_path), sess_options=options)
+        try:
+            results = {}
 
-        # Verify provider
-        te_providers = te_session.get_providers()
-        if "QNNExecutionProvider" not in te_providers:
-            raise RuntimeError(f"Text Encoder wurde nicht auf QNN geladen: {te_providers}")
+            # --- 1. Text Encoder Probe ---
+            print("[QNN Probe HTP] Text Encoder laden...", flush=True)
+            te_path = session_model_dir / "text_encoder.onnx"
+            te_session = ort.InferenceSession(str(te_path), sess_options=options)
 
-        vocab_path = self.model_dir / "tokenizer" / "vocab.json"
-        merges_path = self.model_dir / "tokenizer" / "merges.txt"
-        tokenizer = SimpleCLIPTokenizer(vocab_path, merges_path)
-        prompt = "A cinematic portrait of a red fox in a misty forest, highly detailed, natural lighting"
-        cond_tokens = tokenizer.tokenize_prompt(prompt)
-        cond_arr = np.array([cond_tokens], dtype=np.int32)
+            # Verify provider
+            te_providers = te_session.get_providers()
+            if "QNNExecutionProvider" not in te_providers:
+                raise RuntimeError(f"Text Encoder wurde nicht auf QNN geladen: {te_providers}")
 
-        print("[QNN Probe HTP] Text Encoder ausführen...", flush=True)
-        t_te_runs = []
-        for i in range(2):
-            t_start = time.perf_counter()
-            out_te = te_session.run(["text_embedding"], {"tokens": cond_arr})[0]
-            t_te_runs.append((time.perf_counter() - t_start) * 1000.0)
-            if i == 0:
-                out_te_first = out_te
+            vocab_path = self.model_dir / "tokenizer" / "vocab.json"
+            merges_path = self.model_dir / "tokenizer" / "merges.txt"
+            tokenizer = SimpleCLIPTokenizer(vocab_path, merges_path)
+            prompt = self.prompt
+            cond_tokens = tokenizer.tokenize_prompt(prompt)
+            cond_arr = np.array([cond_tokens], dtype=np.int32)
 
-        te_hash = check_and_hash_output(
-            "Text Encoder", out_te_first, out_te,
-            contract["text_encoder"]["output_shape"],
-            contract["text_encoder"]["output_dtype"]
-        )
+            print("[QNN Probe HTP] Text Encoder ausführen...", flush=True)
+            t_te_runs = []
+            out_te_first = None
+            for i in range(2):
+                t_start = time.perf_counter()
+                out_te = te_session.run(["text_embedding"], {"tokens": cond_arr})[0]
+                t_te_runs.append((time.perf_counter() - t_start) * 1000.0)
+                if i == 0:
+                    out_te_first = out_te
 
-        results["text_encoder"] = {
-            "runs_ms": t_te_runs,
-            "hash": te_hash,
-            "shape": list(out_te_first.shape),
-            "dtype": str(out_te_first.dtype),
-            "providers": te_providers
-        }
+            te_hash = check_and_hash_output(
+                "Text Encoder", out_te_first, out_te,
+                contract["text_encoder"]["output_shape"],
+                contract["text_encoder"]["output_dtype"]
+            )
 
-        # Prepare inputs for UNet text_emb
-        cond_emb_f = (out_te_first.astype(np.float32) - contract["text_encoder"]["zero_point"]) * contract["text_encoder"]["scale"]
-        cond_emb_unet = np.clip(
-            np.round(cond_emb_f / contract["unet"]["text_emb_scale"]) + contract["unet"]["text_emb_zero_point"],
-            0, 65535
-        ).astype(np.uint16)
+            results["text_encoder"] = {
+                "runs_ms": t_te_runs,
+                "hash": te_hash,
+                "shape": list(out_te_first.shape),
+                "dtype": str(out_te_first.dtype),
+                "providers": te_providers
+            }
 
-        # Cleanup session
-        del te_session
+            # Prepare inputs for UNet text_emb
+            cond_emb_f = (out_te_first.astype(np.float32) - contract["text_encoder"]["zero_point"]) * contract["text_encoder"]["scale"]
+            cond_emb_unet = np.clip(
+                np.round(cond_emb_f / contract["unet"]["text_emb_scale"]) + contract["unet"]["text_emb_zero_point"],
+                0, 65535
+            ).astype(np.uint16)
 
-        # --- 2. UNet Probe ---
-        print("[QNN Probe HTP] UNet laden...", flush=True)
-        unet_path = self.model_dir / "unet.onnx"
-        unet_session = ort.InferenceSession(str(unet_path), sess_options=options)
+            # Cleanup session
+            del te_session
 
-        unet_providers = unet_session.get_providers()
-        if "QNNExecutionProvider" not in unet_providers:
-            raise RuntimeError(f"UNet wurde nicht auf QNN geladen: {unet_providers}")
+            # --- 2. UNet Probe ---
+            print("[QNN Probe HTP] UNet laden...", flush=True)
+            unet_path = session_model_dir / "unet.onnx"
+            unet_session = ort.InferenceSession(str(unet_path), sess_options=options)
 
-        rng = np.random.default_rng(seed=42)
-        latents_f = rng.standard_normal((1, 64, 64, 4), dtype=np.float32)
-        latent_quant = np.clip(
-            np.round(latents_f / contract["unet"]["latent_scale"]) + contract["unet"]["latent_zero_point"],
-            0, 65535
-        ).astype(np.uint16)
+            unet_providers = unet_session.get_providers()
+            if "QNNExecutionProvider" not in unet_providers:
+                raise RuntimeError(f"UNet wurde nicht auf QNN geladen: {unet_providers}")
 
-        t_quant = np.clip(
-            np.round(951 / contract["unet"]["timestep_scale"]) + contract["unet"]["timestep_zero_point"],
-            0, 65535
-        ).astype(np.uint16)
-        t_quant_arr = np.array([[t_quant]], dtype=np.uint16)
+            rng = np.random.default_rng(seed=self.seed)
+            latents_f = rng.standard_normal((1, 64, 64, 4), dtype=np.float32)
+            latent_quant = np.clip(
+                np.round(latents_f / contract["unet"]["latent_scale"]) + contract["unet"]["latent_zero_point"],
+                0, 65535
+            ).astype(np.uint16)
 
-        print("[QNN Probe HTP] UNet ausführen...", flush=True)
-        t_unet_runs = []
-        for i in range(2):
-            t_start = time.perf_counter()
-            out_unet = unet_session.run(
-                ["output_latent"],
-                {"latent": latent_quant, "timestep": t_quant_arr, "text_emb": cond_emb_unet}
-            )[0]
-            t_unet_runs.append((time.perf_counter() - t_start) * 1000.0)
-            if i == 0:
-                out_unet_first = out_unet
+            t_quant = np.clip(
+                np.round(951 / contract["unet"]["timestep_scale"]) + contract["unet"]["timestep_zero_point"],
+                0, 65535
+            ).astype(np.uint16)
+            t_quant_arr = np.array([[t_quant]], dtype=np.uint16)
 
-        unet_hash = check_and_hash_output(
-            "UNet", out_unet_first, out_unet,
-            contract["unet"]["output_shape"],
-            contract["unet"]["output_dtype"]
-        )
+            print("[QNN Probe HTP] UNet ausführen...", flush=True)
+            t_unet_runs = []
+            out_unet_first = None
+            for i in range(2):
+                t_start = time.perf_counter()
+                out_unet = unet_session.run(
+                    ["output_latent"],
+                    {"latent": latent_quant, "timestep": t_quant_arr, "text_emb": cond_emb_unet}
+                )[0]
+                t_unet_runs.append((time.perf_counter() - t_start) * 1000.0)
+                if i == 0:
+                    out_unet_first = out_unet
 
-        results["unet"] = {
-            "runs_ms": t_unet_runs,
-            "hash": unet_hash,
-            "shape": list(out_unet_first.shape),
-            "dtype": str(out_unet_first.dtype),
-            "providers": unet_providers
-        }
+            unet_hash = check_and_hash_output(
+                "UNet", out_unet_first, out_unet,
+                contract["unet"]["output_shape"],
+                contract["unet"]["output_dtype"]
+            )
 
-        del unet_session
+            results["unet"] = {
+                "runs_ms": t_unet_runs,
+                "hash": unet_hash,
+                "shape": list(out_unet_first.shape),
+                "dtype": str(out_unet_first.dtype),
+                "providers": unet_providers
+            }
 
-        # --- 3. VAE Decoder Probe ---
-        print("[QNN Probe HTP] VAE Decoder laden...", flush=True)
-        vae_path = self.model_dir / "vae.onnx"
-        vae_session = ort.InferenceSession(str(vae_path), sess_options=options)
+            del unet_session
 
-        vae_providers = vae_session.get_providers()
-        if "QNNExecutionProvider" not in vae_providers:
-            raise RuntimeError(f"VAE Decoder wurde nicht auf QNN geladen: {vae_providers}")
+            # --- 3. VAE Decoder Probe ---
+            print("[QNN Probe HTP] VAE Decoder laden...", flush=True)
+            vae_path = session_model_dir / "vae.onnx"
+            vae_session = ort.InferenceSession(str(vae_path), sess_options=options)
 
-        # VAE latent input
-        vae_latent_quant = np.clip(
-            np.round(latents_f / contract["vae"]["latent_scale"]) + contract["vae"]["latent_zero_point"],
-            0, 65535
-        ).astype(np.uint16)
+            vae_providers = vae_session.get_providers()
+            if "QNNExecutionProvider" not in vae_providers:
+                raise RuntimeError(f"VAE Decoder wurde nicht auf QNN geladen: {vae_providers}")
 
-        print("[QNN Probe HTP] VAE Decoder ausführen...", flush=True)
-        t_vae_runs = []
-        for i in range(2):
-            t_start = time.perf_counter()
-            out_vae = vae_session.run(["image"], {"latent": vae_latent_quant})[0]
-            t_vae_runs.append((time.perf_counter() - t_start) * 1000.0)
-            if i == 0:
-                out_vae_first = out_vae
+            # VAE latent input
+            vae_latent_quant = np.clip(
+                np.round(latents_f / contract["vae"]["latent_scale"]) + contract["vae"]["latent_zero_point"],
+                0, 65535
+            ).astype(np.uint16)
 
-        vae_hash = check_and_hash_output(
-            "VAE Decoder", out_vae_first, out_vae,
-            contract["vae"]["output_shape"],
-            contract["vae"]["output_dtype"]
-        )
+            print("[QNN Probe HTP] VAE Decoder ausführen...", flush=True)
+            t_vae_runs = []
+            out_vae_first = None
+            for i in range(2):
+                t_start = time.perf_counter()
+                out_vae = vae_session.run(["image"], {"latent": vae_latent_quant})[0]
+                t_vae_runs.append((time.perf_counter() - t_start) * 1000.0)
+                if i == 0:
+                    out_vae_first = out_vae
 
-        results["vae"] = {
-            "runs_ms": t_vae_runs,
-            "hash": vae_hash,
-            "shape": list(out_vae_first.shape),
-            "dtype": str(out_vae_first.dtype),
-            "providers": vae_providers
-        }
+            vae_hash = check_and_hash_output(
+                "VAE Decoder", out_vae_first, out_vae,
+                contract["vae"]["output_shape"],
+                contract["vae"]["output_dtype"]
+            )
 
-        del vae_session
+            results["vae"] = {
+                "runs_ms": t_vae_runs,
+                "hash": vae_hash,
+                "shape": list(out_vae_first.shape),
+                "dtype": str(out_vae_first.dtype),
+                "providers": vae_providers
+            }
 
-        evidence = {
-            "qnn_version": qnn.__version__,
-            "ort_version": ort.__version__,
-            "backend_path": qnn.get_qnn_htp_path(),
-            "provider_library": qnn.get_library_path(),
-            "cpu_fallback_disabled": True,
-            "device_registered": [d.ep_name for d in selected_devices]
-        }
+            del vae_session
 
-        return {
-            "success": True,
-            "components": results,
-            "evidence": evidence
-        }
+            evidence = {
+                "qnn_version": getattr(qnn, "__version__", "unknown"),
+                "ort_version": getattr(ort, "__version__", "unknown"),
+                "backend_path": qnn.get_qnn_htp_path(),
+                "provider_library": qnn.get_library_path(),
+                "cpu_fallback_disabled": True,
+                "device_registered": [d.ep_name for d in selected_devices]
+            }
+
+            return {
+                "success": True,
+                "components": results,
+                "evidence": evidence
+            }
+        finally:
+            if runtime_layout is not None:
+                shutil.rmtree(runtime_layout, ignore_errors=True)
 
 
 def run_full_headless_generation(probe: QnnExecutionProbe) -> dict[str, Any]:
@@ -462,13 +546,13 @@ def main() -> int:
     parser.add_argument(
         "--package",
         type=str,
-        default=r"C:\SnapdragonAI\models\stable_diffusion_v2_1",
+        default=str(_resolve_default_model_dir()),
         help="Path to the model package directory"
     )
     parser.add_argument(
         "--output",
         type=str,
-        default=r"C:\SnapdragonAI\temp\r006\qnn_execution_probe_report.json",
+        default=str(_resolve_default_report_path()),
         help="Path to write the report JSON file"
     )
     parser.add_argument(
@@ -486,21 +570,21 @@ def main() -> int:
     parser.add_argument(
         "--subprocess-run",
         action="store_true",
-        help="Internal flag: Execute physical QNN session verification inside venv"
+        help="Internal flag: Execute physical QNN session verification inside isolated subprocess"
     )
     args = parser.parse_args()
 
-    # If run inside the venv subprocess
+    # If run inside the worker subprocess
     if args.subprocess_run:
-        # Setup paths (ensure we locate DLLs and libraries correctly)
-        qnn_dir = Path(r"C:\SnapdragonAI\temp\ort_qnn_245_test\venv\Lib\site-packages\onnxruntime_qnn")
-        os.environ["PATH"] = str(qnn_dir) + os.pathsep + os.environ.get("PATH", "")
-        os.environ["ADSP_LIBRARY_PATH"] = str(qnn_dir)
-        if hasattr(os, "add_dll_directory"):
-            try:
-                os.add_dll_directory(str(qnn_dir))
-            except Exception:
-                pass
+        qnn_dir = _resolve_qnn_package_dir()
+        if qnn_dir is not None:
+            os.environ["PATH"] = str(qnn_dir) + os.pathsep + os.environ.get("PATH", "")
+            os.environ["ADSP_LIBRARY_PATH"] = str(qnn_dir)
+            if hasattr(os, "add_dll_directory"):
+                try:
+                    os.add_dll_directory(str(qnn_dir))
+                except Exception:
+                    pass
 
         try:
             probe = QnnExecutionProbe(model_dir=args.package, prompt=args.prompt, seed=args.seed)
@@ -534,13 +618,6 @@ def main() -> int:
         int(mem_after.get("process_working_set_bytes") or 0)
     )
 
-    # Determine overall qualification status
-    # Qualified if:
-    # 1. Session probe succeeded for all 3 components
-    # 2. Plausible non-constant outputs with matching shapes/types
-    # 3. Deterministic output hashes
-    # 4. Headless generation succeeded and generated a real image file
-    # 5. QNN Execution Provider was used on Hexagon HTP without fallback
     qualified = False
     rejection_reasons = []
 

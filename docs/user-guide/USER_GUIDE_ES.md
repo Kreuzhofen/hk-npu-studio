@@ -1,7 +1,7 @@
 # HK NPU STUDIO – Phoenix Engine
 ## Manual de usuario – Versión 2.0 RC3
 
-> **Proyecto independiente de código abierto para Windows en Snapdragon.**  
+> **Proyecto independiente de código abierto para Windows en Snapdragon.**
 > HK NPU STUDIO no es un producto oficial de Qualcomm Technologies, Inc. y no está patrocinado ni respaldado por Qualcomm.
 
 ---
@@ -43,6 +43,12 @@ Se necesita una conexión a Internet cuando se descargan por primera vez los com
 4. Inicia **HK NPU STUDIO** desde el menú Inicio o desde el acceso directo creado.
 
 > **Windows SmartScreen:** Windows puede mostrar una advertencia para una versión que todavía no sea ampliamente reconocida o no tenga una firma comercial. Utiliza únicamente instaladores obtenidos desde el repositorio oficial del proyecto.
+
+> **Nota sobre Windows 11 Smart App Control (SAC):**
+> HK NPU STUDIO incluye componentes científicos de código abierto en Python (como NumPy y PyTorch) que actualmente se distribuyen en Windows ARM64 sin firmas comerciales Authenticode por parte de sus proyectos de origen.
+> - En el **Modo de evaluación** estándar, Smart App Control permite la ejecución sin restricciones.
+> - Si Smart App Control está configurado estrictamente en **"Activado"**, Windows bloquea la biblioteca OpenBLAS por motivos de integridad de código.
+> - **Recomendación:** No se recomienda desactivar globalmente las protecciones de seguridad de Windows. En su lugar, ejecute las versiones preliminares en entornos de prueba o directamente desde el entorno fuente de Python ARM64 (`python gui_v2.py`). Se está evaluando Microsoft Trusted Signing para versiones futuras.
 
 Para el uso normal del instalador publicado no es necesario instalar Python por separado.
 
@@ -532,5 +538,5 @@ El objetivo sigue siendo deliberadamente sencillo:
 ---
 
 **HK NPU STUDIO – Phoenix Engine**
-Holger Kreuzhofen  
+Holger Kreuzhofen
 Founder & Lead Developer

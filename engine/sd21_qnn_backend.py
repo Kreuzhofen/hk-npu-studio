@@ -78,7 +78,6 @@ def _resolve_worker_python() -> str:
     configured = os.environ.get("SNAPDRAGON_QNN_PYTHON", "").strip()
     candidates = [
         Path(configured) if configured else None,
-        TEMP_DIR / "ort_qnn_245_test" / "venv" / "Scripts" / "python.exe",
         Path(sys.executable),
     ]
     for candidate in candidates:
@@ -89,10 +88,21 @@ def _resolve_worker_python() -> str:
 
 def _qnn_package_dir_for_worker(worker_python: str) -> Path | None:
     interpreter = Path(worker_python).resolve()
-    if interpreter.parent.name.casefold() != "scripts":
-        return None
-    candidate = interpreter.parent.parent / "Lib" / "site-packages" / "onnxruntime_qnn"
-    return candidate if candidate.is_dir() else None
+    if interpreter.parent.name.casefold() == "scripts":
+        candidate = interpreter.parent.parent / "Lib" / "site-packages" / "onnxruntime_qnn"
+        if candidate.is_dir():
+            return candidate
+    try:
+        import importlib.util
+
+        spec = importlib.util.find_spec("onnxruntime_qnn")
+        if spec is not None and spec.origin is not None:
+            candidate = Path(spec.origin).resolve().parent
+            if candidate.is_dir():
+                return candidate
+    except Exception:
+        pass
+    return None
 
 
 def _configure_active_qnn_runtime_path() -> None:
