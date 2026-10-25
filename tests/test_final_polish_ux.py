@@ -41,7 +41,7 @@ def test_about_dialog_uses_the_canonical_window_icon():
         ]
         expected_branding = [
             BrandManager.HEADER_BRAND_NAME,
-            "VERSION 2.0 RC3",
+            brand.version_string(),
             BrandManager.PLATFORM_DESCRIPTION,
             BrandManager.SLOGAN,
             BrandManager.PHOENIX_BOOST_CREDIT,

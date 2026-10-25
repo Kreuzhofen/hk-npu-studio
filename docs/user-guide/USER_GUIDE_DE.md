@@ -1,5 +1,5 @@
 # HK NPU STUDIO – Phoenix Engine
-## Benutzerhandbuch – Version 2.0 RC3
+## Benutzerhandbuch – Version 2.0 RC4
 
 > **Unabhängiges Open-Source-Projekt für Windows auf Snapdragon.**
 > HK NPU STUDIO ist kein offizielles Produkt von Qualcomm Technologies, Inc. und wird nicht von Qualcomm gesponsert oder unterstützt.
@@ -35,10 +35,10 @@ Eine Internetverbindung wird benötigt, wenn erforderliche Komponenten oder Mode
 
 ---
 
-## 3. RC3 installieren
+## 3. RC4 installieren
 
 1. Lade den aktuellen ARM64-Installer aus dem offiziellen GitHub-Release von HK NPU STUDIO herunter.
-2. Starte `HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe`.
+2. Starte `HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe`.
 3. Folge dem Windows-Installationsassistenten.
 4. Starte anschließend **HK NPU STUDIO** über das Startmenü oder die angelegte Verknüpfung.
 
@@ -280,7 +280,7 @@ ControlNet ist nicht für jede Modellvariante verfügbar. Die Oberfläche richte
 
 Historische und Schwarz-Weiß-Fotos restaurieren, Details bewahren und hochskalieren – lokal auf der Snapdragon® NPU.
 
-**Phoenix Image Lab** öffnet in VERSION 2.0 RC3 direkt die AI Fotorestaurierung. Eine vorgelagerte Funktionsauswahl gibt es in diesem Release nicht.
+**Phoenix Image Lab** öffnet in VERSION 2.0 RC4 direkt die AI Fotorestaurierung. Eine vorgelagerte Funktionsauswahl gibt es in diesem Release nicht.
 
 ### Faithful Restore und 4×-Ausgabe
 
@@ -513,9 +513,15 @@ Die Verwendung dieser Namen beschreibt technische Plattformen bzw. Kompatibilit�
 
 ---
 
-## 23. RC3 auf einen Blick
+## 23. RC4 auf einen Blick
 
-RC3 konzentriert sich auf einen zuverlässigen und verständlichen Anwenderflow sowie eine modernisierte Oberfläche:
+RC4 erweitert den zuverlässigen geführten Ablauf um universelles Drag-and-Drop, dauerhafte Einstellungen, Mehrfachgenerierung und verfeinerten Detailschutz:
+
+- **Universelles Drag-and-Drop:** Nahtlose Datei- und Ordnerablage per Maus direkt in der Galerie, im Bildvergleich (gezielte Zuweisung zu Original- oder Ergebnis-Panel) und im Prompt-Workspace (Referenzbilder mit automatischer ControlNet-Erkennung, Presets und Prompt-Dateien).
+- **Dauerhafte Generierungseinstellungen (Schema v3):** Sämtliche 18 Generierungsparameter bleiben versionssicher und atomar über Anwendungssitzungen hinweg erhalten.
+- **Batch- / Mehrfachgenerierung:** Sequenzielle Erzeugung von 1 bis 99 Bildern direkt im Prompt-Workspace mit deterministischer Seed-Fortführung und transparenter Fortschrittsanzeige.
+- **Phoenix Boost Luminanz-Detailpass:** Mathematischer Luminanzfilter zur gezielten Anhebung lokaler Kontraste und Schärfe ohne Farbtonverschiebung bei striktem semantischem Motivschutz.
+- **Konsolidierte Standard-Presets:** 14 optimierte Qualitätsprofile fest im Anwendungspaket enthalten.
 
 - **Geführte Ersteinrichtung:** Strukturierter Einstieg für neue Benutzer direkt beim ersten Start.
 - **Einsteigerfreundlicher Modell-Manager:** Der Inspector bleibt scrollbar, während die Modellinstallationsleiste und ihre Aktionen erreichbar bleiben.

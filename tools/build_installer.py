@@ -33,7 +33,7 @@ def validate_installer_size_bytes(size_bytes: int) -> None:
     """Keep the release asset below GitHub's limit with an explicit margin."""
     if size_bytes > TARGET_INSTALLER_MAX_BYTES:
         raise RuntimeError(
-            "Installer exceeds the RC3 release size gate: "
+            "Installer exceeds the release size gate: "
             f"{size_bytes} > {TARGET_INSTALLER_MAX_BYTES} bytes "
             f"(GitHub limit: {GITHUB_RELEASE_ASSET_LIMIT_BYTES} bytes)."
         )

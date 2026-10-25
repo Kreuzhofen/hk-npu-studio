@@ -1,5 +1,5 @@
 # HK NPU STUDIO – Phoenix Engine
-## User Guide – Version 2.0 RC3
+## User Guide – Version 2.0 RC4
 
 > **Independent open-source project for Windows on Snapdragon.**
 > HK NPU STUDIO is not an official product of Qualcomm Technologies, Inc. and is not sponsored or supported by Qualcomm.
@@ -35,10 +35,10 @@ An internet connection is required when necessary components or models are downl
 
 ---
 
-## 3. Installing RC3
+## 3. Installing RC4
 
 1. Download the current ARM64 installer from the official HK NPU STUDIO GitHub release.
-2. Start `HKNPUStudio-2.0.0-rc.3-ARM64-Setup.exe`.
+2. Start `HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe`.
 3. Follow the Windows setup wizard.
 4. Start **HK NPU STUDIO** from the Start menu or the created shortcut.
 
@@ -280,7 +280,7 @@ ControlNet is not available for every model variant. The interface adapts to the
 
 Restore historical and black-and-white photos, preserve details, and upscale – locally on the Snapdragon® NPU.
 
-In VERSION 2.0 RC3, **Phoenix Image Lab** opens AI Photo Restoration directly. This release does not show an intermediate feature-selection page.
+In VERSION 2.0 RC4, **Phoenix Image Lab** opens AI Photo Restoration directly. This release does not show an intermediate feature-selection page.
 
 ### Faithful Restore and 4× Output
 
@@ -513,9 +513,15 @@ Use of these names describes technical platforms or compatibility and does not i
 
 ---
 
-## 23. RC3 at a Glance
+## 23. RC4 at a Glance
 
-RC3 focuses on a reliable and understandable user workflow, along with a modernized interface:
+RC4 enhances the reliable guided workflow with universal drag-and-drop, persistent settings, batch generation, and refined detail protection:
+
+- **Universal Drag-and-Drop:** Seamless file and folder drop directly into the Gallery, Image Comparison (targeted assignment to Original or Result panels), and Prompt Workspace (reference images with automatic ControlNet activation, presets, and prompt files).
+- **Persistent Generation Settings (Schema v3):** All 18 generation parameters are preserved atomically and version-safely across application sessions.
+- **Batch / Multi-Generation:** Sequential generation of 1 to 99 images directly from the Prompt Workspace with deterministic seed progression and clear step feedback.
+- **Phoenix Boost Luminance Detail Pass:** Mathematical luminance filter for targeted local contrast and sharpness enhancement without hue shifts while strictly preserving semantic subjects.
+- **Consolidated Presets:** 14 optimized quality profiles bundled directly within the application package.
 
 - **Guided Initial Setup:** Structured entry point for new users right from the first start.
 - **Beginner-Friendly Model Manager:** The inspector remains scrollable while the model installation bar and its actions remain accessible.

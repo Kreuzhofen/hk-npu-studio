@@ -4,7 +4,7 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
-## [2.0 RC4] – In Vorbereitung (Dokumentationsstand: 2026-10-25)
+## [2.0 RC4] – 2026-10-25
 
 ### Hinzugefügt
 - **Dauerhafte Speicherung sämtlicher Generierungseinstellungen (Schema v3)**:
