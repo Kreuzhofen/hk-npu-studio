@@ -4,9 +4,17 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
 
 ---
 
-## [Unreleased] – 2026-10-22
+## [2.0 RC4] – In Vorbereitung (Dokumentationsstand: 2026-10-25)
 
 ### Hinzugefügt
+- **Dauerhafte Speicherung sämtlicher Generierungseinstellungen (Schema v3)**:
+  - Einführung von Schema-Version 3 in `ConfigurationManager` mit Unterstützung für atomare, versionsfähige Speicherung aller 18 Generierungsparameter (`prompt`, `negative_prompt`, `model_name`, `seed`, `steps`, `cfg_scale`, `width`, `height`, `sampler`, `scheduler`, `batch_size`, `upscale_profile`, `controlnet_enabled`, `canny_low_threshold`, `canny_high_threshold`, `controlnet_conditioning_scale`, `input_image_path`, `phoenix_boost_enabled`).
+  - Zentrale API in `SettingsManager` (`get_generation_settings`, `save_generation_settings`, `get_default_generation_settings`) unter vollständiger Synchronisation mit bestehenden Schlüsseln (`last_prompt`, `last_negative_prompt`, `active_model_id`).
+  - Vollständige Konsistenz und MVC-Parität über `PromptWorkspaceState`, `PromptWorkspaceModel`, `PromptWorkspaceController`, `GenerationSessionModel` und `PipelineParameters`.
+  - Robuste Validierung und Fallbacks für fehlende, korrumpierte oder typfremde Daten.
+  - Automatisches Wiederherstellen beim Anwendungsstart (`_restore_saved_generation_settings`) und reaktives Speichern bei UI-Änderungen (mit sicherem Debouncing und Destroy-Absicherung).
+  - Umfangreiche automatisierte Testabdeckung in `tests/test_generation_settings_persistence.py`.
+  - Manuell auf `RC2CleanTest` verifiziert: Prompt und Negative Prompt bleiben nach Anwendungsneustart persistent erhalten.
 - **Universelles Drag-and-Drop (Sprint HK-DRAGDROP-01)**:
   - Vollständige Drag-and-Drop-Unterstützung für alle zentralen Phoenix-Workspaces (Gallery, Compare und Prompt Workspace).
   - **Gallery Workspace**: Unterstützt den direkten Import einzelner Bilddateien sowie ganzer Ordnerstrukturen inklusive Sidecar-Metadaten (`.json`) mit anschließender automatischer Selektion und UI-Aktualisierung.
@@ -15,14 +23,47 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
   - **Zentrale DND-Hilfsbibliothek (`widgets/phoenix/dnd_utils.py`)**: Robuste Pfadzerlegung unter Windows (Schutz von Backslashes vor Tcl-Escape-Verlust) und rekursive Registrierung.
   - Saubere Fehlerbehandlung für ungültige, nicht existierende oder nicht unterstützte Dateiformate ohne Anwendungsabstürze.
   - Umfassende automatisierte Testabdeckung in `tests/test_universal_drag_and_drop.py`.
-- **Dauerhafte Speicherung sämtlicher Generierungseinstellungen**:
-  - Einführung von Schema-Version 3 in `ConfigurationManager` mit Unterstützung für atomare, versionsfähige Speicherung aller Generierungsparameter (`prompt`, `negative_prompt`, `model_name`, `seed`, `steps`, `cfg_scale`, `width`, `height`, `sampler`, `scheduler`, `batch_size`, `upscale_profile`, `controlnet_enabled`, `canny_low_threshold`, `canny_high_threshold`, `controlnet_conditioning_scale`, `input_image_path`, `phoenix_boost_enabled`).
-  - Zentrale API in `SettingsManager` (`get_generation_settings`, `save_generation_settings`, `get_default_generation_settings`) unter vollständiger Synchronisation mit bestehenden Schlüsseln (`last_prompt`, `last_negative_prompt`, `active_model_id`).
-  - Vollständige Konsistenz und MVC-Parität über `PromptWorkspaceState`, `PromptWorkspaceModel`, `PromptWorkspaceController`, `GenerationSessionModel` und `PipelineParameters`.
-  - Robuste Validierung und Fallbacks für fehlende, korrumpierte oder typfremde Daten.
-  - Automatisches Wiederherstellen beim Anwendungsstart (`_restore_saved_generation_settings`) und reaktives Speichern bei UI-Änderungen (mit sicherem Debouncing und Destroy-Absicherung).
-  - Umfangreiche Testabdeckung in `tests/test_generation_settings_persistence.py`.
+- **Batch- / Mehrfachgenerierung**:
+  - Sequenzielle Generierung von 1 bis 99 Bildern pro Durchlauf direkt aus dem Prompt-Workspace über ein dediziertes Eingabefeld (`batch_spinbox`).
+  - Deterministische Seed-Steuerung: Bei fest vorgegebenem Basis-Seed wird der Seed für jedes Bild um 1 inkrementiert (`base_seed + i`); bei Seed `-1` wird pro Bild ein neuer Zufalls-Seed gezogen.
+  - Robuste Abbruchbehandlung: Beim Abbrechen (`CANCELLED`) werden bereits fertiggestellte Bilder nicht verworfen, sondern vollständig erhalten und sofort in die Galerie übernommen.
+  - Fortschrittsanzeige mit Ausweisung des aktuellen Batch-Schritts (`Batch X/Y vorbereiten...`).
+  - Manuell auf `RC2CleanTest` verifiziert: 2-Bilder-Generierung erfolgreich abgeschlossen und in Galerie validiert.
+- **Phoenix Boost – Semantische Härtung & Veredelung**:
+  - `StructuralValidator` und `LockedSemantics` in `engine/boost_engine.py`: Erzwingt strikte Treue zum Ursprungsprompt.
+  - Schutz vor Alterstransformation: Juvenile Begriffe (`puppy`, `kitten`, `child`) werden vor der Umwandlung in adulte Formen (`dog`, `cat`, `adult`) geschützt.
+  - Verbot unautorisierter Requisiten (`FORBIDDEN_PROPS_AND_ENTITIES`) und Posen (`POSE_SYNONYMS`): Unterdrückt das Einbringen fremder Objekte (DSLR, Stühle, Tische, Rahmen) oder Posen (Liegen, Knien, Sitzen).
+  - Wortlängengrenze: Kappung kurzer Prompts bei maximal 65 Wörtern; Begrenzung langer Prompts auf maximal +25 % Längenzuwachs.
+  - Deterministischer Detailpass (`PhoenixBoostQualityPass`): Mathematischer Luminanz-Filter mit begrenzter Tonwertanpassung zur Minderung von Kantenüberzeichnung und Wahrung der Farbbalance.
+  - PNG-Sidecar-Metadaten: Speichert Boost-Status, Profil und Prüfsummen (Roh- und Endbild) im Metadaten-JSON.
+  - Hinweis: Code- und Strukturtests bestanden (`tests/test_expandable_prompt.py`); visuelle A/B-Qualitätsbewertung (Seed 42) bleibt offene Folgeaufgabe.
+- **Preset-Konsolidierung & Laufzeit-Bereitstellung**:
+  - 14 validierte Standard-Presets unter `data/presets/*.json` gebündelt und im PyInstaller-Build integriert.
+  - `PresetManager`: Automatisches Kopieren fehlender Standard-Presets in das Nutzerprofil beim ersten Anwendungsstart.
+  - Getestet in `tests/test_preset_manager.py`.
+- **Integrierte Updatefunktion**:
+  - Vollständiger Update-Dienst (`ApplicationUpdateService`) in `engine/application_update_service.py` mit HTTPS-Anbindung an die GitHub-Releases-API.
+  - Automatischer SemVer-Vergleich, Filterung von Vorabversionen und Erkennung passender ARM64-Installer.
+  - Vorbereitung und Integritätsprüfung des Installers anhand von SHA-256-Digests vor dem Ausführen.
+  - Geführter `UpdateDialog` mit Anzeige von Versionsunterschieden, Release Notes und Download-Fortschritt.
+  - Start des Installers im Nutzerkontext via `/SILENT`.
+  - 33 Unit-Tests erfolgreich (`tests/test_application_update_service.py`, `tests/test_update_workflow.py`). Reales E2E-Live-Update auf Testrechner noch nicht unabhängig bestätigt.
 
+## [2.0 RC3] – 2026-09-27
+
+### Hinzugefügt
+- **AI Fotorestaurierung**: Vollständig lokaler Restaurierungspfad über FiDeSR Strong auf der Qualcomm Hexagon NPU via QNN/HTP.
+- **Faithful Restore & Dust Cleanup V4**: Bildtreue Rekonstruktion ohne fremde Texturen, Detailerhalt, 4×-Upscaling, Beibehaltung reiner Graustufen bei Monochrom-Quellen und Beseitigung von Schmutz- und Partikeldefekten.
+- **Gebündelte Photo-Restore-Modelle**: Sämtliche erforderlichen FiDeSR-Kontexte sind direkt im Setup-Paket enthalten (~1,94 GB); kein separater Modelldownload für Fotorestaurierung nötig.
+- **SD3.5 QAI-AppBuilder Integration**: Behebung des Routing- und Frozen-Runtime-Pfads für Stable Diffusion 3.5 Medium (`204235e1`).
+- **Installer-Kompression**: Optimierung der Inno-Setup-Kompression (LZMA2 Solid) zur Einhaltung der 2-GiB-Grenze für GitHub Releases (`083760ee`).
+
+## [2.0 RC2B] – 2026-08-23
+
+### Hinzugefügt
+- **Responsive Phoenix-Ansichten**: Optimierung für Windows-Skalierungen von 100 % bis 175 % mit dynamischem Umbruch und Canvas-Scrollbereichen im Model-Manager und Download-Dialog (`11325ce7`).
+- **Galerie-Hover-Vorschau**: Optionale, persistente Hover-Vorschau in der Galerie-Toolbar mit responsivem Umbruch.
+- **Synchronisierter Bildvergleich**: Synchrones und unabhängiges Panning über gekoppelte Ansichtsflächen mit Normalisierung.
 ## [2.0 RC2A] – 2026-08-17
 
 ### Hinzugefügt

@@ -28613,3 +28613,75 @@ Diese Korrektur präzisiert den aktuellen Stand; sie ersetzt nicht die historisc
 - **Batch-/Mehrfachgenerierung:** Die Batch-UI-Punkte wurden als erledigt gemeldet. Die Handover darf den gesamten Batch-Bereich daher nicht mehr als „nicht implementiert“ darstellen. Die vollständige Ende-zu-Ende-Abnahme für jedes unterstützte Bildmodell ist separat zu bestätigen.
 - **Nächste gezielte Produktprüfung:** Prompt eingeben, Fokus aus dem Feld nehmen, App vollständig schließen und neu starten; prüfen, ob Prompt und Negative Prompt wiederhergestellt sind. Batch anschließend mit kleinem Lauf prüfen: mehrere Bilder, Fortschrittsanzeige, Abbruch und Erhalt bereits fertiger Ergebnisse. Keine Builds/Commits/Pushes ohne ausdrückliche Freigabe.
 
+
+
+# CHATGPT_HANDOVER – Ergänzung 25. Oktober 2026 – RC4-Vorbereitung und Bestätigung der RC2CleanTest-Abnahme
+
+> Diese Ergänzung wird an die unveränderte historische Chronik angehängt. Bei Widersprüchen zu früheren Arbeitsständen gilt immer dieser neueste Abschnitt.
+
+## 1. Bestätigte RC2CleanTest-Testergebnisse
+
+Die zuvor als offen geführten manuellen Produkttests wurden auf dem Testrechner `RC2CleanTest` durch Holger durchgeführt und erfolgreich abgenommen:
+
+1. **Anwendungsstart:** HK NPU STUDIO startet sauber und fehlerfrei aus dem installierten Verzeichnis (`PASS`).
+2. **Prompt- und Negativ-Prompt-Persistenz:** Eingabe von Prompt und Negative Prompt, Fokusverlust, vollständiges Beenden der Anwendung und Neustart durchgeführt. Beide Eingaben wurden vollständig und fehlerfrei wiederhergestellt (`PASS`).
+3. **Batch-Generierung:** Durchlauf einer sequenziellen Generierung mit zwei Bildern erfolgreich abgeschlossen. Beide Ergebnisse wurden ohne Datenverlust erzeugt und erscheinen korrekt in der Galerie (`PASS`).
+
+Frühere Handover-Vermerke, die diese Punkte als „noch nicht unabhängig abgenommen“ bezeichnen, sind für den aktuellen Stand überholt.
+
+## 2. Aktueller Repository- und Integrationsstatus
+
+* **Aktiver Arbeitszweig:** `C:\SnapdragonAI_integration_20261024`
+* **Branch:** `integration_20261024`
+* **HEAD:** `be0f1b5fe12fce24721f822d4a5a326e8a9664ad`
+* **Status zu `origin/main`:** 6 lokale Integrationscommits Vorsprung, 0 Commits Rückstand.
+* **Arbeitsbaum:** Vollständig sauber, keine ungetrackten oder ungesicherten Änderungen.
+* **Ursprüngliches Repository:** `C:\SnapdragonAI` verbleibt unangetastet.
+
+## 3. Vollständige Verbesserungsinventur für RC4
+
+Für den geplanten Release-Kandidaten **HK NPU STUDIO 2.0 RC4** wurden alle enthaltenen Neuerungen umfassend inventarisiert und dokumentiert:
+
+1. **Dauerhafte Generierungseinstellungen (Schema v3):**
+   * Atomare, versionsfähige Speicherung aller 18 Generierungsparameter (`prompt`, `negative_prompt`, `model_name`, `seed`, `steps`, `cfg_scale`, `width`, `height`, `sampler`, `scheduler`, `batch_size`, `upscale_profile`, `controlnet_enabled`, Canny-Parameter, `phoenix_boost_enabled`).
+   * Reaktives Autosave bei Fokusverlust und Beenden mit Debouncing.
+   * Vollständige MVC-Parität in Controllern und Modellen.
+   * Getestet: `tests/test_generation_settings_persistence.py` (PASS) und RC2CleanTest (PASS).
+2. **Universelles Drag-and-Drop (Sprint HK-DRAGDROP-01):**
+   * Vollständige DND-Integration für Gallery (Dateien/Ordner + `.json`-Sidecars), Compare (Zuordnung links/rechts) und Prompt (Referenzbilder, Presets, Prompts).
+   * Robuster Windows-Pfadparser (`widgets/phoenix/dnd_utils.py`) zum Schutz vor Tcl-Escape-Verlusten.
+   * Getestet: `tests/test_universal_drag_and_drop.py` (PASS).
+3. **Batch- / Mehrfachgenerierung:**
+   * Sequenzielle Generierung von 1 bis 99 Bildern pro Durchlauf direkt aus dem Prompt-Workspace.
+   * Deterministische Seed-Inkrementierung (`base_seed + i`) bei festem Seed; neue Zufalls-Seeds bei Seed `-1`.
+   * Robuste Abbruchsicherung: Bereits berechnete Bilder bleiben in der Galerie erhalten.
+   * Getestet: RC2CleanTest mit 2 Bildern (PASS).
+4. **Phoenix Boost – Semantische Härtung & Veredelung:**
+   * `StructuralValidator` und `LockedSemantics`: Verhindert Motivdrift, unbefugte Requisiten (`FORBIDDEN_PROPS_AND_ENTITIES`) und Posenänderungen (`POSE_SYNONYMS`).
+   * Lebensstufenschutz: Schützt juvenile Begriffe (`puppy`, `kitten`, `child`) vor unautorisierter Umwandlung in adulte Formen.
+   * Begrenzung der Wortanzahl: 65 Wörter für kurze Prompts, maximal +25 % Zuwachs für lange Prompts.
+   * `PhoenixBoostQualityPass`: Deterministischer Detailpass auf Luminanzebene zur Kontrastanhebung mit Begrenzung der Tonwertanpassung zur Wahrung der Farbbalance (keine absolute Artefaktfreiheit garantiert).
+   * PNG-Sidecar: Speicherung von Profil, Roh- und Veredelungs-Hashes.
+   * **Wichtiger Hinweis:** Code- und Strukturtests bestanden (`tests/test_expandable_prompt.py`). Die kontrollierte visuelle A/B-Qualitätsbewertung (Seed 42 gegen neutrale Baseline) ist eine offene Folgeaufgabe und gilt weiterhin nicht als pauschal nachgewiesen.
+5. **Integrierte Updatefunktion:**
+   * `ApplicationUpdateService` in `engine/application_update_service.py` fragt GitHub-Releases über HTTPS ab, vergleicht SemVer und validiert SHA-256-Digests vor der Bereitstellung.
+   * Start des Installers im Nutzerkontext via `/SILENT`.
+   * Getestet: 33/33 Unit-Tests bestanden (`test_application_update_service.py`, `test_update_workflow.py`). Ein reales E2E-Live-Update auf einem Clean-PC bleibt unbestätigt.
+6. **Preset-Konsolidierung:**
+   * 14 Standard-Presets unter `data/presets/*.json` gebündelt und im PyInstaller-Build integriert.
+   * `PresetManager`: Automatisches Kopieren fehlender Standard-Presets in das Nutzerprofil beim Erststart.
+   * Getestet: `tests/test_preset_manager.py` (PASS).
+
+## 4. Abgeschlossene Dokumentationsaktualisierung
+
+* `docs/releases/RC4_RELEASE_NOTES.md`: Neu erstellt mit vollständiger Feature-, Test- und Abnahme-Dokumentation.
+* `docs/releases/RC3_RELEASE_NOTES.md`: Historisch erhalten, minimale sachliche Korrektur des LZMA2-Kompressionseintrags.
+* `docs/releases/RELEASE_PREP.md`: Auf RC4-Verfahren aktualisiert (ohne fiktive RC4-Hashes, mit Verweis auf historische RC3-Referenz).
+* `GOVERNANCE/CHANGELOG.md`: Neuer Abschnitt `[2.0 RC4] – In Vorbereitung (Dokumentationsstand: 2026-10-25)` und historische Nachträge für `[2.0 RC3]` und `[2.0 RC2B]`.
+* `README.md`: Umfassende RC4-Verbesserungssektion und Dokumentationsverweise ergänzt.
+
+## 5. Nächster verbindlicher Schritt
+
+1. Keine Quellcode-, Test- oder Build-Änderungen ohne explizite Freigabe.
+2. Der aktuelle Arbeitsstand ist auf D: unter `D:\HK_NPU_STUDIO_BACKUPS\DOCS_PRE_RC4_UPDATE_20261025\` mit identischen Ausgangs-Hashes gesichert.
+3. Vor einem künftigen RC4-Build: `release.json` anheben (`2.0.0-rc.4`), Build ausführen, `dist/release-artifacts.json` neu generieren und erst danach Tag/Release vorbereiten.

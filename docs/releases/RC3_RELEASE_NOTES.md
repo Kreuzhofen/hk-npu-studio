@@ -19,7 +19,7 @@
 - Grayscale input remains grayscale in the RC3 product path.
 - Installed application and user-data paths containing spaces are supported by the Photo Restore QNN input path.
 - Drag and drop is optional at startup. If TkDND cannot load on Windows ARM64, the application continues with the standard file dialog.
-- Large precompiled Photo Restore contexts are stored without redundant LZMA2 recompression to reduce installer build and installation time; normal application files remain compressed.
+- Photo Restore contexts and application files are compressed using solid LZMA2 compression to remain strictly within the GitHub release asset size limit.
 
 ## Fixed
 

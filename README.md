@@ -45,6 +45,7 @@
 
 - [About the Project](#-about-the-project)
 - [See HK NPU STUDIO in Action](#see-hk-npu-studio-in-action)
+- [RC4 — Improvements Since RC3](#-rc4--improvements-since-rc3)
 - [RC3 — Improvements Since RC2B](#-rc3--improvements-since-rc2b)
 - [AI Photo Restoration](#-ai-photo-restoration)
 - [Phoenix Boost](#-phoenix-boost)
@@ -134,6 +135,43 @@ Guide image generation using structural edge information.
 
 ---
 
+<a id="-rc4--improvements-since-rc3"></a>
+<a id="rc4-improvements-since-rc3"></a>
+## 🚀 RC4 — Improvements Since RC3
+
+RC4 introduces significant workflow and persistence improvements, universal drag-and-drop capabilities, semantic locking for Phoenix Boost, sequential batch generation, and consolidated preset management.
+
+### 💾 Persistent Generation Settings (Schema v3)
+- **Restart Persistence:** All 18 generation parameters (`prompt`, `negative_prompt`, `model_name`, `seed`, `steps`, `cfg_scale`, `width`, `height`, `sampler`, `scheduler`, `batch_size`, `upscale_profile`, `controlnet_enabled`, `canny_low_threshold`, `canny_high_threshold`, `controlnet_conditioning_scale`, `input_image_path`, `phoenix_boost_enabled`) are atomically saved and restored upon restarting the application.
+- **Autosave & Debouncing:** Changes are automatically saved on focus-out and window close, eliminating accidental setting loss.
+- **CleanTest Verified:** Confirmed on RC2CleanTest with successful persistence of prompt and negative prompt across full restarts.
+
+### 🖱️ Universal Drag and Drop
+- **Gallery Workspace:** Direct drag-and-drop of individual image files or entire directory trees, including sidecar `.json` metadata, with instant selection and preview.
+- **Compare Workspace:** Targeted drop to the Left ("Original") or Right ("Result") comparison panels, or automatic split distribution on multi-image drop.
+- **Prompt Workspace:** Drop reference images directly into the prompt workspace (with automatic ControlNet activation), preset `.json` files, and prompt `.txt` files across input surfaces.
+- **Path Robustness:** Specialized Windows path parser (`dnd_utils.py`) protecting backslashes and spaces from Tcl escape corruption.
+
+### 🔢 Sequential Batch Generation (1–99 Images)
+- **Configurable Batching:** Generate from 1 to 99 images in sequence directly from the Prompt Workspace.
+- **Smart Seed Sequencing:** Specified seeds increment deterministically (`base_seed + i`) while random seeds (`-1`) generate unique random seeds per image.
+- **Cancel Resilience:** Cancelling a running batch run immediately preserves all previously generated images in the gallery without data loss.
+
+### 🧠 Phoenix Boost Semantic Locking & Image Finishing
+- **Semantic Validator & Locked Intent:** Strict validation against prompt drift, preventing unintended modifications to subjects, clothing, lighting, or setting.
+- **Life-Stage Protection:** Locks juvenile subjects (`puppy`, `kitten`, `child`) from being transformed into adult counterparts (`dog`, `cat`, `adult`).
+- **Entity & Pose Enforcement:** Rejects newly invented studio equipment, furniture, props, or unrequested poses.
+- **Bounded Expansion:** Caps short prompts at 65 words and bounds long prompts to a maximum +25% expansion.
+- **Non-Neural Detail Pass:** Mathematical luminance-based contrast and detail pass (`PhoenixBoostQualityPass`) designed to preserve color balance and minimize edge haloing, with run metrics documented in PNG sidecar metadata. (Visual A/B quality evaluation remains an open follow-up task).
+
+### 📦 Presets & Application Update Service
+- **14 Built-In Presets:** Centralized under `data/presets/*.json` and automatically deployed to user AppData upon initial launch.
+- **Integrated Update Service:** Direct GitHub Releases API integration over HTTPS with SHA-256 integrity verification and silent background installer execution (`ApplicationUpdateService`, 33 unit/workflow tests passed; live clean-machine E2E update unconfirmed).
+
+---
+
+<a id="-rc3--improvements-since-rc2b"></a>
+<a id="rc3-improvements-since-rc2b"></a>
 ## 🚀 RC3 — Improvements Since RC2B
 
 RC3 builds directly on top of RC2B as the baseline, introducing UI responsiveness optimizations, gallery and comparison enhancements, and additional safety and validation measures.
@@ -422,6 +460,8 @@ RC3 includes dedicated user documentation in three languages:
 - 🇩🇪 **Deutsch:** [Benutzerhandbuch](docs/user-guide/USER_GUIDE_DE.md)
 - 🇬🇧 **English:** [User Guide](docs/user-guide/USER_GUIDE_EN.md)
 - 🇪🇸 **Español:** [Manual de usuario](docs/user-guide/USER_GUIDE_ES.md)
+
+Release Notes: [RC4 Release Notes](docs/releases/RC4_RELEASE_NOTES.md) | [RC3 Release Notes](docs/releases/RC3_RELEASE_NOTES.md)
 
 The user guides cover AI Photo Restoration, first-run setup, model installation, Stable Diffusion 3.5 Medium, Phoenix Boost, ControlNet Canny, local data, privacy and troubleshooting.
 
