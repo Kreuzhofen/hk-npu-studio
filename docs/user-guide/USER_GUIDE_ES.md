@@ -10,7 +10,7 @@
 
 HK NPU STUDIO es una aplicación de escritorio para la generación local de imágenes con IA en equipos Windows 11 ARM64 con procesadores Snapdragon. **Phoenix Engine** se encarga de la gestión de modelos, la preparación y la ejecución de las canalizaciones de IA compatibles.
 
-RC3 pone especial énfasis en un flujo guiado: **Instalar → seleccionar un modelo → generar una imagen.** Los detalles técnicos deben permanecer en segundo plano tanto como sea posible durante el uso normal.
+RC4 pone especial énfasis en un flujo guiado: **Instalar → seleccionar un modelo → generar una imagen.** Los detalles técnicos deben permanecer en segundo plano tanto como sea posible durante el uso normal.
 
 La generación de imágenes se ejecuta localmente en el PC. Una vez configurado el modelo necesario, la generación propiamente dicha no requiere, por regla general, un servicio de generación de imágenes en la nube.
 
@@ -56,7 +56,7 @@ Para el uso normal del instalador publicado no es necesario instalar Python por 
 
 ## 4. Primer inicio
 
-RC3 guía a los nuevos usuarios durante la configuración inicial de forma mucho más clara que los candidatos de versión anteriores.
+RC4 guía a los nuevos usuarios durante la configuración inicial de forma mucho más clara que los candidatos de versión anteriores.
 
 La página de inicio muestra el estado actual de configuración. Si todavía no hay ningún modelo utilizable configurado, la aplicación te guía hasta el Gestor de modelos. Tras completar correctamente la configuración, se actualiza el estado de disponibilidad y puedes pasar directamente a la primera generación de imágenes.
 
@@ -102,7 +102,7 @@ Estos modelos no forman parte del mismo flujo estable que los modelos publicados
 
 ## 6. Instalar modelos
 
-RC3 utiliza distintas fuentes y métodos de instalación según el modelo. El Gestor de modelos intenta ocultar estas diferencias y ofrecer un flujo guiado.
+RC4 utiliza distintas fuentes y métodos de instalación según el modelo. El Gestor de modelos intenta ocultar estas diferencias y ofrecer un flujo guiado.
 
 ### Stable Diffusion 1.5
 
@@ -114,7 +114,7 @@ Stable Diffusion 2.1 también está disponible como vía de generación orientad
 
 ### Stable Diffusion 3.5 Medium
 
-RC3 incluye un proceso de configuración mucho más automatizado para **Stable Diffusion 3.5 Medium mediante Qualcomm QAI AppBuilder**. Este flujo se describe por separado en el siguiente capítulo.
+RC4 incluye un proceso de configuración mucho más automatizado para **Stable Diffusion 3.5 Medium mediante Qualcomm QAI AppBuilder**. Este flujo se describe por separado en el siguiente capítulo.
 
 ---
 
@@ -152,7 +152,7 @@ No cierres HK NPU STUDIO durante este proceso y deja que la instalación termine
 
 ### Finalización
 
-Después de la configuración, se validan los archivos del modelo y este queda disponible para HK NPU STUDIO. El flujo de usuario correcto de RC3 se ha probado como una cadena completa:
+Después de la configuración, se validan los archivos del modelo y este queda disponible para HK NPU STUDIO. El flujo de usuario correcto se ha probado como una cadena completa:
 
 **no instalado → configuración correcta en el primer intento → descarga de Qualcomm → importación/validación → activación → generación real de una imagen.**
 
@@ -235,7 +235,7 @@ El boost determinista local funciona sin un modelo de lenguaje adicional. Amplí
 
 El AI Boost opcional utiliza un modelo de lenguaje ejecutado localmente para mejorar el prompt de forma más inteligente.
 
-RC3 utiliza:
+RC4 utiliza:
 
 - **Ollama** como servicio local de modelos
 - **Qwen2.5 3B** como modelo de lenguaje local previsto
@@ -286,9 +286,9 @@ En VERSION 2.0 RC4, **Phoenix Image Lab** abre directamente la restauración de 
 
 La ruta visible del producto utiliza **Restauración fiel**. Se mantiene vinculada a la imagen de origen, conserva los detalles disponibles y crea una salida ampliada 4×. Las imágenes grandes se procesan de forma nativa en mosaicos superpuestos y se reconstruyen sin reducir globalmente la resolución de origen.
 
-**Dust Cleanup V4** elimina de forma conservadora el polvo, las motas y los pequeños defectos detectados. No está diseñado para generar microtextura artificial. La reinyección de textura de piel no forma parte de RC3.
+**Dust Cleanup V4** elimina de forma conservadora el polvo, las motas y los pequeños defectos detectados. No está diseñado para generar microtextura artificial. La reinyección de textura de piel no forma parte de RC4.
 
-Las imágenes en escala de grises permanecen en escala de grises. La colorización y DDColor no son funciones visibles del producto en RC3.
+Las imágenes en escala de grises permanecen en escala de grises. La colorización y DDColor no son funciones visibles del producto en RC4.
 
 ### Uso
 
@@ -300,9 +300,9 @@ Las imágenes en escala de grises permanecen en escala de grises. La colorizaci�
 
 Todas las etapas neuronales de restauración se ejecutan mediante QNN/HTP en la NPU Snapdragon®. La CPU se limita a tareas deterministas de entrada/salida, división en mosaicos, máscaras, composición y posprocesamiento. No existe alternativa de IA en CPU o GPU.
 
-Los modelos FiDeSR necesarios para la restauración de fotos están incluidos en el instalador RC3. La restauración de fotos con IA no requiere una descarga de modelos por separado.
+Los modelos FiDeSR necesarios para la restauración de fotos están incluidos en el instalador. La restauración de fotos con IA no requiere una descarga de modelos por separado.
 
-Relleno generativo, Retoque y Eliminación de objetos no están incluidos en la interfaz de RC3.
+Relleno generativo, Retoque y Eliminación de objetos no están incluidos en la interfaz de RC4.
 
 ---
 
@@ -471,11 +471,11 @@ Solo si quieres utilizar el **Phoenix AI Boost** opcional. La generación normal
 
 ### ¿Qué modelo de lenguaje utiliza Phoenix AI Boost?
 
-RC3 utiliza **Qwen2.5 3B** mediante Ollama.
+RC4 utiliza **Qwen2.5 3B** mediante Ollama.
 
 ### ¿Tengo que recopilar manualmente archivos individuales de Qualcomm para SD3.5?
 
-El flujo de RC3 está diseñado para automatizar la configuración de Qualcomm en la medida de lo posible. El usuario no debería tener que seleccionar manualmente componentes internos individuales del modelo.
+El flujo está diseñado para automatizar la configuración de Qualcomm en la medida de lo posible. El usuario no debería tener que seleccionar manualmente componentes internos individuales del modelo.
 
 ### ¿Puedo eliminar los modelos directamente de sus carpetas?
 

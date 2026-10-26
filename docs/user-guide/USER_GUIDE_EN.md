@@ -10,7 +10,7 @@
 
 HK NPU STUDIO is a desktop application for local AI image generation on Windows 11 ARM64 PCs with Snapdragon processors. The **Phoenix Engine** manages model handling, preparation, and execution of the supported AI pipelines.
 
-RC3 puts particular emphasis on a guided workflow: **Install → select a model → generate an image.** Technical details should remain in the background as much as possible during normal use.
+RC4 puts particular emphasis on a guided workflow: **Install → select a model → generate an image.** Technical details should remain in the background as much as possible during normal use.
 
 Image generation itself runs locally on the PC. Once a required model has been set up, the actual generation process generally does not require a cloud image-generation service.
 
@@ -56,7 +56,7 @@ A separate Python installation is not required for normal use of the published i
 
 ## 4. First Start
 
-RC3 guides new users through initial setup much more clearly than earlier release candidates.
+RC4 guides new users through initial setup much more clearly than earlier release candidates.
 
 The home page shows the current setup state. If no usable model has been configured yet, the application guides you to the Model Manager. After successful setup, the readiness status is updated and you can proceed directly to your first image generation.
 
@@ -102,7 +102,7 @@ These models are not part of the same stable user workflow as released models. E
 
 ## 6. Installing Models
 
-RC3 uses different sources and installation methods depending on the model. The Model Manager attempts to hide these differences and provide a guided workflow.
+RC4 uses different sources and installation methods depending on the model. The Model Manager attempts to hide these differences and provide a guided workflow.
 
 ### Stable Diffusion 1.5
 
@@ -114,7 +114,7 @@ Stable Diffusion 2.1 is also available as a Snapdragon/Qualcomm-oriented image-g
 
 ### Stable Diffusion 3.5 Medium
 
-RC3 includes a substantially more automated setup path for **Stable Diffusion 3.5 Medium via Qualcomm QAI AppBuilder**. This workflow is described separately in the next section.
+RC4 includes a substantially more automated setup path for **Stable Diffusion 3.5 Medium via Qualcomm QAI AppBuilder**. This workflow is described separately in the next section.
 
 ---
 
@@ -152,7 +152,7 @@ Do not close HK NPU STUDIO during this process; allow the installation to comple
 
 ### Completion
 
-After setup, the model files are validated and the model becomes available to HK NPU STUDIO. The successful RC3 user workflow was tested as a complete chain:
+After setup, the model files are validated and the model becomes available to HK NPU STUDIO. The successful user workflow was tested as a complete chain:
 
 **not installed → setup succeeds on the first attempt → Qualcomm download → import/validation → activation → real image generation.**
 
@@ -235,7 +235,7 @@ The local deterministic boost works without an additional language model. It exp
 
 The optional AI Boost uses a locally running language model to improve the prompt more intelligently.
 
-RC3 uses:
+RC4 uses:
 
 - **Ollama** as the local model service
 - **Qwen2.5 3B** as the intended local language model
@@ -286,9 +286,9 @@ In VERSION 2.0 RC4, **Phoenix Image Lab** opens AI Photo Restoration directly. T
 
 The visible product path uses **Faithful Restore**. It remains anchored to the source, preserves available details, and creates a 4× upscaled output. Large images are processed natively in overlapping tiles and reconstructed without globally reducing the source resolution.
 
-**Dust Cleanup V4** conservatively removes detected dust, specks, and small defects. It is not intended to generate artificial microtexture. Skin reinjection is not part of RC3.
+**Dust Cleanup V4** conservatively removes detected dust, specks, and small defects. It is not intended to generate artificial microtexture. Skin reinjection is not part of RC4.
 
-Grayscale images remain grayscale. Colorization and DDColor are not visible product functions in RC3.
+Grayscale images remain grayscale. Colorization and DDColor are not visible product functions in RC4.
 
 ### Usage
 
@@ -300,9 +300,9 @@ Grayscale images remain grayscale. Colorization and DDColor are not visible prod
 
 All neural restoration stages run through QNN/HTP on the Snapdragon® NPU. The CPU is limited to deterministic I/O, tiling, masks, compositing, and postprocessing. There is no CPU- or GPU-AI fallback.
 
-The required FiDeSR Photo Restore models are included in the RC3 installer. AI Photo Restoration does not require a separate model download.
+The required FiDeSR Photo Restore models are included in the release installer. AI Photo Restoration does not require a separate model download.
 
-Generative Fill, Retouch, and Object Removal are not included in the RC3 interface.
+Generative Fill, Retouch, and Object Removal are not included in the RC4 interface.
 
 ---
 
@@ -471,11 +471,11 @@ Only if you want to use the optional **Phoenix AI Boost**. Normal image generati
 
 ### Which language model does Phoenix AI Boost use?
 
-RC3 uses **Qwen2.5 3B** through Ollama.
+RC4 uses **Qwen2.5 3B** through Ollama.
 
 ### Do I need to manually collect individual Qualcomm files for SD3.5?
 
-The RC3 workflow is designed to automate Qualcomm setup as far as possible. Users should not need to manually select individual internal model components.
+The workflow is designed to automate Qualcomm setup as far as possible. Users should not need to manually select individual internal model components.
 
 ### Can I simply delete models from their folders?
 

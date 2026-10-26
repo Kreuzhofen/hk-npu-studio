@@ -56,3 +56,12 @@
     - Für Systeme mit dauerhaft erzwungenem Modus („Ein“) wird empfohlen, Vorabversionen in einer separaten Test-/Evaluierungsumgebung oder direkt aus dem Quellcode über die lokale Python-ARM64-Umgebung (`python gui_v2.py`) zu betreiben.
     - Eine pauschale Deaktivierung von Windows-Sicherheitsfunktionen wird ausdrücklich nicht empfohlen.
     - Für zukünftige Releases wird die Anbindung an Microsoft Trusted Signing evaluiert, um auch in strikt geschützten Umgebungen eine signierte Ausführung zu ermöglichen.
+
+## Verifizierte Build-Artefakte
+
+Die im offiziellen Build-Sprint (RC4-12) erzeugten und validierten Artefakte:
+
+| Artefakt | Relativer Pfad | Dateigröße (Bytes) | SHA-256 Prüfsumme |
+|---|---|:---:|---|
+| **Executable (ARM64)** | `dist/HKNPUStudio/HKNPUStudio.exe` | 79.211.716 | `ec0cb344c102c425d620c10f66a3d7b5845bca443aeaf861f7802579544cfbd2` |
+| **Setup-Installer (ARM64)** | `dist/installer/HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe` | 2.049.367.565 | `b8792f5453d5c0ec5c0d8dbc8a3035e18e598412e529f62b7d04ff863d978601` |

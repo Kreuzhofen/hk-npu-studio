@@ -42,6 +42,19 @@ Dieses Dokument beschreibt die Release-Vorbereitungs- und Prüfschritte für den
 
 ---
 
+## Verifizierte RC4-Build-Artefakte
+
+Die im offiziellen Build-Sprint (RC4-12) erzeugten und validierten RC4-Artefakte:
+
+* **Executable:** `dist/HKNPUStudio/HKNPUStudio.exe`
+  * Dateigröße: `79.211.716` Byte
+  * SHA-256: `ec0cb344c102c425d620c10f66a3d7b5845bca443aeaf861f7802579544cfbd2`
+* **Installer:** `dist/installer/HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe`
+  * Dateigröße: `2.049.367.565` Byte
+  * SHA-256: `b8792f5453d5c0ec5c0d8dbc8a3035e18e598412e529f62b7d04ff863d978601`
+
+---
+
 ## Historische Referenz: RC3-Build-Artefakte
 
 Die im vorherigen Integrationslauf erzeugten und verifizierten RC3-Artefakte dienen als direkte Referenz:

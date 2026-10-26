@@ -49,6 +49,11 @@ Alle signifikanten Änderungen und Veröffentlichungen dieses Projekts werden in
   - Start des Installers im Nutzerkontext via `/SILENT`.
   - 33 Unit-Tests erfolgreich (`tests/test_application_update_service.py`, `tests/test_update_workflow.py`). Reales E2E-Live-Update auf Testrechner noch nicht unabhängig bestätigt.
 
+### Build- & Release-Artefakte (Stand: 2026-10-25)
+- **Executable (ARM64):** `dist/HKNPUStudio/HKNPUStudio.exe` (79.211.716 Byte, SHA-256: `ec0cb344c102c425d620c10f66a3d7b5845bca443aeaf861f7802579544cfbd2`)
+- **Setup-Installer (ARM64):** `dist/installer/HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe` (2.049.367.565 Byte, SHA-256: `b8792f5453d5c0ec5c0d8dbc8a3035e18e598412e529f62b7d04ff863d978601`)
+- **Validierungs-Manifest:** `dist/release-artifacts.json`
+
 ## [2.0 RC3] – 2026-09-27
 
 ### Hinzugefügt

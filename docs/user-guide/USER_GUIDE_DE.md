@@ -10,7 +10,7 @@
 
 HK NPU STUDIO ist eine Desktop-Anwendung für die lokale KI-Bildgenerierung auf Windows-11-ARM64-PCs mit Snapdragon-Prozessoren. Die **Phoenix Engine** übernimmt dabei Modellverwaltung, Vorbereitung und Ausführung der unterstützten KI-Pipelines.
 
-RC3 legt besonderen Wert auf einen geführten Ablauf: **Installieren → Modell auswählen → Bild erzeugen.** Technische Details sollen für die normale Nutzung möglichst im Hintergrund bleiben.
+RC4 legt besonderen Wert auf einen geführten Ablauf: **Installieren → Modell auswählen → Bild erzeugen.** Technische Details sollen für die normale Nutzung möglichst im Hintergrund bleiben.
 
 Die Bildgenerierung selbst läuft lokal auf dem PC. Nach der erforderlichen Einrichtung eines Modells ist für die eigentliche Generierung grundsätzlich keine Cloud-Bildgenerierung erforderlich.
 
@@ -56,7 +56,7 @@ Für die normale Installation über den veröffentlichten Installer muss Python 
 
 ## 4. Der erste Start
 
-RC3 führt neue Benutzer wesentlich stärker durch die Ersteinrichtung als frühere Release Candidates.
+RC4 führt neue Benutzer wesentlich stärker durch die Ersteinrichtung als frühere Release Candidates.
 
 Auf der Startseite zeigt HK NPU STUDIO den aktuellen Einrichtungszustand an. Ist noch kein verwendbares Modell eingerichtet, führt die Anwendung zum Modell-Manager. Nach erfolgreicher Einrichtung wird der Bereitschaftsstatus aktualisiert und der Benutzer kann direkt zur ersten Bildgenerierung wechseln.
 
@@ -102,7 +102,7 @@ Diese Modelle gehören nicht zum gleichen stabilen Benutzerpfad wie die freigege
 
 ## 6. Modelle installieren
 
-RC3 verwendet je nach Modell unterschiedliche Quellen und Installationswege. Der Modell-Manager versucht, diese Unterschiede vor dem Benutzer zu verbergen und einen geführten Ablauf anzubieten.
+RC4 verwendet je nach Modell unterschiedliche Quellen und Installationswege. Der Modell-Manager versucht, diese Unterschiede vor dem Benutzer zu verbergen und einen geführten Ablauf anzubieten.
 
 ### Stable Diffusion 1.5
 
@@ -114,7 +114,7 @@ Stable Diffusion 2.1 steht ebenfalls als Snapdragon-/Qualcomm-orientierter Bildg
 
 ### Stable Diffusion 3.5 Medium
 
-RC3 enthält einen deutlich stärker automatisierten Einrichtungsweg für **Stable Diffusion 3.5 Medium über Qualcomm QAI AppBuilder**. Dieser Ablauf wird im nächsten Kapitel gesondert beschrieben.
+RC4 enthält einen deutlich stärker automatisierten Einrichtungsweg für **Stable Diffusion 3.5 Medium über Qualcomm QAI AppBuilder**. Dieser Ablauf wird im nächsten Kapitel gesondert beschrieben.
 
 ---
 
@@ -152,7 +152,7 @@ Während dieses Vorgangs HK NPU STUDIO nicht beenden und den Installationsprozes
 
 ### Abschluss
 
-Nach erfolgreicher Einrichtung werden die Modelldateien geprüft und das Modell wird für HK NPU STUDIO verfügbar gemacht. Der erfolgreiche RC3-Anwenderflow wurde als vollständige Kette getestet:
+Nach erfolgreicher Einrichtung werden die Modelldateien geprüft und das Modell wird für HK NPU STUDIO verfügbar gemacht. Der erfolgreiche Anwenderflow wurde als vollständige Kette getestet:
 
 **nicht installiert → Einrichtung beim ersten Versuch → Qualcomm-Download → Import/Validierung → Aktivierung → echte Bildgenerierung.**
 
@@ -235,7 +235,7 @@ Der lokale deterministische Boost arbeitet ohne zusätzliches Sprachmodell. Er e
 
 Der optionale AI Boost verwendet ein lokal laufendes Sprachmodell, um den Prompt intelligenter zu überarbeiten.
 
-RC3 verwendet dafür:
+RC4 verwendet dafür:
 
 - **Ollama** als lokalen Modelldienst
 - **Qwen2.5 3B** als vorgesehenes lokales Sprachmodell
@@ -286,9 +286,9 @@ Historische und Schwarz-Weiß-Fotos restaurieren, Details bewahren und hochskali
 
 Der sichtbare Produktpfad verwendet **Faithful Restore**. Er bleibt am Ausgangsbild orientiert, bewahrt vorhandene Details und erzeugt eine 4× hochskalierte Ausgabe. Große Bilder werden nativ in überlappenden Kacheln verarbeitet und anschließend ohne globale Verkleinerung wieder zusammengesetzt.
 
-**Dust Cleanup V4** entfernt konservativ erkannte Staubpunkte, Flecken und kleine Defekte. Die Funktion soll keine künstliche Mikrotextur erzeugen. Haut-Reinjection ist nicht Bestandteil von RC3.
+**Dust Cleanup V4** entfernt konservativ erkannte Staubpunkte, Flecken und kleine Defekte. Die Funktion soll keine künstliche Mikrotextur erzeugen. Haut-Reinjection ist nicht Bestandteil von RC4.
 
-Graustufenbilder bleiben Graustufenbilder. Colorization und DDColor sind in RC3 keine sichtbaren Produktfunktionen.
+Graustufenbilder bleiben Graustufenbilder. Colorization und DDColor sind in RC4 keine sichtbaren Produktfunktionen.
 
 ### Verwendung
 
@@ -300,9 +300,9 @@ Graustufenbilder bleiben Graustufenbilder. Colorization und DDColor sind in RC3 
 
 Alle neuronalen Restaurierungsstufen laufen über QNN/HTP auf der Snapdragon® NPU. Die CPU übernimmt nur deterministische Aufgaben wie Ein-/Ausgabe, Kachelung, Masken, Compositing und Nachbearbeitung. Es gibt keinen CPU- oder GPU-AI-Fallback.
 
-Die benötigten FiDeSR-Photo-Restore-Modelle sind im RC3-Installer enthalten. Für die AI Fotorestaurierung ist kein separater Modell-Download erforderlich.
+Die benötigten FiDeSR-Photo-Restore-Modelle sind im Setup-Installer enthalten. Für die AI Fotorestaurierung ist kein separater Modell-Download erforderlich.
 
-Generatives Füllen, Retusche und Object Removal sind nicht Bestandteil der RC3-Oberfläche.
+Generatives Füllen, Retusche und Object Removal sind nicht Bestandteil der RC4-Oberfläche.
 
 ---
 
@@ -471,11 +471,11 @@ Nur wenn du den optionalen **Phoenix AI Boost** verwenden möchtest. Die normale
 
 ### Welches Sprachmodell verwendet Phoenix AI Boost?
 
-RC3 verwendet **Qwen2.5 3B** über Ollama.
+RC4 verwendet **Qwen2.5 3B** über Ollama.
 
 ### Muss ich für SD3.5 einzelne Qualcomm-Dateien selbst zusammensuchen?
 
-Der RC3-Ablauf ist darauf ausgelegt, die Qualcomm-Einrichtung weitgehend automatisch durchzuführen. Der Benutzer soll keine einzelnen internen Modellkomponenten manuell auswählen müssen.
+Der Ablauf ist darauf ausgelegt, die Qualcomm-Einrichtung weitgehend automatisch durchzuführen. Der Benutzer soll keine einzelnen internen Modellkomponenten manuell auswählen müssen.
 
 ### Kann ich Modelle einfach aus ihren Ordnern löschen?
 
