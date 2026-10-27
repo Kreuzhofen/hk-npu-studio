@@ -1081,5 +1081,14 @@
   "update_digest_missing": "Der Installer besitzt keinen gültigen SHA-256-Digest.",
   "update_integrity_failed": "Integritätsprüfung fehlgeschlagen.",
   "update_installer_failed": "Installer konnte nicht gestartet werden.",
-  "menu_update": "Update"
+  "menu_update": "Update",
+  "home_dismiss_from_view": "Aus Startseite entfernen",
+  "update_latest_public_version": "Neueste öffentliche Version",
+  "update_installed_is_newer_rc": "(Installierter Release Candidate ist neuer)",
+  "inpainting_remove_image": "Bild entfernen",
+  "inpainting_brush": "Pinsel",
+  "inpainting_eraser": "Radierer",
+  "inpainting_brush_size": "Pinselgröße",
+  "inpainting_start": "Start",
+  "inpainting_save": "Speichern"
 }

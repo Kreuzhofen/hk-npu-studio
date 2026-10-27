@@ -1081,5 +1081,14 @@
   "update_digest_missing": "El instalador no tiene un resumen SHA-256 válido.",
   "update_integrity_failed": "La verificación de integridad falló.",
   "update_installer_failed": "No se pudo iniciar el instalador.",
-  "menu_update": "Update"
+  "menu_update": "Actualización",
+  "home_dismiss_from_view": "Quitar de la página de inicio",
+  "update_latest_public_version": "Versión pública más reciente",
+  "update_installed_is_newer_rc": "(La versión Release Candidate instalada es más reciente)",
+  "inpainting_remove_image": "Eliminar imagen",
+  "inpainting_brush": "Pincel",
+  "inpainting_eraser": "Borrador",
+  "inpainting_brush_size": "Tamaño del pincel",
+  "inpainting_start": "Iniciar",
+  "inpainting_save": "Guardar"
 }

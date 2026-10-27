@@ -142,9 +142,20 @@ class PhoenixWorkspace(tk.Frame):
         self.sidebar.set_active(view_name)
         self.header.set_view(self._view_title(view_name))
 
-        refresh = getattr(view, "refresh", None)
-        if callable(refresh):
-            refresh()
+        if view_name == "home":
+            invalidate = getattr(view, "invalidate_cache", None)
+            if callable(invalidate):
+                invalidate()
+            refresh = getattr(view, "refresh", None)
+            if callable(refresh):
+                try:
+                    refresh(force=True)
+                except TypeError:
+                    refresh()
+        else:
+            refresh = getattr(view, "refresh", None)
+            if callable(refresh):
+                refresh()
 
     def _get_or_create_view(self, view_name: str) -> tk.Frame:
         if view_name in self._views:

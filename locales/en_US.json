@@ -1081,5 +1081,14 @@
   "update_digest_missing": "The installer has no valid SHA-256 digest.",
   "update_integrity_failed": "Integrity verification failed.",
   "update_installer_failed": "The installer could not be started.",
-  "menu_update": "Update"
+  "menu_update": "Update",
+  "home_dismiss_from_view": "Remove from home view",
+  "update_latest_public_version": "Latest public release",
+  "update_installed_is_newer_rc": "(Installed Release Candidate is newer)",
+  "inpainting_remove_image": "Remove Image",
+  "inpainting_brush": "Brush",
+  "inpainting_eraser": "Eraser",
+  "inpainting_brush_size": "Brush size",
+  "inpainting_start": "Start",
+  "inpainting_save": "Save"
 }

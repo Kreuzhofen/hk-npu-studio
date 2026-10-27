@@ -36,21 +36,21 @@ class PhoenixInpaintingView(WorkspaceFrame):
         self.toolbar = toolbar
         toolbar.grid(row=0, column=0, sticky="ew")
         self.load_button = PhoenixButton(
-            toolbar, text="Bild laden", command=self._load_image, button_type="neutral",
+            toolbar, text=tr("load_image", "Bild laden"), command=self._load_image, button_type="neutral",
             icon_name="load_image", icon_color=PHOENIX_THEME.warning,
             font=PHOENIX_THEME.font_small, height=32, radius=6,
         )
         self.remove_button = PhoenixButton(
-            toolbar, text="Bild entfernen", command=self._remove_image, button_type="neutral",
+            toolbar, text=tr("inpainting_remove_image", "Bild entfernen"), command=self._remove_image, button_type="neutral",
             icon_name="remove_image", font=PHOENIX_THEME.font_small, height=32, radius=6,
         )
         self.brush_button = PhoenixButton(
-            toolbar, text="Pinsel", command=lambda: self._select_tool(False), button_type="nav_active",
+            toolbar, text=tr("inpainting_brush", "Pinsel"), command=lambda: self._select_tool(False), button_type="nav_active",
             icon_name="sparkles",
             font=PHOENIX_THEME.font_small, height=32, radius=6,
         )
         self.eraser_button = PhoenixButton(
-            toolbar, text="Radierer", command=lambda: self._select_tool(True), button_type="neutral",
+            toolbar, text=tr("inpainting_eraser", "Radierer"), command=lambda: self._select_tool(True), button_type="neutral",
             icon_name="remove_image",
             font=PHOENIX_THEME.font_small, height=32, radius=6,
         )
@@ -60,12 +60,12 @@ class PhoenixInpaintingView(WorkspaceFrame):
             font=PHOENIX_THEME.font_small, height=32, radius=6,
         )
         self.undo_button = PhoenixButton(
-            toolbar, text="Rückgängig", command=lambda: self.canvas.undo(), button_type="neutral",
+            toolbar, text=tr("undo", "Rückgängig"), command=lambda: self.canvas.undo(), button_type="neutral",
             icon_name="back", font=PHOENIX_THEME.font_small, height=32, radius=6,
         )
         brush_controls = tk.Frame(self.header.toolbar_slot, bg=PHOENIX_THEME.content_bg)
         brush_controls.grid(row=1, column=0, sticky="w", pady=PHOENIX_THEME.space_xs)
-        tk.Label(brush_controls, text="Pinselgröße", bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_secondary).pack(side="left")
+        tk.Label(brush_controls, text=tr("inpainting_brush_size", "Pinselgröße"), bg=PHOENIX_THEME.content_bg, fg=PHOENIX_THEME.text_secondary).pack(side="left")
         self.brush_size = tk.IntVar(value=48)
         tk.Scale(
             brush_controls, from_=8, to=160, orient="horizontal", variable=self.brush_size,
@@ -118,7 +118,7 @@ class PhoenixInpaintingView(WorkspaceFrame):
         buttons = tk.Frame(host, bg=PHOENIX_THEME.card_bg)
         buttons.grid(row=1, column=0, columnspan=2, sticky="ew", pady=PHOENIX_THEME.space_sm)
         self.start_button = PhoenixButton(
-            buttons, text="Start", command=self._start, button_type="primary",
+            buttons, text=tr("inpainting_start", "Start"), command=self._start, button_type="primary",
             icon_name="start", height=34, radius=8,
         )
         self.cancel_button = PhoenixButton(
@@ -126,7 +126,7 @@ class PhoenixInpaintingView(WorkspaceFrame):
             icon_name="stop", height=34, radius=8,
         )
         self.save_button = PhoenixButton(
-            buttons, text="Speichern", command=self._save_result, button_type="secondary",
+            buttons, text=tr("inpainting_save", "Speichern"), command=self._save_result, button_type="secondary",
             icon_name="save", height=34, radius=8,
         )
         actions = (self.start_button, self.cancel_button, self.save_button)

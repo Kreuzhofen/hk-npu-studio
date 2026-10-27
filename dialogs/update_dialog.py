@@ -394,12 +394,25 @@ class UpdateDialog(StudioDialog):
     ) -> str:
         installed_label = tr("update_current_version", "Installierte Version")
         remote_label = tr(remote_key, remote_fallback)
-        return "\n".join(
-            (
-                f"{installed_label}:  {cls._display_version(installed_version)}",
-                f"{remote_label}:  {cls._display_version(remote_version)}",
-            )
-        )
+        installed_str = str(installed_version or "").strip()
+        remote_str = str(remote_version or "").strip()
+
+        lines = [f"{installed_label}:  {cls._display_version(installed_version)}"]
+        if remote_str:
+            try:
+                from engine.application_update_service import ApplicationUpdateService
+                cmp = ApplicationUpdateService._compare_versions(remote_str, installed_str)
+            except Exception:
+                cmp = 0
+            if cmp < 0:
+                public_label = tr("update_latest_public_version", "Neueste öffentliche Version")
+                note = tr("update_installed_is_newer_rc", "(Installierter Release Candidate ist neuer)")
+                lines.append(f"{public_label}:  {cls._display_version(remote_version)} {note}")
+            else:
+                lines.append(f"{remote_label}:  {cls._display_version(remote_version)}")
+        else:
+            lines.append(f"{remote_label}:  {cls._display_version(remote_version)}")
+        return "\n".join(lines)
 
     @staticmethod
     def _release_highlights(release_notes: object, limit: int = 5) -> list[str]:

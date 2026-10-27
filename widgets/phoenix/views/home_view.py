@@ -53,7 +53,48 @@ class HomeSnapshot:
     latest_generations: list[GenerationInfo]
 
 
+class _Tooltip:
+    """Small Tk tooltip helper."""
+
+    def __init__(self, widget: tk.Widget, text_func) -> None:
+        self.widget = widget
+        self.text_func = text_func if callable(text_func) else lambda: text_func
+        self.window: tk.Toplevel | None = None
+        widget.bind("<Enter>", self.show, add="+")
+        widget.bind("<Leave>", self.hide, add="+")
+
+    def show(self, event: tk.Event | None = None) -> None:
+        if self.window:
+            return
+        text = self.text_func()
+        if not text:
+            return
+        x = self.widget.winfo_rootx() + 12
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 6
+        self.window = tk.Toplevel(self.widget)
+        BrandManager.apply_window_icon(self.window)
+        self.window.wm_overrideredirect(True)
+        self.window.wm_geometry(f"+{x}+{y}")
+        tk.Label(
+            self.window,
+            text=text,
+            bg=PHOENIX_THEME.elevated_bg,
+            fg=PHOENIX_THEME.text_primary,
+            font=PHOENIX_THEME.font_caption,
+            bd=1,
+            relief="solid",
+            padx=8,
+            pady=4,
+        ).pack()
+
+    def hide(self, event: tk.Event | None = None) -> None:
+        if self.window:
+            self.window.destroy()
+            self.window = None
+
+
 class PhoenixHomeView(tk.Frame):
+    _dismissed_generations: set[str] = set()
     _ENERGY_DOT_INTERVAL_MS = 225
     _ENERGY_DOT_REST_MS = 600
     _ENERGY_DOT_COUNT = 4
@@ -88,6 +129,9 @@ class PhoenixHomeView(tk.Frame):
         self._last_refresh_at = 0.0
         self._cached_photos: list[ImageTk.PhotoImage] = []
         self._energy_flow_after_id: str | None = None
+        self._dismissed_generations: set[str] = set()
+        self._cached_installed_packages: str | None = None
+        self._cached_discovery: object | None = None
         self._energy_flow_step = 0
         self._energy_flow_active = False
 
@@ -458,18 +502,24 @@ class PhoenixHomeView(tk.Frame):
     def _on_readiness_action(self) -> None:
         self._navigate("prompt" if self._model_ready else "models")
 
+    def invalidate_cache(self) -> None:
+        """Invalidate cached discovery and package reconciliations."""
+        self._cached_installed_packages = None
+        self._cached_discovery = None
+
     def refresh(self, force: bool = False) -> None:
         now = time.monotonic()
         if not force and now - self._last_refresh_at < self.REFRESH_INTERVAL_SECONDS:
             return
         self._last_refresh_at = now
-        snapshot = self._read_snapshot()
+        snapshot = self._read_snapshot(force=force)
         self._render(snapshot)
 
-    def _read_snapshot(self) -> HomeSnapshot:
+    def _read_snapshot(self, force: bool = False) -> HomeSnapshot:
         model_directory_ready = MODELS_DIR.is_dir() or MODELS_DIR.parent.is_dir()
         try:
-            self._model_controller.refresh_repository()
+            if force or not getattr(self._model_controller.model.repository, "_models", None):
+                self._model_controller.refresh_repository()
             models = self._model_controller.get_all_models()
             active_model_id = self._model_controller.get_active_model_id()
             installed_models = [model for model in models if model.get("installed") is True]
@@ -496,7 +546,9 @@ class PhoenixHomeView(tk.Frame):
             model_ready = False
 
         try:
-            discovery = self._model_controller.get_discovery_result()
+            if force or self._cached_discovery is None:
+                self._cached_discovery = self._model_controller.get_discovery_result()
+            discovery = self._cached_discovery
             npu_status = self._execution_provider_status(discovery)
             qnn_runtime = tr("home_found", "Gefunden") if discovery.qnn_sdk_found else tr("home_not_found", "Nicht gefunden")
             onnx_runtime = (
@@ -515,9 +567,11 @@ class PhoenixHomeView(tk.Frame):
             system_ready = False
 
         try:
-            packages = self._model_controller.reconcile_installed_packages()
-            installed_package_count = sum(package.get("installed") is True for package in packages)
-            installed_packages = str(installed_package_count)
+            if force or self._cached_installed_packages is None:
+                packages = self._model_controller.reconcile_installed_packages()
+                installed_package_count = sum(package.get("installed") is True for package in packages)
+                self._cached_installed_packages = str(installed_package_count)
+            installed_packages = self._cached_installed_packages
         except Exception:
             installed_packages = tr("home_not_available", "Nicht verfügbar")
 
@@ -565,10 +619,11 @@ class PhoenixHomeView(tk.Frame):
         return tr("home_not_available", "Nicht verfügbar")
 
     def _read_latest_generations(self) -> list[GenerationInfo]:
+        dismissed = getattr(self, "_dismissed_generations", set())
         candidates = [
             path
             for path in OUTPUT_DIR.glob("*.png")
-            if path.is_file()
+            if path.is_file() and path.name not in dismissed
         ]
         if not candidates:
             return []
@@ -699,7 +754,7 @@ class PhoenixHomeView(tk.Frame):
             delete_btn = tk.Button(
                 tile_frame,
                 text="×",
-                command=lambda path=gen.path: self._delete_generation(path),
+                command=lambda path=gen.path: self._dismiss_generation(path),
                 bg=PHOENIX_THEME.elevated_bg,
                 fg=PHOENIX_THEME.danger,
                 activebackground=PHOENIX_THEME.danger,
@@ -711,6 +766,7 @@ class PhoenixHomeView(tk.Frame):
                 width=2,
             )
             delete_btn.place(relx=1.0, x=-4, y=4, anchor="ne")
+            _Tooltip(delete_btn, lambda: tr("home_dismiss_from_view", "Aus Startseite entfernen"))
 
             # Hover function closure
             def make_hover_func(f=tile_frame, il=img_lbl, nl=name_lbl, db=delete_btn):
@@ -959,7 +1015,12 @@ class PhoenixHomeView(tk.Frame):
             command=lambda: self._open_in_explorer(path),
         )
         menu.add_command(
-            label=tr("home_delete_generation", "Generierung löschen"),
+            label=tr("home_dismiss_from_view", "Aus Startseite entfernen"),
+            command=lambda: self._dismiss_generation(path),
+        )
+        menu.add_separator()
+        menu.add_command(
+            label=tr("home_delete_generation", "Dauerhaft von Festplatte löschen..."),
             command=lambda: self._delete_generation(path),
         )
         menu.tk_popup(event.x_root, event.y_root)
@@ -986,16 +1047,28 @@ class PhoenixHomeView(tk.Frame):
     def _generation_files(path: Path) -> tuple[Path, ...]:
         return path, path.with_suffix(".json")
 
+    def _dismiss_generation(self, path: Path) -> None:
+        self._dismissed_generations.add(path.name)
+        self.refresh(force=True)
+
+    def _dismiss_all_generations(self) -> None:
+        latest = self._read_latest_generations()
+        for gen in latest:
+            self._dismissed_generations.add(gen.path.name)
+        self.refresh(force=True)
+
     def _delete_generation(self, path: Path) -> None:
         if not messagebox.askyesno(
             tr("home_delete_generation_title", "Generierung löschen"),
             tr(
                 "home_delete_generation_confirm",
-                "Soll die ausgewählte Generierung einschließlich Metadaten dauerhaft gelöscht werden?",
+                "Soll die ausgewählte Generierung einschließlich Metadaten dauerhaft gelöscht werden?\n\nHinweis: Das Bild wird unwiderruflich gelöscht. Ältere Bilder aus der Galerie rücken anschließend in die Vorschau nach.",
             ),
             parent=self,
         ):
             return
+        if hasattr(self, "_dismissed_generations"):
+            self._dismissed_generations.discard(path.name)
         for candidate in self._generation_files(path):
             candidate.unlink(missing_ok=True)
         self.refresh(force=True)
@@ -1009,12 +1082,14 @@ class PhoenixHomeView(tk.Frame):
             tr("home_delete_all_title", "Alle Generierungen löschen"),
             tr(
                 "home_delete_all_confirm_with_count",
-                "Sollen wirklich alle {count} angezeigten Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
+                "Sollen wirklich alle {count} angezeigten Generierungen einschließlich Metadaten dauerhaft gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.\n\nHinweis: Ältere Bilder aus der Galerie rücken anschließend in die Vorschau nach.",
             ).format(count=count),
             parent=self,
         ):
             return
         for gen in latest:
+            if hasattr(self, "_dismissed_generations"):
+                self._dismissed_generations.discard(gen.path.name)
             for candidate in self._generation_files(gen.path):
                 candidate.unlink(missing_ok=True)
         self.refresh(force=True)

@@ -4356,13 +4356,15 @@ class PhoenixPromptView(WorkspaceFrame):
         dropdown_frame.grid_columnconfigure(2, weight=0)
         dropdown_frame.grid_columnconfigure(3, weight=1)
 
-        tk.Label(dropdown_frame, text=tr("sampler_label_colon", "Sampler:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
+        popup_sampler_lbl = tk.Label(dropdown_frame, text=tr("sampler_label_colon", "Sampler:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        popup_sampler_lbl.grid(row=0, column=0, sticky="w", padx=(0, 4), pady=2)
         popup_sampler_menu = tk.OptionMenu(dropdown_frame, self.sampler_var, "Euler a", "Euler", "DPM++ 2M", "DDIM", "LMS")
         popup_sampler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         popup_sampler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
         popup_sampler_menu.grid(row=0, column=1, sticky="ew", padx=(0, 8), pady=2)
 
-        tk.Label(dropdown_frame, text=tr("scheduler_label_colon", "Sched.:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w").grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
+        popup_scheduler_lbl = tk.Label(dropdown_frame, text=tr("scheduler_label_colon", "Sched.:"), bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_secondary, font=PHOENIX_THEME.font_small, anchor="w")
+        popup_scheduler_lbl.grid(row=0, column=2, sticky="w", padx=(8, 4), pady=2)
         popup_scheduler_menu = tk.OptionMenu(dropdown_frame, self.scheduler_var, "Normal", "Karras", "Exponential", "SGM Uniform")
         popup_scheduler_menu.configure(bg=PHOENIX_THEME.elevated_bg, fg=PHOENIX_THEME.text_primary, relief="flat", bd=0, highlightthickness=0, font=PHOENIX_THEME.font_caption)
         popup_scheduler_menu["menu"].configure(bg=PHOENIX_THEME.card_bg, fg=PHOENIX_THEME.text_primary, activebackground=PHOENIX_THEME.accent, font=PHOENIX_THEME.font_caption, relief="flat", bd=0)
@@ -4381,8 +4383,8 @@ class PhoenixPromptView(WorkspaceFrame):
             wraplength=205,
         ).grid(row=1, column=2, columnspan=2, sticky="ew", padx=(8, 0), pady=(2, 0))
 
-        self._configure_option_contract(popup_sampler_menu, self.sampler_var, contract.get("sampler", {}))
-        self._configure_option_contract(popup_scheduler_menu, self.scheduler_var, contract.get("scheduler", {}))
+        self._configure_option_contract(popup_sampler_menu, self.sampler_var, contract.get("sampler", {}), popup_sampler_lbl, tr("sampler_label_colon", "Sampler:"))
+        self._configure_option_contract(popup_scheduler_menu, self.scheduler_var, contract.get("scheduler", {}), popup_scheduler_lbl, tr("scheduler_label_colon", "Sched.:"))
 
         output_frame = tk.Frame(container, bg=PHOENIX_THEME.card_bg)
         output_frame.pack(fill="x", pady=(10, 12))

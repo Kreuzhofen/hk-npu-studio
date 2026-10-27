@@ -5,7 +5,10 @@ from app.i18n import tr, set_language, get_current_language, get_available_langu
 
 
 class I18nTests(unittest.TestCase):
-    def setUp(self) -> None:
+    def setUp(self) -> None:
+        set_language("de_DE")
+
+    def tearDown(self) -> None:
         set_language("de_DE")
 
     def test_default_language_is_de_de(self) -> None:
