@@ -152,6 +152,13 @@ class ApplicationController:
         if callable(show_generated):
             show_generated(str(path))
 
+    def open_photo_restore_with_image(self, path) -> None:
+        """Switch to AI Photo Restoration and load the dropped image."""
+        if not hasattr(self.app, "phoenix_workspace"):
+            return
+        if hasattr(self.app.phoenix_workspace, "open_photo_restore_with_image"):
+            self.app.phoenix_workspace.open_photo_restore_with_image(path)
+
     def open_gallery_with_image(self, path) -> None:
         """Switch to the AI Asset Library and select the generated image."""
         if not hasattr(self.app, "phoenix_workspace"):

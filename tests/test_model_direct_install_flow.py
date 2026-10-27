@@ -651,6 +651,8 @@ class DirectModelInstallTests(unittest.TestCase):
         )
         with patch("widgets.phoenix.views.model_manager_view.filedialog.askdirectory") as askdir, \
              patch("widgets.phoenix.views.model_manager_view.filedialog.askopenfilename") as askfile, \
+             patch("widgets.phoenix.views.model_manager_view.messagebox.showinfo") as showinfo, \
+             patch("tools.sd35_setup_helper.SD35SetupHelper.locate_zip", return_value=Path("qai-appbuilder-main.zip")), \
              patch("dialogs.model_direct_download_dialog.ModelDirectDownloadDialog") as direct_dialog, \
              patch("dialogs.model_source_dialog.ModelSourceDialog") as source_dialog:
 

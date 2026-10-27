@@ -149,29 +149,24 @@ class HomeFirstRunTests(unittest.TestCase):
         self.assertEqual(len(first_positions), 4)
         self.assertEqual(first_positions, last_positions)
 
-    def test_rc3_readiness_navigation_opens_photo_restore(self) -> None:
+    def test_rc4_readiness_navigation_opens_models_when_not_ready(self) -> None:
         navigate = MagicMock()
         view = SimpleNamespace(_model_ready=False, _navigate=navigate)
         PhoenixHomeView._on_readiness_action(view)
-        navigate.assert_called_once_with("inpainting")
+        navigate.assert_called_once_with("models")
         navigate.reset_mock()
         view._model_ready = True
         PhoenixHomeView._on_readiness_action(view)
-        navigate.assert_called_once_with("inpainting")
+        navigate.assert_called_once_with("prompt")
 
-    def test_rc3_clean_start_does_not_offer_automatic_generation_model_setup(self) -> None:
-        self.assertFalse(RC3_AUTOMATIC_GENERATION_MODEL_SETUP)
-        self.assertEqual(RC3_PRIMARY_PRODUCT_VIEW, "inpainting")
+    def test_rc4_clean_start_setup_action_opens_models(self) -> None:
+        self.assertTrue(RC3_AUTOMATIC_GENERATION_MODEL_SETUP)
 
         navigate = MagicMock()
         clean_start = SimpleNamespace(_model_ready=False, _navigate=navigate)
         PhoenixHomeView._on_readiness_action(clean_start)
 
-        navigate.assert_called_once_with("inpainting")
-        self.assertNotIn(
-            navigate.call_args.args[0],
-            {"models", "prompt", "generative_fill", "retouch"},
-        )
+        navigate.assert_called_once_with("models")
 
     def test_missing_sd35_model_does_not_trigger_legacy_installer(self) -> None:
         from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
@@ -181,7 +176,7 @@ class HomeFirstRunTests(unittest.TestCase):
         with patch.object(PhoenixModelManagerView, "_on_install_selected") as install:
             PhoenixHomeView._on_readiness_action(clean_start)
 
-        navigate.assert_called_once_with("inpainting")
+        navigate.assert_called_once_with("models")
         install.assert_not_called()
 
     def test_real_normal_and_first_run_keep_sd35_dialog_closed(self) -> None:

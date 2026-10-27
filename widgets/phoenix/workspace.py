@@ -245,6 +245,13 @@ class PhoenixWorkspace(tk.Frame):
 
         self.after(500, self._refresh_views)
 
+    def open_photo_restore_with_image(self, filename) -> None:
+        """Open the restoration workflow and load the given photo."""
+        self.show_view("inpainting")
+        view = self._get_or_create_view("inpainting")
+        if hasattr(view, "load_dropped_image"):
+            view.load_dropped_image(filename)
+
     def show_image(self, filename) -> None:
         """Display an image in the Phoenix Image view."""
         self.show_view("image")

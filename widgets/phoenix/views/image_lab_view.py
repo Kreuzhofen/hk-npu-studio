@@ -167,4 +167,24 @@ class PhoenixImageLabView(WorkspaceFrame):
         )
         btn.grid(row=3, column=0, sticky="ew", padx=PHOENIX_THEME.card_pad_x, pady=(0, PHOENIX_THEME.card_pad_y))
 
+        if target in ("photo_restore", "inpainting"):
+            try:
+                from widgets.phoenix.dnd_utils import parse_dnd_paths, register_dnd_target
+                from tkinterdnd2 import DND_FILES
+
+                def on_restore_card_drop(event):
+                    raw = getattr(event, "data", "")
+                    paths = parse_dnd_paths(raw)
+                    if not paths:
+                        return
+                    self._navigate(target)
+                    app = self.winfo_toplevel()
+                    ws = getattr(app, "phoenix_workspace", None)
+                    if ws is not None and hasattr(ws, "open_photo_restore_with_image"):
+                        ws.open_photo_restore_with_image(paths[0])
+
+                register_dnd_target(card, DND_FILES, on_restore_card_drop, recursive=True)
+            except ImportError:
+                pass
+
         return card

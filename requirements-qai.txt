@@ -4,6 +4,7 @@ transformers
 diffusers
 PyYAML
 requests
+httpx
 huggingface-hub
 qai-hub
 py3-wget

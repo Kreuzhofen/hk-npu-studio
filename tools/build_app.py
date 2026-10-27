@@ -369,6 +369,8 @@ def build_arguments() -> list[str]:
                 "--collect-all",
                 "requests",
                 "--collect-all",
+                "httpx",
+                "--collect-all",
                 "filelock",
                 "--collect-all",
                 "tqdm",
@@ -393,6 +395,8 @@ def build_arguments() -> list[str]:
                 "--hidden-import",
                 "requests",
                 "--hidden-import",
+                "httpx",
+                "--hidden-import",
                 "filelock",
                 "--hidden-import",
                 "tqdm",
@@ -414,6 +418,7 @@ def build_arguments() -> list[str]:
             arguments.extend(["--hidden-import", module_name])
         for distribution in (
             "requests",
+            "httpx",
             "filelock",
             "numpy",
             "tqdm",

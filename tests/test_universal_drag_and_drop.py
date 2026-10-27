@@ -294,5 +294,86 @@ class UniversalDragAndDropTests(unittest.TestCase):
             view.destroy()
 
 
+    def test_photo_restore_drop_valid_image(self):
+        from widgets.phoenix.views.photo_restore_view import PhoenixPhotoRestoreView
+        view = PhoenixPhotoRestoreView(self.root)
+        try:
+            event = MockDropEvent(str(self.img_path))
+            view._on_file_drop(event)
+            self.assertEqual(view.input_path, self.img_path.resolve())
+            self.assertIn(self.img_path.name, view.status_label.cget("text"))
+        finally:
+            view.destroy()
+
+    def test_photo_restore_drop_unsupported_file(self):
+        from widgets.phoenix.views.photo_restore_view import PhoenixPhotoRestoreView
+        view = PhoenixPhotoRestoreView(self.root)
+        try:
+            event = MockDropEvent(str(self.unsupported_path))
+            view._on_file_drop(event)
+            self.assertTrue(self.mock_showerror.called)
+        finally:
+            view.destroy()
+
+    def test_sidebar_photo_restore_drop_opens_restoration_workflow(self):
+        from widgets.phoenix.sidebar import PhoenixSidebar
+        from widgets.phoenix.workspace import PhoenixWorkspace
+        workspace = PhoenixWorkspace.__new__(PhoenixWorkspace)
+        tk.Frame.__init__(workspace, self.root)
+        workspace.controller = None
+        workspace._views = {}
+        workspace.current_view = "home"
+        workspace.right_panel = None
+        workspace.content_host = tk.Frame(workspace)
+        workspace.header = MagicMock()
+        workspace.open_photo_restore_with_image = MagicMock()
+        sidebar = PhoenixSidebar(workspace, on_navigate=workspace.show_view)
+        try:
+            restore_btn = sidebar._buttons.get("inpainting")
+            self.assertIsNotNone(restore_btn)
+            event = MockDropEvent(str(self.img_path))
+            # Test drop callback on sidebar
+            sidebar._on_restore_button_drop(event)
+            workspace.open_photo_restore_with_image.assert_called_once_with(str(self.img_path))
+        finally:
+            sidebar.destroy()
+            workspace.destroy()
+
+    def test_gui_on_drop_file_on_home_view_does_not_navigate_to_image(self):
+        import gui_v2
+        app = MagicMock()
+        app._log = MagicMock()
+        ws = MagicMock()
+        ws.current_view = "home"
+        ws._views = {}
+        app.phoenix_workspace = ws
+        app.load_image_files = MagicMock()
+
+        event = MockDropEvent(str(self.img_path))
+        gui_v2.SnapdragonAIStudioV2.on_drop_file(app, event)
+
+        # Must not load image files or navigate to image
+        app.load_image_files.assert_not_called()
+        ws.show_view.assert_not_called()
+        ws.show_image.assert_not_called()
+
+    def test_gui_on_drop_file_in_photo_restore_routes_to_restore_view(self):
+        import gui_v2
+        app = MagicMock()
+        app._log = MagicMock()
+        ws = MagicMock()
+        ws.current_view = "inpainting"
+        restore_view = MagicMock()
+        ws._views = {"inpainting": restore_view}
+        app.phoenix_workspace = ws
+        app.load_image_files = MagicMock()
+
+        event = MockDropEvent(str(self.img_path))
+        gui_v2.SnapdragonAIStudioV2.on_drop_file(app, event)
+
+        restore_view._on_file_drop.assert_called_once_with(event)
+        app.load_image_files.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

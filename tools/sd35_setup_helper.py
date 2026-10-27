@@ -513,6 +513,7 @@ class SD35SetupHelper:
                     "import numpy\n"
                     "import yaml\n"
                     "import requests\n"
+                    "import httpx\n"
                     "import torch\n"
                     "import torchgen\n"
                     "import functorch\n"
@@ -529,6 +530,7 @@ class SD35SetupHelper:
                     "print('numpy_file:', getattr(numpy, '__file__', 'unknown'))\n"
                     "print('yaml_file:', getattr(yaml, '__file__', 'unknown'))\n"
                     "print('requests_file:', getattr(requests, '__file__', 'unknown'))\n"
+                    "print('httpx_file:', getattr(httpx, '__file__', 'unknown'))\n"
                     "print('torch_file:', getattr(torch, '__file__', 'unknown'))\n"
                     "print('diffusers_file:', getattr(diffusers, '__file__', 'unknown'))\n"
                     "print('transformers_file:', getattr(transformers, '__file__', 'unknown'))\n"
@@ -792,7 +794,7 @@ class SD35SetupHelper:
                     str(venv_python), "-m", "pip", "install",
                     "--prefer-binary",
                     "--only-binary=:all:",
-                    "numpy==2.4.4", "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
+                    "numpy==2.4.4", "httpx", "transformers", "diffusers", "qai-appbuilder", "qai-hub", "py3-wget"
                 ]
                 if not run_pip(pip_cmd_1):
                     return False

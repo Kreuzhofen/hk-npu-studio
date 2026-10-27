@@ -94,6 +94,7 @@ class PhoenixSidebar(tk.Frame):
         self._nav_button("compare", tr("nav_compare", "Compare"))
         self._nav_button("plugins", tr("nav_plugins", "Plugins"))
         self._nav_button("settings", tr("nav_settings", "Settings"))
+        self._setup_drop_targets()
 
     def _brand_credit_font(self) -> tuple[str, int]:
         family = PHOENIX_THEME.font_caption[0]
@@ -107,6 +108,35 @@ class PhoenixSidebar(tk.Frame):
                 return (family, size)
 
         return (family, 1)
+
+    def _on_restore_button_drop(self, event) -> None:
+        from widgets.phoenix.dnd_utils import parse_dnd_paths
+        raw = getattr(event, "data", "")
+        paths = parse_dnd_paths(raw)
+        if not paths:
+            return
+        # Must open restoration workflow, not general image workspace
+        ws = getattr(self, "master", None)
+        if ws is not None and hasattr(ws, "open_photo_restore_with_image"):
+            ws.open_photo_restore_with_image(paths[0])
+        else:
+            self._navigate("inpainting")
+            app = self.winfo_toplevel()
+            ws_app = getattr(app, "phoenix_workspace", None)
+            if ws_app is not None and hasattr(ws_app, "open_photo_restore_with_image"):
+                ws_app.open_photo_restore_with_image(paths[0])
+
+    def _setup_drop_targets(self) -> None:
+        try:
+            from widgets.phoenix.dnd_utils import register_dnd_target
+            from tkinterdnd2 import DND_FILES
+        except ImportError:
+            return
+
+        for key in ("inpainting", "photo_restore"):
+            btn = self._buttons.get(key)
+            if btn is not None:
+                register_dnd_target(btn, DND_FILES, self._on_restore_button_drop, recursive=True)
 
     def _nav_button(self, view_name: str, text: str) -> None:
         icon_color = self._icon_color(view_name)

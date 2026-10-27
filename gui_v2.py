@@ -101,6 +101,16 @@ class SnapdragonAIStudioV2(tk.Tk):
             elif current_view_name == "gallery" and hasattr(active_view, "_on_drop"):
                 active_view._on_drop(event)
                 return
+            elif current_view_name in ("inpainting", "photo_restore", "image_lab"):
+                if hasattr(active_view, "_on_file_drop"):
+                    active_view._on_file_drop(event)
+                elif hasattr(ws, "open_photo_restore_with_image") and dropped_paths:
+                    ws.open_photo_restore_with_image(dropped_paths[0])
+                return
+            elif current_view_name == "home":
+                # Foto-Drop auf der Startseite darf keine unerwartete Navigation zum Bild-Workspace auslösen.
+                return
+            return
 
         files = []
         folders = []

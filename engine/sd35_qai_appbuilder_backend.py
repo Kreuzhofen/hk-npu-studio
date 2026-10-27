@@ -89,7 +89,7 @@ class StableDiffusion35QaiAppBuilderBackend(StableDiffusion15QaiAppBuilderBacken
             return False
         probe = (
             "from qai_appbuilder import QNNConfig,QNNContext,Runtime,LogLevel,ProfilingLevel; "
-            "import torch,transformers,diffusers; "
+            "import torch,transformers,diffusers,httpx; "
             "QNNConfig.Config(Runtime.HTP,LogLevel.ERROR,ProfilingLevel.BASIC)"
         )
         try:

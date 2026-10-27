@@ -69,6 +69,7 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
         self._build_content_area()
         self._build_inspector()
         self._build_status()
+        self._setup_drag_and_drop()
         self._schedule_ui_pump()
         self.bind("<Destroy>", self._on_destroy, add="+")
 
@@ -423,6 +424,53 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
         self.status_label.configure(text=loaded_text)
         self.progress_bar["value"] = 0
         self.progress_detail_label.configure(text="")
+
+    def _setup_drag_and_drop(self) -> None:
+        try:
+            from widgets.phoenix.dnd_utils import register_dnd_target
+            from tkinterdnd2 import DND_FILES
+        except ImportError:
+            return
+
+        targets = [
+            self,
+            getattr(self, "left_canvas", None),
+            getattr(self, "right_canvas", None),
+            getattr(self, "left_card", None),
+            getattr(self, "right_card", None),
+        ]
+        for target in targets:
+            if target is not None:
+                register_dnd_target(target, DND_FILES, self._on_file_drop, recursive=True)
+
+    def _on_file_drop(self, event) -> None:
+        from widgets.phoenix.dnd_utils import parse_dnd_paths
+        raw_data = getattr(event, "data", "")
+        paths = parse_dnd_paths(raw_data)
+        if not paths:
+            return
+        self.load_dropped_image(paths[0])
+
+    def load_dropped_image(self, file_path: str | Path) -> bool:
+        path = Path(file_path)
+        if not path.is_file():
+            return False
+        valid_extensions = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
+        if path.suffix.lower() not in valid_extensions:
+            messagebox.showerror(
+                tr("dialog_title_unsupported", "Nicht unterstütztes Format"),
+                tr("photo_restore_unsupported", "Die Datei hat kein unterstütztes Bildformat."),
+            )
+            return False
+
+        self.input_path = path.resolve()
+        self.result_path = None
+        self._update_input_preview()
+        loaded_text = tr("photo_restore_loaded", "Geladen: ") + self.input_path.name
+        self.status_label.configure(text=loaded_text)
+        self.progress_bar["value"] = 0
+        self.progress_detail_label.configure(text="")
+        return True
 
     def _clear_image(self) -> None:
         self.input_path = None
