@@ -6,6 +6,7 @@ import hashlib
 import os
 import shutil
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -15,8 +16,8 @@ from pathlib import Path
 from typing import Callable
 
 from config import (
+    DOWNLOAD_RETRIES,
     DOWNLOAD_SEGMENT_MIN_BYTES,
-    DOWNLOAD_SEGMENT_RETRIES,
     DOWNLOAD_SEGMENTS,
     TEMP_DIR,
 )
@@ -73,13 +74,13 @@ class DownloadService:
         timeout: float = 30.0,
         segments: int = DOWNLOAD_SEGMENTS,
         segment_min_bytes: int = DOWNLOAD_SEGMENT_MIN_BYTES,
-        segment_retries: int = DOWNLOAD_SEGMENT_RETRIES,
+        retries: int = DOWNLOAD_RETRIES,
     ) -> None:
         self.download_dir = download_dir or (TEMP_DIR / "downloads")
         self.timeout = timeout
         self.segments = segments
         self.segment_min_bytes = segment_min_bytes
-        self.segment_retries = segment_retries
+        self.retries = retries
         self._cancel_requested = False
 
     def cancel(self) -> None:
@@ -165,7 +166,7 @@ class DownloadService:
             headers["Range"] = f"bytes={existing_bytes}-"
         request = urllib.request.Request(url, headers=headers)
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            with self._open_with_retries(request) as response:
                 status = getattr(response, "status", None)
                 resumed = bool(existing_bytes and status == 206)
                 response_bytes = self._read_content_length(response)
@@ -460,6 +461,7 @@ class DownloadService:
             offset = start + (path.stat().st_size if path.exists() else 0)
             if offset >= end:
                 return
+            attempt_start = offset
             try:
                 if response is None:
                     response = self._open_range(url, headers, offset, end)
@@ -479,8 +481,9 @@ class DownloadService:
                 if offset < end and not stop.is_set():
                     raise http.client.IncompleteRead(b"", end - offset)
             except (OSError, http.client.HTTPException) as exc:
-                failures += 1
-                if failures > self.segment_retries:
+                # Only consecutive failures without progress count towards the retry limit.
+                failures = 1 if offset > attempt_start else failures + 1
+                if failures > self.retries or not self._is_retryable(exc):
                     if isinstance(exc, http.client.HTTPException):
                         raise DownloadError(
                             DownloadErrorCode.NETWORK_ERROR,
@@ -489,11 +492,38 @@ class DownloadService:
                     raise
                 logger.warning(
                     "Download segment %d-%d interrupted at byte %d (%s); retrying (%d/%d).",
-                    start, end - 1, offset, exc, failures, self.segment_retries,
+                    start, end - 1, offset, exc, failures, self.retries,
                 )
                 stop.wait(self._RETRY_DELAY_SECONDS)
             finally:
                 response = None
+
+    def _open_with_retries(self, request: urllib.request.Request) -> object:
+        failures = 0
+        while True:
+            try:
+                return urllib.request.urlopen(request, timeout=self.timeout)
+            except (OSError, http.client.HTTPException) as exc:
+                failures += 1
+                if failures > self.retries or not self._is_retryable(exc) or self._cancel_requested:
+                    if isinstance(exc, http.client.HTTPException):
+                        raise DownloadError(
+                            DownloadErrorCode.NETWORK_ERROR,
+                            f"Network error while downloading {request.full_url}: {exc!r}",
+                        ) from exc
+                    raise
+                logger.warning(
+                    "Request to %s failed (%s); retrying (%d/%d).",
+                    request.full_url, exc, failures, self.retries,
+                )
+                time.sleep(self._RETRY_DELAY_SECONDS)
+
+    @staticmethod
+    def _is_retryable(exc: BaseException) -> bool:
+        """Client errors (404, 403, 416, ...) will not change on retry; rate limits and server errors may."""
+        if isinstance(exc, urllib.error.HTTPError):
+            return exc.code == 429 or exc.code >= 500
+        return isinstance(exc, (OSError, http.client.HTTPException))
 
     def _open_range(self, url: str, headers: dict[str, str], offset: int, end: int) -> object:
         request = urllib.request.Request(url, headers={**headers, "Range": f"bytes={offset}-{end - 1}"})

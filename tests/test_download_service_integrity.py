@@ -4,6 +4,7 @@ import hashlib
 import io
 import tempfile
 import unittest
+import urllib.error
 import urllib.request
 from pathlib import Path
 from unittest.mock import patch
@@ -33,10 +34,17 @@ class Response:
 class RangeServer:
     """Serves one payload and honours byte ranges like a static file server."""
 
-    def __init__(self, payload: bytes, honour_ranges: bool = True, truncate_once_at: int | None = None):
+    def __init__(
+        self,
+        payload: bytes,
+        honour_ranges: bool = True,
+        truncate_within: tuple[int, int] | None = None,
+        truncate_times: int = 1,
+    ):
         self.payload = payload
         self.honour_ranges = honour_ranges
-        self.truncate_once_at = truncate_once_at
+        self.truncate_within = truncate_within
+        self.truncate_times = truncate_times
         self.ranges = []
 
     def urlopen(self, request, timeout=None):
@@ -50,8 +58,8 @@ class RangeServer:
         end = int(end_text) + 1 if end_text else len(self.payload)
         self.ranges.append((start, end))
         body = self.payload[start:end]
-        if self.truncate_once_at == start:
-            self.truncate_once_at = None
+        if self.truncate_within and self.truncate_times and self.truncate_within[0] <= start < self.truncate_within[1]:
+            self.truncate_times -= 1
             body = body[: len(body) // 2]
         response = Response(body, status=206)
         response.headers["Content-Range"] = f"bytes {start}-{end - 1}/{len(self.payload)}"
@@ -242,7 +250,7 @@ class DownloadServiceIntegrityTests(unittest.TestCase):
     def test_interrupted_segment_is_retried_from_its_offset(self):
         payload = bytes(range(256)) * 401
         segment_size = -(-len(payload) // 4)
-        server = RangeServer(payload, truncate_once_at=2 * segment_size)
+        server = RangeServer(payload, truncate_within=(2 * segment_size, 3 * segment_size))
         with tempfile.TemporaryDirectory() as directory, patch(
             "urllib.request.urlopen", side_effect=server.urlopen
         ), patch.object(DownloadService, "_RETRY_DELAY_SECONDS", 0):
@@ -254,6 +262,56 @@ class DownloadServiceIntegrityTests(unittest.TestCase):
             self.assertEqual(result.path.read_bytes(), payload)
         retried = [start for start, _ in server.ranges if 2 * segment_size < start < 3 * segment_size]
         self.assertEqual(retried, [2 * segment_size + segment_size // 2])
+
+    def test_segment_that_keeps_progressing_is_not_limited_by_retry_count(self):
+        payload = bytes(range(256)) * 401
+        segment_size = -(-len(payload) // 4)
+        server = RangeServer(
+            payload, truncate_within=(2 * segment_size, 3 * segment_size), truncate_times=6
+        )
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=server.urlopen
+        ), patch.object(DownloadService, "_RETRY_DELAY_SECONDS", 0):
+            service = DownloadService(Path(directory), segments=4, segment_min_bytes=1, retries=3)
+            result = service.download("https://example.com/model.zip", require_checksum=False)
+
+            self.assertTrue(result.success, result.message)
+            self.assertEqual(result.path.read_bytes(), payload)
+        retried = [start for start, _ in server.ranges if 2 * segment_size < start < 3 * segment_size]
+        self.assertEqual(len(retried), 6)
+
+    def test_initial_request_is_retried_after_connect_timeout(self):
+        payload = b"package behind a flaky connection"
+        server = RangeServer(payload)
+        failures = [urllib.error.URLError(TimeoutError("timed out"))]
+
+        def flaky_urlopen(request, timeout=None):
+            if failures:
+                raise failures.pop()
+            return server.urlopen(request, timeout)
+
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=flaky_urlopen
+        ), patch.object(DownloadService, "_RETRY_DELAY_SECONDS", 0):
+            result = DownloadService(Path(directory)).download(
+                "https://example.com/model.zip", require_checksum=False
+            )
+
+            self.assertTrue(result.success, result.message)
+            self.assertEqual(result.path.read_bytes(), payload)
+
+    def test_client_errors_are_not_retried(self):
+        not_found = urllib.error.HTTPError("https://example.com/model.zip", 404, "Not Found", {}, None)
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=not_found
+        ) as urlopen, patch.object(DownloadService, "_RETRY_DELAY_SECONDS", 0):
+            result = DownloadService(Path(directory)).download(
+                "https://example.com/model.zip", require_checksum=False
+            )
+
+            self.assertFalse(result.success)
+            self.assertEqual(result.error_code, DownloadErrorCode.NETWORK_ERROR)
+        self.assertEqual(urlopen.call_count, 1)
 
     def test_server_ignoring_segment_ranges_fails_without_corrupting_file(self):
         payload = bytes(range(256)) * 401
