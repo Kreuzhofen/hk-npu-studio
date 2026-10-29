@@ -538,8 +538,10 @@ class SD35SetupHelper:
                     "print('PREFLIGHT_OK')\n"
                 )
                 try:
+                    # -I keeps the inherited working directory (the frozen install folder with its
+                    # own _ssl.pyd etc.) off sys.path so the venv's stdlib extensions are imported.
                     preflight_process = _run_external_sd35_process(
-                        [str(venv_python), "-c", preflight_code],
+                        [str(venv_python), "-I", "-c", preflight_code],
                         capture_output=True,
                         text=True,
                         startupinfo=startupinfo,
@@ -585,7 +587,7 @@ class SD35SetupHelper:
                 logger.info("Creating isolated virtual environment at %s", venv_dir)
                 try:
                     _run_external_sd35_process(
-                        [python_executable, "-m", "venv", str(venv_dir)],
+                        [python_executable, "-I", "-m", "venv", str(venv_dir)],
                         check=True,
                         capture_output=True,
                         text=True,
