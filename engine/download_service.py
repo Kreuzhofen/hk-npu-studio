@@ -1,16 +1,25 @@
 from __future__ import annotations
 
+import http.client
 import logging
 import hashlib
 import os
+import shutil
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from config import TEMP_DIR
+from config import (
+    DOWNLOAD_SEGMENT_MIN_BYTES,
+    DOWNLOAD_SEGMENT_RETRIES,
+    DOWNLOAD_SEGMENTS,
+    TEMP_DIR,
+)
 from app.i18n import tr
 
 logger = logging.getLogger("DownloadService")
@@ -48,11 +57,29 @@ class DownloadService:
     """
     Small standard-library download helper for future AI package downloads.
     Downloads are staged in temp/downloads before ModelInstallService installs them.
+
+    Large files from servers that accept byte ranges are fetched as parallel segments:
+    segment 0 is written to the regular .part file and segments 1..n to .part.1 .. .part.n,
+    which are appended in order once all are complete. The .part file therefore always
+    holds a valid prefix of the download, so single-stream resume keeps working.
     """
 
-    def __init__(self, download_dir: Path | None = None, timeout: float = 30.0) -> None:
+    _PROGRESS_INTERVAL_SECONDS = 0.5
+    _RETRY_DELAY_SECONDS = 1.0
+
+    def __init__(
+        self,
+        download_dir: Path | None = None,
+        timeout: float = 30.0,
+        segments: int = DOWNLOAD_SEGMENTS,
+        segment_min_bytes: int = DOWNLOAD_SEGMENT_MIN_BYTES,
+        segment_retries: int = DOWNLOAD_SEGMENT_RETRIES,
+    ) -> None:
         self.download_dir = download_dir or (TEMP_DIR / "downloads")
         self.timeout = timeout
+        self.segments = segments
+        self.segment_min_bytes = segment_min_bytes
+        self.segment_retries = segment_retries
         self._cancel_requested = False
 
     def cancel(self) -> None:
@@ -131,6 +158,7 @@ class DownloadService:
 
         if partial_path.exists() and not resume:
             partial_path.unlink()
+            self._cleanup_segments(partial_path)
 
         existing_bytes = partial_path.stat().st_size if partial_path.exists() else 0
         if existing_bytes:
@@ -148,21 +176,28 @@ class DownloadService:
                     else response_bytes
                 )
 
-                with open(partial_path, "ab" if resumed else "wb") as out_file:
-                    while True:
-                        if self._cancel_requested:
-                            raise DownloadError(
-                                DownloadErrorCode.CANCELLED,
-                                f"Download cancelled: {url}",
-                            )
+                if self._can_segment(response, status, existing_bytes, total_bytes):
+                    self._download_segments(
+                        url, headers, response, partial_path, existing_bytes, total_bytes,
+                        progress_callback,
+                    )
+                else:
+                    self._cleanup_segments(partial_path)
+                    with open(partial_path, "ab" if resumed else "wb") as out_file:
+                        while True:
+                            if self._cancel_requested:
+                                raise DownloadError(
+                                    DownloadErrorCode.CANCELLED,
+                                    f"Download cancelled: {url}",
+                                )
 
-                        chunk = response.read(1024 * 1024)
-                        if not chunk:
-                            break
+                            chunk = response.read(1024 * 1024)
+                            if not chunk:
+                                break
 
-                        out_file.write(chunk)
-                        bytes_downloaded += len(chunk)
-                        self._emit_progress(progress_callback, bytes_downloaded, total_bytes)
+                            out_file.write(chunk)
+                            bytes_downloaded += len(chunk)
+                            self._emit_progress(progress_callback, bytes_downloaded, total_bytes)
 
         except TimeoutError as exc:
             raise DownloadError(DownloadErrorCode.TIMEOUT, f"Download timed out: {url}") from exc
@@ -300,6 +335,180 @@ class DownloadService:
                 path=target_path,
             ),
         )
+
+    def _can_segment(
+        self,
+        response: object,
+        status: int | None,
+        existing_bytes: int,
+        total_bytes: int | None,
+    ) -> bool:
+        if self.segments < 2 or total_bytes is None or total_bytes < self.segment_min_bytes:
+            return False
+        if status == 206:
+            ranges_supported = existing_bytes > 0
+        else:
+            try:
+                accept_ranges = response.headers.get("Accept-Ranges") or ""  # type: ignore[attr-defined]
+            except AttributeError:
+                accept_ranges = ""
+            ranges_supported = not existing_bytes and accept_ranges.strip().lower() == "bytes"
+        # An existing .part can only be adopted while it still fits into segment 0.
+        return ranges_supported and existing_bytes <= self._segment_ranges(total_bytes)[0][1]
+
+    def _segment_ranges(self, total_bytes: int) -> list[tuple[int, int]]:
+        """Return [start, end) byte ranges; the layout only depends on the total size."""
+        segment_size = -(-total_bytes // self.segments)
+        return [
+            (start, min(start + segment_size, total_bytes))
+            for start in range(0, total_bytes, segment_size)
+        ]
+
+    @staticmethod
+    def _segment_paths(partial_path: Path, count: int) -> list[Path]:
+        return [partial_path] + [
+            partial_path.with_name(f"{partial_path.name}.{index}") for index in range(1, count)
+        ]
+
+    @staticmethod
+    def _cleanup_segments(partial_path: Path) -> None:
+        if not partial_path.parent.is_dir():
+            return
+        prefix = partial_path.name + "."
+        for path in partial_path.parent.iterdir():
+            if path.name.startswith(prefix) and path.name[len(prefix):].isdigit():
+                DownloadService._cleanup_partial(path)
+
+    def _download_segments(
+        self,
+        url: str,
+        headers: dict[str, str],
+        first_response: object,
+        partial_path: Path,
+        existing_bytes: int,
+        total_bytes: int,
+        progress_callback: ProgressCallback | None,
+    ) -> None:
+        ranges = self._segment_ranges(total_bytes)
+        paths = self._segment_paths(partial_path, len(ranges))
+        for (start, end), path in zip(ranges[1:], paths[1:]):
+            if path.exists() and path.stat().st_size > end - start:
+                path.unlink()
+
+        downloaded = existing_bytes + sum(path.stat().st_size for path in paths[1:] if path.exists())
+        downloaded_lock = threading.Lock()
+        stop = threading.Event()
+        logger.info(
+            "Downloading %s in %d parallel segments (%d of %d bytes already present).",
+            url, len(ranges), downloaded, total_bytes,
+        )
+
+        def on_chunk(size: int) -> None:
+            nonlocal downloaded
+            with downloaded_lock:
+                downloaded += size
+
+        # Progress is emitted from this thread only, so callers keep a single-threaded callback.
+        with ThreadPoolExecutor(max_workers=len(ranges), thread_name_prefix="DownloadSegment") as pool:
+            futures = [
+                pool.submit(
+                    self._download_segment, url, headers, path, start, end, on_chunk, stop,
+                    first_response if index == 0 else None,
+                )
+                for index, ((start, end), path) in enumerate(zip(ranges, paths))
+            ]
+            try:
+                pending = set(futures)
+                while pending:
+                    done, pending = wait(
+                        pending, timeout=self._PROGRESS_INTERVAL_SECONDS, return_when=FIRST_EXCEPTION
+                    )
+                    self._emit_progress(progress_callback, downloaded, total_bytes)
+                    for future in done:
+                        future.result()
+            finally:
+                stop.set()
+
+        for (start, end), path in zip(ranges, paths):
+            size = path.stat().st_size if path.exists() else 0
+            if size != end - start:
+                raise DownloadError(
+                    DownloadErrorCode.INCOMPLETE_DOWNLOAD,
+                    f"Incomplete download segment {path.name}: expected {end - start} bytes, got {size} bytes.",
+                )
+        # Appending in order keeps .part a valid prefix even if this step is interrupted.
+        with open(partial_path, "ab") as out_file:
+            for path in paths[1:]:
+                with open(path, "rb") as segment_file:
+                    shutil.copyfileobj(segment_file, out_file, 1024 * 1024)
+        for path in paths[1:]:
+            path.unlink()
+
+    def _download_segment(
+        self,
+        url: str,
+        headers: dict[str, str],
+        path: Path,
+        start: int,
+        end: int,
+        on_chunk: Callable[[int], None],
+        stop: threading.Event,
+        response: object | None = None,
+    ) -> None:
+        failures = 0
+        while not stop.is_set():
+            offset = start + (path.stat().st_size if path.exists() else 0)
+            if offset >= end:
+                return
+            try:
+                if response is None:
+                    response = self._open_range(url, headers, offset, end)
+                with response, open(path, "ab") as out_file:  # type: ignore[union-attr]
+                    while offset < end and not stop.is_set():
+                        if self._cancel_requested:
+                            raise DownloadError(
+                                DownloadErrorCode.CANCELLED,
+                                f"Download cancelled: {url}",
+                            )
+                        chunk = response.read(min(1024 * 1024, end - offset))  # type: ignore[union-attr]
+                        if not chunk:
+                            break
+                        out_file.write(chunk)
+                        offset += len(chunk)
+                        on_chunk(len(chunk))
+                if offset < end and not stop.is_set():
+                    raise http.client.IncompleteRead(b"", end - offset)
+            except (OSError, http.client.HTTPException) as exc:
+                failures += 1
+                if failures > self.segment_retries:
+                    if isinstance(exc, http.client.HTTPException):
+                        raise DownloadError(
+                            DownloadErrorCode.NETWORK_ERROR,
+                            f"Network error while downloading {url}: {exc!r}",
+                        ) from exc
+                    raise
+                logger.warning(
+                    "Download segment %d-%d interrupted at byte %d (%s); retrying (%d/%d).",
+                    start, end - 1, offset, exc, failures, self.segment_retries,
+                )
+                stop.wait(self._RETRY_DELAY_SECONDS)
+            finally:
+                response = None
+
+    def _open_range(self, url: str, headers: dict[str, str], offset: int, end: int) -> object:
+        request = urllib.request.Request(url, headers={**headers, "Range": f"bytes={offset}-{end - 1}"})
+        response = urllib.request.urlopen(request, timeout=self.timeout)
+        try:
+            content_range = response.headers.get("Content-Range") or ""
+        except AttributeError:
+            content_range = ""
+        if getattr(response, "status", None) != 206 or not content_range.startswith(f"bytes {offset}-"):
+            response.close()
+            raise DownloadError(
+                DownloadErrorCode.NETWORK_ERROR,
+                f"Server did not honour the byte range request for {url}.",
+            )
+        return response
 
     @staticmethod
     def _read_content_length(response: object) -> int | None:

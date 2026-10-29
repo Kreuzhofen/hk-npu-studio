@@ -48,6 +48,11 @@ LOG_LEVEL = "INFO"
 LOG_MAX_BYTES = 5 * 1024 * 1024
 LOG_BACKUP_COUNT = 5
 
+# Large downloads are split into parallel HTTP range requests when the server supports them.
+DOWNLOAD_SEGMENTS = 4
+DOWNLOAD_SEGMENT_MIN_BYTES = 64 * 1024 * 1024
+DOWNLOAD_SEGMENT_RETRIES = 3
+
 from app.configuration_manager import ConfigurationManager
 
 _PREFERENCES = ConfigurationManager(PREFERENCES_PATH).load()

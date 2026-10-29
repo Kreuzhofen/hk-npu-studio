@@ -26,6 +26,41 @@ class Response:
     def __exit__(self, *args):
         pass
 
+    def close(self):
+        pass
+
+
+class RangeServer:
+    """Serves one payload and honours byte ranges like a static file server."""
+
+    def __init__(self, payload: bytes, honour_ranges: bool = True, truncate_once_at: int | None = None):
+        self.payload = payload
+        self.honour_ranges = honour_ranges
+        self.truncate_once_at = truncate_once_at
+        self.ranges = []
+
+    def urlopen(self, request, timeout=None):
+        header = request.get_header("Range")
+        if not header or not self.honour_ranges:
+            response = Response(self.payload)
+            response.headers["Accept-Ranges"] = "bytes"
+            return response
+        start_text, _, end_text = header.removeprefix("bytes=").partition("-")
+        start = int(start_text)
+        end = int(end_text) + 1 if end_text else len(self.payload)
+        self.ranges.append((start, end))
+        body = self.payload[start:end]
+        if self.truncate_once_at == start:
+            self.truncate_once_at = None
+            body = body[: len(body) // 2]
+        response = Response(body, status=206)
+        response.headers["Content-Range"] = f"bytes {start}-{end - 1}/{len(self.payload)}"
+        return response
+
+
+def segmented_service(directory: str) -> DownloadService:
+    return DownloadService(Path(directory), segments=4, segment_min_bytes=1)
+
 
 class DownloadServiceIntegrityTests(unittest.TestCase):
     def test_hash_is_required_before_final_file_is_registered(self):
@@ -169,6 +204,83 @@ class DownloadServiceIntegrityTests(unittest.TestCase):
             self.assertFalse(result.success)
             self.assertEqual(result.error_code, DownloadErrorCode.INVALID_FILE)
             urlopen.assert_not_called()
+
+    def test_large_download_is_fetched_in_parallel_segments(self):
+        payload = bytes(range(256)) * 401
+        server = RangeServer(payload)
+        progress = []
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=server.urlopen
+        ):
+            result = segmented_service(directory).download(
+                "https://example.com/model.zip",
+                require_checksum=False,
+                progress_callback=lambda done, total, percent: progress.append(done),
+            )
+
+            self.assertTrue(result.success, result.message)
+            self.assertEqual(result.path.read_bytes(), payload)
+            self.assertEqual(sorted(path.name for path in Path(directory).iterdir()), ["model.zip"])
+        # Segment 0 continues on the initial response; the other three use range requests.
+        self.assertEqual(len(server.ranges), 3)
+        self.assertEqual(progress[-1], len(payload))
+
+    def test_segmented_download_adopts_existing_partial_as_first_segment(self):
+        payload = bytes(range(256)) * 401
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=RangeServer(payload).urlopen
+        ) as urlopen:
+            (Path(directory) / "model.zip.part").write_bytes(payload[:1000])
+            result = segmented_service(directory).download(
+                "https://example.com/model.zip", require_checksum=False
+            )
+
+            self.assertTrue(result.success, result.message)
+            self.assertEqual(result.path.read_bytes(), payload)
+        self.assertEqual(urlopen.call_args_list[0].args[0].get_header("Range"), "bytes=1000-")
+
+    def test_interrupted_segment_is_retried_from_its_offset(self):
+        payload = bytes(range(256)) * 401
+        segment_size = -(-len(payload) // 4)
+        server = RangeServer(payload, truncate_once_at=2 * segment_size)
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=server.urlopen
+        ), patch.object(DownloadService, "_RETRY_DELAY_SECONDS", 0):
+            result = segmented_service(directory).download(
+                "https://example.com/model.zip", require_checksum=False
+            )
+
+            self.assertTrue(result.success, result.message)
+            self.assertEqual(result.path.read_bytes(), payload)
+        retried = [start for start, _ in server.ranges if 2 * segment_size < start < 3 * segment_size]
+        self.assertEqual(retried, [2 * segment_size + segment_size // 2])
+
+    def test_server_ignoring_segment_ranges_fails_without_corrupting_file(self):
+        payload = bytes(range(256)) * 401
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=RangeServer(payload, honour_ranges=False).urlopen
+        ):
+            result = segmented_service(directory).download(
+                "https://example.com/model.zip", require_checksum=False
+            )
+
+            self.assertFalse(result.success)
+            self.assertEqual(result.error_code, DownloadErrorCode.NETWORK_ERROR)
+            self.assertFalse((Path(directory) / "model.zip").exists())
+
+    def test_small_download_stays_single_stream(self):
+        payload = b"small package"
+        server = RangeServer(payload)
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "urllib.request.urlopen", side_effect=server.urlopen
+        ):
+            result = DownloadService(Path(directory)).download(
+                "https://example.com/model.zip", require_checksum=False
+            )
+
+            self.assertTrue(result.success, result.message)
+            self.assertEqual(result.path.read_bytes(), payload)
+        self.assertEqual(server.ranges, [])
 
 
 if __name__ == "__main__":
