@@ -4,6 +4,7 @@ import http.client
 import logging
 import hashlib
 import os
+import re
 import shutil
 import threading
 import time
@@ -54,6 +55,30 @@ class DownloadResult:
     message: str = ""
 
 
+@dataclass(frozen=True)
+class ContentRangeHeader:
+    start: int
+    end: int
+    total: int | None
+
+
+def _parse_content_range(header_value: str | None) -> ContentRangeHeader | None:
+    if not header_value:
+        return None
+    match = re.match(r"^bytes\s+(\d+)-(\d+)/(\d+|\*)$", header_value.strip(), re.IGNORECASE)
+    if not match:
+        return None
+    start = int(match.group(1))
+    end = int(match.group(2))
+    total_str = match.group(3)
+    total = int(total_str) if total_str != "*" else None
+    if start > end:
+        return None
+    if total is not None and (end >= total or start >= total):
+        return None
+    return ContentRangeHeader(start=start, end=end, total=total)
+
+
 class DownloadService:
     """
     Small standard-library download helper for future AI package downloads.
@@ -82,12 +107,103 @@ class DownloadService:
         self.segment_min_bytes = segment_min_bytes
         self.retries = retries
         self._cancel_requested = False
+        self._cancel_event = threading.Event()
+        self._active_connections: set[object] = set()
+        self._connections_lock = threading.Lock()
 
     def cancel(self) -> None:
         self._cancel_requested = True
+        self._cancel_event.set()
+        with self._connections_lock:
+            conns = list(self._active_connections)
+            self._active_connections.clear()
+        for conn in conns:
+            try:
+                conn.close()
+            except Exception as exc:
+                logger.debug("Failed to close connection on cancel: %s", exc)
 
     def reset_cancel(self) -> None:
         self._cancel_requested = False
+        self._cancel_event.clear()
+        with self._connections_lock:
+            self._active_connections.clear()
+
+    def _register_connection(self, conn: object) -> None:
+        with self._connections_lock:
+            if self._cancel_requested:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                raise DownloadError(
+                    DownloadErrorCode.CANCELLED,
+                    "Download was cancelled.",
+                )
+            self._active_connections.add(conn)
+
+    def _unregister_connection(self, conn: object) -> None:
+        with self._connections_lock:
+            self._active_connections.discard(conn)
+
+    def _validate_range_response(
+        self,
+        response: object,
+        expected_start: int,
+        expected_end: int | None = None,
+        expected_total: int | None = None,
+    ) -> ContentRangeHeader:
+        status = getattr(response, "status", None)
+        if status != 206:
+            raise DownloadError(
+                DownloadErrorCode.NETWORK_ERROR,
+                f"Server returned status {status} instead of 206 Partial Content.",
+            )
+        headers = getattr(response, "headers", None)
+        content_range_str = None
+        if headers is not None:
+            if hasattr(headers, "get"):
+                content_range_str = headers.get("Content-Range") or headers.get("content-range")
+            if content_range_str is None and isinstance(headers, dict):
+                for k, v in headers.items():
+                    if k.lower() == "content-range":
+                        content_range_str = v
+                        break
+        parsed = _parse_content_range(content_range_str)
+        if parsed is None:
+            raise DownloadError(
+                DownloadErrorCode.NETWORK_ERROR,
+                f"Missing or invalid Content-Range header: {content_range_str!r}",
+            )
+        if parsed.start != expected_start:
+            raise DownloadError(
+                DownloadErrorCode.NETWORK_ERROR,
+                f"Content-Range start mismatch: expected {expected_start}, got {parsed.start}.",
+            )
+        if expected_end is not None and parsed.end != expected_end:
+            raise DownloadError(
+                DownloadErrorCode.NETWORK_ERROR,
+                f"Content-Range end mismatch: expected {expected_end}, got {parsed.end}.",
+            )
+        if expected_total is not None:
+            if parsed.total is None or parsed.total != expected_total:
+                raise DownloadError(
+                    DownloadErrorCode.NETWORK_ERROR,
+                    f"Content-Range total size mismatch: expected {expected_total}, got {parsed.total}.",
+                )
+        elif parsed.total is None:
+            raise DownloadError(
+                DownloadErrorCode.NETWORK_ERROR,
+                "Content-Range total size is undefined ('*').",
+            )
+        content_length = self._read_content_length(response)
+        expected_length = parsed.end - parsed.start + 1
+        if content_length is not None and content_length > expected_length:
+            raise DownloadError(
+                DownloadErrorCode.NETWORK_ERROR,
+                f"Content-Length mismatch with Content-Range: Content-Length={content_length}, RangeLength={expected_length}.",
+            )
+        return parsed
 
     def download(
         self,
@@ -165,40 +281,68 @@ class DownloadService:
         if existing_bytes:
             headers["Range"] = f"bytes={existing_bytes}-"
         request = urllib.request.Request(url, headers=headers)
+        response = None
         try:
-            with self._open_with_retries(request) as response:
-                status = getattr(response, "status", None)
-                resumed = bool(existing_bytes and status == 206)
-                response_bytes = self._read_content_length(response)
-                bytes_downloaded = existing_bytes if resumed else 0
-                total_bytes = (
-                    bytes_downloaded + response_bytes
-                    if resumed and response_bytes is not None
-                    else response_bytes
+            response = self._open_with_retries(request)
+            status = getattr(response, "status", None)
+            if existing_bytes and status == 206:
+                parsed_range = self._validate_range_response(
+                    response,
+                    expected_start=existing_bytes,
+                    expected_end=None,
+                    expected_total=None,
                 )
-
-                if self._can_segment(response, status, existing_bytes, total_bytes):
-                    self._download_segments(
-                        url, headers, response, partial_path, existing_bytes, total_bytes,
-                        progress_callback,
+                if parsed_range.total is None or parsed_range.end != parsed_range.total - 1:
+                    raise DownloadError(
+                        DownloadErrorCode.INCOMPLETE_DOWNLOAD,
+                        f"Incomplete Content-Range: expected end at {parsed_range.total - 1 if parsed_range.total else '?'}, got {parsed_range.end}.",
                     )
-                else:
-                    self._cleanup_segments(partial_path)
-                    with open(partial_path, "ab" if resumed else "wb") as out_file:
-                        while True:
-                            if self._cancel_requested:
-                                raise DownloadError(
-                                    DownloadErrorCode.CANCELLED,
-                                    f"Download cancelled: {url}",
-                                )
+                resumed = True
+                total_bytes = parsed_range.total
+                bytes_downloaded = existing_bytes
+            else:
+                resumed = False
+                response_bytes = self._read_content_length(response)
+                bytes_downloaded = 0
+                total_bytes = response_bytes
 
-                            chunk = response.read(1024 * 1024)
-                            if not chunk:
-                                break
+            # Check if an interrupted merge from a previous crashed process left completed segment files
+            if total_bytes and self.segments >= 2:
+                ranges = self._segment_ranges(total_bytes)
+                paths = self._segment_paths(partial_path, len(ranges))
+                seg0_size = ranges[0][1] - ranges[0][0]
+                if existing_bytes > seg0_size:
+                    all_segments_complete = (
+                        len(paths) > 1
+                        and all(p.exists() and p.stat().st_size == (e - s) for (s, e), p in zip(ranges[1:], paths[1:]))
+                    )
+                    if all_segments_complete:
+                        with open(partial_path, "r+b") as handle:
+                            handle.truncate(seg0_size)
+                        existing_bytes = seg0_size
 
-                            out_file.write(chunk)
-                            bytes_downloaded += len(chunk)
-                            self._emit_progress(progress_callback, bytes_downloaded, total_bytes)
+            if self._can_segment(response, status, existing_bytes, total_bytes):
+                self._download_segments(
+                    url, headers, response, partial_path, existing_bytes, total_bytes,
+                    progress_callback,
+                )
+            else:
+                self._cleanup_segments(partial_path)
+                with open(partial_path, "ab" if resumed else "wb") as out_file:
+                    while True:
+                        if self._cancel_requested:
+                            raise DownloadError(
+                                DownloadErrorCode.CANCELLED,
+                                f"Download cancelled: {url}",
+                            )
+
+                        chunk = response.read(1024 * 1024)
+                        if not chunk:
+                            break
+
+                        out_file.write(chunk)
+                        bytes_downloaded += len(chunk)
+                        self._emit_progress(progress_callback, bytes_downloaded, total_bytes)
 
         except TimeoutError as exc:
             raise DownloadError(DownloadErrorCode.TIMEOUT, f"Download timed out: {url}") from exc
@@ -216,6 +360,9 @@ class DownloadService:
             ) from exc
         except DownloadError:
             raise
+        finally:
+            if response is not None:
+                self._unregister_connection(response)
 
         if not partial_path.exists() or partial_path.stat().st_size <= 0:
             self._cleanup_partial(partial_path)
@@ -304,8 +451,16 @@ class DownloadService:
                 "A valid SHA-256 checksum is required before registration.",
             )
         else:
+            response = None
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                if self._cancel_requested:
+                    raise DownloadError(
+                        DownloadErrorCode.CANCELLED,
+                        f"Download cancelled: {request.full_url}",
+                    )
+                response = urllib.request.urlopen(request, timeout=self.timeout)
+                self._register_connection(response)
+                with response:
                     total_bytes = self._read_content_length(response)
             except TimeoutError as exc:
                 raise DownloadError(DownloadErrorCode.TIMEOUT, f"Download timed out: {request.full_url}") from exc
@@ -317,6 +472,9 @@ class DownloadService:
                     DownloadErrorCode.NETWORK_ERROR,
                     f"Unable to validate existing download {request.full_url}: {exc}",
                 ) from exc
+            finally:
+                if response is not None:
+                    self._unregister_connection(response)
             if total_bytes is None or file_size <= 0 or file_size != total_bytes:
                 raise DownloadError(
                     DownloadErrorCode.FILE_EXISTS,
@@ -415,12 +573,19 @@ class DownloadService:
                 pool.submit(
                     self._download_segment, url, headers, path, start, end, on_chunk, stop,
                     first_response if index == 0 else None,
+                    total_bytes,
                 )
                 for index, ((start, end), path) in enumerate(zip(ranges, paths))
             ]
             try:
                 pending = set(futures)
                 while pending:
+                    if self._cancel_requested:
+                        stop.set()
+                        raise DownloadError(
+                            DownloadErrorCode.CANCELLED,
+                            f"Download cancelled: {url}",
+                        )
                     done, pending = wait(
                         pending, timeout=self._PROGRESS_INTERVAL_SECONDS, return_when=FIRST_EXCEPTION
                     )
@@ -429,6 +594,22 @@ class DownloadService:
                         future.result()
             finally:
                 stop.set()
+                if self._cancel_requested:
+                    with self._connections_lock:
+                        conns = list(self._active_connections)
+                        self._active_connections.clear()
+                    for conn in conns:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                pool.shutdown(wait=False, cancel_futures=True)
+
+        if self._cancel_requested:
+            raise DownloadError(
+                DownloadErrorCode.CANCELLED,
+                f"Download cancelled: {url}",
+            )
 
         for (start, end), path in zip(ranges, paths):
             size = path.stat().st_size if path.exists() else 0
@@ -437,13 +618,57 @@ class DownloadService:
                     DownloadErrorCode.INCOMPLETE_DOWNLOAD,
                     f"Incomplete download segment {path.name}: expected {end - start} bytes, got {size} bytes.",
                 )
+
+        self._merge_segments(partial_path, paths, ranges, url)
+
+    def _merge_segments(
+        self,
+        partial_path: Path,
+        paths: list[Path],
+        ranges: list[tuple[int, int]],
+        url: str,
+    ) -> None:
+        seg0_size = ranges[0][1] - ranges[0][0]
         # Appending in order keeps .part a valid prefix even if this step is interrupted.
-        with open(partial_path, "ab") as out_file:
+        try:
+            with open(partial_path, "ab") as out_file:
+                for path in paths[1:]:
+                    if self._cancel_requested:
+                        raise DownloadError(
+                            DownloadErrorCode.CANCELLED,
+                            f"Download cancelled: {url}",
+                        )
+                    self._copy_segment_to_target(path, out_file, url)
             for path in paths[1:]:
-                with open(path, "rb") as segment_file:
-                    shutil.copyfileobj(segment_file, out_file, 1024 * 1024)
-        for path in paths[1:]:
-            path.unlink()
+                path.unlink()
+        except BaseException:
+            # If interrupted or cancelled during merge, truncate partial_path back to segment 0
+            # so that it never contains duplicated or partial segment data.
+            if partial_path.exists() and partial_path.stat().st_size > seg0_size:
+                try:
+                    with open(partial_path, "r+b") as handle:
+                        handle.truncate(seg0_size)
+                except OSError:
+                    pass
+            raise
+
+    def _copy_segment_to_target(
+        self,
+        segment_path: Path,
+        out_file: object,
+        url: str,
+    ) -> None:
+        with open(segment_path, "rb") as segment_file:
+            while True:
+                if self._cancel_requested:
+                    raise DownloadError(
+                        DownloadErrorCode.CANCELLED,
+                        f"Download cancelled: {url}",
+                    )
+                chunk = segment_file.read(1024 * 1024)
+                if not chunk:
+                    break
+                out_file.write(chunk)
 
     def _download_segment(
         self,
@@ -455,32 +680,46 @@ class DownloadService:
         on_chunk: Callable[[int], None],
         stop: threading.Event,
         response: object | None = None,
+        total_bytes: int | None = None,
     ) -> None:
         failures = 0
-        while not stop.is_set():
+        while not stop.is_set() and not self._cancel_requested:
             offset = start + (path.stat().st_size if path.exists() else 0)
             if offset >= end:
+                if response is not None:
+                    self._unregister_connection(response)
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
                 return
             attempt_start = offset
             try:
                 if response is None:
-                    response = self._open_range(url, headers, offset, end)
+                    response = self._open_range(url, headers, offset, end, total_bytes)
+                else:
+                    self._register_connection(response)
                 with response, open(path, "ab") as out_file:  # type: ignore[union-attr]
-                    while offset < end and not stop.is_set():
-                        if self._cancel_requested:
-                            raise DownloadError(
-                                DownloadErrorCode.CANCELLED,
-                                f"Download cancelled: {url}",
-                            )
+                    while offset < end and not stop.is_set() and not self._cancel_requested:
                         chunk = response.read(min(1024 * 1024, end - offset))  # type: ignore[union-attr]
                         if not chunk:
                             break
                         out_file.write(chunk)
                         offset += len(chunk)
                         on_chunk(len(chunk))
+                if self._cancel_requested:
+                    raise DownloadError(
+                        DownloadErrorCode.CANCELLED,
+                        f"Download cancelled: {url}",
+                    )
                 if offset < end and not stop.is_set():
                     raise http.client.IncompleteRead(b"", end - offset)
-            except (OSError, http.client.HTTPException) as exc:
+            except (OSError, http.client.HTTPException, ValueError) as exc:
+                if self._cancel_requested or stop.is_set():
+                    raise DownloadError(
+                        DownloadErrorCode.CANCELLED,
+                        f"Download cancelled: {url}",
+                    )
                 # Only consecutive failures without progress count towards the retry limit.
                 failures = 1 if offset > attempt_start else failures + 1
                 if failures > self.retries or not self._is_retryable(exc):
@@ -496,13 +735,26 @@ class DownloadService:
                 )
                 stop.wait(self._RETRY_DELAY_SECONDS)
             finally:
+                if response is not None:
+                    self._unregister_connection(response)
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
                 response = None
 
     def _open_with_retries(self, request: urllib.request.Request) -> object:
         failures = 0
         while True:
+            if self._cancel_requested:
+                raise DownloadError(
+                    DownloadErrorCode.CANCELLED,
+                    f"Download cancelled: {request.full_url}",
+                )
             try:
-                return urllib.request.urlopen(request, timeout=self.timeout)
+                response = urllib.request.urlopen(request, timeout=self.timeout)
+                self._register_connection(response)
+                return response
             except (OSError, http.client.HTTPException) as exc:
                 failures += 1
                 if failures > self.retries or not self._is_retryable(exc) or self._cancel_requested:
@@ -525,25 +777,52 @@ class DownloadService:
             return exc.code == 429 or exc.code >= 500
         return isinstance(exc, (OSError, http.client.HTTPException))
 
-    def _open_range(self, url: str, headers: dict[str, str], offset: int, end: int) -> object:
+    def _open_range(
+        self,
+        url: str,
+        headers: dict[str, str],
+        offset: int,
+        end: int,
+        total_bytes: int | None = None,
+    ) -> object:
+        if self._cancel_requested:
+            raise DownloadError(
+                DownloadErrorCode.CANCELLED,
+                f"Download cancelled: {url}",
+            )
         request = urllib.request.Request(url, headers={**headers, "Range": f"bytes={offset}-{end - 1}"})
         response = urllib.request.urlopen(request, timeout=self.timeout)
+        self._register_connection(response)
         try:
-            content_range = response.headers.get("Content-Range") or ""
-        except AttributeError:
-            content_range = ""
-        if getattr(response, "status", None) != 206 or not content_range.startswith(f"bytes {offset}-"):
-            response.close()
-            raise DownloadError(
-                DownloadErrorCode.NETWORK_ERROR,
-                f"Server did not honour the byte range request for {url}.",
+            self._validate_range_response(
+                response,
+                expected_start=offset,
+                expected_end=end - 1,
+                expected_total=total_bytes,
             )
+        except Exception:
+            self._unregister_connection(response)
+            try:
+                response.close()
+            except Exception:
+                pass
+            raise
         return response
 
     @staticmethod
     def _read_content_length(response: object) -> int | None:
         try:
-            value = response.headers.get("Content-Length")  # type: ignore[attr-defined]
+            headers = getattr(response, "headers", None)
+            if headers is None:
+                return None
+            value = None
+            if hasattr(headers, "get"):
+                value = headers.get("Content-Length") or headers.get("content-length")
+            if value is None and isinstance(headers, dict):
+                for k, v in headers.items():
+                    if k.lower() == "content-length":
+                        value = v
+                        break
         except AttributeError:
             return None
         if not value:
