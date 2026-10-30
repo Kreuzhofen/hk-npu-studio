@@ -583,6 +583,8 @@ class SD35InstallerStateMachineTests(unittest.TestCase):
         pythonpath = preflight_env.get("PYTHONPATH", "")
 
         self.assertNotIn(str(exe_parent), pythonpath)
+        # The inherited cwd is the install folder; -I keeps its _ssl.pyd off sys.path.
+        self.assertIn("-I", preflight_run[0][0])
 
         venv_site_packages = self.root / "sd35_venv" / "Lib" / "site-packages"
         for name in ("torch", "torchgen", "functorch", "torch-2.14.0.dev20260808+cpu.dist-info",
