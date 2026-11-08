@@ -27,6 +27,30 @@ MODELS_DIR = USER_BASE / "models"
 PLUGINS_DIR = BASE / "plugins"
 WORKFLOWS_DIR = BASE / "workflows"
 
+
+def resolve_model_path(relative_path: str | Path) -> Path:
+    """Resolve a model path with multi-tier priority:
+    1. USER_BASE / 'models' / relative_path (user-customized or downloaded)
+    2. BASE / 'models' / relative_path (bundled base models in application root)
+    """
+    rel = Path(relative_path)
+    user_model = USER_BASE / "models" / rel
+    if user_model.exists():
+        return user_model
+    base_model = BASE / "models" / rel
+    if base_model.exists():
+        return base_model
+    return user_model
+
+
+# Auto-create user-writable directories without requiring admin rights
+for _dir_path in (INPUT_DIR, OUTPUT_DIR, DATA_DIR, LOG_DIR, TEMP_DIR, MODELS_DIR):
+    try:
+        _dir_path.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+
+
 COMFYUI_HOST = "127.0.0.1"
 COMFYUI_PORT = 8188
 COMFYUI_BASE_URL = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"

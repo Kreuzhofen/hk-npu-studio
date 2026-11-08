@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import tkinter as tk
 from tkinter import ttk
 from typing import Any, Callable
@@ -260,22 +261,126 @@ class GalleryInspector(WorkspacePanel):
         sampler_val = meta.get("sampler", "-")
         scheduler_val = meta.get("scheduler", "-")
 
-        gen_lines = [
-            tr("model_label", "Modell: {model}", model=model_val),
-            tr("prompt_label", "Prompt: {prompt}", prompt=prompt_val),
-        ]
+        gen_lines: list[str] = []
 
-        neg_prompt = meta.get("negative_prompt")
-        if neg_prompt:
-            gen_lines.append(tr("negative_prompt_label", "Negativ-Prompt: {neg_prompt}", neg_prompt=neg_prompt))
+        if meta.get("_metadata_error"):
+            gen_lines.append(tr("metadata_corrupt_label", "Status: Metadaten unvollständig oder beschädigt"))
+        elif not image.prompt and not image.model_id and not meta.get("feature") and not meta.get("mode"):
+            gen_lines.append(tr("asset_type_original", "Typ: Originalbild (Eingabe / Import)"))
+            gen_lines.append(tr("no_generation_metadata", "Keine KI-Generierungsparameter vorhanden"))
+        else:
+            feature_raw = meta.get("feature") or meta.get("mode") or ""
+            if feature_raw in ("Image-to-Image", "img2img"):
+                feature_name = "Bild-zu-Bild (Image-to-Image)"
+            elif feature_raw in ("Inpainting", "inpaint"):
+                feature_name = "Inpainting"
+            else:
+                feature_name = "Text-to-Image"
 
-        gen_lines.extend([
-            tr("seed_label", "Seed: {seed}", seed=seed_val),
-            tr("steps_label", "Schritte: {steps}", steps=steps_val),
-            tr("cfg_label", "CFG-Skala: {cfg}", cfg=cfg_val),
-            tr("sampler_label", "Sampler: {sampler}", sampler=sampler_val),
-            tr("scheduler_label", "Scheduler: {scheduler}", scheduler=scheduler_val),
-        ])
+            gen_lines.append(tr("asset_type_generated", "Typ: KI-Generierung ({feature})", feature=feature_name))
+            gen_lines.append(tr("model_label", "Modell: {model}", model=model_val))
+            gen_lines.append(tr("prompt_label", "Prompt: {prompt}", prompt=prompt_val))
+
+            neg_prompt = meta.get("negative_prompt")
+            if neg_prompt:
+                gen_lines.append(tr("negative_prompt_label", "Negativ-Prompt: {neg_prompt}", neg_prompt=neg_prompt))
+
+            gen_lines.append(tr("seed_label", "Seed: {seed}", seed=seed_val))
+
+            # Denoising Strength if present (Image-to-Image / Inpainting)
+            denoising_val = meta.get("denoising_strength")
+            if denoising_val is not None:
+                try:
+                    d_flt = float(denoising_val)
+                    if abs(d_flt - 0.30) < 0.01:
+                        d_str = "0.30 (Subtil)"
+                    elif abs(d_flt - 0.45) < 0.01:
+                        d_str = "0.45 (Moderat)"
+                    elif abs(d_flt - 0.65) < 0.01:
+                        d_str = "0.65 (Ausgewogen)"
+                    elif abs(d_flt - 0.80) < 0.01:
+                        d_str = "0.80 (Kreativ)"
+                    elif abs(d_flt - 1.00) < 0.01:
+                        d_str = "1.00 (Neugenerierung)"
+                    else:
+                        d_str = f"{d_flt:.2f}"
+                except (ValueError, TypeError):
+                    d_str = str(denoising_val)
+                gen_lines.append(tr("denoising_label", "Denoising-Stärke: {denoising}", denoising=d_str))
+
+            # Steps & Actual Steps
+            actual_steps_val = meta.get("actual_steps") or meta.get("actual_inference_steps")
+            if actual_steps_val is not None and str(actual_steps_val) != steps_val:
+                gen_lines.append(tr("actual_steps_label", "HTP-Schritte: {actual} (von {total})", actual=actual_steps_val, total=steps_val))
+            else:
+                gen_lines.append(tr("steps_label", "Schritte: {steps}", steps=steps_val))
+
+            gen_lines.extend([
+                tr("cfg_label", "CFG-Skala: {cfg}", cfg=cfg_val),
+                tr("sampler_label", "Sampler: {sampler}", sampler=sampler_val),
+                tr("scheduler_label", "Scheduler: {scheduler}", scheduler=scheduler_val),
+            ])
+
+            # Reference Control details
+            ref_ctrl = meta.get("reference_control")
+            if isinstance(ref_ctrl, dict) and ref_ctrl.get("enabled"):
+                ref_mode = ref_ctrl.get("mode", "unknown")
+                if ref_mode == "canny_qnn":
+                    ref_mode_str = "Modus A · Konturtreue (Canny QNN)"
+                elif ref_mode == "latent_anchor":
+                    ref_mode_str = "Modus B · Strukturtreue (Latent Anchor)"
+                else:
+                    ref_mode_str = str(ref_mode)
+                gen_lines.append(tr("ref_mode_label_insp", "Referenz-Modus: {mode}", mode=ref_mode_str))
+
+                fidelity_val = ref_ctrl.get("fidelity")
+                if fidelity_val is not None:
+                    try:
+                        gen_lines.append(tr("ref_fidelity_label_insp", "Bindungsstärke: {fidelity}", fidelity=f"{float(fidelity_val):.2f}"))
+                    except (ValueError, TypeError):
+                        pass
+
+                ref_img = ref_ctrl.get("reference_image")
+                if ref_img:
+                    gen_lines.append(tr("ref_source_label_insp", "Referenzbild: {src}", src=Path(ref_img).name))
+
+            # Input source image path
+            in_path = meta.get("input_image_path")
+            if in_path:
+                gen_lines.append(tr("ref_source_label_insp", "Ausgangsbild: {src}", src=Path(in_path).name))
+
+            # Material Priming
+            mat_preset = meta.get("material_preset")
+            if mat_preset:
+                preset_display_names = {
+                    "24k_gold": "24k Gold",
+                    "antique_brass": "Antik-Messing",
+                    "copper": "Kupfer",
+                    "chrome": "Chrom",
+                }
+                mat_name = preset_display_names.get(mat_preset, str(mat_preset))
+                mat_intensity = meta.get("material_priming_intensity")
+                if mat_intensity is not None:
+                    try:
+                        mat_str = f"{mat_name} ({int(float(mat_intensity) * 100)}%)"
+                    except (ValueError, TypeError):
+                        mat_str = f"{mat_name} ({mat_intensity})"
+                else:
+                    mat_str = mat_name
+                gen_lines.append(tr("material_priming_label_insp", "Material-Priming: {preset}", preset=mat_str))
+
+            # Backend
+            backend_str = meta.get("backend")
+            if backend_str:
+                gen_lines.append(tr("backend_label_insp", "Backend: {backend}", backend=backend_str))
+
+            # Runtime
+            total_sec = meta.get("total_seconds")
+            if total_sec is not None:
+                try:
+                    gen_lines.append(tr("inference_time_label_insp", "NPU-Laufzeit: {time:.1f} s", time=float(total_sec)))
+                except (ValueError, TypeError):
+                    pass
 
         if meta.get("controlnet_enabled"):
             cn_model = meta.get("controlnet_model") or "canny"

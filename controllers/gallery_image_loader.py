@@ -65,6 +65,8 @@ class ImageLoader:
                 prompt = metadata.get("prompt")
                 model_id = metadata.get("model_id") or metadata.get("model")
                 seed = metadata.get("seed")
+            else:
+                metadata = {"_metadata_error": True}
 
         return GalleryImage(
             path=path,

@@ -33,36 +33,15 @@ QAI_APPBUILDER_REQUIRED_FILES = (
     "libs/QnnHtpV73Stub.dll",
     "libs/libQnnHtpV73Skel.so",
 )
-FIDESR_PRODUCT_FILES = (
-    (
-        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_vae_encoder" / "fidesr_vae_encoder.serialized.bin.bin",
-        "models/photo_restore_context/fidesr_vae_encoder",
-    ),
-    (
-        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_unet" / "fidesr_unet_merged.serialized.bin.bin",
-        "models/photo_restore_context/fidesr_unet",
-    ),
-    (
-        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_lrrb" / "fidesr_lrrb.serialized.bin.bin",
-        "models/photo_restore_context/fidesr_lrrb",
-    ),
-    (
-        PROJECT_ROOT / "models" / "photo_restore_context" / "fidesr_vae_decoder" / "fidesr_vae_decoder.serialized.bin.bin",
-        "models/photo_restore_context/fidesr_vae_decoder",
-    ),
-    (
-        PROJECT_ROOT / "models" / "photo_restore" / "fidesr_empty_prompt_embeds.bin",
-        "models/photo_restore",
-    ),
-    (
-        PROJECT_ROOT / "models" / "photo_restore" / "fidesr_epsilon_seed231.bin",
-        "models/photo_restore",
-    ),
+FIDESR_RUNNER_TEMPLATE = (
     (
         PROJECT_ROOT / "engine" / "backends" / "fidesr_strong_runner_template.py",
         "engine/backends",
     ),
 )
+# FiDeSR product weights are decoupled from the base installer payload (modular packaging)
+FIDESR_PRODUCT_FILES: tuple[tuple[Path, str], ...] = ()
+MOBILESAM_PRODUCT_MODEL = PROJECT_ROOT / "models" / "mobilesam_qnn"
 RELEASE_DOCUMENTS = (
     (PROJECT_ROOT / "README.md", "."),
     (PROJECT_ROOT / "LICENSE", "."),
@@ -145,11 +124,11 @@ def _resolve_fidesr_qnn_runtime_files() -> tuple[tuple[Path, str], ...]:
 
 
 def _required_add_data_files() -> tuple[tuple[Path, str], ...]:
-    required = (*FIDESR_PRODUCT_FILES, *RELEASE_DOCUMENTS)
+    required = (*FIDESR_RUNNER_TEMPLATE, *RELEASE_DOCUMENTS)
     missing = [path for path, _destination in required if not path.is_file()]
     if missing:
         raise FileNotFoundError(
-            "Required RC3 release files missing: "
+            "Required release files missing: "
             + ", ".join(str(path) for path in missing)
         )
     return required
@@ -235,12 +214,51 @@ def _prepare_release_resources() -> Path:
     return target
 
 
+def parse_version_tuple(version_str: str) -> tuple[int, int, int, int]:
+    """Safely derive a Windows 4-part numeric version tuple from a version string.
+
+    Example: '2.1.0' -> (2, 1, 0, 0).
+    Rejects invalid formats or non-numeric components with ValueError.
+    """
+    if not isinstance(version_str, str) or not version_str.strip():
+        raise ValueError("Versionsstring darf nicht leer sein.")
+
+    parts = version_str.strip().split(".")
+    if len(parts) > 4:
+        raise ValueError(
+            f"Ungültiges Versionsformat: '{version_str}' hat mehr als 4 Bestandteile."
+        )
+
+    numeric_parts: list[int] = []
+    for part in parts:
+        if not part.isdigit():
+            raise ValueError(
+                f"Ungültiger Versionsbestandteil: '{part}' in '{version_str}' ist keine Zahl."
+            )
+        val = int(part)
+        if val < 0 or val > 65535:
+            raise ValueError(
+                f"Versionsbestandteil {val} außerhalb des gültigen Bereichs (0-65535)."
+            )
+        numeric_parts.append(val)
+
+    while len(numeric_parts) < 4:
+        numeric_parts.append(0)
+
+    return (numeric_parts[0], numeric_parts[1], numeric_parts[2], numeric_parts[3])
+
+
+_parse_version_tuple = parse_version_tuple
+
+
 def _write_version_file() -> Path:
     version_file = BUILD_ROOT / "version_info.txt"
     version_file.parent.mkdir(parents=True, exist_ok=True)
-    numeric = (2, 0, 0, 0)
+    numeric = parse_version_tuple(RELEASE.package_version)
+    numeric_dotted = ".".join(str(part) for part in numeric)
     version_file.write_text(
-        f"""VSVersionInfo(
+        f"""# HK NPU STUDIO {numeric_dotted}
+VSVersionInfo(
   ffi=FixedFileInfo(
     filevers={numeric}, prodvers={numeric}, mask=0x3f, flags=0x0,
     OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)
@@ -248,11 +266,11 @@ def _write_version_file() -> Path:
   kids=[
     StringFileInfo([StringTable('040704B0', [
       StringStruct('CompanyName', '{RELEASE.publisher}'),
-      StringStruct('FileDescription', '{RELEASE.app_name}'),
+      StringStruct('FileDescription', '{RELEASE.app_name} {RELEASE.display_version} – {RELEASE.codename}'),
       StringStruct('FileVersion', '{RELEASE.package_version}'),
       StringStruct('InternalName', 'HKNPUStudio'),
       StringStruct('OriginalFilename', '{RELEASE.executable_name}'),
-      StringStruct('ProductName', '{RELEASE.app_name}'),
+      StringStruct('ProductName', '{RELEASE.app_name} – {RELEASE.codename}'),
       StringStruct('ProductVersion', '{RELEASE.package_version}')
     ])]),
     VarFileInfo([VarStruct('Translation', [1031, 1200])])
@@ -349,6 +367,8 @@ def build_arguments() -> list[str]:
         "--add-data",
         f"{REALESRGAN_PRODUCT_MODEL}{os.pathsep}models",
     ]
+    if MOBILESAM_PRODUCT_MODEL.exists():
+        arguments.extend(["--add-data", f"{MOBILESAM_PRODUCT_MODEL}{os.pathsep}models/mobilesam_qnn"])
     for source, destination in (*required_files, *fidesr_qnn_runtime, *sd35_dependency_files):
         arguments.extend(["--add-data", f"{source}{os.pathsep}{destination}"])
     if qai_runtime is not None:

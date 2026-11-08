@@ -39,7 +39,7 @@ class PhoenixImageLabView(WorkspaceFrame):
     def _build_cards(self) -> None:
         container = tk.Frame(self.content_slot, bg=PHOENIX_THEME.content_bg)
         container.pack(fill="both", expand=True, padx=PHOENIX_THEME.space_xl, pady=PHOENIX_THEME.space_lg)
-        container.grid_columnconfigure((0, 1, 2), weight=1, uniform="lab_cards")
+        container.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="lab_cards")
         container.grid_rowconfigure(0, weight=1)
 
         # Card 1: AI Photo Restore (FiDeSR Strong)
@@ -59,12 +59,12 @@ class PhoenixImageLabView(WorkspaceFrame):
             icon_name="sparkles",
         )
 
-        # Card 2: Generative Fill & Inpainting (SDXL)
+        # Card 2: Generative Fill & Inpainting (SD 1.5)
         self._create_feature_card(
             container,
             column=1,
             title=tr("image_lab_inpainting_title", "Generatives Füllen"),
-            badge=tr("image_lab_inpainting_badge", "SDXL Inpainting • QNN/HTP"),
+            badge=tr("image_lab_inpainting_badge", "SD 1.5 Inpainting • QNN/HTP"),
             badge_color=PHOENIX_THEME.accent,
             desc=tr(
                 "image_lab_inpainting_desc",
@@ -88,9 +88,26 @@ class PhoenixImageLabView(WorkspaceFrame):
                 "Störende Bildbereiche mit einer Pinselmaske bearbeiten. Öffnet den gemeinsamen Bereich für Generatives Füllen und Retusche.",
             ),
             action_text=tr("image_lab_open_retouch", "Retusche öffnen"),
-            target="generative_fill",
+            target="retouch",
             is_primary=False,
             icon_name="image",
+        )
+
+        # Card 4: Image-to-Image (SD 1.5)
+        self._create_feature_card(
+            container,
+            column=3,
+            title=tr("image_lab_img2img_title", "Bild-zu-Bild"),
+            badge=tr("image_lab_img2img_badge", "SD 1.5 QNN • Hexagon HTP"),
+            badge_color=PHOENIX_THEME.accent,
+            desc=tr(
+                "image_lab_img2img_desc",
+                "Stil- und Motivtransformation eines vorhandenen Bildes mittels Prompt und einstellbarer Denoising-Stärke.",
+            ),
+            action_text=tr("image_lab_open_img2img", "Bild-zu-Bild öffnen"),
+            target="image_to_image",
+            is_primary=False,
+            icon_name="sparkles",
         )
 
     def _create_feature_card(
@@ -153,6 +170,7 @@ class PhoenixImageLabView(WorkspaceFrame):
             wraplength=260,
         )
         desc_lbl.grid(row=2, column=0, sticky="nsew", padx=PHOENIX_THEME.card_pad_x, pady=(0, PHOENIX_THEME.card_pad_y))
+        card.bind("<Configure>", lambda e, lbl=desc_lbl: lbl.configure(wraplength=max(200, e.width - 2 * PHOENIX_THEME.card_pad_x)), add="+")
 
         # Action Button
         btn = PhoenixButton(
@@ -167,7 +185,7 @@ class PhoenixImageLabView(WorkspaceFrame):
         )
         btn.grid(row=3, column=0, sticky="ew", padx=PHOENIX_THEME.card_pad_x, pady=(0, PHOENIX_THEME.card_pad_y))
 
-        if target in ("photo_restore", "inpainting"):
+        if target in ("photo_restore", "inpainting", "image_to_image"):
             try:
                 from widgets.phoenix.dnd_utils import parse_dnd_paths, register_dnd_target
                 from tkinterdnd2 import DND_FILES
@@ -180,8 +198,11 @@ class PhoenixImageLabView(WorkspaceFrame):
                     self._navigate(target)
                     app = self.winfo_toplevel()
                     ws = getattr(app, "phoenix_workspace", None)
-                    if ws is not None and hasattr(ws, "open_photo_restore_with_image"):
-                        ws.open_photo_restore_with_image(paths[0])
+                    if ws is not None:
+                        if target == "image_to_image" and hasattr(ws, "open_image_to_image_with_image"):
+                            ws.open_image_to_image_with_image(paths[0])
+                        elif hasattr(ws, "open_photo_restore_with_image"):
+                            ws.open_photo_restore_with_image(paths[0])
 
                 register_dnd_target(card, DND_FILES, on_restore_card_drop, recursive=True)
             except ImportError:

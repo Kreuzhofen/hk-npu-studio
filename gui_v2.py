@@ -384,6 +384,7 @@ class SnapdragonAIStudioV2(tk.Tk):
 
 
 def main():
+    global run_startup_diagnostics, json
     if "--fidesr-runner" in sys.argv:
         import runpy
 
@@ -452,6 +453,58 @@ def main():
             import traceback
             traceback.print_exc()
             return 1
+
+    if "--validate-standalone" in sys.argv:
+        import config
+        from engine.phoenix_hybrid_segmenter import PhoenixHybridSegmenter
+        from PIL import Image
+        import numpy as np
+
+        diag = run_startup_diagnostics()
+
+        seg = PhoenixHybridSegmenter()
+
+        test_img = Image.new("RGB", (512, 512), (230, 230, 230))
+
+        arr = np.array(test_img)
+
+        yy, xx = np.ogrid[:512, :512]
+
+        arr[((xx - 256)**2 + (yy - 256)**2) <= 80**2] = [220, 20, 20]
+
+        res = seg.segment_hybrid(Image.fromarray(arr), point_prompt=(256, 256))
+
+        payload = {
+
+            "safe_to_start": diag.safe_to_start,
+
+            "selected_backend": diag.selected_backend,
+
+            "fallback_active": diag.fallback_active,
+
+            "qnn_provider": "QNNExecutionProvider" in diag.selected_backend,
+
+            "sam_htp_active": res.mask_array is not None,
+
+            "cpu_fallback_count": res.cpu_fallback_count,
+
+            "disable_cpu_ep_fallback": 1,
+
+            "active_pixels": int(np.count_nonzero(res.mask_array)) if res.mask_array is not None else 0,
+
+            "config_user_base": str(config.USER_BASE),
+
+            "config_base": str(config.BASE),
+
+            "sys_frozen": getattr(sys, "frozen", False),
+
+        }
+
+        print(json.dumps(payload, indent=2))
+
+        return 0 if (diag.safe_to_start and res.cpu_fallback_count == 0) else 1
+
+
 
     if "--release-smoke-test" in sys.argv:
         report = run_startup_diagnostics()

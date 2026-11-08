@@ -79,23 +79,21 @@ class PhoenixHeader(tk.Frame):
 
         tk.Label(
             release_group,
-            text=tr(
-                "version_value", "Version {version}", version=self.brand.APP_VERSION
-            ),
+            text=self.brand.APP_VERSION,
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.accent,
-            font=PHOENIX_THEME.font_section,
+            font=PHOENIX_THEME.font_title,
             anchor="e",
-        ).pack(side="top", fill="x", anchor="e", pady=(6, 0))
+        ).pack(side="top", fill="x", anchor="e")
 
         tk.Label(
             release_group,
-            text="© 2026 Holger Kreuzhofen",
+            text=getattr(self.brand, "CODENAME", "Phoenix Evolution"),
             bg=PHOENIX_THEME.header_bg,
             fg=PHOENIX_THEME.text_muted,
             font=PHOENIX_THEME.font_small,
             anchor="e",
-        ).pack(side="top", fill="x", anchor="e", pady=(0, 6))
+        ).pack(side="top", fill="x", anchor="e")
 
     def set_view(self, title: str) -> None:
         self.view_label.configure(

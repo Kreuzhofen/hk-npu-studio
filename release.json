@@ -1,9 +1,9 @@
 {
   "app_name": "HK NPU STUDIO",
-  "display_version": "2.0 RC4",
-  "package_version": "2.0.0-rc.4",
-  "build": "2026.10.25",
-  "codename": "Phoenix",
+  "display_version": "2.1.0",
+  "package_version": "2.1.0",
+  "build": "2026.11.07",
+  "codename": "Phoenix Evolution",
   "publisher": "Holger Kreuzhofen",
   "architecture": "arm64",
   "executable_name": "HKNPUStudio.exe"

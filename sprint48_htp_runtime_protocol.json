@@ -1,0 +1,57 @@
+{
+  "sprint": "SPRINT APP-ACCEPTANCE-48",
+  "date": "2026-11-01",
+  "platform": "Windows 11 ARM64",
+  "hardware": "Qualcomm Snapdragon X Elite (Hexagon HTP V73 NPU)",
+  "backend": "QNNExecutionProvider",
+  "cpu_fallback_ms": 0.0,
+  "stages": {
+    "startup": {
+      "status": "PASS",
+      "window_title": "HK NPU STUDIO",
+      "available_models": [
+        "controlnet_canny_qnn",
+        "stable_diffusion_v1_5_qnn",
+        "stable_diffusion_v2_1_qnn",
+        "stable_diffusion_v3_5_qai"
+      ]
+    },
+    "text_to_image": {
+      "status": "PASS",
+      "output_image": "generate_1793563666_b60aa240.png",
+      "file_size_bytes": 440325,
+      "image_resolution": [
+        512,
+        512
+      ],
+      "wall_time_s": 20.03,
+      "inference_ms": 20027.95,
+      "cpu_fallback_ms": 0.0,
+      "seed": 4801,
+      "steps": 15,
+      "cfg": 7.5,
+      "prompt": "A photorealistic red apple on a wooden table, soft natural window light, detailed skin texture, professional product photography, realistic shadows, high detail.",
+      "sidecar_present": true
+    },
+    "image_to_image": {
+      "status": "PASS",
+      "output_image": "img2img_4802_1793563678.png",
+      "file_size_bytes": 431059,
+      "image_resolution": [
+        512,
+        512
+      ],
+      "wall_time_s": 20.91,
+      "inference_ms": 20913.43,
+      "cpu_fallback_ms": 0.0,
+      "seed": 4802,
+      "steps": 15,
+      "cfg": 7.5,
+      "denoising_strength": 0.45,
+      "reference_mode": "latent_anchor",
+      "reference_fidelity": 0.65,
+      "prompt": "Transform the red apple into a golden yellow apple, preserve its shape and natural lighting.",
+      "sidecar_present": true
+    }
+  }
+}

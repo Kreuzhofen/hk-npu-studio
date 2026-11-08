@@ -28685,3 +28685,542 @@ Für den geplanten Release-Kandidaten **HK NPU STUDIO 2.0 RC4** wurden alle enth
 1. Keine Quellcode-, Test- oder Build-Änderungen ohne explizite Freigabe.
 2. Der aktuelle Arbeitsstand ist auf D: unter `D:\HK_NPU_STUDIO_BACKUPS\DOCS_PRE_RC4_UPDATE_20261025\` mit identischen Ausgangs-Hashes gesichert.
 3. Vor einem künftigen RC4-Build: `release.json` anheben (`2.0.0-rc.4`), Build ausführen, `dist/release-artifacts.json` neu generieren und erst danach Tag/Release vorbereiten.
+
+# CHATGPT_HANDOVER – AKTUALISIERUNG 31. OKTOBER 2026
+## RC4-Veröffentlichungen abgeschlossen – Einstieg promptgestützte Bildbearbeitung
+
+**Diese Ergänzung wurde an die vollständige vorhandene Handover-Datei angehängt.**
+Die bisherige Chronik wurde nicht gekürzt, ersetzt oder umgeschrieben. Bei Widersprüchen gilt dieser neueste datierte Abschnitt; historische Angaben bleiben als Historie erhalten.
+
+## 1. Verbindlicher Projektstand
+
+- Produktname: **HK NPU STUDIO**.
+- Projektpfad des Hauptprojekts: `C:\SnapdragonAI\`.
+- GitHub: `https://github.com/Kreuzhofen/hk-npu-studio`.
+- Aktuelle Produktbasis: **HK NPU STUDIO 2.0 RC4**.
+- RC4-Release: `https://github.com/Kreuzhofen/hk-npu-studio/releases/tag/v2.0.0-rc.4`.
+- Installer: `HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe`.
+- SHA-256 laut bisherigem Release-Nachweis: `7d1d9b9c566c58cef55f9478a215171351b9cddfe1313c7379f8c11856800f0b`.
+- Der zuletzt dokumentierte RC4-Git-Ausgangspunkt aus dem Projektkontext ist Merge-Commit `8784a43f5b7666f1007292393c6ea947b5cdd788` auf `main`. **Dieser Hash und der lokale Arbeitsbaum wurden in dieser Handover-Aktualisierung nicht auf dem Entwicklungs-PC neu geprüft. Vor jeder Änderung muss der reale Git-Status/HEAD read-only ausgelesen werden.**
+- RC4 wurde veröffentlicht. PR #9 (Isolated Mode Fix) und PR #10 (Segmented Parallel Downloads) wurden nach RC4 gemergt; sie dürfen nicht rückwirkend als RC4-Funktionen bezeichnet werden.
+- Die alte Handover-Datei enthielt ältere, teils widersprüchliche RC2/RC3/RC4-Integrationsstände. Diese bleiben als Chronik erhalten und sind nicht mehr ungeprüft als aktueller HEAD zu verwenden.
+
+## 2. RC4-Funktionen und bestätigte Produktabnahme
+
+Für die öffentliche RC4-Kommunikation wurden folgende Verbesserungen verwendet:
+
+- Universelles Drag & Drop in Gallery, Compare Workspace und Prompt Workspace.
+- Batch Generation für 1–99 Bilder pro Lauf.
+- Persistent Settings v3: 18 Generierungsparameter werden automatisch gespeichert und wiederhergestellt.
+- Integrierte Updatefunktion mit GitHub-Release-Erkennung und SHA-256-Prüfung.
+- Verbesserte semantische Prompt-Validierung in Phoenix Boost.
+- 14 integrierte Generierungspresets.
+- Verbesserte Windows-Pfadbehandlung und erweiterte automatisierte Regressionstests.
+
+**Technischer Verifikationsbericht aus dem Projektkontext:**
+- Snapdragon X Plus, SD3.5 Medium, 1024×1024, 8 Schritte: gemeldete Inferenzzeit 34,74 Sekunden.
+- 21/21 Inferenzaufrufe auf Qualcomm Hexagon HTP; kein CPU-Fallback.
+- UI-Fortschritt und Galerie-Workflow wurden geprüft.
+- Diese Zahlen nur bei ausdrücklichem Bedarf nennen; sie wurden für einen öffentlichen Post bewusst nicht verwendet.
+- Ein fehlendes `httpx`-Packaging-Dependency wurde vor der betreffenden RC4-Abnahme behoben.
+
+Nicht als RC4-Neuerung ausgeben: dreisprachige UI. Das war keine neue RC4-Funktion.
+
+## 3. Öffentliche Veröffentlichungen – Stand 31.10.2026
+
+Die RC4-Kommunikationsrunde ist für Holger abgeschlossen:
+
+- **Reddit:** RC4-Beitrag in `r/snapdragon` veröffentlicht. Titel: `🚀 HK NPU STUDIO RC4 – Further Improvements for Local AI on Snapdragon PCs`. Als Beitragsbild wurde das Astronautenmotiv verwendet. Der bestehende Phoenix-Profilbanner bleibt unverändert.
+- **Qualcomm Developers / Discord:** RC4-Ankündigung im Kanal `#self-promotion` vorbereitet und anschließend von Holger als erledigt bestätigt.
+- **Hugging Face:** RC4-Landingpage/HTML auf Basis der vorhandenen RC3-Vorlage aktualisiert; Holger bestätigte „Huggin ist fertig“.
+- **Microsoft Tech Community:** RC4-Antwort/Beitrag in der bestehenden Diskussion eingestellt. **Wichtiger Status:** In der privaten Browseransicht war der Beitrag nicht sichtbar; die UI zeigte den Status `Not Accepted`. Die genaue Bedeutung und ein möglicher Moderationsgrund wurden noch nicht zweifelsfrei festgestellt. Nicht als öffentlich sichtbar oder endgültig moderativ abgelehnt behaupten. Nächster Schritt nur bei Bedarf: Beitragsmenü/Moderationsdetails und E-Mail-Benachrichtigung prüfen. Nicht ungeprüft erneut posten.
+- Andere Social-Media-Plattformen wurden in dieser Runde nicht als erledigt bestätigt.
+
+Verbindlicher Marken-Claim:
+`Your Hardware • Your AI • Your Control`
+
+Verbindlicher Footer für öffentliche Projektbeiträge:
+`# 🖥️ Your Hardware • Your AI • Your Control`
+
+`🔗 GitHub:`
+`https://github.com/Kreuzhofen/hk-npu-studio`
+
+`Holger Kreuzhofen`
+`Founder & Lead Developer`
+`🔥 HK NPU STUDIO`
+
+Kommunikationsstil: persönlich, sachlich, menschlich und nicht wie generischer KI-Werbetext. Bei englischen Texten für Holger immer eine vollständige deutsche Übersetzung mitliefern. Die RC4-Überschrift lautet bewusst „Further Improvements“, nicht „Major Improvements“.
+
+## 4. Aktuelle technische Priorität: promptgestützte Bildbearbeitung
+
+Holgers nächstes Produktziel ist, **ein bestehendes Bild durch einen Textprompt und eine vom Nutzer definierte Maske gezielt zu bearbeiten**. Dazu gehören:
+1. Objekte/Bildelemente hinzufügen oder entfernen.
+2. Bildbereiche per Prompt verändern, z. B. Kleidung oder Accessoires.
+3. Hintergrund austauschen.
+4. Unmaskierte Personen-/Bildbereiche möglichst unverändert erhalten.
+
+Priorität bleibt lokale Inferenz auf Qualcomm Hexagon HTP. CPU ist nur für klar begrenzte, mathematisch notwendige Vor-/Nachverarbeitung zulässig; kein CPU-/GPU-KI-Fallback für die iterative Bildinferenz.
+
+### Vorliegender Analysebericht
+
+Datei aus der aktuellen Unterhaltung:
+`Eingefügter Text(20261031-104018).txt`
+
+Titel:
+`SPRINT-BERICHT: IMG-EDIT-ANALYSE-01 – PROMPTGESTÜTZTE BILDBEARBEITUNG`
+
+- System laut Bericht: Windows 11 ARM64, Snapdragon X Plus, Hexagon HTP V73, 16 GB RAM.
+- Art: reine Leseanalyse und Architekturkonzeption mit Antigravity.
+- Ergebnis laut Bericht: keine Produktcodeänderungen und keine Änderungen an D:.
+- Die vorhandene Phoenix-Infrastruktur wurde als weitgehend wiederverwendbar bewertet:
+  - `InpaintingController`
+  - `PhoenixInpaintingCanvas`
+  - `InpaintingView`
+  - `ImageLabView`
+  - `StableDiffusionQNNBackend`
+  - bestehende Crop-/Padding- und Alpha-Composite-/Feathering-Hilfsfunktionen.
+- Bestehende Canvas-Funktionen laut Bericht: Pinsel, Radierer, Undo/Redo, Zoom/Pan und Maskenerstellung.
+- Der Bericht schlägt eine Dual-Engine vor:
+  - Smart Eraser / reine Objektentfernung: AOT-GAN auf HTP, sofern vorhandenes Paket und Laufzeitvertrag tatsächlich verifiziert sind.
+  - Generative Fill: vorhandenes SD-1.5-QNN-UNet plus Blended Latent Diffusion; einmaliger VAE-Encode-Pass auf ARM64-CPU, iterative Denoising-Schritte und VAE-Decode über den vorhandenen QNN/HTP-Pfad.
+- Der Bericht nennt als verworfene bzw. nicht weiterzuverfolgende Ansätze:
+  - FLUX.1 Kontext/Fill: RAM-, Lizenz- und QNN-Blocker.
+  - SDXL RORem/DLC Inpainting: früheres Quality-Gate FAIL wegen Artefakten und Laufzeit.
+  - ControlNet Canny als Editor: ungeeignet, da es kein echtes maskiertes Editing mit zuverlässigem Identitätserhalt darstellt.
+  - AOT-GAN als promptgesteuerter Editor: ungeeignet, weil kein Text-Encoder vorhanden ist; nur als Smart Eraser/Objektentfernung relevant.
+- Diese Ausschlüsse nur dann neu öffnen, wenn neue technische Evidenz vorliegt.
+
+**Wichtige Einschränkung:** Der Analysebericht enthält technische Annahmen, geschätzte Latenzen und sehr starke Aussagen zum Identitätserhalt. Diese sind nicht automatisch Produktnachweise. Insbesondere „100 % identisch“, „2,5–3,5 Sekunden“ und „100–200 ms“ müssen durch Implementierung und reale Messungen belegt werden. Pixelidentität kann für unmaskierte Bereiche durch abschließendes Compositing gesichert werden; die Qualität der Maskenkante und der generierten Region bleibt gesondert zu bewerten.
+
+### Nächster Schritt – IMG-EDIT-IMPL-01
+
+Der nächste Sprint wurde bereits als **IMG-EDIT-IMPL-01 – Blended Inpainting Pipeline** vorbereitet. Vor tatsächlicher Implementierung muss zuerst eine begrenzte Kompatibilitäts-/Bestandsprüfung erfolgen. Grund: Der Analysebericht darf nicht ungeprüft als Implementierungsfreigabe behandelt werden.
+
+Vorgesehene technische Arbeitspakete laut Analyse:
+1. Prüfen, ob ein eigenständiger SD-1.5-VAE-Encoder verfügbar und kompatibel ist (`sd_vae_encoder.onnx`, im Bericht ca. 68 MB; Dateiname/Größe noch verifizieren).
+2. Ein-/Ausgangsformen, RGB-Normalisierung, Latent-Skalierung, Quantisierung und Scheduler-Konventionen prüfen. Erwartete Beispielgrößen im Bericht: RGB `[1,3,512,512]`, Latent `[1,4,64,64]`; nicht ohne Modellprüfung fest verdrahten.
+3. Blended-Latent-Update im `InpaintingController` konzeptionell und numerisch prüfen.
+4. Verifizieren, ob das vorhandene `StableDiffusionQNNBackend`/SD-1.5-QNN-UNet die benötigten Tensoren und Scheduler-Schritte tatsächlich unterstützt.
+5. Prüfen, ob der vorhandene VAE-Decoder den erzeugten Latent-Output korrekt verarbeitet.
+6. Erst danach GUI-Verdrahtung von `PhoenixInpaintingCanvas`/`InpaintingView` in `ImageLabView` planen.
+7. Lizenzen und Redistribution-Bedingungen für zusätzliche Encoder-/AOT-GAN-Artefakte prüfen.
+
+**Noch nicht bestätigt:** Verfügbarkeit und Lizenz des konkreten VAE-Encoder-ONNX, tatsächliche Kompatibilität des QNN-UNets mit Blended Latents, die gemeldeten Laufzeiten und die vollständige Identitätserhaltung.
+
+### Vorgesehener Antigravity-Prüfsprint (zunächst read-only)
+
+- TOOL: Antigravity.
+- DAUER: ca. 60–90 Minuten.
+- BACKUP: Für reine Leseanalyse kein Backup erforderlich; vor jeder späteren Codeänderung relevante Dateien auf D: sichern und SHA-256/Dateigröße verifizieren.
+- FESTPLATTE D: Für den reinen Prüfsprint nicht zwingend erforderlich; für jede Änderung/Implementierung erforderlich.
+- SCOPE: ausschließlich vorhandene Komponenten, Modellartefakte, Tensor-/Scheduler-Kompatibilität, Lizenzstatus und konkreter Integrationsplan.
+- ZIEL: belegter Implementierungsplan; keine Codeänderungen, keine Downloads, keine Builds, keine Commits, keine Pushes.
+
+Der vollständige Antigravity-Prompt für diesen read-only Prüfsprint wurde im vorherigen Chat erstellt. Er beginnt mit der Prüfung von Git-Branch, Git-Status und letztem Commit und untersucht danach die Komponenten `InpaintingController`, `PhoenixInpaintingCanvas`, `InpaintingView`, `ImageLabView` und `StableDiffusionQNNBackend`. Falls der neue Chat den Wortlaut benötigt, den Prompt aus dem vorherigen Gespräch übernehmen bzw. neu vollständig ausformulieren; nicht mit Implementierung beginnen, bevor die Kompatibilitätsprüfung abgeschlossen ist.
+
+## 5. Qualcomm / QAIRT / BYOM – offene externe Abhängigkeit
+
+- Holger sandte am 13.10.2026 und 17.10.2026 E-Mails an Qualcomm AI Hub / QAIRT.
+- Thema: Weitergabe/Redistribution von BYOM-kompilierten QNN-Modellpaketen und Redistribution der QAIRT-2.50-Runtime.
+- Am letzten dokumentierten Stand vom 29.10.2026 lag noch keine Antwort vor.
+- Eine Erinnerung ist für **05.11.2026 um 09:00 Uhr** geplant.
+- Photo-Restore-BYOM-Redistribution bleibt bis zu einer schriftlichen Freigabe offen.
+- QAIRT 2.50 nicht pauschal in RC4 integrieren; bisherige Qualifizierung eines einzelnen Pfades ist keine allgemeine Freigabe für andere Modelle.
+
+## 6. Verbindliche Arbeitsweise und Qualitätsregeln
+
+- Sprache: Deutsch; kurz, präzise und tokenbewusst.
+- Holger direkt mit „Holger“ ansprechen, aber nicht in jeder Antwort wiederholen.
+- Jeder technische Sprint beginnt mit: `BACKUP`, `FESTPLATTE D`, `TOOL`, `DAUER`, `SCOPE`, `ZIEL`.
+- Antigravity ist Standard für Analyse und Implementierung. Codex wegen Credits sparsam und nur bei echtem Mehrwert. PowerShell für lokale Prüfungen, Backups, Hashes und Git.
+- Vor jeder Änderung Git-Status/Branch/HEAD prüfen.
+- Vor jeder Änderung relevante Dateien nach D: sichern; Backup-Dateien, Dateigrößen und SHA-256 verifizieren.
+- Nach jeder Änderung den Projektstand sichern und fokussierte Tests durchführen.
+- Keine Änderungen außerhalb des ausdrücklich freigegebenen Scopes.
+- Kein Commit, Push oder Build ohne ausdrückliche Freigabe.
+- Niemals `git add .` oder `git add -A`.
+- Keine riskanten Löschungen, Resets, Überschreibungen, Merges oder Bereinigungen ohne Prüfung und Freigabe.
+- Nach zwei erfolglosen Reparaturen am selben Fehler Ursache neu analysieren, statt weitere ähnliche Patches zu stapeln.
+- Vollständige Windows-Pfade in allen Anweisungen und Befehlen verwenden.
+- UI: bestehende Architektur, `PHOENIX_THEME`, Light/Dark-Modus und Phoenix-Popup-Stil beibehalten.
+- Qualitätsprinzip: Unit-Test-PASS ist kein Produkt-PASS. Reale NPU-Ausführung, echte Bildresultate, visuelle A/B-Prüfung und Regressionen getrennt nachweisen.
+- NPU-Priorität: (1) lokale Bildgenerierung/Bildbearbeitung auf Qualcomm Hexagon HTP, (2) Video, (3) später Musik.
+- Bei Video bleibt die bisherige Priorisierung: Neodragon Text-to-Video zuerst technisch prüfen; Image-to-Video später, sobald ein belastbarer QNN/HTP-Pfad oder offizielles Paket existiert.
+- Handover immer als vollständige Datei mit unveränderter Chronik plus neuem datiertem Abschnitt ausgeben, nie nur als Ergänzung.
+
+## 7. Nächster Chat – Startanweisung
+
+Bitte im neuen Chat zuerst die vollständige `CHATGPT_HANDOVER.md` lesen. Danach ohne Wiederholung der abgeschlossenen Social-Media-Arbeiten mit diesem Auftrag starten:
+
+> Wir setzen HK NPU STUDIO fort. Lies die vollständige Handover-Datei einschließlich der neuesten Ergänzung vom 31.10.2026. Die RC4-Veröffentlichungsrunde ist abgeschlossen. Unser nächstes Ziel ist promptgestützte Bildbearbeitung. Beginne mit dem read-only Antigravity-Prüfsprint IMG-EDIT-IMPL-01: Git-Status/Branch/HEAD prüfen, vorhandene Inpainting-Komponenten und den SD-1.5-QNN-Pfad untersuchen, VAE-Encoder-Artefakt und Tensor-/Scheduler-Kompatibilität verifizieren sowie Lizenz-/Redistribution-Risiken dokumentieren. Keine Codeänderungen, Downloads, Builds, Commits oder Pushes. Liefere einen belegten Implementierungsplan und trenne bestätigte Tatsachen von Annahmen.
+
+## 8. Handover-Übernahme auf dem Entwicklungs-PC
+
+- Dateiname exakt: `CHATGPT_HANDOVER.md`.
+- Lokaler Übernahmebefehl: `C:\Users\holge\Desktop\SnapdragonAI_Handover_Aktualisieren.cmd`.
+- Ziel: `C:\SnapdragonAI\docs\CHATGPT_HANDOVER.md`.
+- Nach dem Download den etablierten CMD-Workflow ausführen und dessen SHA-256-Prüfung abwarten.
+- Diese Aktualisierung hat keine lokale Repository-Datei verändert. Es wurde hier kein Git-Status auf Holgers PC ausgelesen und kein Backup auf D: erstellt.
+
+
+# CHATGPT_HANDOVER – geprüfte Ergänzung 1.–6. November 2026
+Stand: 6. November 2026, 17:30 Uhr (Europe/Berlin)
+
+> Diese Ergänzung wurde durch Abgleich der vollständigen vorhandenen Handover-Datei, der im Projektchat hochgeladenen Original-Bildanhänge/Dashboards und der verfügbaren bestätigten Gesprächsnotizen erstellt. Die vorstehende Chronik wurde byte-identisch übernommen und nicht gekürzt.
+>
+> Wichtige Quellenregel: Ein hochgeladenes Dashboard belegt die darin sichtbaren Angaben und den dargestellten Prüfstatus. Es ersetzt nicht automatisch einen vollständigen technischen Laufzeitbericht, ein Git-Protokoll oder eine SHA-256-Dateiliste. Wo diese Detailbelege im verfügbaren Chatmaterial nicht vorliegen, wird das ausdrücklich markiert.
+
+## 1. Verbindlicher Arbeitsmodus und Projektziel
+
+- Projekt-/Produktname: `HK NPU STUDIO`.
+- Primärziel: lokale promptgestützte Bildbearbeitung bestehender Bilder mit Maske und Textprompt.
+- Hardwareziel: Qualcomm Snapdragon X Elite, Hexagon HTP V73.
+- KI-Inferenz muss auf HTP erfolgen. CPU-Fallback bleibt deaktiviert bzw. muss nachweislich `0` bleiben.
+- Nicht maskierte Bildbereiche müssen außerhalb der freigegebenen Bearbeitungszone bit-identisch bleiben.
+- Antigravity ist Standard für Analyse und Implementierung; Codex wird wegen Credits sparsam eingesetzt; PowerShell dient lokalen Prüfungen, Backups, Hashes und Git.
+- Vor Änderungen: Git-Status/Branch/HEAD prüfen und relevante Dateien auf D: sichern; Backup und SHA-256 verifizieren.
+- Kein Build, Commit oder Push ohne ausdrückliche Freigabe.
+- Nach jedem dritten Sprint Fortschrittsübersicht; tatsächliche Ergebnisbilder sollen bei Bildsprints direkt sichtbar sein.
+- Sprint 109 am 6. November wurde ausdrücklich als Read-only-Arbeit ohne Antigravity-/Codex-Tokens und ohne Änderungen festgelegt.
+
+## 2. Chronologische, quellenbasierte Sprint- und Projektstände
+
+### 1. November 2026
+
+**Sprint IMG-EDIT-QUALITY-31 – bestätigt**
+- Nutzerbestätigung vom 1.11.; Bericht: `IMG_EDIT_QUALITY_31_REPORT.md`.
+- HEAD: `8784a43f5b7666f1007292393c6ea947b5cdd788`.
+- D:-Backup mit 36 Dateien und SHA-256-Prüfung.
+- Keine Codeänderung und kein CPU-Fallback.
+- Der verfügbare Gesprächsnachweis bestätigt den Abschluss; vollständiger Originalbericht liegt in den hier geprüften Dateien nicht separat vor.
+
+**Sprint IMG-EDIT-QUALITY-37 – bestätigt**
+- Nutzerbestätigung vom 1.11.; Bericht: `IMG_EDIT_QUALITY_37_REPORT.md`.
+- Reeller Inpainting-Lauf auf Qualcomm Hexagon HTP.
+- 13 HTP-Schritte; gemessene HTP-Laufzeit: `5.545,81 ms`.
+- CPU-Fallback: `0 ms`.
+- Außerhalb der Maske: maximale und mittlere Pixelabweichung `0`.
+- Ergebnisbild: `sprint37_htp_golden_apple.png`.
+- D:-Backup: `D:\HK_NPU_STUDIO_BACKUPS\IMG_EDIT_QUALITY_37_20261101`, 11 Dateien, SHA-256-geprüft.
+- Dies ist ein bestätigter realer Produktlauf, nicht nur ein Unit-Test.
+
+**Sprint 42 / IMG-EDIT-IMPL-42 – bestätigt**
+- Nutzerbestätigung vom 1.11.
+- Git-HEAD: `8784a43f5b7666f1007292393c6ea947b5cdd788`.
+- PRE-Backup: 31 Dateien; POST-Backup: 34 Dateien; jeweils SHA-256-geprüft.
+- ControlNet Canny und Decaying Latent Anchor im dokumentierten Prüfkontext.
+- CPU-Fallback: `0 ms`.
+- Regressionstests: `10 + 7 + 50 + 19 = 86` bestanden.
+- Visualisierungen: `sprint42_comparison_*.png`.
+- Die genaue Liste aller geänderten Dateien und die Hashwerte der einzelnen Dateien sind in den verfügbaren Gesprächsnotizen nicht enthalten.
+
+### 2.–3. November 2026 – Prompt-/Maskenqualität und Akzeptanztests
+
+**Sprint 71 – nicht freigegeben**
+- Im Chat dokumentierte visuelle Bewertung: Apfel-Hintergrundmaskierung fehlerhaft, Glasskulptur nicht eindeutig belegt, Auto stark untersegmentiert.
+- Keine belastbaren HTP-Ergebnisse für diese Prüfung.
+- Bildnachweis: `sprint71_master_grid.png`.
+- Konsequenz: keine Produktfreigabe aus diesem Stand ableiten.
+
+**Sprints 72 und 73 – Berichtszusammenfassungen vorhanden; Status als Chat-/Berichtsnachweis kennzeichnen**
+- Sprint 72: im Gespräch als abgeschlossen beschrieben; Speedup `1,8–3,1×`; 6/6 Motive; 60/60 bitidentische Prüfungen; 22/22 Parser- und 7/7 Foundation-Tests bestanden.
+- Sprint 73: verfügbare Assistentenzusammenfassung nennt Controller-/Pipeline-Integration, deterministisches Routing, Safety Gates, 3 HTP-E2E-Motive, 22 + 40 Tests und 20/20 Backup-Dateien.
+- Einschränkung: Für Sprint 73 liegt in den hier verfügbaren Belegen keine eigenständige Nutzerbestätigung mit Originalbericht vor. Die Angaben dürfen daher nicht als unabhängig verifizierte Nutzerbestätigung dargestellt werden.
+
+**Sprints 82–87 – sichtbare Original-Dashboards/Bildanhänge im Chat**
+- `sprint_82_master_comparison_grid.png`
+- `sprint_83_master_comparison_grid.png`
+- `sprint_84_diagnostic_overview.png`
+- `sprint_85_apple_polish_comparison.png`
+- `sprint_85_glass_polish_comparison.png`
+- `sprint_85_master_comparison_grid.png`
+- `sprint_86_master_audit_card.png`
+- `sprint_87_master_comparison_grid.png`
+
+Aus den sichtbaren Bildbeschriftungen ergibt sich:
+- Die Prüfobjekte waren roter Apfel → 24-karätiges Gold, Glasskulptur → Gold einschließlich Sockel und rote Jacke → schwarzes Leder.
+- Sprint 83 zeigt HTP-Inpainting für drei Motive; die Bildbeschriftungen weisen Laufzeiten um 24–28 Sekunden und den Status `RELEASE-FÄHIG` aus. Dieser Status ist als Aussage des Dashboards zu verstehen, nicht als finale Releasefreigabe des Gesamtprodukts.
+- Sprint 84 ist ausdrücklich ein diagnostisches Artefakt-Audit für Apfel und Glasskulptur.
+- Sprint 85 dokumentiert Polishing-Vergleiche. Die Beschriftung nennt beim Apfel `220s`, bei Glas `25.15` und bei der Jacke `250s`; die Einheiten/Formatierung sind im Bild nicht überall eindeutig lesbar. Nicht als präzise Laufzeitmetrik weiterverwenden.
+- Sprint 86 zeigt noch offene visuelle Defekte: Apfel-Dellen/Schattenband, Glas-Morphologie und Jackenfarbe nicht vollständig schwarz.
+- Sprint 87 zeigt den Stand als `FREIGEGEBEN` für die drei Motive; Apfel ohne Delle, Glas nahtlos, Jacke echtes Schwarz. HTP-Laufzeitangaben sind im Dashboard sichtbar, aber die Bild-OCR ist nicht hinreichend präzise für eine verbindliche Laufzeitliste.
+- Diese Bildanhänge belegen die dargestellten visuellen Zustände; sie liefern nicht automatisch Git-, Backup- oder Testprotokolle.
+
+**Sprint 72 – bestätigte Nutzerangaben**
+- Nutzerbestätigung am 3.11. um 15:24 UTC.
+- Speedup `1,8–3,1×`; 6/6 Motive; 60/60 bitidentisch; 22/22 Parser- und 7/7 Foundation-Tests bestanden.
+- Die frühere Angabe „3,1-fach“ ist damit als obere gemessene Beschleunigung einzuordnen, nicht als alleiniger pauschaler Speedup.
+
+**Sprints 48 und 71 – Qualitätsgrenzen**
+- Für Sprint 48 liegt eine Assistentenbewertung vom 3.11. vor: Bildtreue/Komposition besser als Sprint 46, Farbumwandlung zu Gold jedoch unzureichend.
+- Sprint 47 wurde in derselben Bewertung mangels Bildnachweis nicht als bestanden gewertet.
+- Sprint 71 wurde visuell nicht freigegeben (siehe oben).
+- Zu Sprint 46 ist das Bild `sprint46_workflow_comparison.png` vorhanden. Bildanhänge allein belegen keine vollständige technische Abnahme.
+
+**Sprints 82–84 – spätere Nutzerbestätigung**
+- Nutzerangabe vom 3.11.: Apfel/Glas korrigiert und auditiert; `0 px` Außen-Diff; HTP; Teststände `39/39` bzw. `50/50` bestanden.
+- Gleichzeitig bestanden offene visuelle Artefaktfragen trotz technischer Freigaben.
+- Daher sind technische Integrität und visuelle Produktqualität getrennt zu bewerten; nicht jede technische Teilfreigabe bedeutet vollständige Motivfreigabe.
+
+**Sprint 94 – MobileSAM auf HTP**
+- Originalanhang: `sprint_94_mobilesam_master_card.png`.
+- Dashboard nennt Qualcomm Hexagon HTP V73, `0` CPU-Fallbacks, Latenz `12,44 ms` pro Klick und RAM `1,12 GB`.
+- Gezeigte Beispiele: Apfel, Glasskulptur, Jacke, identische Einzelobjekte sowie Freiformform mit Kavität.
+- Das Dashboard zeigt konkrete Segmentierungsbilder und Pixelzahlen; die Kennzahl `12,44 ms` ist die dort ausgewiesene Klicklatenz.
+
+**Sprint 95 – Hybrid-Segmentierung**
+- Originalanhang: `sprint_95_master_hybrid_dashboard.png`.
+- Kombination aus ColorSpatial und MobileSAM auf HTP, ohne CPU-Fallback.
+- Dashboard zeigt:
+  - Apfel: Kombination aus ColorSpatial/MobileSAM; Hintergrund-/Tischspillover soll reduziert werden.
+  - Glasskulptur: Zusammenführung von Kopf, Flügeln und Sockel als zusammenhängendes Objekt.
+  - Jacke: Abtrennung der Jacke von der Person.
+  - identische Mehrfachobjekte: getrennte Instanzwahl.
+  - Freiform: Erhalt einer inneren Kavität.
+- Die späteren forensischen Audits fanden jedoch noch Fehler in den Eingabepunkten bzw. Benchmark-Prüffenstern.
+
+**Sprint 96 – forensische Ursachenanalyse**
+- Originalanhänge:
+  - `sprint_96_apple_forensic_breakdown.png`
+  - `sprint_96_jacket_forensic_breakdown.png`
+  - `sprint_96_glass_forensic_breakdown.png`
+  - `sprint_96_freeform_cavity_forensic_breakdown.png`
+- Erkannte Ursachen:
+  - Apfel: Klickpunkt `(199,235)` lag in der rötlich-braunen Hintergrundwand; 36.648 Wandpixel wurden fälschlich erfasst.
+  - Jacke: Benchmark-Prüfung `Y < 170` übersah 1.334 Kinn-/Gesichtspixel und 1.115 Halspixel.
+  - Glas: Prüfung der topologischen Kontinuität; dunkle Linie und Stielverbindung wurden gesondert auditiert.
+  - Freiform: innere Kavität war im Kern bereinigt, aber ein äußerer Kavitätsring mit 3.840 Pixeln wurde nicht abgezogen; das bisherige Benchmark-Fenster prüfte nur `r <= 10`.
+- Diese Befunde zeigen, dass frühere positive Kennzahlen teilweise auf unvollständigen Testfenstern beruhten.
+
+**Sprint 97 – Hybrid-Reparatur**
+- Originalanhang: `sprint_97_master_hybrid_repair_dashboard.png`.
+- Dashboard weist aus:
+  - Apfel: falscher Wand-Klick durch Safety Gate 2 abgelehnt; `0 px` Wand- und Tischspillover.
+  - Glas: kontinuierliche Maske, Stielverbindung und dunkle Linie vollständig innerhalb der Maske.
+  - Jacke: `0 px` Gesichts-, Hals- und Hosenleckage.
+  - Weitere Bereiche: Instanztrennung und Freiform-/Kavitätsschutz.
+- HTP V73; `0` CPU-Fallbacks laut Dashboard.
+
+**Sprint 98 – unabhängiges Release-Acceptance-Audit**
+- Originalanhang: `sprint_98_master_release_acceptance_dashboard.png`.
+- Wichtige Korrektur: Das Jacken-Testbild war ein „Rugged Man“-Porträt ohne Jacke; der Klickpunkt `(270,310)` lag auf Oberlippe/Mund. Ergebnis: keine Jackenfreigabe, Testdatenfehler.
+- Apfel: 0 Wand-/Tischpixel im Audit bestätigt.
+- Glas: Verbindung und dunkle Linie auditiert; Pinholes waren noch offen.
+- Freiform: Kavität vollständig, aber zusätzlicher äußerer Spillover von 6.783 Pixeln.
+- Schlussfolgerung: Sprint 98 war keine vollständige Freigabe aller fünf Motive.
+
+**Sprint 99 – Reparatur-/Abnahme-Dashboard**
+- Originalanhang: `sprint_99_master_repair_dashboard.png`.
+- Apfel: `27.790 px`, 0 Wand-/Tischpixel; Safety Gates 4/4 abgewiesen.
+- Glas: 36/36 Pinholes geschlossen, Stielverbindung massiv, dunkle Linie 1.280/1.280 px innerhalb der Maske.
+- Jacke: Testdatenmigration auf echtes Referenzbild `original rote jacke.jpg`; Gesicht, Hals und Haare geschützt; Maske 152.174 px.
+- Mehrfachobjekte: linke Instanz mit 0 Cross-Talk.
+- Freiform: Kavität `100 %` frei (`0 px` Leckage); äußerer Spillover laut Dashboard um 99,94 % reduziert, Restabweichung 4 px.
+- Die sichtbaren Werte sind Dashboard-Angaben; keine separaten Rohdaten-/Testlogs wurden hier zusätzlich nachgewiesen.
+
+### 4.–5. November 2026 – HTP-Betrieb, Clean-PC und Installer
+
+**Sprint 100 – Master Acceptance Dashboard**
+- Originalanhang: `sprint_100_master_acceptance_dashboard.png`.
+- Sichtbare Bereiche umfassen Marker-/Viewport-Containment, Prompt-Intent und Safety Gates, Material-Priming, SD1.5-Inpainting auf HTP V73, Bit-Identität und `PHOENIX_THEME`-Dark/Light-Parität.
+- Dashboard-Auswertung: `AUDIT ACCEPTED`.
+- Angegeben: 6/6 Intent-Klassifikationen korrekt; Safety Gate 1: 4/4 unbekannte/ungültige Fälle abgewiesen; 5/5 Material-Presets; CPU-Fallback `0`; Außen-Diff `0 px`; Hintergrund `100 %` bit-identisch.
+- Motiv-Regressionssuite: 5 Motive, im Dashboard als akzeptiert markiert.
+- HTP-Laufzeit im Dashboard: `26.047 ms` (Zuordnung/Einheit gemäß Dashboard).
+
+**Sprint 101 – Master Acceptance Dashboard**
+- Originalanhang: `sprint_101_master_acceptance_dashboard.png`.
+- Ein separater Dashboard-Anhang ist vorhanden. Die hier verfügbare OCR-Ausgabe lieferte keine verlässlichen vollständigen Einzelwerte.
+- Daher keine zusätzlichen Zahlen oder Freigaben aus Sprint 101 behaupten, die nicht lesbar belegt sind.
+
+**Sprint 102 – E2E Dashboard**
+- Originalanhang: `sprint_102_master_e2e_dashboard.png`.
+- E2E-Dashboard ist als Chat-Anhang vorhanden. Detaillierte Zahlen werden in dieser Ergänzung nicht behauptet, soweit sie nicht aus dem lesbaren Quelltext eindeutig hervorgehen.
+
+**Sprint 103 – Clean-PC Deployment Audit**
+- Originalanhang: `sprint_103_master_deployment_dashboard.png`.
+- Ziel: Windows 11 ARM64 Benutzerprofile.
+- Native ARM64 Python-Umgebung: Python `3.11.9`.
+- Dashboard nennt Qualcomm Hexagon HTP V73, Qualcomm-Treiber gestartet, QNN Provider Bundle self-contained.
+- Modellintegrität: SD1.5 QNN 9 Komponenten und MobileSAM QNN 6/8 Komponenten laut Dashboard SHA-256-verifiziert; gesamter Modellbestand `33,73 GB`.
+- HTP-Logging: `NATIVE_HTP_EXECUTION`, CPU-Fallback `0`.
+- Das Dashboard nennt eine Hybrid-Segmentierungszeit von `81.650 ms`; Sprint 104 klärte später auf, dass diese Zahl JIT-/Graph-Compilation und nicht reine Inferenz enthielt.
+- Python-CLI-Start: `27,4 ms`; Full-Init-Kaltstart `525,2 ms`; Warmstart `437,3 ms` laut Dashboard.
+- Status im Dashboard: `RELEASE ACCEPTED` / `Master Release Verified`. Dieser Dashboard-Status ist im Kontext des folgenden Clean-PC-Problems zu lesen und darf nicht als endgültiger Installer-Release-Nachweis missverstanden werden.
+
+**Sprint 104 – Performance Forensics & Isolation**
+- Originalanhang: `sprint_104_master_forensics_dashboard.png` sowie Detailkarten.
+- JIT-Aufklärung:
+  - Session-Erstellung: rund `81,53 s` einmaliger Kaltstart.
+  - Graph-Compilation: Encoder/Decoder beanspruchten den überwiegenden Anteil.
+  - Reine Encoder-HTP-Inferenz: rund `1.003,5 ms`.
+  - Reine Decoder-HTP-Inferenz: rund `12,7 ms`.
+  - Pre-warmed Erstabfrage: rund `1.252,44 ms`.
+  - Interaktive Folgeabfrage: rund `208,63 ms`.
+  - CPU-Fallbacks: `0`.
+- Die zuvor als `81.650 ms` bezeichnete Zeit war keine reine Inferenzzeit, sondern einmalige QNN-HTP-JIT-Graph-Kompilierung.
+- Clean-PC-Problem: Ein neues Benutzerprofil ohne benutzerspezifische Python-Pakete scheiterte mit `ModuleNotFoundError: No module named 'numpy'`.
+- Ursache: Entwicklungs-PC verwendete User-Site-Packages unter `%APPDATA%`; ein neues Benutzerkonto besitzt diese Pakete nicht.
+- Konsequenz: Standalone-/Frozen-Bundle oder beiliegende isolierte Laufzeit ist erforderlich. Problem lag laut Forensik in der Paketdistribution, nicht im Modellcode oder NPU-Treiber.
+
+**Sprint 105 – Standalone ARM64 Packaging Audit**
+- Originalanhang: `sprint_105_master_packaging_dashboard.png` und vier Detailkarten.
+- PyInstaller `6.16.0` ARM64; Onedir-Ansatz; ARM64-Bootloader verifiziert.
+- Zielarchitektur: Windows ARM64 / PE `0xAA64`.
+- `HK_NPU_STUDIO.spec`, 36 Hidden Imports laut Dashboard.
+- QNN-/FastRPC-/HTP-Bindung und `ADSP_LIBRARY_PATH` wurden konzeptionell und anhand der lokalen Artefakte untersucht.
+- Trennung von Runtime-Kernpaketen und Build-/Dev-Werkzeugen; 20 Build-/Dev-Werkzeuge sollten nicht im Runtime-Bundle landen.
+- Inno Setup ARM64-Blueprint mit `PrivilegesRequired=lowest`, Hardware-Preflight und getrenntem App-/User-State-Pfad.
+- Dashboard-Verdict: `PACKAGING_ACCEPTED` / `PRODUCTION READY SPECIFICATION`.
+- Dies ist ein Packaging-Audit/Blueprint; es ist nicht gleichbedeutend mit dem späteren realen Installer-Lifecycle-Test.
+
+**Sprint 106 – Standalone ARM64 / Clean-PC Validation – vom Nutzer als akzeptiert bestätigt**
+- Nutzerbestätigung vom 5.11. um 19:08 UTC: `STANDALONE_CLEAN_PC_ACCEPTED`.
+- Originalanhänge:
+  - `sprint_106_master_validation_dashboard.png`
+  - `sprint_106_area1_discrepancy_forensics.png`
+  - `sprint_106_area2_spec_and_assets.png`
+  - `sprint_106_area3_clean_pc_validation.png`
+- Native ARM64 Frozen-EXE: `HKNPUStudio.exe`, Exit-Code `0`, `sys.frozen=True`.
+- QNNExecutionProvider aktiv; Qualcomm Hexagon HTP V73 aktiv; CPU-Fallback-Zähler `0`.
+- MobileSAM-Segmentierung: `20.220` Pixel.
+- Isoliertes Clean-Profil ohne benutzerspezifische Python-Pakete; LOCALAPPDATA-Ordner wurden angelegt; keine Administratorrechte erforderlich.
+- FastRPC-Bindung und Hexagon-V73-Skeleton wurden im Dashboard als vollständig verbunden bewertet.
+- QNN-Binary-Forensik: 16 QNN-Binaries physisch `153,55 MB`; V73-relevante Teilmenge `131,18 MB`; Abweichung zum früheren Wert `143,46 MB` durch Einbeziehung/Entfernung der Legacy-V68-Dateien erklärt.
+- Dependency-Reconciliation: System-/User-Site-Pakete und 73 User-Pakete laut Dashboard aufgeschlüsselt; 20 Dev-/Build-Tools im Standalone-Bundle ausgeschlossen.
+- Einschränkung bei der Nutzerbestätigung: Der Installer-Test war zu diesem Zeitpunkt ausdrücklich noch offen. `STANDALONE_CLEAN_PC_ACCEPTED` ist keine Installer-Releasefreigabe.
+
+**Sprint 107 – Installer-/Lifecycle-Validierung**
+- Originalanhang: `sprint107_installer_validation_dashboard.png`.
+- Installer-Zielname: `HKNPUStudio-2.0.0-rc.4-ARM64-Setup.exe`.
+- Komprimierte Größe: `264,41 MB`; entpackte Payload: `717,78 MB` / `6.084` Dateien.
+- LZMA2/Solid-Kompression; `PrivilegesRequired=lowest`; ARM64-Setup-Direktiven.
+- Installer-SHA-256 im Dashboard ist in der hier verfügbaren Bild-OCR abgeschnitten und wird deshalb nicht als vollständiger Hash übernommen.
+- Installierte EXE: Exit-Code `0`; QNNExecutionProvider; HTP V73 aktiv; CPU-Fallback `0`; MobileSAM `20.220` Pixel.
+- Clean Install: `105,16 s`; In-place Upgrade: `106,16 s`; Uninstall: `14,71 s`.
+- Uninstall entfernte den App-Ordner, erhielt aber User-Modelle, Preferences und Logs zu `100 %`.
+- Dashboard meldet 9/9 Scope-Kriterien erfüllt und Installer-/Lifecycle-Validierung abgeschlossen.
+- Tool-Angabe im Dashboard: Antigravity Engine.
+
+**Sprint 108 – RC4 Installer Forensics / Vergleich**
+- Originalanhänge:
+  - `sprint108_installer_forensics_dashboard.png`
+  - `card1_installer_footprint_and_payload_delta.png`
+  - `card2_model_and_qnn_runtime_forensics.png`
+  - `card3_functional_and_architectural_matrix.png`
+- Original-RC4-Installer:
+  - `2.050.000.471 Bytes` (Dashboard zusätzlich als rund `1.955,03 MB` ausgewiesen).
+  - Original-SHA-256 im Dashboard beginnt mit `7d1d9b9c...`; der vollständige bekannte RC4-Hash ist in der bestehenden Chronik dokumentiert: `7d1d9b9c566c58cef55f9478a215171351b9cddfe1313c7379f8c11856800f0b`.
+- Sprint-107-Installer:
+  - `277.251.090 Bytes` (rund `264,41 MB`).
+  - Payload `759,1 MB` / `6.086` Dateien laut Vergleichsdashboard.
+- Reduktion: `1.690,62 MB` bzw. `86,5 %` beim Installer-Footprint.
+- Payload-Vergleich: Original `3.058,5 MB` / `11.458` Dateien vs. Sprint 107 `759,1 MB` / `6.086` Dateien.
+- FastRPC-Forensik: `libedsprpc.dll` fehlte im Original-RC4-Paket und wurde im Sprint-107-Paket gebündelt und verknüpft.
+- QNN-/HTP-Kernkomponenten und MobileSAM-HTP-Funktion wurden im Dashboard als funktionsgleich bewertet.
+- SD1.5/SD3.5 sowie Image-to-Image/Inpainting wurden als funktionale Parität ausgewiesen.
+- App-Verzeichnis und `%LOCALAPPDATA%`-Benutzerdaten sind getrennt; Upgrade-/Uninstall-Verhalten wurde verglichen.
+- Empfehlung des Sprint-108-Dashboards: Sprint-107-Installer als offiziellen RC4-Installer anstelle des ursprünglichen RC4-Installers verwenden.
+- Wichtige offene Punkte im verfügbaren Gesprächsstand: finale Klärung einzelner Payload-/Dateizahl-Differenzen und Lizenz-/Redistribution-Fragen. Aus dem Vergleich allein folgt keine rechtliche Freigabe.
+
+### 6. November 2026
+
+**Sprint 109 – Read-only**
+- Nutzer legte am 6.11. um 05:59 UTC fest: Sprint 109 ist Read-only, ohne Antigravity-/Codex-Tokens und ohne Änderungen.
+- Der verfügbare Nachweis bestätigt den Arbeitsmodus, nicht einen abgeschlossenen Implementierungs- oder Produkt-Sprint.
+- Keine Codeänderung, kein Build, kein Commit und kein Push aus Sprint 109 ableiten.
+
+**Qualcomm QAIRT 2.50 Runtime Redistribution – Antwort vom 5. November**
+- E-Mail-Anhang: `Microsoft Outlook - Memoformat(3).pdf`.
+- Qualcomm Support (Ann Huang) antwortete am 5.11.2026 um 19:59 Uhr.
+- Section 1(iv) der QAIRT SDK License erlaubt eine bedingte Weitergabe, sofern:
+  1. ausschließlich Object Code weitergegeben wird;
+  2. die Runtime in HK NPU STUDIO integriert ist und nicht als eigenständiges QAIRT-Paket vertrieben wird;
+  3. Qualcomm Proprietary-/Copyright-Hinweise erhalten bleiben;
+  4. Drittanbieter-Lizenzen und Notices eingehalten werden;
+  5. Exportkontrollvorschriften eingehalten werden.
+- Holgers konkrete Dateiliste umfasste `qnn-net-run.exe`, `QnnHtp.dll`, `QnnSystem.dll`, `QnnHtpV73Stub.dll`, `QnnHtpNetRunExtensions.dll`, `libQnnHtpV73Skel.so`, `libqnnhtpv73.cat`, `libQnnHtpNetRunExtensions.so` sowie `LICENSE.pdf`, `NOTICE_WINDOWS.txt`, `NOTICE.txt`, `QNN_NOTICE.txt`.
+- Die Antwort ist eine allgemeine Lizenzbedingung, keine dateispezifische Freigabe. Insbesondere die `.cat`-Datei und die genaue notwendige Notice-Liste bleiben separat zu prüfen.
+- Diese QAIRT-Runtime-Frage ist ausdrücklich getrennt von der BYOM-/Model-Context-Redistribution. Für BYOM ist damit keine Freigabe erteilt.
+
+## 3. Korrekturen gegenüber früheren Ergänzungsversuchen
+
+Die folgenden Angaben dürfen nicht als bestätigt übernommen werden, solange kein Originalbericht oder eindeutiger Chatbeleg vorliegt:
+
+- `IMG-EDIT-IMPL-29`: In den verfügbaren Quellen wurde kein vollständiger Originalbericht gefunden. Frühere Aussagen wie „109/109 Tests“ oder konkrete Speedup-Werte sind in dieser Ergänzung deshalb nicht als verifiziert übernommen.
+- Sprints 43–70 sowie 74–81: Nicht jeder Sprint liegt als vollständiger Originalbericht vor. Vorhandene Bilder und Gesprächszusammenfassungen werden nur dort verwendet, wo sie eine konkrete Aussage tragen.
+- Sprint 73: derzeit nur als frühere Assistentenzusammenfassung greifbar; nicht als eigenständige Nutzerbestätigung gekennzeichnet.
+- Sprint 101/102: Original-Dashboard-Anhänge sind vorhanden; nicht zuverlässig auslesbare Einzelwerte wurden nicht ergänzt.
+- Sprint 109: Read-only-Arbeitsmodus bestätigt; kein abgeschlossener technischer Sprint behauptet.
+- Frühere pauschale Behauptungen über Sprints 72–109 wurden nicht ungeprüft übernommen.
+
+## 4. Vorhandene Belegdateien im Chat
+
+Die folgenden Originalanhänge waren bei der Prüfung verfügbar:
+
+- `IMG_EDIT_QUALITY_31_REPORT.md` (im Gespräch referenziert)
+- `IMG_EDIT_QUALITY_37_REPORT.md` (im Gespräch referenziert)
+- `sprint37_htp_golden_apple.png` (im Gespräch referenziert)
+- `sprint42_comparison_*.png` (im Gespräch referenziert)
+- `sprint46_workflow_comparison.png`
+- `sprint71_master_grid.png`
+- `sprint_82_master_comparison_grid.png`
+- `sprint_83_master_comparison_grid.png`
+- `sprint_84_diagnostic_overview.png`
+- `sprint_85_apple_polish_comparison.png`
+- `sprint_85_glass_polish_comparison.png`
+- `sprint_85_master_comparison_grid.png`
+- `sprint_86_master_audit_card.png`
+- `sprint_87_master_comparison_grid.png`
+- `sprint_94_mobilesam_master_card.png`
+- `sprint_95_master_hybrid_dashboard.png`
+- `sprint_96_apple_forensic_breakdown.png`
+- `sprint_96_freeform_cavity_forensic_breakdown.png`
+- `sprint_96_glass_forensic_breakdown.png`
+- `sprint_96_jacket_forensic_breakdown.png`
+- `sprint_97_master_hybrid_repair_dashboard.png`
+- `sprint_98_master_release_acceptance_dashboard.png`
+- `sprint_99_master_repair_dashboard.png`
+- `sprint_100_master_acceptance_dashboard.png`
+- `sprint_101_master_acceptance_dashboard.png`
+- `sprint_102_master_e2e_dashboard.png`
+- `sprint_103_master_deployment_dashboard.png` und Detailkarten
+- `sprint_104_master_forensics_dashboard.png` und Detailkarten
+- `sprint_105_master_packaging_dashboard.png` und Detailkarten
+- `sprint_106_master_validation_dashboard.png` und Detailkarten
+- `sprint107_installer_validation_dashboard.png`
+- `sprint108_installer_forensics_dashboard.png` und Detailkarten
+- `Microsoft Outlook - Memoformat(3).pdf`
+
+Nicht alle genannten Berichte wurden als separate Textdateien bereitgestellt. Die Bildanhänge sind Primärbelege für die darin sichtbaren Inhalte; die genannten Berichtsnamen bei Sprint 31/37 sind Gesprächsreferenzen.
+
+## 5. Maßgeblicher Stand am 6. November 2026
+
+```text
+PRODUCT=HK NPU STUDIO
+BASELINE_HEAD_LAST_CONFIRMED=8784a43f5b7666f1007292393c6ea947b5cdd788
+IMAGE_EDIT_HTP=VERIFIED_IN_CONFIRMED_RUNS
+CPU_AI_FALLBACK=0_IN_CONFIRMED_RUNS
+OUTSIDE_MASK_PIXEL_DIFF=0_IN_CONFIRMED_QUALITY_RUNS
+STANDALONE_CLEAN_PC=ACCEPTED_BY_USER
+SPRINT_107_INSTALLER_LIFECYCLE=DASHBOARD_ACCEPTED
+SPRINT_108_RC4_INSTALLER_FORENSICS=COMPARISON_COMPLETED
+SPRINT_108_RECOMMENDATION=USE_SPRINT_107_INSTALLER_AS_RC4_ASSET
+SPRINT_109_MODE=READ_ONLY
+QAIRT_2_50_RUNTIME_REDISTRIBUTION=CONDITIONAL_LICENSE_TERMS_RECEIVED
+QAIRT_FILE_BY_FILE_NOTICE_REVIEW=OPEN
+BYOM_MODEL_CONTEXT_REDISTRIBUTION=SEPARATE_AND_NOT_CLEARED
+PUBLIC_RELEASE_LEGAL_CLEARANCE=DO_NOT_INFER
+```
+
+## 6. Nächster sicherer Arbeitsstand
+
+1. Sprint-108-Vergleich als technische Entscheidungsgrundlage erhalten; ursprünglichen RC4-Installer nicht mit dem Sprint-107-Installer verwechseln.
+2. QAIRT-2.50-Dateiliste und erforderliche Notices anhand der konkreten Lizenz-/Paketdateien einzeln prüfen.
+3. BYOM-/Model-Context-Redistribution separat offen halten.
+4. Vor einer endgültigen RC4-Asset-Umstellung: vollständige Funktionstests des Sprint-107-Installers, Modell-/Pipeline-Parität und Lizenz-Check abschließen.
+5. Keine öffentliche Freigabe aus einem Dashboard-Verdict allein ableiten.
+6. Bei jeder Implementierung wieder den verbindlichen BACKUP-/D:-/Git-/SHA-256-Workflow anwenden.
+
+---
+Ende der geprüften Ergänzung vom 6. November 2026.

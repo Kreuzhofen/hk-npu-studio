@@ -72,6 +72,7 @@ class PhoenixWorkspace(tk.Frame):
         from widgets.phoenix.views.model_manager_view import PhoenixModelManagerView
         from widgets.phoenix.views.photo_restore_view import PhoenixPhotoRestoreView
         from widgets.phoenix.views.inpainting_view import PhoenixInpaintingView
+        from widgets.phoenix.views.image_lab_workspace import PhoenixImageLabWorkspace
 
         self._view_factories = {
             "home": lambda master: PhoenixHomeView(
@@ -91,8 +92,8 @@ class PhoenixWorkspace(tk.Frame):
             "prompt": PhoenixPromptView,
             "models": PhoenixModelManagerView,
             "photo_restore": PhoenixPhotoRestoreView,
-            "image_lab": PhoenixPhotoRestoreView,
-            "inpainting": PhoenixPhotoRestoreView,
+            "image_lab": lambda master: PhoenixImageLabWorkspace(master, controller=self.controller),
+            "inpainting": lambda master: PhoenixImageLabWorkspace(master, controller=self.controller),
             "generative_fill": PhoenixInpaintingView,
         }
 
@@ -124,6 +125,14 @@ class PhoenixWorkspace(tk.Frame):
     def show_view(self, view_name: str) -> None:
         if view_name not in self._view_factories:
             view_name = "home"
+
+        # Route subviews to Phoenix Image Lab workspace container
+        if view_name in {"photo_restore", "generative_fill", "retouch", "image_to_image", "img2img"}:
+            self.show_view("inpainting")
+            lab = self._get_or_create_view("inpainting")
+            if hasattr(lab, "select_subview"):
+                lab.select_subview(view_name)
+            return
 
         if self.current_view == view_name:
             return
@@ -256,12 +265,21 @@ class PhoenixWorkspace(tk.Frame):
 
         self.after(500, self._refresh_views)
 
+    def open_image_to_image_with_image(self, filename) -> None:
+        """Open Image-to-Image workflow and load the given photo."""
+        self.show_view("inpainting")
+        view = self._get_or_create_view("inpainting")
+        if hasattr(view, "open_image_to_image_with_image"):
+            view.open_image_to_image_with_image(filename)
+
     def open_photo_restore_with_image(self, filename) -> None:
         """Open the restoration workflow and load the given photo."""
         self.show_view("inpainting")
         view = self._get_or_create_view("inpainting")
         if hasattr(view, "load_dropped_image"):
             view.load_dropped_image(filename)
+        elif hasattr(view, "open_photo_restore_with_image"):
+            view.open_photo_restore_with_image(filename)
 
     def show_image(self, filename) -> None:
         """Display an image in the Phoenix Image view."""

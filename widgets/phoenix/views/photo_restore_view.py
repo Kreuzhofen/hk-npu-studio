@@ -41,6 +41,7 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
         self,
         master: tk.Misc,
         controller: PhotoRestoreController | None = None,
+        on_navigate: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__(
             master,
@@ -59,6 +60,7 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
         self.controller = controller or PhotoRestoreController(
             ui_dispatch=self.ui_dispatch
         )
+        self.on_navigate = on_navigate
 
         self.input_path: Path | None = None
         self.result_path: Path | None = None
@@ -76,6 +78,18 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
     def _build_toolbar(self) -> None:
         toolbar = tk.Frame(self.header.toolbar_slot, bg=PHOENIX_THEME.content_bg)
         toolbar.grid(row=0, column=0, sticky="ew")
+
+        self.overview_button = PhoenixButton(
+            toolbar,
+            text=tr("nav_overview", "Übersicht"),
+            command=self._on_back_to_overview,
+            button_type="neutral",
+            icon_name="back",
+            font=PHOENIX_THEME.font_small,
+            height=32,
+            radius=6,
+        )
+        self.overview_button.pack(side="left", padx=(0, 8))
 
         self.load_button = PhoenixButton(
             toolbar,
@@ -405,6 +419,17 @@ class PhoenixPhotoRestoreView(WorkspaceFrame):
             anchor="e",
         )
         self.progress_detail_label.grid(row=0, column=3, sticky="e", padx=(8, 16), pady=8)
+
+    def _on_back_to_overview(self) -> None:
+        if callable(getattr(self, "on_navigate", None)):
+            self.on_navigate("overview")
+            return
+        parent = getattr(self, "master", None)
+        while parent is not None:
+            if hasattr(parent, "select_subview") and callable(parent.select_subview):
+                parent.select_subview("overview")
+                return
+            parent = getattr(parent, "master", None)
 
     def _load_image(self) -> None:
         file_path = filedialog.askopenfilename(

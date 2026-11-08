@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from config import MODELS_DIR, PREFERENCES_PATH, TEMP_DIR
+from config import LOCAL_APP_DATA, MODELS_DIR, PREFERENCES_PATH, PRODUCT_DATA_DIR_NAME, TEMP_DIR
 from app.configuration_manager import ConfigurationManager
 from engine.logging_config import get_logger
 from engine.model_registry import ModelHealthStatus, ModelRegistry
@@ -151,6 +151,8 @@ class ModelRepository:
             configured_root = str(preferences.get("models_dir") or "").strip()
             if configured_root:
                 roots.append(configured_root)
+            user_models = LOCAL_APP_DATA / PRODUCT_DATA_DIR_NAME / "models"
+            roots.append(user_models)
             roots.append(MODELS_DIR)
             if getattr(sys, "frozen", False):
                 roots.append(Path(sys.executable).resolve().parent / "models")
@@ -189,6 +191,8 @@ class ModelRepository:
             Path(MODELS_DIR).resolve(strict=False),
             [str(path.resolve(strict=False)) for path in self.installation_roots],
         )
+        first_candidate_result: Path | None = None
+        first_candidate_status: str = "Invalid"
         for index, (source, candidate) in enumerate(candidates, start=1):
             resolved = candidate.resolve(strict=False)
             exists = resolved.exists()
@@ -207,6 +211,11 @@ class ModelRepository:
                 if validation.valid:
                     model["downloaded"] = True
                     model["status"] = "Ready"
+                    logger.info(
+                        "[MODEL PATH] First valid match | model=%s | source=%s | path=%s | status=%s",
+                        model_id, source, resolved, model["status"],
+                    )
+                    return resolved
                 else:
                     model["installed"] = False
                     is_empty = True
@@ -216,14 +225,27 @@ class ModelRepository:
                     except Exception:
                         pass
                     if model_id == "stable_diffusion_v3_5_qai" and is_empty:
-                        model["status"] = "Not Installed"
+                        status = "Not Installed"
                     else:
-                        model["status"] = "Invalid"
-                logger.info(
-                    "[MODEL PATH] First match | model=%s | source=%s | path=%s | status=%s",
-                    model_id, source, resolved, model["status"],
-                )
-                return resolved
+                        status = "Invalid"
+
+                    if source == "model definition":
+                        model["status"] = status
+                        return resolved
+
+                    if first_candidate_result is None:
+                        first_candidate_result = resolved
+                        first_candidate_status = status
+
+        if first_candidate_result is not None:
+            model["path"] = str(first_candidate_result)
+            model["installed"] = False
+            model["status"] = first_candidate_status
+            logger.info(
+                "[MODEL PATH] First match (invalid) | model=%s | path=%s | status=%s",
+                model_id, first_candidate_result, model["status"],
+            )
+            return first_candidate_result
 
         logger.info(
             "[MODEL PATH] No installation found | model=%s | checked_paths=%s",

@@ -23,6 +23,8 @@ class BrandManager:
 
     APP_NAME = RELEASE.app_name
     APP_VERSION = RELEASE.display_version
+    CODENAME = RELEASE.codename
+    PRODUCT_FULL_NAME = f"{RELEASE.app_name} {RELEASE.display_version} – {RELEASE.codename}"
 
     ENGINE_NAME = "HK NPU STUDIO"
     ENGINE_VERSION = "1.0"
@@ -40,7 +42,7 @@ class BrandManager:
         "Snapdragon is a trademark or registered trademark of Qualcomm Incorporated."
     )
     ABOUT_DESCRIPTION = f"{PLATFORM_DESCRIPTION}\n{PHOENIX_BOOST_CREDIT}"
-    WINDOW_TITLE_WITH_VERSION = APP_NAME
+    WINDOW_TITLE_WITH_VERSION = PRODUCT_FULL_NAME
 
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
     BRAND_ROOT = PROJECT_ROOT / "assets" / "brand"
@@ -125,7 +127,7 @@ class BrandManager:
         return self.APP_VERSION
 
     def version_string(self) -> str:
-        return f"VERSION {self.APP_VERSION}"
+        return f"VERSION {self.APP_VERSION} – {self.CODENAME}"
 
     def slogan(self) -> str:
         return self.SLOGAN
@@ -149,7 +151,13 @@ class BrandManager:
         return self.PHOENIX_BOOST_CREDIT
 
     def window_title(self) -> str:
-        return self.HEADER_BRAND_NAME
+        return f"{self.HEADER_BRAND_NAME} {self.APP_VERSION} – {self.CODENAME}"
+
+    def codename(self) -> str:
+        return self.CODENAME
+
+    def full_product_name(self) -> str:
+        return f"{self.HEADER_BRAND_NAME} {self.APP_VERSION} – {self.CODENAME}"
 
     def author(self) -> str:
         return self.AUTHOR

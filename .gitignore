@@ -31,6 +31,9 @@ Desktop.ini
 # Build
 dist/
 build/
+dist_standalone_test/
+build_standalone_test/
+*.spec
 
 # ==========================================================
 # HK NPU STUDIO
@@ -50,6 +53,8 @@ diagnostics/
 data/prompt_history.json
 input/image.raw
 logs/
+scratch/
+reports/
 
 # Local development backups / recovery
 backup/
@@ -67,4 +72,3 @@ model_downloads/
 /data/preferences.json.*
 /assets/brand/*.before_trim
 
-/20

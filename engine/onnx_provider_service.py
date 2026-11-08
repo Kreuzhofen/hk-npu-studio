@@ -97,6 +97,13 @@ class OnnxProviderService:
             qnn_library_dir = qnn_library_path.parent
 
             cls._add_dll_directory(qnn_library_dir)
+            os.environ["ADSP_LIBRARY_PATH"] = str(qnn_library_dir)
+            driverstore = Path(r"C:\Windows\System32\DriverStore\FileRepository")
+            if driverstore.exists():
+                for m in driverstore.glob("qcadsprpc8380.inf_arm64_*"):
+                    if (m / "libcdsprpc.dll").exists():
+                        cls._add_dll_directory(m)
+                        break
             if cls.AI_STACK_ROOT is not None:
                 cls._add_dll_directory(cls.AI_STACK_ROOT / "bin" / "aarch64-windows-msvc")
                 cls._add_dll_directory(cls.AI_STACK_ROOT / "lib" / "aarch64-windows-msvc")

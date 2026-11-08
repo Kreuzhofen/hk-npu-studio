@@ -15,7 +15,7 @@
 AppId={{8D9D455C-4C15-4A61-9685-21F67C5D4A44}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppVerName=HK NPU STUDIO 2.0 RC4
+AppVerName=HK NPU STUDIO 2.1.0 – Phoenix Evolution
 AppPublisher={#Publisher}
 AppCopyright=© 2026 Holger Kreuzhofen
 DefaultDirName={localappdata}\Programs\HK NPU STUDIO
@@ -37,31 +37,35 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
+[CustomMessages]
+english.NPUCheckFailed=Qualcomm Snapdragon X NPU Hardware Requirement Check Failed:%n%nHK NPU STUDIO requires a Qualcomm Snapdragon X Series processor with Hexagon HTP NPU and active FastRPC driver (qcadsprpc).%n%nThe required Qualcomm FastRPC service was not detected on this system.%nSetup cannot continue without compatible Qualcomm NPU hardware.
+german.NPUCheckFailed=Qualcomm Snapdragon X NPU Hardware-Voraussetzungsprüfung fehlgeschlagen:%n%nHK NPU STUDIO erfordert einen Qualcomm Snapdragon X Prozessor mit Hexagon HTP NPU und aktivem FastRPC-Treiber (qcadsprpc).%n%nDer erforderliche Qualcomm FastRPC-Dienst wurde auf diesem System nicht gefunden.%nDie Installation kann auf inkompatibler Hardware nicht fortgesetzt werden.
+spanish.NPUCheckFailed=Error en la verificación de hardware Qualcomm Snapdragon X NPU:%n%nHK NPU STUDIO requiere un procesador Qualcomm Snapdragon X Series con NPU Hexagon HTP y controlador FastRPC activo (qcadsprpc).%n%nNo se detectó el servicio Qualcomm FastRPC requerido en este sistema.%nLa instalación no puede continuar sin hardware Qualcomm NPU compatible.
+
 [Messages]
-english.SelectLanguageTitle=HK NPU STUDIO · VERSION 2.0 RC4
-english.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Release Candidate 4%nSelect the installation language:
+english.SelectLanguageTitle=HK NPU STUDIO · VERSION 2.1.0
+english.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Phoenix Evolution%nSelect the installation language:
 english.WelcomeLabel1=Welcome to HK NPU STUDIO
-english.WelcomeLabel2=HK NPU STUDIO · VERSION 2.0 RC4%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nPre-release version for testing and evaluation purposes.%n%nIndependent open-source project for Windows on Snapdragon. Not an official Qualcomm product.%n%n© 2026 Holger Kreuzhofen
-english.FinishedHeadingLabel=HK NPU STUDIO 2.0 RC4 has been installed successfully
-english.FinishedLabel=Setup has finished installing HK NPU STUDIO 2.0 RC4.%n%nThank you for testing HK NPU STUDIO RC4.
+english.WelcomeLabel2=HK NPU STUDIO 2.1.0 – Phoenix Evolution%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nIndependent open-source project for Windows on Snapdragon. Not an official Qualcomm product.%n%n© 2026 Holger Kreuzhofen
+english.FinishedHeadingLabel=HK NPU STUDIO 2.1.0 – Phoenix Evolution has been installed successfully
+english.FinishedLabel=Setup has finished installing HK NPU STUDIO 2.1.0 – Phoenix Evolution.
 
-german.SelectLanguageTitle=HK NPU STUDIO · VERSION 2.0 RC4
-german.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Release Candidate 4%nInstallationssprache auswählen:
+german.SelectLanguageTitle=HK NPU STUDIO · VERSION 2.1.0
+german.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Phoenix Evolution%nInstallationssprache auswählen:
 german.WelcomeLabel1=Willkommen bei HK NPU STUDIO
-german.WelcomeLabel2=HK NPU STUDIO · VERSION 2.0 RC4%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nVorabversion zu Test- und Evaluierungszwecken.%n%nUnabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt.%n%n© 2026 Holger Kreuzhofen
-german.FinishedHeadingLabel=HK NPU STUDIO 2.0 RC4 wurde erfolgreich installiert
-german.FinishedLabel=Die Installation von HK NPU STUDIO 2.0 RC4 wurde erfolgreich abgeschlossen.%n%nVielen Dank, dass Sie HK NPU STUDIO RC4 testen.
+german.WelcomeLabel2=HK NPU STUDIO 2.1.0 – Phoenix Evolution%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nUnabhängiges Open-Source-Projekt für Windows auf Snapdragon. Kein offizielles Qualcomm-Produkt.%n%n© 2026 Holger Kreuzhofen
+german.FinishedHeadingLabel=HK NPU STUDIO 2.1.0 – Phoenix Evolution wurde erfolgreich installiert
+german.FinishedLabel=Die Installation von HK NPU STUDIO 2.1.0 – Phoenix Evolution wurde erfolgreich abgeschlossen.
 
-spanish.SelectLanguageTitle=HK NPU STUDIO · VERSION 2.0 RC4
-spanish.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Release Candidate 4%nSeleccione el idioma de instalación:
+spanish.SelectLanguageTitle=HK NPU STUDIO · VERSION 2.1.0
+spanish.SelectLanguageLabel=© 2026 Holger Kreuzhofen · Phoenix Evolution%nSeleccione el idioma de instalación:
 spanish.WelcomeLabel1=Bienvenido a HK NPU STUDIO
-spanish.WelcomeLabel2=HK NPU STUDIO · VERSION 2.0 RC4%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nVersión preliminar para fines de prueba y evaluación.%n%nProyecto independiente de código abierto para Windows en Snapdragon. No es un producto oficial de Qualcomm.%n%n© 2026 Holger Kreuzhofen
-spanish.FinishedHeadingLabel=HK NPU STUDIO 2.0 RC4 se ha instalado correctamente
-spanish.FinishedLabel=HK NPU STUDIO 2.0 RC4 se ha instalado correctamente.%n%nGracias por probar HK NPU STUDIO RC4.
+spanish.WelcomeLabel2=HK NPU STUDIO 2.1.0 – Phoenix Evolution%n%nYour Hardware • Your AI • Your Control%nLocal AI for Snapdragon® PCs%nFeaturing Phoenix Boost%n%nProyecto independiente de código abierto para Windows en Snapdragon. No es un producto oficial de Qualcomm.%n%n© 2026 Holger Kreuzhofen
+spanish.FinishedHeadingLabel=HK NPU STUDIO 2.1.0 – Phoenix Evolution se ha instalado correctamente
+spanish.FinishedLabel=HK NPU STUDIO 2.1.0 – Phoenix Evolution se ha instalado correctamente.
 
 [Files]
-Source: "..\dist\HKNPUStudio\*"; DestDir: "{app}"; Excludes: "output\*,models\photo_restore_context\*"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\dist\HKNPUStudio\models\photo_restore_context\*"; DestDir: "{app}\models\photo_restore_context"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\HKNPUStudio\*"; DestDir: "{app}"; Excludes: "output\*,models\photo_restore\*,models\photo_restore_context\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExecutableName}"
@@ -74,6 +78,29 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Filename: "{app}\{#ExecutableName}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+function InitializeSetup(): Boolean;
+var
+  DriverFound: Boolean;
+  IgnoreCheck: Boolean;
+  I: Integer;
+begin
+  Result := True;
+  IgnoreCheck := False;
+  for I := 1 to ParamCount do
+  begin
+    if CompareText(ParamStr(I), '/IGNORENPUCHECK') = 0 then
+      IgnoreCheck := True;
+  end;
+
+  DriverFound := RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\qcadsprpc');
+  if (not DriverFound) and (not IgnoreCheck) then
+  begin
+    MsgBox(CustomMessage('NPUCheckFailed'), mbCriticalError, MB_OK);
+    Result := False;
+    Exit;
+  end;
+end;
+
 procedure InitializeLanguagePreferences;
 var
   PreferencesDir: String;

@@ -193,10 +193,22 @@ class PhoenixGalleryView(WorkspaceFrame):
             app = self.winfo_toplevel()
             if hasattr(app, "phoenix_workspace") and app.phoenix_workspace is not None:
                 workspace = app.phoenix_workspace
-                prompt_view = workspace._get_or_create_view("prompt")
-                if hasattr(prompt_view, "apply_generation_settings"):
-                    prompt_view.apply_generation_settings(settings)
-                workspace.show_view("prompt")
+                feature = settings.get("feature") or settings.get("mode") or ""
+                if feature in ("Image-to-Image", "img2img"):
+                    img2img_view = workspace._get_or_create_view("image_to_image")
+                    if hasattr(img2img_view, "apply_generation_settings"):
+                        img2img_view.apply_generation_settings(settings)
+                    workspace.show_view("image_to_image")
+                elif feature in ("Inpainting", "inpaint"):
+                    inpaint_view = workspace._get_or_create_view("inpainting")
+                    if hasattr(inpaint_view, "apply_generation_settings"):
+                        inpaint_view.apply_generation_settings(settings)
+                    workspace.show_view("inpainting")
+                else:
+                    prompt_view = workspace._get_or_create_view("prompt")
+                    if hasattr(prompt_view, "apply_generation_settings"):
+                        prompt_view.apply_generation_settings(settings)
+                    workspace.show_view("prompt")
         except Exception as e:
             import logging
             logging.getLogger("PhoenixGalleryView").error(f"Failed to apply generation settings: {e}")
